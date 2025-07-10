@@ -37,7 +37,7 @@ DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.mysql',
         'ENGINE': 'mysql.connector.django',
-        'NAME': 'tdms',      # Replace with your database name
+        'NAME': 'twx_db',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
         'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
         # 'PASSWORD': 'Shrims8@2420',  # Replace with your database password
