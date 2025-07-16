@@ -335,7 +335,6 @@ def workflow_starts(request):
             
         })
 
-    # Map of step_id to step info for quick lookup
     step_roles_map = {
         str(step['id']): step
         for step in workflow_steps
