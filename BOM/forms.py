@@ -76,6 +76,43 @@ class BOMItemForm(BaseForm):
         }
 
 class ComponentForm(BaseForm):
+    UNIT_MEASURE_CHOICES = [
+        ('', '-- Select Unit --'),  # Empty/default option
+        ('ea', 'Each (ea)'),
+        ('pc', 'Piece (pc)'),
+        ('set', 'Set'),
+        ('g', 'Gram (g)'),
+        ('kg', 'Kilogram (kg)'),
+        ('mm', 'Millimeter (mm)'),
+        ('cm', 'Centimeter (cm)'),
+        ('m', 'Meter (m)'),
+        ('mL', 'Milliliter (mL)'),
+        ('L', 'Liter (L)'),
+        ('oz', 'Ounce (oz)'),
+        ('lb', 'Pound (lb)'),
+        ('in', 'Inch (in)'),
+        ('ft', 'Foot (ft)'),
+        ('m²', 'Square Meter (m²)'),
+        ('mm²', 'Square Millimeter (mm²)'),
+        ('cm²', 'Square Centimeter (cm²)'),
+        ('in²', 'Square Inch (in²)'),
+        ('ft²', 'Square Foot (ft²)'),
+        ('m³', 'Cubic Meter (m³)'),
+        ('mm³', 'Cubic Millimeter (mm³)'),
+        ('cm³', 'Cubic Centimeter (cm³)'),
+        ('in³', 'Cubic Inch (in³)'),
+        ('ft³', 'Cubic Foot (ft³)'),
+        ('deg', 'Degree (deg)'),
+        ('rad', 'Radian (rad)'),
+    ]
+
+    unit_of_measure = forms.ChoiceField(
+        choices=UNIT_MEASURE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
     class Meta:
         model = Component
         fields = ['part_number', 'description', 'category', 'unit_of_measure', 
