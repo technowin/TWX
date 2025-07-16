@@ -112,6 +112,7 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     # "django.contrib.sites",
+    'django.contrib.humanize',
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # "django.contrib.humanize", # Handy template tags
@@ -145,7 +146,8 @@ LOCAL_APPS = [
     'Reports',
     'Dashboard',
     'Workflow',
-    'Form'
+    'Form',
+    'BOM'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
