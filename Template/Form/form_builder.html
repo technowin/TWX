@@ -36,6 +36,22 @@
 
 <style>
 
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.primary-key-icon{
+    font-size: 25px;
+    stroke: #d4af37;            /* Outline color */
+    stroke-width: 2;  
+    fill: #002147;              /* Fill color of icon */
+    stroke:rgb(3, 3, 3);            /* Outline color */
+    stroke-width: 2;  
+     
+}
     /* Base: Mobile-first default (stacked full width on small screens) */
 [class^="col-md-custom-"],
 [class*=" col-md-custom-"] {
@@ -103,17 +119,29 @@
                     {% csrf_token %}
                     <div class="row g-3">
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="form_name" class="form-label fw-semibold">Form Name:</label>
                             <input type="text" class="form-control" id="form_name" name="form_name"
                                    pattern="^[A-Za-z ]+$" placeholder="Enter Form Name"
                                    value="{{ form.name }}" required onchange="DublicateformName()">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="form_description" class="form-label fw-semibold">Form Description:</label>
                             <input type="text" class="form-control" id="form_description" name="form_description"
                                    placeholder="Enter Form Description" value="{{ form.description }}">
+                        </div>
+
+                        <div class="col-md-2"> 
+                            <label  class="form-label fw-semibold">Select Module :</label>
+                            <select name="module" id="moduleDropdown" class="form-control">
+                                <option value="" Selected disabled >Select</option>
+                                    {% for item in modules %}
+                                            <option value="{{ item.id }}" {% if item.id == form.module %}selected{% endif %}>
+                                                {{ item.name }}
+                                            </option>
+                                    {% endfor %}
+                            </select>
                         </div>
 
                         <input type="hidden" name="form_data" id="form-data-input">
@@ -180,6 +208,8 @@
             options: [],
             generatefield: "",
             section:"",
+            primarykey: 0,
+            foreignkey:"",
             masterValue: "",
             multiMasterValue: "",
             order: formFields.length + 1
@@ -192,6 +222,7 @@
         renderFormPreview();
     
         restoreDropdownStates(previousDropdownStates);  // Restore the previous state
+        restorePrimaryKeyUI();
     }
     
     
@@ -210,6 +241,8 @@
             options: [],
             generatefield: "",
             section: "",
+            primarykey: 0,
+            foreignkey:"",
             masterValue: "",
             multiMasterValue: "",
             order: formFields.length + 1
@@ -222,6 +255,7 @@
         renderFormPreview();
     
         restoreDropdownStates(previousDropdownStates);  // Restore the previous state
+         restorePrimaryKeyUI();
     }
     
     
@@ -433,6 +467,17 @@
                     </select>
                 `;
             }
+             else if (field.type === "foreign") {
+                optionDropdownHtml = `<select class="form-control select" id="foreign-dropdown-${field.id}">`;
+                optionDropdownHtml += `<option value="" disabled ${!field.foreignkey ? "selected" : ""}>Select Form</option>`;
+
+                formNames.forEach(form => {
+                    const selectedAttr = (form.id == field.foreignkey) ? "selected" : "";
+                    optionDropdownHtml += `<option value="${form.id}" ${selectedAttr}>${form.name}</option>`;
+                });
+
+                optionDropdownHtml += `</select>`;
+            }
             else if (field.type === "generative") {
                 const generativeData = field.generative_list?.[field.id]?.[0] || {};
                 let rawSelected = generativeData.selected_field;
@@ -489,7 +534,7 @@
             }
     
         
-            let colSize = 'col-md-custom-4';
+            let colSize = 'col-md-3';
 
             let labelInputHtml = '';
             if (field.type === "file_name") {
@@ -507,12 +552,26 @@
                 `;
             }
 
+            const isPrimary = field.primarykey == 1;  // Check if this field is primary
+            
+
+            const keyIconHTML = `
+            <span class="key-icon-wrapper" data-id="${fieldId}" style="${isPrimary ? 'display: inline;' : 'display: inline;'}">
+                <i 
+                class="fa-solid fa-key primary-key-icon ${isPrimary ? 'primary-key-selected' : ''}" 
+                data-id="${fieldId}" 
+                style="${isPrimary ? 'color: #DAA520;' : ''}">
+                </i>
+            </span>
+            `;
+
 
           builder.innerHTML += `
-           <div class="row col-md-12 draggable-field" data-id="${fieldId}">
+            <div class="row col-md-12 draggable-field" data-id="${fieldId}">
                 <div class="col-md-custom-0 drag-handle" style="cursor: grab;">
-                     <span class="btn btn-primary rounded-pill" style=><i class="fa fa-sort me-1"></i> </span>
+                    &#x2630;
                 </div>
+                <div class="col-md-custom-0">${keyIconHTML}</div>
 
                 <div class="col-md-2 mb-3">
                     ${labelInputHtml}
@@ -647,30 +706,38 @@
     
 
     function captureDropdownStates() {
-        const stateMap = {};
+    const stateMap = {};
+
+    // Capture form dropdowns and sub-fields
+    $('select[id^="form-dropdown-"]').each(function () {
+        const fieldId = this.id.split('-')[2];
+        const selectedFormValue = $(this).val();
+        const selectedSubFieldValue = $(`select[name="sub_field_${fieldId}"]`).val() || "";
+
+        stateMap[fieldId] = {
+            formValue: selectedFormValue,
+            subFieldValue: selectedSubFieldValue
+        };
+    });
     
-        $('select[id^="form-dropdown-"]').each(function () {
-            const fieldId = this.id.split('-')[2];
-            const selectedFormValue = $(this).val();
-            const selectedSubFieldValue = $(`select[name="sub_field_${fieldId}"]`).val() || "";
-    
-            stateMap[fieldId] = {
-                formValue: selectedFormValue,
-                subFieldValue: selectedSubFieldValue
-            };
-        });
-    
-        // Capture master dropdowns
-        $('select[id^="option-dropdown-"]').each(function () {
-            const fieldId = this.id.split('-')[2];
-            const selectedMasterValue = $(this).val();
-    
-            if (!stateMap[fieldId]) stateMap[fieldId] = {};
-            stateMap[fieldId].masterValue = selectedMasterValue;
-        });
-    
-        return stateMap;
-    }
+    $('select[id^="option-dropdown-"]').each(function () {
+        const fieldId = this.id.split('-')[2];
+        const selectedMasterValue = $(this).val();
+
+        if (!stateMap[fieldId]) stateMap[fieldId] = {};
+        stateMap[fieldId].masterValue = selectedMasterValue;
+    });
+
+     $('select[id^="multi-option-dropdown-"]').each(function () {
+        const fieldId = this.id.split('-')[2];
+        const selectedMultiMasterValue = $(this).val();
+
+        if (!stateMap[fieldId]) stateMap[fieldId] = {};
+        stateMap[fieldId].multiMasterValue = selectedMultiMasterValue;
+    });
+
+    return stateMap;
+}
 
     
     function restoreDropdownStates(stateMap) {
@@ -687,6 +754,11 @@
             if (masterValue !== undefined) {
                 $(`#option-dropdown-${fieldId}`).val(masterValue);
                 updateFields(fieldId, 'masterValue', masterValue);
+            }
+
+            if (selectedMultiMasterValue !== undefined) {
+                $(`#multi-option-dropdown-${fieldId}`).val(masterValue);
+                updateFields(fieldId, 'multiMasterValue', masterValue);
             }
         }
     }
@@ -1235,6 +1307,19 @@
                     field.options = [selectedValue];               // for UI reloads
                     field.multiMasterValue = selectedValue;        // 🔥 for Django backend
                 }
+
+                if (field.type === "foreign") {
+                    const dropdown = document.getElementById(`foreign-dropdown-${field.id}`);
+                    if (dropdown) {
+                        const selectedValue = dropdown.value; // selected form id
+                        field.foreignkey = selectedValue;     // save to your object property
+                    } else {
+                        field.foreignkey = ""; // or null if nothing selected
+                    }
+                }
+
+                const primaryIcon = document.querySelector(`.primary-key-icon[data-id="${field.id}"]`);
+                field.primary = primaryIcon?.classList.contains('primary-key-selected') ? 1 : 0;
         });
     }
 
@@ -1285,6 +1370,7 @@
             renderFormBuilder();
             renderFormPreview();
             restoreDropdownStates(previousDropdownStates);
+             restorePrimaryKeyUI();
         }
     }
 
@@ -1298,6 +1384,7 @@
         renderFormBuilder();
         renderFormPreview();
         restoreDropdownStates(previousDropdownStates);
+         restorePrimaryKeyUI();
     }
 
 
@@ -1306,6 +1393,7 @@
         if (fieldIndex !== -1) {
             formFields[fieldIndex][key] = value;
         }
+        restorePrimaryKeyUI();
     }
     
 
@@ -1314,6 +1402,7 @@
     document.querySelectorAll(".common-select").forEach(select => {
         let selectedOptions = $(select).val() || [];
         $(select).data("existing-values", selectedOptions); // Store initial values
+         restorePrimaryKeyUI();
     });
 
     
@@ -1395,6 +1484,7 @@ function removeField(id) {
             renderFormPreview();
 
             restoreDropdownStates(previousDropdownStates);
+            restorePrimaryKeyUI();
         }
         {% endif %}
 
@@ -1402,6 +1492,7 @@ function removeField(id) {
         updateAllFieldLabels();
         renderFormBuilder();
         renderFormPreview();
+        restorePrimaryKeyUI();
     });
 </script>
 
@@ -1576,6 +1667,11 @@ function validateAndUpdateLabel(inputElement, fieldId) {
                 if (selectedDropdown) {
                     originalField.selectedValue = selectedDropdown.value; 
                 }
+            } else if (originalField.type === "multiple") {
+                const dropdownEl = document.getElementById(`multi-option-dropdown-${fieldId}`);
+                if (dropdownEl) {
+                    originalField.selectedValue = dropdownEl.value;
+                }
             }
         
             // 🔥🔥 Get selected section value
@@ -1584,6 +1680,7 @@ function validateAndUpdateLabel(inputElement, fieldId) {
                 const selectedSection = sectionSelect.selectize.getValue();
                 originalField.section = selectedSection; // <-- Save selected section ID here
             }
+            originalField.primarykey = originalField.is_primary ? 1 : 0;
         
             orderedFormFields.push(originalField);
         });
@@ -1606,8 +1703,206 @@ function validateAndUpdateLabel(inputElement, fieldId) {
 
     
 </script>
+<script>
+
+ let currentPrimaryKeyFieldId = null;
+
+document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('primary-key-icon')) {
+        const clickedIcon = e.target;
+        const fieldId = clickedIcon.getAttribute('data-id');
+        const isAlreadyPrimary = clickedIcon.classList.contains('primary-key-selected');
+
+        const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+
+        const swalOptions = {
+            background: theme === 'dark' ? '#343a40' : '#ffffff',
+            color: theme === 'dark' ? '#f8f9fa' : '#212529',
+            confirmButtonColor: '#0d6efd',
+            customClass: {
+                popup: 'rounded-4 shadow',
+                confirmButton: 'btn btn-primary px-4 py-2'
+            }
+        };
+
+        if (!isAlreadyPrimary) {
+            Swal.fire({
+                title: "Set as Primary Key?",
+                text: "Do you want to set this field as the primary key?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Yes, set it",
+                ...swalOptions
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // ✅ Update formFields
+                    formFields.forEach(field => {
+                        field.is_primary = (field.id.toString() === fieldId);
+                    });
+
+                    // ✅ Update UI
+                    document.querySelectorAll('.primary-key-icon').forEach(icon => {
+                        icon.classList.remove('primary-key-selected');
+                        icon.style.color = '';
+                        icon.style.pointerEvents = 'auto';
+                    });
+
+                    document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+                        wrapper.style.display = 'none';
+                    });
+
+                    clickedIcon.classList.add('primary-key-selected');
+                    clickedIcon.style.color = '#DAA520';
+                    document.querySelector(`.key-icon-wrapper[data-id="${fieldId}"]`).style.display = 'inline';
+
+                    document.querySelectorAll('.primary-key-icon').forEach(icon => {
+                        if (icon.getAttribute('data-id') !== fieldId) {
+                            icon.style.pointerEvents = 'none';
+                        }
+                    });
+
+                    currentPrimaryKeyFieldId = fieldId;
+                }
+            });
+        } else {
+            Swal.fire({
+                title: "Reset Primary Key?",
+                text: "Do you want to unset this primary key and choose a new one?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes, reset",
+                ...swalOptions
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // ✅ Reset formFields
+                    formFields.forEach(field => {
+                        field.is_primary = false;
+                    });
+
+                    // ✅ Reset UI
+                    clickedIcon.classList.remove('primary-key-selected');
+                    clickedIcon.style.color = '';
+
+                    document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+                        wrapper.style.display = 'inline';
+                    });
+
+                    document.querySelectorAll('.primary-key-icon').forEach(icon => {
+                        icon.style.pointerEvents = 'auto';
+                    });
+
+                    currentPrimaryKeyFieldId = null;
+                }
+            });
+        }
+    }
+});
+
+</script>
+
+<script>
+ 
+ {%if form %}
 
 
+function restorePrimaryKeyUI() {
+    // Reset all icons
+    document.querySelectorAll('.primary-key-icon').forEach(icon => {
+        icon.classList.remove('primary-key-selected');
+        icon.style.color = '';
+        icon.style.pointerEvents = 'auto';
+    });
+
+    // Show all icons initially
+    document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+        wrapper.style.display = 'inline';
+    });
+
+    // Find primary field (supports both create and edit modes)
+    const primaryField = formFields.find(f => f.is_primary === true || f.primarykey === 1);
+
+    if (primaryField) {
+        const primaryIcon = document.querySelector(`.primary-key-icon[data-id="${primaryField.id}"]`);
+        if (primaryIcon) {
+            primaryIcon.classList.add('primary-key-selected');
+            primaryIcon.style.color = '#DAA520';
+            currentPrimaryKeyFieldId = primaryField.id;
+
+            // Hide other icons again (in case DOM changed after deletion)
+            document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+                if (wrapper.getAttribute('data-id') !== String(primaryField.id)) {
+                    wrapper.style.display = 'none';
+                }
+            });
+
+            // Disable pointer events on other icons
+            document.querySelectorAll('.primary-key-icon').forEach(icon => {
+                if (icon.getAttribute('data-id') !== String(primaryField.id)) {
+                    icon.style.pointerEvents = 'none';
+                }
+            });
+        }
+    } else {
+        currentPrimaryKeyFieldId = null;
+
+        // No primary set — make sure all icons are shown and enabled
+        document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+            wrapper.style.display = 'inline';
+        });
+        document.querySelectorAll('.primary-key-icon').forEach(icon => {
+            icon.style.pointerEvents = 'auto';
+        });
+    }
+}
+
+
+ {% else %}
+
+ function restorePrimaryKeyUI() {
+   
+    document.querySelectorAll('.primary-key-icon').forEach(icon => {
+        icon.classList.remove('primary-key-selected');
+        icon.style.color = '';
+        icon.style.pointerEvents = 'auto'; // Re-enable pointer events
+    });
+
+    // Show all key icons
+    document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+        wrapper.style.display = 'inline';
+    });
+   
+   
+    const primaryField = formFields.find(f => f.is_primary);
+    if (primaryField) {
+        const primaryIcon = document.querySelector(`.primary-key-icon[data-id="${primaryField.id}"]`);
+        if (primaryIcon) {
+            primaryIcon.classList.add('primary-key-selected');
+            primaryIcon.style.color = '#DAA520';
+            currentPrimaryKeyFieldId = primaryField.id;
+
+            // Hide other icons
+            document.querySelectorAll('.key-icon-wrapper').forEach(wrapper => {
+                if (wrapper.getAttribute('data-id') !== String(primaryField.id)) {
+                    wrapper.style.display = 'none';
+                }
+            });
+
+            // Disable clicks on other icons
+            document.querySelectorAll('.primary-key-icon').forEach(icon => {
+                if (icon.getAttribute('data-id') !== String(primaryField.id)) {
+                    icon.style.pointerEvents = 'none';
+                }
+            });
+        }
+    } else {
+        currentPrimaryKeyFieldId = null;
+    }
+} 
+
+{% endif %}
+
+
+</script>
 
   <script>
 
