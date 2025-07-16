@@ -60,6 +60,7 @@ class workflow_matrix(models.Model):
     status = models.TextField(null=True, blank=True)
     step_id_flow = models.IntegerField(null=True, blank=True)
     status_color = models.TextField(null=True, blank=True)
+    wf_id = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = 'workflow_matrix'
     
@@ -160,3 +161,13 @@ class client_module (models.Model):
 
     def __str__(self):
         return f"{self.client} - {self.department} - {self.module}"
+    
+class workflow_master(models.Model):
+    wf_id = models.AutoField(primary_key=True)
+    wf_name = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'workflow_master'

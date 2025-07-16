@@ -1188,6 +1188,8 @@ def common_form_post(request):
         form_id = request.POST.get("form_id")
         editORcreate  = request.POST.get('editORcreate','')
         firstStep = request.POST.get("firstStep")
+        wfSelected_id = request.POST.get("wfSelected_id")
+        
         
         
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -1304,7 +1306,8 @@ def common_form_post(request):
                 if field.field_type == 'generative':
                     file_name = handle_generative_fields(form, form_data, created_by)
             else:
-                file_name = handle_generative_fields(form, form_data, created_by)
+                if field.field_type == 'generative':
+                    file_name = handle_generative_fields(form, form_data, created_by)
         else:
             messages.error(request, 'File Number Already Exists!')
         # callproc('create_dynamic_form_views')
@@ -1490,7 +1493,8 @@ def common_form_post(request):
 
     finally:
         if workflow_YN == '1':
-            return redirect('workflow_starts')
+            # return redirect('workflow_starts')
+            return redirect(f"{reverse('workflow_starts')}?workflowSelect={wfSelected_id}")
         else:
             return redirect('/masters?entity=form_master&type=i')
 

@@ -27,6 +27,7 @@
 <input type="hidden" id="butType_idH" name="butType_idH" value={{but_type}}>
 <input type="hidden" id="butAct_idH" name="butAct_idH" value={{but_act}}>
 <input type="hidden" id="firstStep " name="firstStep " value={{firstStep }}>
+<input type="hidden" id="workflowSelect " name="workflowSelect " value={{ workflowSelect }}>
 
 <div class="row">
   <div class="col-12">
@@ -34,7 +35,7 @@
       {% if show_top_button  %}
         <div class="text-end mt-2 me-5">
           <button class="btn btn-primary"
-            onclick="startStepFirst('{{ encid_FS }}','{{ form_id }}', '{{ but_type }}', '{{ but_act }}','{{ firstStep }}')">
+            onclick="startStepFirst('{{ encid_FS }}','{{ form_id }}', '{{ but_type }}', '{{ but_act }}','{{ firstStep }}','{{ workflowSelect }}')">
             {{ step_name }}
           </button>
         </div>
@@ -160,9 +161,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 <script>
-    function startStepFirst(id,stepId, actionId, formId,firstStep) {
+    function startStepFirst(id,stepId, actionId, formId,firstStep,workflowSelect) {
       debugger;
-        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&firstStep=${firstStep}`;
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&firstStep=${firstStep}&wfSelected_id=${workflowSelect}`;
         window.location.href = url;
     }
 </script>  

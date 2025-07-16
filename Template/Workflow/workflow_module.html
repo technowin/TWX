@@ -1,0 +1,58 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+
+{% block title %}Workflow{% endblock title %}
+
+{% block extra_css %}
+
+<!-- third party css -->
+<link href="{% static 'css/vendor/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/vendor/responsive.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/vendor/buttons.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/vendor/select.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/vendor/fixedHeader.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/vendor/fixedColumns.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- third party css end -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+{% endblock %}
+
+{% block page_title %}
+  {% include "bootstrap/partials/page-title.html" with page_title='Workflow' sub_title='Workflow' %}
+{% endblock %}
+
+{% block content %}
+
+
+
+<body>
+
+  <div class="d-flex justify-content-center align-items-start pt-1">
+    <form method="get" action="{% url 'workflow_starts' %}" class="card p-4 rounded-4 bg-body-tertiary border-0">
+      <h5 class="text-center mb-4 fw-bold text-primary">Start a Workflow</h5>
+
+      <div class="mb-3">
+        <label for="workflowSelect" class="form-label">Select Workflow</label>
+        <select name="workflowSelect" id="workflowSelect" class="form-select form-select-lg rounded-3 shadow-sm" required>
+          <option value="" disabled selected>-- Choose Workflow --</option>
+          {% for wf in module_wf %}
+            <option value="{{ wf.0 }}">{{ wf.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-100 mt-2 shadow-sm">
+        <i class="bi bi-play-circle me-2"></i>Start Workflow
+      </button>
+    </form>
+  </div>
+
+</body>
+
+
+
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% endblock %}

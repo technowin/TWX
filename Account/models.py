@@ -31,6 +31,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     role_id = models.BigIntegerField(null=True, blank=True)
     device_token = models.CharField(max_length=255, null=True, blank=True)
     file_category = models.TextField(null=True, blank=True)
+    module = models.TextField(null=True, blank=True)
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name', 'phone']  # Add any additional required fields
