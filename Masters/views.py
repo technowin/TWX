@@ -507,7 +507,7 @@ def submit_workflow(request):
             # This means it's a new text entry, not an existing ID
             is_new = True
         step_name = request.POST.get("stepName")
-        form_name = request.POST.get("formDropdown")
+        form_name = request.POST.get("formDropdown","")
         button_type = request.POST.get("buttonTypeDropdown")
         action = request.POST.get("actionDropdown")
         customRoleDropdown = request.POST.get("roles")
@@ -597,9 +597,11 @@ def workflow_Editmap(request):
             if workflow_data:
                 role_string = workflow_data[0][6]
                 role_list = role_string.split(',') if role_string else []
+                form_string = workflow_data[0][1]
+                form_id_list = form_string.split(',') if form_string else []
                 workflow_details = {
                     "workflow_name": workflow_data[0][0], 
-                    "form_id": workflow_data[0][1],
+                    "form_id": form_id_list,
                     "step_name": workflow_data[0][2],
                     "button_type_id": workflow_data[0][3],
                     "button_act_details": workflow_data[0][4],
@@ -630,7 +632,7 @@ def workflow_Editmap(request):
             workflow_idDecryp = decrypt_parameter(workflow_idEncrypt)
             workflow_name = request.POST.get("workflowDropdown")
             step_name = request.POST.get("stepName")
-            form_name = request.POST.get("formDropdown")
+            form_name = request.POST.get("formDropdown","")
             button_type = request.POST.get("buttonTypeDropdown")
             action = request.POST.get("actionDropdown")
             roles = request.POST.get("roles")
@@ -700,3 +702,9 @@ def view_access(request):
         m.commit()
         m.close()
         Db.closeConnection()
+
+
+def check_workflow_name(request):
+    name = request.GET.get('name', '').strip()
+    exists = workflow_matrix.objects.filter(workflow_name__iexact=name).exists()
+    return JsonResponse({'exists': exists})

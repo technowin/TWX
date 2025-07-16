@@ -1,0 +1,233 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load humanize %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Compare BOM Versions - {{ bom.name }}{% endblock %}
+
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'bom_list' %}">BOMs</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'bom_detail' pk=bom.id %}">{{ bom.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Compare Versions</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="bi bi-file-diff"></i> Compare BOM Versions
+            <small class="text-muted">{{ bom.name }}</small>
+        </h2>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-sliders"></i> Select Versions to Compare
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label for="rev1" class="form-label">Version 1 (Left)</label>
+                <select class="form-select" id="rev1" name="rev1">
+                    <option value="">Select a version...</option>
+                    {% for rev in revisions %}
+                        <option value="{{ rev.id }}" {% if rev1 and rev.id == rev1.id %}selected{% endif %}>
+                            Revision {{ rev.revision }} ({{ rev.created_date|date:"SHORT_DATE_FORMAT" }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 text-center align-self-end">
+                <div class="d-none d-md-block">
+                    <i class="bi bi-arrow-left-right" style="font-size: 1.5rem;"></i>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <label for="rev2" class="form-label">Version 2 (Right)</label>
+                <select class="form-select" id="rev2" name="rev2">
+                    <option value="">Select a version...</option>
+                    {% for rev in revisions %}
+                        <option value="{{ rev.id }}" {% if rev2 and rev.id == rev2.id %}selected{% endif %}>
+                            Revision {{ rev.revision }} ({{ rev.created_date|date:"SHORT_DATE_FORMAT" }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-arrow-repeat"></i> Compare
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if rev1 and rev2 %}
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-file-diff"></i> Comparison Results
+        </div>
+        <div>
+            <span class="badge bg-light text-dark">
+                {{ diff_data|length }} changes
+                ({{ diff_data|filter_by_status:'added'|length }} additions, 
+                {{ diff_data|filter_by_status:'removed'|length }} removals, 
+                {{ diff_data|filter_by_status:'changed'|length }} modifications)
+            </span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 30%">Part Number</th>
+                        <th style="width: 30%">Description</th>
+                        <th style="width: 20%">Version 1 ({{ rev1.revision }})</th>
+                        <th style="width: 20%">Version 2 ({{ rev2.revision }})</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for diff in diff_data %}
+                        <tr class="
+                            {% if diff.status == 'added' %}table-success
+                            {% elif diff.status == 'removed' %}table-danger
+                            {% elif diff.status == 'changed' %}table-warning{% endif %}
+                        ">
+                            <td>
+                                <strong>{{ diff.part_number }}</strong>
+                                <span class="badge float-end 
+                                    {% if diff.status == 'added' %}bg-success
+                                    {% elif diff.status == 'removed' %}bg-danger
+                                    {% elif diff.status == 'changed' %}bg-warning text-dark{% endif %}">
+                                    {{ diff.status|title }}
+                                </span>
+                            </td>
+                            <td>{{ diff.description }}</td>
+                            <td>
+                                {% if diff.qty1 %}
+                                    {{ diff.qty1 }} pcs
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if diff.qty2 %}
+                                    {{ diff.qty2 }} pcs
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if diff.notes1 or diff.notes2 %}
+                            <tr>
+                                <td colspan="4">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            {% if diff.notes1 %}
+                                                <div class="card bg-light mb-2">
+                                                    <div class="card-header">Version 1 Notes</div>
+                                                    <div class="card-body">
+                                                        <p class="card-text">{{ diff.notes1 }}</p>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            {% if diff.notes2 %}
+                                                <div class="card bg-light mb-2">
+                                                    <div class="card-header">Version 2 Notes</div>
+                                                    <div class="card-body">
+                                                        <p class="card-text">{{ diff.notes2 }}</p>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No differences found between these versions.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between">
+            <div>
+                <button class="btn btn-outline-primary">
+                    <i class="bi bi-file-earmark-pdf"></i> Export Report
+                </button>
+            </div>
+            <div>
+                <a href="{% url 'bom_detail' pk=bom.id %}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Back to BOM
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}

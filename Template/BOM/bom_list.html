@@ -1,0 +1,193 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+
+{% block title %}BOM List{% endblock title %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% comment %} {% block page_title %}
+    {% include "bootstrap/partials/page-title.html" with page_title='BOM List' sub_title='BOM' %}
+{% endblock %} {% endcomment %}
+
+{% block content %}
+
+<div class="card-header d-flex flex-wrap gap-2 justify-content-start justify-content-md-between align-items-center">
+    <h4><i class="uil uil-list-ul"></i> Bill of Materials</h4>
+    <a href="{% url 'bom_create' %}" class="btn btn-primary mb-2 mt-2"><i class="uil uil-plus-circle"></i> New BOM</a>
+</div>
+<div class="card mt-2">
+    <div class="card-header">
+        <i class="uil uil-search"></i> Search & Filter
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="q" value="{{ search_query }}" placeholder="Search BOMs...">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="uil uil-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="sort_by" onchange="this.form.submit()">
+                    <option value="-last_modified" {% if sort_by == '-last_modified' %}selected{% endif %}>Sort by: Recently Modified</option>
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Sort by: Name (A-Z)</option>
+                    <option value="-name" {% if sort_by == '-name' %}selected{% endif %}>Sort by: Name (Z-A)</option>
+                    <option value="revision" {% if sort_by == 'revision' %}selected{% endif %}>Sort by: Revision</option>
+                    <option value="created_date" {% if sort_by == 'created_date' %}selected{% endif %}>Sort by: Creation Date</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Revision</th>
+                        <th>Status</th>
+                        <th>Created By</th>
+                        <th>Last Modified</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bom in boms %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'bom_detail' pk=bom.id %}">{{ bom.name }}</a>
+                            </td>
+                            <td>{{ bom.description|truncatechars:50 }}</td>
+                            <td>{{ bom.revision }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if bom.status == 'AC' %}bg-success
+                                    {% elif bom.status == 'DR' %}bg-secondary
+                                    {% elif bom.status == 'PE' %}bg-warning text-dark
+                                    {% else %}bg-dark{% endif %}">
+                                    {{ bom.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ bom.created_by.get_full_name }}</td>
+                            <td>{{ bom.last_modified|date:"SHORT_DATETIME_FORMAT" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'bom_detail' pk=bom.id %}" class="btn btn-outline-primary" title="View">
+                                        <i class="uil uil-eye"></i>
+                                    </a>
+                                    <a href="{% url 'bom_update' pk=bom.id %}" class="btn btn-outline-secondary" title="Edit">
+                                        <i class="uil uil-pen"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No BOMs found</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if is_paginated %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1&q={{ search_query }}&status={{ status_filter }}&sort_by={{ sort_by }}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&sort_by={{ sort_by }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}&q={{ search_query }}&status={{ status_filter }}&sort_by={{ sort_by }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&sort_by={{ sort_by }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&q={{ search_query }}&status={{ status_filter }}&sort_by={{ sort_by }}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}

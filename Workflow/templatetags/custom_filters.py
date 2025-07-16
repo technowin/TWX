@@ -90,3 +90,15 @@ def trim(value):
     if isinstance(value, str):
         return value.strip()
     return value
+
+
+# BOM Filters
+@register.filter
+def subtract(value, arg):
+    return value - arg
+
+@register.filter
+def filter_by_status(items, status):
+    return [item for item in items if item['status'] == status]
+
+

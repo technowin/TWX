@@ -27,6 +27,7 @@ from Form.views import *
 from Reports.views import *
 from MenuManager.views import *
 from Workflow.views import *
+from BOM import views
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
@@ -58,6 +59,35 @@ urlpatterns = [
     path('ks/<int:document_id>/', ks, name='ks'),
     path('ocr_files', ocr_files, name='ocr_files'),
 
+    # Dashboard
+    path('bom/dashboard', views.DashboardView.as_view(), name='dashboard'),
+    
+    # BOM Management
+    path('boms/', views.BOMListView.as_view(), name='bom_list'),
+    path('boms/new/', views.BOMCreateView.as_view(), name='bom_create'),
+    path('boms/<int:pk>/', views.BOMDetailView.as_view(), name='bom_detail'),
+    path('boms/<int:pk>/edit/', views.BOMUpdateView.as_view(), name='bom_update'),
+    path('boms/<int:pk>/delete/', views.BOMDeleteView.as_view(), name='bom_delete'),
+
+    path('boms/<int:pk>/compare/', views.BOMCompareView.as_view(), name='bom_compare'),
+    
+    # Component Management
+    path('components/', views.ComponentListView.as_view(), name='component_list'),
+    path('components/<int:pk>/', views.ComponentDetailView.as_view(), name='component_detail'),
+    
+    # AJAX endpoints
+    path('api/add-bom-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
+    path('api/update-bom-item/', views.UpdateBOMItemView.as_view(), name='update_bom_item'),
+    path('api/remove-bom-item/', views.RemoveBOMItemView.as_view(), name='remove_bom_item'),
+    path('api/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
+    path('api/approve-bom/', views.ApproveBOMView.as_view(), name='approve_bom'),
+    path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
+    
+    # API endpoints
+    path('api/components/<int:pk>/', views.ComponentAPIView.as_view(), name='component_api'),
+    path('components/new/', views.ComponentCreateView.as_view(), name='component_create'),
+    path('components/<int:pk>/edit/', views.ComponentUpdateView.as_view(), name='component_update'),
+    path('components/<int:pk>/add-supplier/', views.AddComponentSupplierView.as_view(), name='add_component_supplier'),
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'), 
