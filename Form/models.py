@@ -30,6 +30,7 @@ class FormMaster(models.Model):
 class Form(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    module = models.IntegerField(blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -44,6 +45,8 @@ class FormField(models.Model):
     values = models.TextField(null=True,blank=True)
     attributes = models.TextField(null=True,blank=True)
     order = models.IntegerField(default=0)
+    is_primary = models.BooleanField(null=True,blank=True)
+    foriegn_key_form_id = models.TextField(null=True,blank=True)
     section = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -347,6 +350,19 @@ class WorkflowVersion(models.Model):
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'workflow_version'
+
+
+class ModuleMaster(models.Model):
+    name = models.TextField(null=True, blank=True)
+    index_table = models.TextField(null=True,blank=True)
+    file_table =models.TextField(null=True,blank=True)
+    data_table = models.TextField(null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'module_master'
 
 
 
