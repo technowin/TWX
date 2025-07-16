@@ -44,7 +44,7 @@ class workflow_document(models.Model):
 class workflow_matrix(models.Model):
     id = models.AutoField(primary_key=True) 
     workflow_name = models.TextField(null=True, blank=True)
-    form_id = models.IntegerField(null=True, blank=True)
+    form_id = models.TextField(null=True, blank=True)
     step_name = models.TextField(null=True, blank=True)
     button_type_id = models.IntegerField(null=True, blank=True)
     button_act_details = models.IntegerField(null=True, blank=True)
