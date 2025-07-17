@@ -250,3 +250,15 @@ class ApprovalRequestForm(BaseForm):
                 'class': 'form-control'
             }),
         }
+
+class RejectionForm(forms.ModelForm):
+    class Meta:
+        model = ApprovalRequest
+        fields = ['rejection_reason']
+        widgets = {
+            'rejection_reason': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Explain why you are rejecting this BOM...',
+                'class': 'form-control'
+            }),
+        }

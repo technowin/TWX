@@ -198,11 +198,22 @@ class ApprovalRequest(models.Model):
     requested_date = models.DateTimeField(auto_now_add=True)
     approved_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_requests')
     approved_date = models.DateTimeField(null=True, blank=True)
+    rejected_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='rejected_requests')
+    rejected_date = models.DateTimeField(null=True, blank=True)
     comments = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-requested_date']
     
     def __str__(self):
-        return f"Approval for {self.bom}"
+        return f"Approval for {self.bom.name}"
     
     @property
     def status(self):
-        return "Approved" if self.approved_by else "Pending"
+        if self.approved_by:
+            return "Approved"
+        elif self.rejected_by:
+            return "Rejected"
+        return "Pending"
+    
