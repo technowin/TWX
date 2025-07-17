@@ -48,10 +48,6 @@ class workflow_matrix(models.Model):
     step_name = models.TextField(null=True, blank=True)
     button_type_id = models.IntegerField(null=True, blank=True)
     button_act_details = models.IntegerField(null=True, blank=True)
-       
-    # form_action = models.TextField(null=True, blank=True)
-    # workflow_action = models.TextField(null=True, blank=True)
-    # next_step = models.TextField(null=True, blank=True)
     role_id = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)             
     created_by = models.TextField(null=True, blank=True) 
@@ -94,12 +90,9 @@ class workflow_details(models.Model):
     form_data_id = models.IntegerField(null=True, blank=True)
     primary_key = models.TextField(null= True,blank=True)
     req_id = models.TextField(null=True, blank=True)
-    # action_id = models.IntegerField(null=True, blank=True)
     action_details_id = models.IntegerField(null=True, blank=True)
     role_id = models.TextField(null=True, blank=True)
-    # form_id = models.IntegerField(null=True, blank=True)
     status = models.TextField(null=True, blank=True)
-    
     user_id = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)             
     created_by = models.TextField(null=True, blank=True) 

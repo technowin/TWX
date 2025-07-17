@@ -994,12 +994,21 @@ def form_master(request):
             viewStepWF = request.GET.get('viewStepWF', '')
             type = request.GET.get('type','')
             req_num = request.GET.get('req_num','')
+            primary_key = request.GET.get('primary_key','')
             category_dropD = para_master.objects.filter(para_name='Category').values(value=F('para_details'), text=F('description'))
 
-            
+
             if form_data_id:
                 form_data_id = dec(form_data_id)
-                form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
+
+                module = 2
+                module_tables = common_module_master(module)
+                IndexTable = apps.get_model('Form', module_tables["index_table"])
+                DataTable = apps.get_model('Form', module_tables["data_table"])
+                FileTable = apps.get_model('Form', module_tables["file_table"])
+                ActionTable = apps.get_model('Form', module_tables["action_table"])
+
+                form_instance = IndexTable.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
                 file_ref = VersionControlFileMap.objects.filter(form_data=form_data_id)
 
                 if file_ref:
@@ -1011,12 +1020,14 @@ def form_master(request):
                 if step_id == '1' or step_id == '6' or readonlyWF == '1':
                     version_no = 1.0
                 else:
-                    version_no = get_object_or_404(WorkflowVersion, req_id=req_num).version
+                    version_no = 1.0
+                #     version_no = get_object_or_404(WorkflowVersion, req_id=req_num).version
+                # version_no = 1.0
 
                 step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
                 custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
                 custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
-                comments_base = ActionData.objects.filter(form_data_id=form_data_id,version = version_no,field__type__in=['text', 'textarea', 'select']
+                comments_base = ActionTable.objects.filter(form_data_id=form_data_id,version = version_no,field__type__in=['text', 'textarea', 'select']
                 ).annotate(step_name=step_name_subquery,role_id=custom_user_role_id_subquery,email=custom_email_subquery)
                 comments = comments_base.annotate(role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
                 ).values('field_id','value','step_id','created_at','created_by','step_name','role_name','email',)
@@ -1042,92 +1053,76 @@ def form_master(request):
                     sr_no_counter += 1
 
                 
-                if form_instance:
-                    form_id = form_instance["form_id"]
-                    form = get_object_or_404(Form, id=form_id)
+                form_ids = workflow_matrix.objects.filter(step_id_flow=step_id).values_list('form_id', flat=True).distinct()
 
-                    action_id = form_instance["action_id"] if button_type_id is None else button_type_id
+                forms_data = []
+                file_cat_val = None  # initialize to include in render context
+
+                for form_id in form_ids:
+                    try:
+                        form = Form.objects.get(id=form_id)
+                    except Form.DoesNotExist:
+                        continue
+
+                    form_data_instance = IndexTable.objects.filter(form_id=form_id, primary_key=primary_key).first()
+                    form_data_id_local = form_data_instance.id if form_data_instance else None
+                    action_id = form_data_instance.action_id if form_data_instance else None
+
+                    # Override if button_type_id is passed
+                    if button_type_id:
+                        action_id = button_type_id
+
+                    values_dict = {}
+                    if form_data_id_local:
+                        field_values = DataTable.objects.filter(form_data_id=form_data_id_local).values("field_id", "value")
+                        values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
 
                     fields = FormField.objects.filter(form_id=form_id).values(
                         "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
                     ).order_by("order")
                     fields = list(fields)
 
-                    if reference_type == '1':
-                        field_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id).values("field_id", "value")
-                        if not field_values.exists():
-                            field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
-                    else:
-                        field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
-                    values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
-
                     sectioned_fields = defaultdict(list)
 
-
                     for field in fields:
-                        # Split values and attributes
                         field["values"] = field["values"].split(",") if field.get("values") else []
                         field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
-                        # Section name logic
                         section_id = field.get("section")
+                        section_name = ""
                         if section_id:
-                            try:
-                                section = SectionMaster.objects.get(id=section_id)
+                            section = SectionMaster.objects.filter(id=section_id).first()
+                            if section:
                                 section_name = section.name
-                            except SectionMaster.DoesNotExist:
-                                section_name = ""
-                        else:
-                            section_name = ""
 
-                        # Validation rules
-                        validations = FieldValidation.objects.filter(
-                            field_id=field["id"], form_id=form_id
-                        ).values("value")
+                        validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
                         field["validations"] = list(validations)
 
-                        # Check for regex
                         if any("^" in v["value"] for v in field["validations"]):
                             field["field_type"] = "regex"
                             pattern_value = field["validations"][0]["value"]
-                            try:
-                                regex_obj = RegexPattern.objects.get(regex_pattern=pattern_value)
-                                field["regex_id"] = regex_obj.id
-                                field["regex_description"] = regex_obj.description
-                            except RegexPattern.DoesNotExist:
-                                field["regex_id"] = None
-                                field["regex_description"] = ""
+                            regex_obj = RegexPattern.objects.filter(regex_pattern=pattern_value).first()
+                            field["regex_id"] = regex_obj.id if regex_obj else None
+                            field["regex_description"] = regex_obj.description if regex_obj else ""
 
-                        # File field logic
                         if field["field_type"] in ["file", "file multiple", "text"]:
-                            file_validation = next((v for v in field["validations"]), None)
-                            field["accept"] = file_validation["value"] if file_validation else ""
-
-                            if reference_type == '1':
-                                file_exists = FormFileTemp.objects.filter(field_id=field["id"], form_data_id=form_data_id).exists()
-                            else:
-                                file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=form_data_id).exists()
+                            file_exists = FileTable.objects.filter(field_id=field["id"], form_data_id=form_data_id_local).exists() if form_data_id_local else False
                             field["file_uploaded"] = 1 if file_exists else 0
-
                             if file_exists and "required" in field["attributes"]:
                                 field["attributes"].remove("required")
 
-
-                        # Set saved value
                         saved_value = values_dict.get(field["id"], "")
                         if field["field_type"] == "select multiple":
                             field["value"] = [val.strip() for val in saved_value.split(",") if val.strip()]
                         else:
                             field["value"] = saved_value
 
-
-                        # field_dropdown logic
                         if field["field_type"] == "field_dropdown":
                             split_values = field["values"]
                             if len(split_values) == 2:
                                 try:
                                     dropdown_field_id = int(split_values[1])
-                                    dropdown_field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
+                                    dropdown_field_values = DataTable.objects.filter(field_id=dropdown_field_id)
                                     field["dropdown_data"] = list(dropdown_field_values.values())
                                     field["saved_value"] = values_dict.get(field["id"])
                                 except (ValueError, IndexError):
@@ -1135,37 +1130,16 @@ def form_master(request):
                                     field["saved_value"] = ""
 
                         if field["field_type"] == "file_name":
-                            # 1️⃣ get the “baseline” options
-                            qs = WorkflowVersionControl.objects.filter(
-                                ~Q(baseline_date__isnull=True)
-                            )
-                            field["file_name_options"] = list(
-                                qs
-                                .values_list("file_name", flat=True)
-                                .distinct()
-                            )
-
-                            # 2️⃣ pull the user’s *saved* value for this field (if any)
+                            qs = WorkflowVersionControl.objects.filter(~Q(baseline_date__isnull=True))
+                            field["file_name_options"] = list(qs.values_list("file_name", flat=True).distinct())
                             saved = (
-                                FormFieldValuesTemp.objects
-                                .filter(form_data_id=form_data_id, field_id=field["id"])
-                                .values_list("value", flat=True)
-                                .first()
-                                or
-                                FormFieldValues.objects
-                                .filter(form_data_id=form_data_id, field_id=field["id"])
-                                .values_list("value", flat=True)
-                                .first()
+                                DataTable.objects.filter(form_data_id=form_data_id_local, field_id=field["id"])
+                                .values_list("value", flat=True).first()
                             )
-
-                            # 3️⃣ keep it on the field dict so the template can see it
                             field["saved_value"] = saved
-
-                            # 4️⃣ if it isn’t already in the baseline list, stick it on top
                             if saved and saved not in field["file_name_options"]:
                                 field["file_name_options"].insert(0, saved)
 
-                        # master dropdown logic
                         if field["field_type"] == "master dropdown" and field["values"]:
                             try:
                                 dropdown_id = field["values"][0]
@@ -1176,8 +1150,16 @@ def form_master(request):
                             except (MasterDropdownData.DoesNotExist, IndexError):
                                 field["values"] = []
 
-                        # Group field by section name
                         sectioned_fields[section_name].append(field)
+
+                    forms_data.append({
+                        "form": form,
+                        "sectioned_fields": dict(sectioned_fields)
+                    })
+
+                    # Keep last file_cat_val for render (you can adjust logic if needed)
+                    if form_data_id_local:
+                        file_cat_val = WorkflowVersionControl.objects.filter(form_data_id=form_data_id_local).order_by('-id').values_list('file_category', flat=True).first()
 
                     # ✅ Fetch action fields (no validations needed)
                     action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
@@ -1193,11 +1175,13 @@ def form_master(request):
 
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
+
+                   
                     if workflow_YN == '1E':
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,})
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data})
                     else:
-                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data})
+                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all().order_by('-id')
@@ -1341,7 +1325,7 @@ def common_form_post(request):
                     updated_by=user,
                     created_at=now(),
                     updated_at=now(),
-                    primary_key=primary_value  # Assuming your model has a field named `primary_value`
+                    primary_key=primary_value  
                 )
             workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
             workflow_detail.save()

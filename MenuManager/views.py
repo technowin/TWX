@@ -230,7 +230,7 @@ def assign_menu(request):
                 messages.error(request, "An error occurred while updating menus.")
 
             try:
-                UserMenuDetails.objects.filter(role_id=roleId).delete()
+                # UserMenuDetails.objects.filter(role_id=roleId).delete()
 
                 users = CustomUser.objects.filter(role_id=roleId)
 

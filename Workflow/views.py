@@ -556,9 +556,10 @@ def get_formdataid(request):
     for result in cursor.stored_results():
         form_data_id = result.fetchall()[0][0]
     form=enc(str(form_data_id))
+    primary_value = get_object_or_404(workflow_details,req_id = req_num).primary_key
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}&req_num={req_num}'
+    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}&req_num={req_num}&primary_key={primary_value}'
     return redirect(url)
 
 
@@ -589,9 +590,10 @@ def get_formdataidEdit(request):
     for result in cursor.stored_results():
         form_data_id = result.fetchall()[0][0]
     form=enc(str(form_data_id))
+    primary_value = get_object_or_404(workflow_details,req_id = req_num).primary_key
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&req_num={req_num}'
+    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&req_num={req_num}&primary_key={primary_value}'
     return redirect(url)
     
         
