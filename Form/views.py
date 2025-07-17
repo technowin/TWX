@@ -1285,7 +1285,7 @@ def common_form_post(request):
                     primary_value = input_value  # Save for later use
 
                 DataTable.objects.create(
-                    form_data=form_data, form=form, field=field,
+                    form_data=form_data, form=form, field=field,primary_key = primary_value,
                     value=input_value, created_by=created_by
                 )
 
