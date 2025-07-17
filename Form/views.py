@@ -1230,7 +1230,7 @@ def common_form_post(request):
     user = request.session.get('user_id', '')
     user_name = request.session.get('username', '')
     entity = request.POST.get('entity')
-    
+
     try:
         created_by = user
         form_name = request.POST.get('form_name', '').strip()
@@ -1239,7 +1239,6 @@ def common_form_post(request):
         module = request.POST.get("module")
 
         module_tables = common_module_master(module)
-
         IndexTable = apps.get_model('Form', module_tables["index_table"])
         DataTable = apps.get_model('Form', module_tables["data_table"])
         ActionTable = apps.get_model('Form', module_tables["action_table"])
@@ -1253,24 +1252,21 @@ def common_form_post(request):
         editORcreate = request.POST.get('editORcreate', '')
         firstStep = request.POST.get("firstStep")
         wfSelected_id = request.POST.get("wfSelected_id")
+        wfdetailsid = request.POST.get('wfdetailsid', '')
+        role_idC = request.POST.get('role_id', '')
+        step_id = request.POST.get('step_id', '')
+        action_id = request.POST.get("action_id")
 
-        # Loop over each form
+        all_form_data_ids = []
+        primary_value = ''
+
         for form_id in form_ids:
             form = get_object_or_404(Form, id=form_id)
+            action = get_object_or_404(FormAction, id=action_id) if type != 'master' else None
 
-            if type != 'master':
-                action = get_object_or_404(FormAction, id=request.POST.get("action_id"))
-                form_data = IndexTable.objects.create(form=form, action=action)
-                form_data.req_no = f"UNIQ-NO-00{form_data.id}"
-            else:
-                form_data = IndexTable.objects.create(form=form)
-
+            form_data = IndexTable.objects.create(form=form, action=action if action else None)
+            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
             form_data.created_by = created_by
-            form_data.save()
-
-            form_dataID = form_data.id
-            first_field_checked = False
-            already_exists = False
 
             fields = FormField.objects.filter(form_id=form_id)
 
@@ -1283,71 +1279,76 @@ def common_form_post(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    continue  # handle later
+                    continue  # Handle later
 
-                if field.is_primary == '1':
-                    primary_value = value
-                    continue
+                if field.is_primary == '1' or field.is_primary == True:
+                    primary_value = input_value  # Save for later use
 
-                # Save the field value
                 DataTable.objects.create(
-                    form_data=form_data, form=form, field=field, value=input_value, created_by=created_by
+                    form_data=form_data, form=form, field=field,
+                    value=input_value, created_by=created_by
                 )
 
-        handle_uploaded_files(request, form_name, created_by, form_data, user,module)
-        handle_generative_fields(form, form_data, created_by)
-        messages.success(request, "Form data saved successfully!") 
-        if workflow_YN == '1' and already_exists is not True:
-            wfdetailsid = request.POST.get('wfdetailsid', '')
-            role_idC = request.POST.get('role_id', '')
-            form_id = request.POST.get('form_id', '')
-            step_id = request.POST.get('step_id', '')
+            form_data.primary_key = primary_value  # If IndexTable has a field named primary_value
+            form_data.save()
+
+            handle_uploaded_files(request, form_name, created_by, form_data, user, module)
+            handle_generative_fields(form, form_data, created_by)
+
+            all_form_data_ids.append(form_data.id)
+
+        messages.success(request, "All form data saved successfully!")
+
+        # === Start Workflow Logic ===
+        if workflow_YN == '1' and all_form_data_ids:
             if wfdetailsid and wfdetailsid != 'undefined':
-                wfdetailsid=dec(wfdetailsid)
+                wfdetailsid = dec(wfdetailsid)
             else:
-                wfdetailsid = None  
-            
-            if step_id:
-                matrix_entry = workflow_matrix.objects.filter(id=step_id).first()
-                if matrix_entry:
-                    status_from_matrix = matrix_entry.status  # adjust field name if needed
-                    
-            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
-                # Update existing record
-                workflow_detail = workflow_details.objects.get(id=wfdetailsid)
-                workflow_detail.workflow_id = wfSelected_id
-                workflow_detail.form_data_id = form_dataID
-                workflow_detail.role_id = request.POST.get('role_id', '')
-                workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
-                workflow_detail.increment_id += 1
-                workflow_detail.step_id = request.POST.get('step_id', '')
-                workflow_detail.status = status_from_matrix or ''
-                workflow_detail.user_id = user
-                workflow_detail.updated_by = user 
-                workflow_detail.updated_at = now()
-                workflow_detail.save()    
-            else:    
-                workflow_detail = workflow_details.objects.create(
-                form_data_id=form_dataID,
-                role_id=request.POST.get('role_id', ''),
-                action_details_id=request.POST.get('action_detail_id', ''),
-                increment_id=1,
-                status = status_from_matrix or '',
-                step_id=request.POST.get('step_id', ''),
-                operator=request.POST.get('custom_dropdownOpr', ''),
-                user_id=user,
-                created_by=user,
-                created_at=now(),
-                updated_by = user,
-                updated_at = now()
-                
-                )
+                wfdetailsid = None
 
-            workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
-            workflow_detail.save()
-            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+            matrix_entry = workflow_matrix.objects.filter(id=step_id).first() if step_id else None
+            status_from_matrix = matrix_entry.status if matrix_entry else ''
+
+            for form_data_id in all_form_data_ids:
+                form_data = IndexTable.objects.get(id=form_data_id)
+                if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+                    workflow_detail = workflow_details.objects.get(id=wfdetailsid)
+                    workflow_detail.workflow_id = wfSelected_id
+                    workflow_detail.form_data_id = form_data_id
+                    workflow_detail.role_id = role_idC
+                    workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
+                    workflow_detail.increment_id += 1
+                    workflow_detail.step_id = step_id
+                    workflow_detail.status = status_from_matrix
+                    workflow_detail.user_id = user
+                    workflow_detail.updated_by = user
+                    workflow_detail.updated_at = now()
+                    workflow_detail.primary_key = primary_value
+                    workflow_detail.save()
+                else:
+                    workflow_detail = workflow_details.objects.create(
+                        workflow_id=wfSelected_id,
+                        form_data_id=form_data_id,
+                        role_id=role_idC,
+                        action_details_id=request.POST.get('action_detail_id', ''),
+                        increment_id=1,
+                        step_id=step_id,
+                        status=status_from_matrix,
+                        operator=request.POST.get('custom_dropdownOpr', ''),
+                        user_id=user,
+                        created_by=user,
+                        updated_by=user,
+                        created_at=now(),
+                        updated_at=now(),
+                        primary_key=primary_value
+                    )
+
+                workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
+                workflow_detail.save()
+
+                # History entry
                 history_workflow_details.objects.create(
-                    form_data_id=workflow_detail.form_data_id,
+                    form_data_id=form_data_id,
                     role_id=workflow_detail.role_id,
                     action_details_id=workflow_detail.action_details_id,
                     increment_id=workflow_detail.increment_id,
@@ -1355,53 +1356,32 @@ def common_form_post(request):
                     status=workflow_detail.status,
                     user_id=workflow_detail.user_id,
                     req_id=workflow_detail.req_id,
+                    operator=workflow_detail.operator,
                     created_by=user,
-                    created_at=workflow_detail.updated_at
-                )
-            else:
-                history_workflow_details.objects.create(
-                    form_data_id=workflow_detail.form_data_id,
-                    role_id=workflow_detail.role_id,
-                    action_details_id=workflow_detail.action_details_id,
-                    increment_id=workflow_detail.increment_id,
-                    step_id=workflow_detail.step_id,
-                    status=workflow_detail.status,
-                    user_id=workflow_detail.user_id,
-                    req_id=workflow_detail.req_id,
-                    operator=request.POST.get('custom_dropdownOpr', ''),
-                    created_by=user,
-                    created_at=workflow_detail.updated_at
+                    created_at=workflow_detail.updated_at,
+                    primary_key=primary_value
                 )
 
-            for key, value in request.POST.items():
-                if key.startswith("action_field_") and not key.startswith("action_field_id_"):
-                    match = re.match(r'action_field_(\d+)', key)
-                    latest_row = WorkflowVersionControl.objects.filter(file_name=form_data.file_ref).order_by('-id').first()
+                # Action fields
+                for key, value in request.POST.items():
+                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                        match = re.match(r'action_field_(\d+)', key)
+                        if match:
+                            field_id = int(match.group(1))
+                            action_field = get_object_or_404(FormActionField, pk=field_id)
 
-                    if role_idC != '5' or role_idC != '6':
-                        if latest_row and latest_row.temp_version is not None:
-                            temp_vers = Decimal(str(latest_row.temp_version))
-                        else:
-                            temp_vers = Decimal('1.0')
-                    else:
-                        temp_vers = Decimal('1.0')
-                    if match:
-                        field_id = int(match.group(1))
-                        action_field = get_object_or_404(FormActionField, pk=field_id)
-                        if action_field.type in ['text', 'textarea', 'select']:
                             ActionTable.objects.create(
                                 value=value,
-                                form_data=get_object_or_404(IndexTable, id= form_dataID),
+                                form_data=form_data,
                                 field=action_field,
                                 step_id=step_id,
-                                version = temp_vers,
                                 created_by=user,
                                 updated_by=user,
+                                primary_key=primary_value
                             )
-            
-                messages.success(request, "Workflow data saved successfully!")
-        # else:
-        #     messages.error(request, 'File Number Already Exists!')
+
+            messages.success(request, "Workflow data saved successfully!")
+
     except Exception as e:
         print(f"Error fetching form data: {e}")
         tb = traceback.extract_tb(e.__traceback__)
@@ -1412,10 +1392,10 @@ def common_form_post(request):
 
     finally:
         if workflow_YN == '1':
-            # return redirect('workflow_starts')
             return redirect(f"{reverse('workflow_starts')}?workflowSelect={wfSelected_id}")
         else:
             return redirect('/masters?entity=form_master&type=i')
+
 
 @login_required
 def common_form_edit(request):
@@ -1828,7 +1808,7 @@ def handle_generative_fields(form, form_data, created_by):
 
         except Exception as e:
             traceback.print_exc()
-    return final_value
+        return final_value
 
 
 def handle_uploaded_files(request, form_name, created_by, form_data, user,module):

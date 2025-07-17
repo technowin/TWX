@@ -871,7 +871,7 @@ def workflow_form_step(request):
             form = get_object_or_404(Form, id=form_id)
             module = form.module
             raw_fields = FormField.objects.filter(form_id=form_id).values(
-                "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
+                "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section","is_primary","foriegn_key_form_id"
             ).order_by("order")
 
             sectioned_fields = {}
@@ -938,7 +938,7 @@ def workflow_form_step(request):
             "forms_data": forms_data,"type": "create","action_fields": action_fields,"workflow": 1, "WFoperator_dropdown": WFoperator_dropdown,
             "role_id": role_id,"action_detail_id": action_detail_id,"matched_form_data_id": new_data_id,"new_data_id": new_data_id,
             "action_id": action_id,"step_id": id,"status_wfM": status_wfM, "firstStep": firstStep,"editORcreate": editORcreate,"data_save_status": data_save_status,
-            "form_ids":form_ids, "wfSelected_id": wfSelected_id,"reference_type": reference_type,
+            "form_ids":form_ids, "wfSelected_id": wfSelected_id,"reference_type": reference_type,"module":module
         }
 
         if wfdetailsid:
