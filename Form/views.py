@@ -67,6 +67,8 @@ from django.utils.timezone import now
 from django.db.models import OuterRef, Subquery, F
 from django.views.decorators.clickjacking import xframe_options_exempt
 
+from django.apps import apps
+
 # Create your views here.
 def format_label_name(parameter_name):
     """Convert parameter name to a proper label format."""
@@ -182,6 +184,7 @@ def form_builder(request):
 
     return render(request, "Form/form_builder.html", {
         "form": form,
+        "modules":modules,
         "regex": json.dumps(regex),
         "form_fields_json": form_fields_json,
         "dropdown_options": json.dumps(dropdown_options),
@@ -229,7 +232,7 @@ def save_form(request):
                 return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
             
-            form = Form.objects.create(name=form_name, description=form_description)
+            form = Form.objects.create(name=form_name, description=form_description,module=module)
             index = 0
             generative_fields = [] 
 
@@ -407,6 +410,7 @@ def update_form(request, form_id):
             form = get_object_or_404(Form, id=form_id)
             form.name = form_name
             form.description = form_description
+            form.module = module
             updated_by = request.session.get('user_id', '').strip()
             form.save()
             index = 0
@@ -1217,6 +1221,7 @@ def common_module_master(module_id):
             "index_table": module.index_table,  # this should be the model class or its name
             "data_table": module.data_table,
             "file_table": module.file_table,
+            "action_table": module.action_table,
         }
     except Exception as e:
         raise Exception(f"Error in retrieving module tables: {str(e)}")
@@ -1225,12 +1230,18 @@ def common_form_post(request):
     user = request.session.get('user_id', '')
     user_name = request.session.get('username', '')
     entity = request.POST.get('entity')
-    
+
     try:
         created_by = user
         form_name = request.POST.get('form_name', '').strip()
         type = request.POST.get('type', '')
         form_ids_str = request.POST.get('form_ids', '[]')
+        module = request.POST.get("module")
+
+        module_tables = common_module_master(module)
+        IndexTable = apps.get_model('Form', module_tables["index_table"])
+        DataTable = apps.get_model('Form', module_tables["data_table"])
+        ActionTable = apps.get_model('Form', module_tables["action_table"])
 
         try:
             form_ids = ast.literal_eval(form_ids_str)
@@ -1241,24 +1252,23 @@ def common_form_post(request):
         editORcreate = request.POST.get('editORcreate', '')
         firstStep = request.POST.get("firstStep")
         wfSelected_id = request.POST.get("wfSelected_id")
+        wfdetailsid = request.POST.get('wfdetailsid', '')
+        role_idC = request.POST.get('role_id', '')
+        step_id = request.POST.get('step_id', '')
+        action_id = request.POST.get("action_id")
 
-        # Loop over each form
+        all_form_data_ids = []
+        primary_value = ''
+
         for form_id in form_ids:
             form = get_object_or_404(Form, id=form_id)
+            action = get_object_or_404(FormAction, id=action_id) if type != 'master' else None
 
-            if type != 'master':
-                action = get_object_or_404(FormAction, id=request.POST.get("action_id"))
-                form_data = FormData.objects.create(form=form, action=action)
-                form_data.req_no = f"UNIQ-NO-00{form_data.id}"
-            else:
-                form_data = FormData.objects.create(form=form)
-
+            form_data = IndexTable.objects.create(form=form, action=action if action else None)
+            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
             form_data.created_by = created_by
-            form_data.save()
 
-            form_dataID = form_data.id
-            first_field_checked = False
-            already_exists = False
+            form_DataID = form_data.id 
 
             fields = FormField.objects.filter(form_id=form_id)
 
@@ -1271,249 +1281,124 @@ def common_form_post(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    continue  # handle later
+                    continue  # Handle later
 
-                # Validation logic for the first field (only once across all forms)
-                if not first_field_checked and firstStep == '1':
-                    totalStep_wf = workflow_matrix.objects.filter(
-                        workflow_name='CIDCO File Scanning and DMS Flow'
-                    ).count()
+                if field.is_primary == '1' or field.is_primary == True:
+                    primary_value = input_value  # Save for later use
 
-                    step_ids_list = list(
-                        workflow_details.objects.filter(file_number=input_value)
-                        .values_list('step_id', flat=True)
-                    )
-
-                    already_exists = FormFieldValues.objects.filter(
-                        value=input_value, field_id=field_id
-                    ).exists()
-                    fileNumber_input_WF =input_value
-
-                    if already_exists:
-                        if any(step_id != totalStep_wf for step_id in step_ids_list):
-                            print("Same file is in progress. Halting process.")
-                            break
-                        else:
-                            print("Same file is at final step. Proceeding.")
-                    else:
-                        print("File number not found before. Proceeding.")
-
-                    first_field_checked = True
-
-                # Save the field value
-                FormFieldValues.objects.create(
-                    form_data=form_data, form=form, field=field, value=input_value, created_by=created_by
+                DataTable.objects.create(
+                    form_data=form_data, form=form, field=field,primary_key = primary_value,
+                    value=input_value, created_by=created_by
                 )
 
-                # Handle file_name logic
-                if field.field_type == "file_name":
-                    form_data.file_ref = input_value
-                    form_data.save()
-                    if input_value and input_value != 'New File':
-                        VersionControlFileMap.objects.create(form_data=form_dataID, file_name=input_value, status=0)
-                        existing_field_value = FormFieldValues.objects.filter(value=input_value).first()
-                        if existing_field_value:
-                            existing_form_data_id = existing_field_value.form_data_id
-                            VersionControlFileMap.objects.create(form_data=existing_form_data_id, file_name=input_value, status=0)
+            form_data.primary_key = primary_value  # If IndexTable has a field named primary_value
+            form_data.save()
 
-                # Handle dropdown linked to File Name
-                if field.field_type == 'field_dropdown' and field.values:
-                    parts = field.values.split(',')
-                    if len(parts) == 2:
-                        linked_form_id = parts[0].strip()
-                        linked_field_id = parts[1].strip()
+            handle_uploaded_files(request, form_name, created_by, form_data, user, module)
+            handle_generative_fields(form, form_data, created_by)
 
-                        try:
-                            linked_field = FormField.objects.get(id=linked_field_id, form_id=linked_form_id)
-                            if linked_field.label == "File Name" and VersionControlFileMap.objects.filter(file_name=input_value).exists():
-                                VersionControlFileMap.objects.create(form_data=form_dataID, file_name=input_value)
-                        except FormField.DoesNotExist:
-                            pass  
+            all_form_data_ids.append(form_data.id)
 
-        
+        messages.success(request, "All form data saved successfully!")
 
-        if already_exists is not True:
-            handle_uploaded_files(request, form_name, created_by, form_data, user)
-            if  type == 'master':
-                if field.field_type == 'generative':
-                    file_name = handle_generative_fields(form, form_data, created_by)
-            else:
-                if field.field_type == 'generative':
-                    file_name = handle_generative_fields(form, form_data, created_by)
-        else:
-            messages.error(request, 'File Number Already Exists!')
-        # callproc('create_dynamic_form_views')
-        messages.success(request, "Form data saved successfully!") 
-        if workflow_YN == '1' and already_exists is not True:
-            wfdetailsid = request.POST.get('wfdetailsid', '')
-            role_idC = request.POST.get('role_id', '')
-            form_id = request.POST.get('form_id', '')
-            step_id = request.POST.get('step_id', '')
+        # === Start Workflow Logic ===
+        if workflow_YN == '1' and all_form_data_ids:
             if wfdetailsid and wfdetailsid != 'undefined':
-                wfdetailsid=dec(wfdetailsid)
+                wfdetailsid = dec(wfdetailsid)
             else:
-                wfdetailsid = None  
-            
-            if step_id:
-                matrix_entry = workflow_matrix.objects.filter(id=step_id).first()
-                if matrix_entry:
-                    status_from_matrix = matrix_entry.status  # adjust field name if needed
-                    
-            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
-                # Update existing record
-                workflow_detail = workflow_details.objects.get(id=wfdetailsid)
-                workflow_detail.form_data_id = form_dataID
-                workflow_detail.role_id = request.POST.get('role_id', '')
-                workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
-                workflow_detail.increment_id += 1
-                workflow_detail.step_id = request.POST.get('step_id', '')
-                workflow_detail.status = status_from_matrix or ''
-                workflow_detail.user_id = user
-                workflow_detail.updated_by = user 
-                workflow_detail.updated_at = now()
-                workflow_detail.save()    
-            else:    
-                workflow_detail = workflow_details.objects.create(
-                form_data_id=form_dataID,
-                role_id=request.POST.get('role_id', ''),
-                action_details_id=request.POST.get('action_detail_id', ''),
-                increment_id=1,
-                # form_id=request.POST.get('form_id', ''),
-                # action_id=request.POST.get('action_id', ''),
-                status = status_from_matrix or '',
-                step_id=request.POST.get('step_id', ''),
-                operator=request.POST.get('custom_dropdownOpr', ''),
-                file_number=fileNumber_input_WF,
-                user_id=user,
-                created_by=user,
-                created_at=now(),
-                updated_by = user,
-                updated_at = now()
-                
-                )
+                wfdetailsid = None
 
+            matrix_entry = workflow_matrix.objects.filter(id=step_id).first() if step_id else None
+            status_from_matrix = matrix_entry.status if matrix_entry else ''
+
+            
+        if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+            workflow_detail = workflow_details.objects.get(id=wfdetailsid)
+            workflow_detail.workflow_id = wfSelected_id
+            workflow_detail.form_data_id = form_DataID
+            workflow_detail.role_id = role_idC
+            workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
+            workflow_detail.increment_id += 1
+            workflow_detail.step_id = step_id
+            workflow_detail.status = status_from_matrix
+            workflow_detail.user_id = user
+            workflow_detail.updated_by = user
+            workflow_detail.updated_at = now()
+            workflow_detail.primary_key = primary_value
+            workflow_detail.save()
+        else:
+            workflow_detail = workflow_details.objects.create(
+                workflow_id=wfSelected_id,
+                    form_data_id=form_DataID,
+                    role_id=role_idC,
+                    action_details_id=request.POST.get('action_detail_id', ''),
+                    increment_id=1,
+                    step_id=step_id,
+                    status=status_from_matrix,
+                    operator=request.POST.get('custom_dropdownOpr', ''),
+                    user_id=user,
+                    created_by=user,
+                    updated_by=user,
+                    created_at=now(),
+                    updated_at=now(),
+                    primary_key=primary_value  # Assuming your model has a field named `primary_value`
+                )
             workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
             workflow_detail.save()
-            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
-                history_workflow_details.objects.create(
-                    form_data_id=workflow_detail.form_data_id,
-                    role_id=workflow_detail.role_id,
-                    action_details_id=workflow_detail.action_details_id,
-                    increment_id=workflow_detail.increment_id,
-                    step_id=workflow_detail.step_id,
-                    status=workflow_detail.status,
-                    user_id=workflow_detail.user_id,
-                    req_id=workflow_detail.req_id,
-                    # form_id=request.POST.get('form_id', ''),
-                    created_by=user,
-                    # created_by=workflow_detail.updated_by,
-                    created_at=workflow_detail.updated_at
-                )
-            else:
-                history_workflow_details.objects.create(
-                    form_data_id=workflow_detail.form_data_id,
-                    role_id=workflow_detail.role_id,
-                    action_details_id=workflow_detail.action_details_id,
-                    increment_id=workflow_detail.increment_id,
-                    step_id=workflow_detail.step_id,
-                    status=workflow_detail.status,
-                    user_id=workflow_detail.user_id,
-                    req_id=workflow_detail.req_id,
-                    operator=request.POST.get('custom_dropdownOpr', ''),
-                    # form_id=request.POST.get('form_id', ''),
-                    created_by=user,
-                    # created_by=workflow_detail.updated_by,
-                    created_at=workflow_detail.updated_at
-                )
-            # if role_idC == '1':
-            #     latest_record = WorkflowVersionControl.objects.filter(
-            #         file_name=form_data.file_ref
-            #     ).order_by('-id').first()
 
-            #         # Determine the file_category and latest temp_version
-            #     latest_file_category = latest_record.file_category if latest_record else None
-            #     latest_temp_version = latest_record.temp_version if latest_record else None
-
-            #         # Determine new temp_version
-            #     if latest_temp_version is None:
-            #         temp_version = Decimal('1.0')
-            #     else:
-            #         temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
-
-            #     WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
-            # if role_idC == '2':
-            # # Check if any row with version_no=0 exists for the given file_name
-            #     reject_case = WorkflowVersionControl.objects.filter(
-            #         file_name=file_name,
-            #         version_no=0
-            #     ).exists()
-
-            #     if not reject_case:
-            #         latest_record = WorkflowVersionControl.objects.filter(
-            #             file_name=file_name
-            #         ).order_by('-id').first()
-
-            #         # Determine the file_category and latest temp_version
-            #         latest_file_category = latest_record.file_category if latest_record else None
-            #         latest_temp_version = latest_record.temp_version if latest_record else None
-
-            #         # Determine new temp_version
-            #         if latest_temp_version is None:
-            #             temp_version = Decimal('1.0')
-            #         else:
-            #             temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
-
-            #         # Create the new row
-            #         WorkflowVersionControl.objects.create(
-            #             file_name=file_name,
-            #             version_no=0,
-            #             temp_version=temp_version,
-            #             modified_by=user_name,
-            #             modified_at=now(),
-            #             file_category=latest_file_category,
-            #             form_data_id=form_dataID
-            #         )
-
-                    # WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
-            # if role_idC == '5':
-            #     count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
-            #     latest_row = WorkflowVersionControl.objects.filter(
-            #         file_name=file_name
-            #         ).order_by('-id').values_list('id', flat=True).first()
-            #     if latest_row and count_row == 1:
-            #         latest_row.version_no = 1
-            #         latest_row.save()
-                
-
+        if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+            history_workflow_details.objects.create(
+                form_data_id=workflow_detail.form_data_id,
+                role_id=workflow_detail.role_id,
+                action_details_id=workflow_detail.action_details_id,
+                increment_id=workflow_detail.increment_id,
+                step_id=workflow_detail.step_id,
+                status=workflow_detail.status,
+                user_id=workflow_detail.user_id,
+                req_id=workflow_detail.req_id,
+                # form_id=request.POST.get('form_id', ''),
+                created_by=user,
+                sent_back='0',
+                # created_by=workflow_detail.updated_by,
+                created_at=workflow_detail.updated_at
+            )
+        else:
+            history_workflow_details.objects.create(
+                form_data_id=workflow_detail.form_data_id,
+                role_id=workflow_detail.role_id,
+                action_details_id=workflow_detail.action_details_id,
+                increment_id=workflow_detail.increment_id,
+                step_id=workflow_detail.step_id,
+                status=workflow_detail.status,
+                user_id=workflow_detail.user_id,
+                req_id=workflow_detail.req_id,
+                operator=request.POST.get('custom_dropdownOpr', ''),
+                # form_id=request.POST.get('form_id', ''),
+                created_by=user,
+                sent_back='0',
+                # created_by=workflow_detail.updated_by,
+                created_at=workflow_detail.updated_at
+            )
+                    
+            # Action fields
             for key, value in request.POST.items():
                 if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                     match = re.match(r'action_field_(\d+)', key)
-                    latest_row = WorkflowVersionControl.objects.filter(file_name=form_data.file_ref).order_by('-id').first()
-
-                    if role_idC != '5' or role_idC != '6':
-                        if latest_row and latest_row.temp_version is not None:
-                            temp_vers = Decimal(str(latest_row.temp_version))
-                        else:
-                            temp_vers = Decimal('1.0')
-                    else:
-                        temp_vers = Decimal('1.0')
                     if match:
                         field_id = int(match.group(1))
                         action_field = get_object_or_404(FormActionField, pk=field_id)
-                        if action_field.type in ['text', 'textarea', 'select']:
-                            ActionData.objects.create(
-                                value=value,
-                                form_data=get_object_or_404(FormData, id= form_dataID),
-                                field=action_field,
-                                step_id=step_id,
-                                version = temp_vers,
-                                created_by=user,
-                                updated_by=user,
-                            )
-            
-                messages.success(request, "Workflow data saved successfully!")
-        # else:
-        #     messages.error(request, 'File Number Already Exists!')
+                        ActionTable.objects.create(
+                            value=value,
+                            form_data=form_data,
+                            field=action_field,
+                            step_id=step_id,
+                            created_by=user,
+                            updated_by=user,
+                            primary_key=primary_value
+                        )
+        
+        messages.success(request, "Workflow data saved successfully!")
+
     except Exception as e:
         print(f"Error fetching form data: {e}")
         tb = traceback.extract_tb(e.__traceback__)
@@ -1524,10 +1409,10 @@ def common_form_post(request):
 
     finally:
         if workflow_YN == '1':
-            # return redirect('workflow_starts')
             return redirect(f"{reverse('workflow_starts')}?workflowSelect={wfSelected_id}")
         else:
             return redirect('/masters?entity=form_master&type=i')
+
 
 @login_required
 def common_form_edit(request):
@@ -1765,83 +1650,83 @@ def common_form_edit(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
-            if role_idC == '1':
-                reject_case = WorkflowVersionControl.objects.filter(
-                    file_name=file_name,
-                    version_no=0
-                ).exists()
+            # if role_idC == '1':
+            #     reject_case = WorkflowVersionControl.objects.filter(
+            #         file_name=file_name,
+            #         version_no=0
+            #     ).exists()
 
-                if not reject_case:
-                    latest_record = WorkflowVersionControl.objects.filter(
-                        file_name=file_name
-                    ).order_by('-id').first()
+            #     if not reject_case:
+            #         latest_record = WorkflowVersionControl.objects.filter(
+            #             file_name=file_name
+            #         ).order_by('-id').first()
 
-                    # Determine the file_category and latest temp_version
-                    latest_file_category = latest_record.file_category if latest_record else None
-                    latest_temp_version = latest_record.temp_version if latest_record else None
+            #         # Determine the file_category and latest temp_version
+            #         latest_file_category = latest_record.file_category if latest_record else None
+            #         latest_temp_version = latest_record.temp_version if latest_record else None
 
-                    # Determine new temp_version
-                    if latest_temp_version is None:
-                        temp_version = Decimal('1.0')
-                    else:
-                        temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
+            #         # Determine new temp_version
+            #         if latest_temp_version is None:
+            #             temp_version = Decimal('1.0')
+            #         else:
+            #             temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
 
-                    WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
-            if role_idC == '2':
-                reject_case = WorkflowVersionControl.objects.filter(
-                    file_name=file_name,
-                    version_no=0
-                ).exists()
+            #         WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
+            # if role_idC == '2':
+            #     reject_case = WorkflowVersionControl.objects.filter(
+            #         file_name=file_name,
+            #         version_no=0
+            #     ).exists()
 
-                if not reject_case:
-                    latest_record = WorkflowVersionControl.objects.filter(
-                        file_name=file_name
-                    ).order_by('-id').first()
+            #     if not reject_case:
+            #         latest_record = WorkflowVersionControl.objects.filter(
+            #             file_name=file_name
+            #         ).order_by('-id').first()
 
-                        # Determine the file_category and latest temp_version
-                    latest_file_category = latest_record.file_category if latest_record else None
-                    latest_temp_version = latest_record.temp_version if latest_record else None
+            #             # Determine the file_category and latest temp_version
+            #         latest_file_category = latest_record.file_category if latest_record else None
+            #         latest_temp_version = latest_record.temp_version if latest_record else None
 
-                        # Determine new temp_version
-                    if latest_temp_version is None:
-                        temp_version = Decimal('1.0')
-                    else:
-                        temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
+            #             # Determine new temp_version
+            #         if latest_temp_version is None:
+            #             temp_version = Decimal('1.0')
+            #         else:
+            #             temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
 
-                        # Create the new row
-                    WorkflowVersionControl.objects.create(
-                        file_name=file_name,
-                        version_no=0,
-                        temp_version=temp_version,
-                        modified_by=user_name,
-                        modified_at=now(),
-                        file_category=latest_file_category,
-                        form_data_id=form_data_id
-                    )
+            #             # Create the new row
+            #         WorkflowVersionControl.objects.create(
+            #             file_name=file_name,
+            #             version_no=0,
+            #             temp_version=temp_version,
+            #             modified_by=user_name,
+            #             modified_at=now(),
+            #             file_category=latest_file_category,
+            #             form_data_id=form_data_id
+            #         )
                 
 
-            if role_idC == '5':
-                versions = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id')
-                count = versions.count()  # performs SELECT COUNT(*):contentReference[oaicite:5]{index=5}
-                count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
-                latest_row = WorkflowVersionControl.objects.filter(
-                        file_name=file_name
-                        ).order_by('-id').first()
-                if latest_row and count_row == 1:
-                    latest_row.version_no = 1
-                    latest_row.baseline_date = now()
-                    latest_row.approved_by = user_name
-                    latest_row.approved_at = now()
-                    latest_row.save()
-                elif latest_row and count_row > 1:
-                        # latest_row.version_no = +0.1
-                        second_latest = versions[1]   
-                        latest_row.version_no = round(second_latest.version_no + 0.1, 1)
-                        # latest_row.version_no = round(latest_row.version_no + 0.1, 1)
-                        latest_row.baseline_date = now()
-                        latest_row.approved_by = user_name
-                        latest_row.approved_at = now()
-                        latest_row.save()
+            # if role_idC == '5':
+            #     versions = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id')
+            #     count = versions.count()  # performs SELECT COUNT(*):contentReference[oaicite:5]{index=5}
+            #     count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
+            #     latest_row = WorkflowVersionControl.objects.filter(
+            #             file_name=file_name
+            #             ).order_by('-id').first()
+            #     if latest_row and count_row == 1:
+            #         latest_row.version_no = 1
+            #         latest_row.baseline_date = now()
+            #         latest_row.approved_by = user_name
+            #         latest_row.approved_at = now()
+            #         latest_row.save()
+            #     elif latest_row and count_row > 1:
+            #             # latest_row.version_no = +0.1
+            #             second_latest = versions[1]   
+            #             latest_row.version_no = round(second_latest.version_no + 0.1, 1)
+            #             # latest_row.version_no = round(latest_row.version_no + 0.1, 1)
+            #             latest_row.baseline_date = now()
+            #             latest_row.approved_by = user_name
+            #             latest_row.approved_at = now()
+            #             latest_row.save()
             for key, value in request.POST.items():
                 if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                     match = re.match(r'action_field_(\d+)', key)
@@ -1940,124 +1825,17 @@ def handle_generative_fields(form, form_data, created_by):
 
         except Exception as e:
             traceback.print_exc()
-    return final_value
+        return final_value
 
 
-# def handle_uploaded_files(request, form_name, created_by, form_data, user):
-#     try:
-#         user = request.session.get('user_id', '')
-#         for field_key, uploaded_files in request.FILES.lists():
-#             if not field_key.startswith("field_"):
-#                 continue
-
-#             field_id = field_key.split("_")[-1].strip()
-#             field = get_object_or_404(FormField, id=field_id)
-
-#             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
-#             os.makedirs(file_dir, exist_ok=True)
-#             is_multiple = field.field_type == "file multiple"
-
-#             for uploaded_file in uploaded_files:
-#                 uploaded_file_name = uploaded_file.name.strip()
-#                 original_file_name, file_extension = os.path.splitext(uploaded_file_name)
-#                 timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
-#                 saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
-#                 save_path = os.path.join(file_dir, saved_file_name)
-#                 relative_file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
-                
-
-#                 if is_multiple:
-#                     # Check if this file name already exists
-#                     existing_file = FormFile.objects.filter(
-#                         form_data=form_data,
-#                         field=field,
-#                         uploaded_name=uploaded_file_name
-#                     ).first()
-
-#                     if existing_file:
-#                         old_file_path = os.path.join(settings.MEDIA_ROOT, existing_file.file_path)
-#                         if os.path.exists(old_file_path):
-#                             os.remove(old_file_path)
-
-#                         with open(save_path, 'wb+') as destination:
-#                             for chunk in uploaded_file.chunks():
-#                                 destination.write(chunk)
-
-#                         existing_file.file_name = saved_file_name
-#                         existing_file.file_path = relative_file_path
-#                         existing_file.updated_by = user
-#                         existing_file.num_pages = num_pages
-#                         existing_file.file_size = file_size
-#                         existing_file.save()
-#                         continue
-
-#                 else:
-#                     # 🔥 Single file logic: Delete old one (if any) for this field + form_data
-#                     existing_files = FormFile.objects.filter(form_data=form_data, field=field)
-#                     for old_file in existing_files:
-#                         old_file_path = os.path.join(settings.MEDIA_ROOT, old_file.file_path)
-#                         if os.path.exists(old_file_path):
-#                             os.remove(old_file_path)
-#                         old_file.delete()
-
-#                 # Save new file
-#                 with open(save_path, 'wb+') as destination:
-#                     for chunk in uploaded_file.chunks():
-#                         destination.write(chunk)
-
-#                 form_file = FormFile.objects.create(
-#                     file_name=saved_file_name,
-#                     uploaded_name=uploaded_file_name,
-#                     file_path=relative_file_path,
-#                     form_data=form_data,
-#                     form=form_data.form,
-#                     file_size=file_size,
-#                     num_pages= num_pages,
-#                     created_by=user,
-#                     updated_by=user,
-#                     field=field
-#                 )
-
-#                 form_field_value = FormFieldValues.objects.filter(
-#                     form_id=form_data.form.id,
-#                     field_id=field.id,
-#                     form_data = form_data
-#                 ).first()
-
-#                 if form_field_value:
-#                     if form_field_value.value:
-#                         existing_ids = [x.strip() for x in form_field_value.value.split(',') if x.strip()]
-#                         new_id_str = str(form_file.id)
-#                         if new_id_str not in existing_ids:
-#                             existing_ids.append(new_id_str)
-#                         form_field_value.value = ','.join(existing_ids)
-#                     else:
-#                         form_field_value.value = str(form_file.id)
-#                     form_field_value.save()
-
-#                     form_file.file_id = form_field_value.id
-#                     form_file.save()
-
-
-#                 # OCR + Keyword extraction
-#                 # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
-#                 # keywords = extract_keywords(text)
-#                 # ocr_doc = Document.objects.create(
-#                 #     title=saved_file_name,
-#                 #     pdf_file=relative_file_path,
-#                 #     extracted_text=text,
-#                 #     keywords=', '.join(keywords)
-#                 # ) 
-
-
-
-#     except Exception as e:
-#         traceback.print_exc()
-#         messages.error(request, "Oops...! Something went wrong!")
-
-def handle_uploaded_files(request, form_name, created_by, form_data, user):
+def handle_uploaded_files(request, form_name, created_by, form_data, user,module):
     try:
         user = request.session.get('user_id', '')
+
+        module_tables = common_module_master(module)
+
+        DataTable = apps.get_model('Form', module_tables["data_table"])
+        FileTable = apps.get_model('Form', module_tables["file_table"])
         
         for field_key, uploaded_files in request.FILES.lists():
             if not field_key.startswith("field_"):
@@ -2101,7 +1879,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
 
                 if is_multiple:
                     # Check if this file name already exists
-                    existing_file = FormFile.objects.filter(
+                    existing_file = FileTable.objects.filter(
                         form_data=form_data,
                         field=field,
                         uploaded_name=uploaded_file_name
@@ -2122,7 +1900,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
 
                 else:
                     # Single file logic: Delete old one (if any) for this field + form_data
-                    existing_files = FormFile.objects.filter(form_data=form_data, field=field)
+                    existing_files = FileTable.objects.filter(form_data=form_data, field=field)
                     for old_file in existing_files:
                         old_file_path = os.path.join(settings.MEDIA_ROOT, old_file.file_path)
                         if os.path.exists(old_file_path):
@@ -2130,7 +1908,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                         old_file.delete()
 
                 # Save new FormFile object
-                form_file = FormFile.objects.create(
+                form_file = FileTable.objects.create(
                     file_name=saved_file_name,
                     uploaded_name=uploaded_file_name,
                     file_path=relative_file_path,
@@ -2143,7 +1921,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     field=field
                 )
 
-                form_field_value = FormFieldValues.objects.filter(
+                form_field_value = DataTable.objects.filter(
                     form_id=form_data.form.id,
                     field_id=field.id,
                     form_data=form_data

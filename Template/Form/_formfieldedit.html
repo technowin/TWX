@@ -155,6 +155,7 @@
                                             <input type="hidden" id="status_wfM" name="status_wfM" value="{{ status_wfM }}">
                                             <input type="hidden" id="new_data_id" name="new_data_id" value="{{ new_data_id }}">
                                             <input type="hidden" id="reference_type" name="reference_type" value="{{ reference_type }}">
+                                            <input type="hidden" id="module" name="module" value="{{ module }}">
 
 
                                             <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
@@ -1014,6 +1015,8 @@
         const type = $('#type').val();
         const reference_type = $('#reference_type').val();
 
+        const wfSelected_id = document.getElementById('wfSelected_id');
+
         const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
         const swalOptions = {
             background: theme === 'dark' ? '#343a40' : '#ffffff',
@@ -1032,71 +1035,68 @@
 
         // Workflow step validation (First Step + Workflow ON)
         if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
-            e.preventDefault();
-            const operatorDropdown = document.getElementById('custom_dropdownOpr');
-            const hiddenOperatorInput = document.getElementById('hidden_operator_input');
-            const modal = new bootstrap.Modal(document.getElementById('workflowModal'));
-            modal.show();
-
-            confirmSubmitBtn.onclick = function () {
-                debugger;
-                const selectedValue = operatorDropdown.value;
-                hiddenOperatorInput.value = selectedValue;
-
-                form.action = "{% url 'common_form_post' %}";
-                form.submit();
-            };
-        }
-
-        // Action + Step 3
+             e.preventDefault();
+             const operatorDropdown = document.getElementById('custom_dropdownOpr');
+             const hiddenOperatorInput = document.getElementById('hidden_operator_input');
+             const modal = new bootstrap.Modal(document.getElementById('workflowModal'));
+             modal.show();
+// 
+             confirmSubmitBtn.onclick = function () {
+                 debugger;
+                 const selectedValue = operatorDropdown.value;
+                 hiddenOperatorInput.value = selectedValue;
+// 
+                 form.action = "{% url 'common_form_post' %}";
+                 form.submit();
+             };
+         }
+// 
+         // Action + Step 3
         else if (buttonType === 'Action' && viewStepWFSeq === '3') {
-            e.preventDefault();
-
-            const categoryDropdown = document.getElementById('category_dropdownOpr');
-            const categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
-            categoryModal.show();
-
-            document.getElementById('catconfirmSubmitBtn').onclick = function () {
-                const categoryValue = categoryDropdown.value;
-                let hiddenInput = document.getElementById('hiddenCategoryInput');
-
-                if (!hiddenInput) {
-                    hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'category';
-                    hiddenInput.id = 'hiddenCategoryInput';
-                    form.appendChild(hiddenInput);
-                }
-
-                hiddenInput.value = categoryValue;
-
-                form.action = "{% url 'common_form_action' %}";
-                form.submit();
-            };
-        }
+             e.preventDefault();
+// 
+             const categoryDropdown = document.getElementById('category_dropdownOpr');
+             const categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+             categoryModal.show();
+// 
+             document.getElementById('catconfirmSubmitBtn').onclick = function () {
+                 const categoryValue = categoryDropdown.value;
+                 let hiddenInput = document.getElementById('hiddenCategoryInput');
+// 
+                 if (!hiddenInput) {
+                     hiddenInput = document.createElement('input');
+                     hiddenInput.type = 'hidden';
+                     hiddenInput.name = 'category';
+                     hiddenInput.id = 'hiddenCategoryInput';
+                     form.appendChild(hiddenInput);
+                 }
+// 
+                 hiddenInput.value = categoryValue;
+// 
+                 form.action = "{% url 'common_form_action' %}";
+                 form.submit();
+             };
+         }
 
         // Other button actions with validation
         else {
             e.preventDefault(); // prevent default for all other cases first
 
-           
-
-            // Hide-related issue workaround
             const operatorDropdown = document.getElementById('custom_dropdownOpr');
             if (operatorDropdown && operatorDropdown.offsetParent === null) {
                 operatorDropdown.removeAttribute('required');
             }
-
+//
             const categoryDropdown = document.querySelector('[name="category"]');
             if (categoryDropdown && categoryDropdown.offsetParent === null) {
                 categoryDropdown.removeAttribute('required');
             }
 
 
-            //if (!form.checkValidity()) {
-            //    form.reportValidity();
-            //    return;
-            //}
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
 
             if (buttonType === 'Submit' && type === 'create') {
                 operatorDropdown.removeAttribute('required');
@@ -1230,6 +1230,9 @@ function validateRegexInput(inputElement) {
                 break;
             case 3: // IFSC
                 value = alnumUpper(value).substring(0, 11);
+                break;
+            case 4: // GSTIN ✅ Added here
+                value = alnumUpper(value).substring(0, 15);
                 break;
             case 5: // Mobile Number
                 value = numericOnly(value).substring(0, 10);
