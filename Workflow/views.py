@@ -869,6 +869,7 @@ def workflow_form_step(request):
         forms_data = []
         for form_id in form_ids:
             form = get_object_or_404(Form, id=form_id)
+            module = form.module
             raw_fields = FormField.objects.filter(form_id=form_id).values(
                 "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
             ).order_by("order")

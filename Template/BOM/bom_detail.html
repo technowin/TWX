@@ -108,14 +108,16 @@
         <h2>
             <i class="bi bi-list-ul"></i> {{ bom.name }}
             <small class="text-muted">Rev {{ bom.revision }}</small>
-            <span class="badge 
+            <small><span style="font-size:12px;"class="badge
                 {% if bom.status == 'AC' %}bg-success
                 {% elif bom.status == 'DR' %}bg-secondary
                 {% elif bom.status == 'PE' %}bg-warning text-dark
                 {% else %}bg-dark{% endif %}">
                 {{ bom.get_status_display }}
-            </span>
+            </span></small>
+            
         </h2>
+        
         <p class="lead">{{ bom.description }}</p>
     </div>
     <div class="col-auto">
