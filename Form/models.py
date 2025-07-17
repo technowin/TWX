@@ -150,6 +150,7 @@ class FormFieldValues(models.Model):
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_id')
     value = models.TextField(null=True, blank=True)
     file_ref = models.TextField(null=True, blank=True)
+    primary_key = models.TextField(null= True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -161,6 +162,7 @@ class FormFile(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
+    primary_key = models.TextField(null= True,blank=True)
     file_size = models.TextField(null=True,blank=True)
     num_pages = models.TextField(null=True,blank=True)
     file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
@@ -177,6 +179,7 @@ class FormFile(models.Model):
 class FormData(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
     action = models.ForeignKey('Form.FormAction',null=True, blank=True, on_delete=models.CASCADE, related_name='form_action_id')
+    primary_key = models.TextField(null= True,blank=True)
     req_no = models.TextField(null=True, blank=True)
     file_ref = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -202,6 +205,7 @@ class ActionData(models.Model):
     field = models.ForeignKey('Form.FormActionField',null=True, blank=True, on_delete=models.CASCADE, related_name='action_field_id')
     step_id = models.IntegerField(null=True,blank=True)
     version = models.FloatField(null=True, blank=True)
+    primary_key = models.TextField(null= True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -338,9 +342,6 @@ class VersionControlFileMap(models.Model):
     class Meta:
         db_table = 'version_control_file_map'
 
-
-
-
 class WorkflowVersion(models.Model):
     req_id = models.TextField(null=True, blank=True)
     version = models.FloatField(null=True, blank=True)
@@ -357,12 +358,76 @@ class ModuleMaster(models.Model):
     index_table = models.TextField(null=True,blank=True)
     file_table =models.TextField(null=True,blank=True)
     data_table = models.TextField(null=True,blank=True)
+    action_table = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'module_master'
+
+
+
+class invoice_index(models.Model):
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_invoice_data_id')
+    action = models.ForeignKey('Form.FormAction',null=True, blank=True, on_delete=models.CASCADE, related_name='form_invoice_action_id')
+    primary_key = models.TextField(null= True,blank=True)
+    req_no = models.TextField(null=True, blank=True)
+    file_ref = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'invoice_index'
+
+
+class invoice_data(models.Model):
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_invoice_data')
+    form_data = models.ForeignKey('Form.invoice_index',null=True, blank=True, on_delete=models.CASCADE, related_name='form_invoice_value_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_invoice_value_id')
+    value = models.TextField(null=True, blank=True)
+    file_ref = models.TextField(null=True, blank=True)
+    primary_key = models.TextField(null= True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'invoice_data'
+
+class invoice_file(models.Model):
+    file_name = models.TextField(null=True, blank=True)
+    uploaded_name = models.TextField(null=True, blank=True)
+    file_path = models.TextField(null=True, blank=True)
+    file_size = models.TextField(null=True,blank=True)
+    primary_key = models.TextField(null= True,blank=True)
+    num_pages = models.TextField(null=True,blank=True)
+    file = models.ForeignKey('Form.invoice_data',null=True, blank=True, on_delete=models.CASCADE, related_name='file_invoice_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_invoice_filr_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_invoice_file_id')
+    form_data = models.ForeignKey('Form.invoice_index',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_invoice_data_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'invoice_file'
+
+
+class invoice_action(models.Model):
+    value = models.TextField(null=True, blank=True)
+    form_data = models.ForeignKey('Form.invoice_index',null=True, blank=True, on_delete=models.CASCADE, related_name='action_invoice_data_id')
+    field = models.ForeignKey('Form.FormActionField',null=True, blank=True, on_delete=models.CASCADE, related_name='action_invoice_field_id')
+    primary_key = models.TextField(null= True,blank=True)
+    step_id = models.IntegerField(null=True,blank=True)
+    version = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'invoice_action'
 
 
 
