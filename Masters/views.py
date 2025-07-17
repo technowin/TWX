@@ -499,23 +499,43 @@ def submit_workflow(request):
                 role_id = request.user.role_id
     try:
         workflow_name = request.POST.get("workflowDropdown")
+        try:
+            workflow_id = int(workflow_name)
+            is_new = False
+            
+        except (ValueError, TypeError):
+            # This means it's a new text entry, not an existing ID
+            is_new = True
         step_name = request.POST.get("stepName")
-        form_name = request.POST.get("formDropdown")
+        form_name = request.POST.get("formDropdown","")
         button_type = request.POST.get("buttonTypeDropdown")
         action = request.POST.get("actionDropdown")
         customRoleDropdown = request.POST.get("roles")
         statusName = request.POST.get("statusName")
         favcolor = request.POST.get("favcolor")
-        paramWN = [workflow_name]
+        selectedTextval = request.POST.get("selectedTextval")
+        
+        paramWN = [selectedTextval]
         cursor.callproc("stp_getcountStepCountWF",paramWN)
         for result in cursor.stored_results():
             step_id_flow1 = list(result.fetchall())[0][0]
         step_id_flow2 = step_id_flow1+1
         step_id_flow = step_id_flow2
+        
+        if is_new is True:                 
+            param1=[selectedTextval]
+            cursor.callproc("stp_insertIntoWorkflow_master",param1)  
             
-        param=(workflow_name,step_name,form_name,button_type,action,user,customRoleDropdown,step_id_flow,statusName,favcolor)
-        cursor.callproc("stp_insertIntoWorkflow_matrix",param)   
-        m.commit()  
+            param=(selectedTextval,step_name,form_name,button_type,action,user,customRoleDropdown,step_id_flow,statusName,favcolor)
+            cursor.callproc("stp_insertIntoWorkflow_matrix",param)   
+            m.commit()  
+            
+        if is_new is False:
+            param=(workflow_name,step_name,form_name,button_type,action,user,customRoleDropdown,step_id_flow,statusName,favcolor,selectedTextval)
+            cursor.callproc("stp_insertIntoWorkflow_matrix_ExisWF",param)   
+            m.commit()  
+            
+        
         # return JsonResponse({"message": "Workflow submitted successfully!"}, status=200)
         return JsonResponse({"message": "Workflow submitted successfully!","redirect_url": "/masters/?entity=wfseq&type=i"}, status=200)
 
@@ -577,9 +597,11 @@ def workflow_Editmap(request):
             if workflow_data:
                 role_string = workflow_data[0][6]
                 role_list = role_string.split(',') if role_string else []
+                form_string = workflow_data[0][1]
+                form_id_list = form_string.split(',') if form_string else []
                 workflow_details = {
                     "workflow_name": workflow_data[0][0], 
-                    "form_id": workflow_data[0][1],
+                    "form_id": form_id_list,
                     "step_name": workflow_data[0][2],
                     "button_type_id": workflow_data[0][3],
                     "button_act_details": workflow_data[0][4],
@@ -610,7 +632,7 @@ def workflow_Editmap(request):
             workflow_idDecryp = decrypt_parameter(workflow_idEncrypt)
             workflow_name = request.POST.get("workflowDropdown")
             step_name = request.POST.get("stepName")
-            form_name = request.POST.get("formDropdown")
+            form_name = request.POST.get("formDropdown","")
             button_type = request.POST.get("buttonTypeDropdown")
             action = request.POST.get("actionDropdown")
             roles = request.POST.get("roles")
@@ -680,3 +702,9 @@ def view_access(request):
         m.commit()
         m.close()
         Db.closeConnection()
+
+
+def check_workflow_name(request):
+    name = request.GET.get('name', '').strip()
+    exists = workflow_matrix.objects.filter(workflow_name__iexact=name).exists()
+    return JsonResponse({'exists': exists})

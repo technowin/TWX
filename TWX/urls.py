@@ -191,6 +191,7 @@ urlpatterns = [
     path('get_versiondata/', get_versiondata, name='get_versiondata'),
     path('check_fileNameExistsInVersion/', check_fileNameExistsInVersion, name='check_fileNameExistsInVersion'),
     path('view_access/', view_access, name='view_access'),
+    path('workflow_module/', workflow_module, name='workflow_module'),
 
 
     # Media files

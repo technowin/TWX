@@ -44,7 +44,7 @@ class workflow_document(models.Model):
 class workflow_matrix(models.Model):
     id = models.AutoField(primary_key=True) 
     workflow_name = models.TextField(null=True, blank=True)
-    form_id = models.IntegerField(null=True, blank=True)
+    form_id = models.TextField(null=True, blank=True)
     step_name = models.TextField(null=True, blank=True)
     button_type_id = models.IntegerField(null=True, blank=True)
     button_act_details = models.IntegerField(null=True, blank=True)
@@ -60,6 +60,7 @@ class workflow_matrix(models.Model):
     status = models.TextField(null=True, blank=True)
     step_id_flow = models.IntegerField(null=True, blank=True)
     status_color = models.TextField(null=True, blank=True)
+    wf_id = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = 'workflow_matrix'
     
@@ -91,6 +92,7 @@ class workflow_details(models.Model):
     workflow_id = models.IntegerField(null=True, blank=True)
     step_id = models.IntegerField(null=True, blank=True)
     form_data_id = models.IntegerField(null=True, blank=True)
+    primarykey = models.TextField(null =True, blank = True)
     req_id = models.TextField(null=True, blank=True)
     # action_id = models.IntegerField(null=True, blank=True)
     action_details_id = models.IntegerField(null=True, blank=True)
@@ -114,6 +116,7 @@ class history_workflow_details(models.Model):
     id = models.AutoField(primary_key=True)
     workflow_id = models.IntegerField(null=True, blank=True)
     step_id = models.IntegerField(null=True, blank=True)
+    primarykey = models.TextField(null =True, blank = True)
     form_data_id = models.IntegerField(null=True, blank=True)
     req_id = models.TextField(null=True, blank=True)
     action_details_id = models.IntegerField(null=True, blank=True)
@@ -160,3 +163,13 @@ class client_module (models.Model):
 
     def __str__(self):
         return f"{self.client} - {self.department} - {self.module}"
+    
+class workflow_master(models.Model):
+    wf_id = models.AutoField(primary_key=True)
+    wf_name = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'workflow_master'

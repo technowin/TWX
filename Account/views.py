@@ -72,7 +72,7 @@ def Login(request):
             #     request.session.set_expiry(1209600)  # 2 weeks
             # else:
             #     request.session.set_expiry(0)  # Browser close
-            return redirect('workflow_starts') 
+            return redirect('workflow_module') 
         else:
             messages.error(request, 'Invalid Credentials')
             return redirect("Login")
@@ -96,6 +96,10 @@ def register_new_user(request):
         cursor.callproc("stp_get_dropdown_values",['category'])
         for result in cursor.stored_results():
             category = list(result.fetchall())
+            
+        cursor.callproc("stp_get_dropdown_values",['moduleL'])
+        for result in cursor.stored_results():
+            moduleL = list(result.fetchall())
 
         if id != '0':
             id1 = dec(id)
@@ -105,11 +109,11 @@ def register_new_user(request):
             last_name = full_name[1] if len(full_name) > 1 else ""  
 
 
-            context = {'users':users,'first_name':first_name,'last_name':last_name,'roles':roles,'category':category,"edit_mode": True,}
+            context = {'users':users,'first_name':first_name,'last_name':last_name,'roles':roles,'category':category,"edit_mode": True,"moduleL":moduleL,}
            
         else:
 
-            context = {'id':id,'roles': roles,'category':category}
+            context = {'id':id,'roles': roles,'category':category,"moduleL":moduleL,}
 
 
     if request.method == "POST":
@@ -130,13 +134,17 @@ def register_new_user(request):
                 
                 file_category_str = request.POST.getlist('customCategoryDropdown[]')
                 file_category = ",".join(file_category_str)
+                
+                client_module_str = request.POST.getlist('clientModDropdown[]')
+                module = ",".join(client_module_str)
+
 
                 
                 full_name = f"{firstname} {lastname}"
 
                 user = CustomUser(
                     full_name=full_name, email=email, phone=phone,
-                    role_id=role_id,file_category=file_category,
+                    role_id=role_id,file_category=file_category,module=module,
                 )
                 user.username = user.email
                 user.is_active = True 
@@ -171,13 +179,17 @@ def register_new_user(request):
                 file_category_str = request.POST.getlist('customCategoryDropdown[]')
                 file_category = ",".join(file_category_str)
                 
+                client_module_str = request.POST.getlist('clientModDropdown[]')
+                module = ",".join(client_module_str)
+                
                 user = CustomUser.objects.get(id=id)
                 user.full_name = full_name
                 user.email = email
                 user.phone = phone
                 user.role_id = role_id
                 
-                user.file_category = file_category  
+                user.file_category = file_category 
+                user.module = module  
                 user.save()
 
                 UserMenuDetails.objects.filter(user_id=user.id).delete()

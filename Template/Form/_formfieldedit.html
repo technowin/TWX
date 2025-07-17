@@ -112,46 +112,53 @@
             </div>
             <div class="card-body">
     <form id="dynamicForm" method="POST" action="" enctype="multipart/form-data">
-
+             <div class="col-md-4">
+                </div>
         <br>
     {% csrf_token %}
 
 <div class="row">
+    {% for form_info in forms_data %}
+                <div class="col-md-12 mb-3">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">{{ form_info.form.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for section_name, fields in form_info.sectioned_fields.items %}
+                                <div class="section-wrapper col-md-12 my-4 p-3 {% if not section_name %}no-section{% endif %}">
+                                    {% if section_name %}
+                                        <div class="section-header">{{ section_name }}</div>
+                                    {% endif %}
 
-    {% for section_name, fields in sectioned_fields.items %}
-    <div class="section-wrapper col-md-12 my-4 p-3 {% if not section_name %}no-section{% endif %}">
-        {% if section_name %}
-            <div class="section-header">{{ section_name }}</div>
-        {% endif %}
+                                    {% for field in fields %}
+                                        {% if forloop.first or forloop.counter0|divisibleby:4 %}
+                                            <div class="row">
+                                        {% endif %}
 
-        {% for field in fields %}
-            {% if forloop.counter0|divisibleby:4 %}
-                <div class="row">
-            {% endif %}
+                                        <div class="col-md-3 mb-2">
+                                            <input type="hidden" name="form_name" value="{{ form.name }}">
+                                            <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
+                                            <input type="hidden"  id="matched_form_data_id" name="matched_form_data_id" value="{{matched_form_data_id}}">
+                                            {% comment %} <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}"> {% endcomment %}
+                                            <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
+                                            <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
 
-        <div class="col-md-3 mb-2">
-            <input type="hidden" name="form_name" value="{{ form.name }}">
-            <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
-            <input type="hidden"  id="matched_form_data_id" name="matched_form_data_id" value="{{matched_form_data_id}}">
-            {% comment %} <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}"> {% endcomment %}
-            <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
-            <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
-
-            <input type="hidden" id="workflow_YN" name="workflow_YN" value="{{ workflow }}">
-            <input type="hidden" id="role_id" name="role_id" value="{{ role_id }}">
-            <input type="hidden" id="action_detail_id" name="action_detail_id" value="{{ action_detail_id }}">
-            <input type="hidden" id="form_id" name="form_id" value="{{ form.id }}">
-            <input type="hidden" id="action_id" name="action_id" value="{{ action_id }}">
-            <input type="hidden" id="step_id" name="step_id" value="{{ step_id }}">
-            <input type="hidden" id="wfdetailsid" name="wfdetailsid" value="{{ wfdetailsid }}">
-            <input type="hidden" id="status_wfM" name="status_wfM" value="{{ status_wfM }}">
-            <input type="hidden" id="new_data_id" name="new_data_id" value="{{ new_data_id }}">
-            <input type="hidden" id="reference_type" name="reference_type" value="{{ reference_type }}">
+                                            <input type="hidden" id="workflow_YN" name="workflow_YN" value="{{ workflow }}">
+                                            <input type="hidden" id="role_id" name="role_id" value="{{ role_id }}">
+                                            <input type="hidden" id="action_detail_id" name="action_detail_id" value="{{ action_detail_id }}">
+                                            <input type="hidden" id="form_id" name="form_id" value="{{ form.id }}">
+                                            <input type="hidden" id="action_id" name="action_id" value="{{ action_id }}">
+                                            <input type="hidden" id="step_id" name="step_id" value="{{ step_id }}">
+                                            <input type="hidden" id="wfdetailsid" name="wfdetailsid" value="{{ wfdetailsid }}">
+                                            <input type="hidden" id="status_wfM" name="status_wfM" value="{{ status_wfM }}">
+                                            <input type="hidden" id="new_data_id" name="new_data_id" value="{{ new_data_id }}">
+                                            <input type="hidden" id="reference_type" name="reference_type" value="{{ reference_type }}">
 
 
-            <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
-            <input type="hidden" name="custom_dropdownOpr" id="hidden_operator_input">
-            <input type="hidden" id="firstStep" name="firstStep" value="{{ firstStep }}">
+                                            <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
+                                            <input type="hidden" name="custom_dropdownOpr" id="hidden_operator_input">
+                                            <input type="hidden" id="firstStep" name="firstStep" value="{{ firstStep }}">
 
             <label class="form-label fw-bold">{{ field.label }}</label>
             <input type="hidden" id = "type" name = "type" value ="{{type}}">
@@ -162,215 +169,223 @@
             <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
             <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
             <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
+            <input type="hidden" id="wfSelected_id" name="wfSelected_id" value="{{ wfSelected_id }}">
             
 
-            {% comment %} {% if field.field_type == "select"  %}
-                <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %} disabled {% endif %}>
-                    <option value="" selected disabled>-- Select --</option>
-                    {% for option in field.values %}
-                        <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
-                    {% endfor %}
-                </select> {% endcomment %}
+                                        {% if field.field_type == "select" %}
+                                    
+                                                {% if file_no_value %}
+                                                    <!-- Hidden input to submit the value even if the dropdown is disabled -->
+                                                    <input type="hidden" name="field_{{ field.id }}" value="{{ file_no_value }}">
+                                                {% endif %}
 
-        {% if field.field_type == "select" %}
-    
-                {% if file_no_value %}
-                    <!-- Hidden input to submit the value even if the dropdown is disabled -->
-                    <input type="hidden" name="field_{{ field.id }}" value="{{ file_no_value }}">
-                {% endif %}
+                                                <select class="form-control select" name="field_{{ field.id }}"
+                                                    {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                                                    {% if   readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                                                    
+                                                    <option value="" disabled {% if not field.value %} selected {% endif %}>-- Select --</option>
 
-                <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}
-                    {% if   readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
-                    
-                    <option value="" disabled {% if not field.value %} selected {% endif %}>-- Select --</option>
+                                                    {% for option in field.values %}
+                                                        <option value="{{ option }}"
+                                                            {% if option == file_no_value %}
+                                                                selected
+                                                            {% elif option == field.value %}
+                                                                selected
+                                                            {% endif %}
+                                                        >{{ option }}</option>
+                                                    {% endfor %}
+                                                </select>
 
-                    {% for option in field.values %}
-                        <option value="{{ option }}"
-                            {% if option == file_no_value %}
-                                selected
-                            {% elif option == field.value %}
-                                selected
-                            {% endif %}
-                        >{{ option }}</option>
-                    {% endfor %}
-                </select>
-
-             
+                                            
 
 
-            {% elif field.field_type == "master dropdown" %}
-                <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %} disabled {% endif %}>
-                    <option value="" disabled {% if not field.value %} selected {% endif %}>Select</option>
-                    {% for option in field.values %}
-                        <option value="{{ option.id }}" {% if option.id|stringformat:"s" == field.value|stringformat:"s" %} selected {% endif %}>{{ option.name }}</option>
-                    {% endfor %}
-                </select>
+                                            {% elif field.field_type == "master dropdown" %}
+                                                <select class="form-control select" name="field_{{ field.id }}"
+                                                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %} disabled {% endif %}>
+                                                    <option value="" disabled {% if not field.value %} selected {% endif %}>Select</option>
+                                                    {% for option in field.values %}
+                                                        <option value="{{ option.id }}" {% if option.id|stringformat:"s" == field.value|stringformat:"s" %} selected {% endif %}>{{ option.name }}</option>
+                                                    {% endfor %}
+                                                </select>
 
 
 
 
-            {% elif field.field_type == "select multiple" %}
-                <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'   %} disabled {% endif %}>
-                    {% for option in field.values %}
-                        <option value="{{ option }}" {% if option in field.value %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
-                </select>
+                                            {% elif field.field_type == "select multiple" %}
+                                                <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
+                                                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'   %} disabled {% endif %}>
+                                                    {% for option in field.values %}
+                                                        <option value="{{ option }}" {% if option in field.value %}selected{% endif %}>{{ option }}</option>
+                                                    {% endfor %}
+                                                </select>
 
-            {% elif field.field_type == "field_dropdown" %}
-                <select class="form-control field_dropdown select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}
-                    {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
-                    <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
-                    {% for option in field.dropdown_data %}
-                      <option value="{{ option.value }}" {% if option.value == field.saved_value %}selected{% endif %}
-                     >
-                        {{ option.value }}
-                      </option>
-                    {% endfor %}
-                </select>
-
-
-            {% elif field.field_type == "file_name" %}
-            <select class="form-control field_select select" name="field_{{ field.id }}"
-                {% for attr in field.attributes %} {{ attr }} {% endfor %}
-                {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
-                
-                <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
-                <option value="New File" {% if field.saved_value == "New File" %}selected{% endif %}>New File</option>
-
-                {% for option in field.file_name_options %}
-                    <option value="{{ option }}" {% if option == field.saved_value %}selected{% endif %}>
-                        {{ option }}
-                    </option>
-                {% endfor %}
-            </select>
+                                            {% elif field.field_type == "field_dropdown" %}
+                                                <select class="form-control field_dropdown select" name="field_{{ field.id }}"
+                                                    {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                                                    {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                                                    <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
+                                                    {% for option in field.dropdown_data %}
+                                                    <option value="{{ option.value }}" {% if option.value == field.saved_value %}selected{% endif %}
+                                                    >
+                                                        {{ option.value }}
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
 
 
-            {% elif field.field_type == "radio" %}
-                <div class="d-flex flex-wrap">
-                    {% for option in field.values %}
-                        <div style="font-size:18px;" class="form-check me-2">
-                            <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
-                                {% if option == field.value %} checked {% endif %}
+                                            {% elif field.field_type == "file_name" %}
+                                            <select class="form-control field_select select" name="field_{{ field.id }}"
+                                                {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                                                {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                                                
+                                                <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
+                                                <option value="New File" {% if field.saved_value == "New File" %}selected{% endif %}>New File</option>
 
-                                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-                            <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
+                                                {% for option in field.file_name_options %}
+                                                    <option value="{{ option }}" {% if option == field.saved_value %}selected{% endif %}>
+                                                        {{ option }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+
+
+                                            {% elif field.field_type == "radio" %}
+                                                <div class="d-flex flex-wrap">
+                                                    {% for option in field.values %}
+                                                        <div style="font-size:18px;" class="form-check me-2">
+                                                            <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
+                                                                {% if option == field.value %} checked {% endif %}
+
+                                                                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                                                            <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+
+                                            {% elif field.field_type == "checkbox" %}
+                                                <br>
+                                                <label class="switch">
+                                                    <input type="checkbox" name="field_{{ field.id }}"
+                                                        {% if field.value == "on" %} checked {% endif %}
+                                                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                                                    <span class="slider"></span>
+                                                </label>
+
+                                            {% elif field.field_type == "file" %}
+                                                {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                                                    {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
+                                                    <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                                                        <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
+                                                            class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
+                                                            {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
+
+                                                        <i class="fa-solid fa-eye eye-icon"
+                                                        {% if type == "create" %}
+                                                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                                                            {% elif  type == "reference" %}
+                                                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},'{{type}}')"
+                                        
+                                                        {% else %}
+                                                            onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
+                                                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
+                                                        </i>
+                                                    </div>
+
+                                            {% elif field.field_type == "file multiple" %}
+                                                <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                                                    <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
+                                                        class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
+                                                        {% for attr in field.attributes %} {{ attr }} {% endfor %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
+
+                                                    <i class="fa-solid fa-eye eye-icon"
+                                                    {% if type == "create" %}
+                                                        onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                                                        {% elif type == "reference"%}
+                                                        onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
+                                                        
+                                                    {% else %}
+                                                        onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
+                                                    {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
+                                                    </i>
+                                                </div>
+
+
+
+                                            {% elif field.field_type == "textarea" %}
+                                                <textarea data-toggle="maxlength"  maxlength="150"  class="form-control custom-textarea"
+                                                        name="field_{{ field.id }}"
+                                                        rows="3"
+                                                        {% for attr in field.attributes %}{{ attr }} {% endfor %}
+                                                        {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}>{{ field.value }}</textarea>
+
+                                            {% elif field.field_type == "generative" %}
+                                                <input type="text" class="form-control" disabled
+                                                    name="field_{{ field.id }}"
+                                                    value="{{ field.value }}"
+                                                    placeholder="This Field is System Generated"
+                                                    {% for attr in field.attributes %}{{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %}readonly{% endif %}/>
+
+                                            {% elif field.field_type == "number" %}
+                                                <input type="number" class="form-control"
+                                                    name="field_{{ field.id }}"
+                                                    value="{{ field.value }}"
+                                                    placeholder="Enter Numeric Value"
+                                                    {% for attr in field.attributes %}{{ attr }} {% endfor %} {% if readonlyWF == '1' or viewStepWFSeq == '3'  %}readonly{% endif %}/>
+
+                                            {% elif field.field_type == "text" %}
+                                                <input type="text" class="form-control"
+                                                    name="field_{{ field.id }}"
+                                                    value="{{ field.value }}"
+                                                    {% if field.accept %}maxlength="{{ field.accept }}" {% endif %}
+                                                    {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
+                                                    placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
+                                                    {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
+
+                                            {% elif field.field_type == "regex" %}
+                                                <input type="text" class="form-control"
+                                                    name="field_{{ field.id }}"
+                                                    id="regex-{{ field.id }}"
+                                                    data-regex="{{ field.validations.0.value }}"
+                                                    data-regex-id="{{ field.regex_id }}"
+                                                    {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
+                                                    value="{{ field.value|default:'' }}"
+                                                    oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
+                                                    placeholder="{{ field.regex_description }}"
+
+                                                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                                            {% elif field.field_type == "foreign" %}
+                                                <input type="text" class="form-control"
+                                                    name="field_{{ field.id }}"
+                                                    {% if view == '1' %} disabled {% endif %}   
+                                                        value="{{ field.foreign_data|default:'No data available' }}"
+                                                        {% for attr in field.attributes %} {{ attr }} {% endfor %}/>
+                                            {% else %}
+                                                <input type="{{ field.field_type }}" class="form-control"
+                                                    name="field_{{ field.id }}"
+                                                    value="{{ field.value }}"
+                                                    {% for attr in field.attributes %}{{ attr }} {% endfor %}
+                                                    {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
+                                            {% endif %}
+
+                                            {% if field.is_primary == 1 %}
+                                                <input type="hidden" class="form-control"
+                                                    name="primary_field"
+                                                    value="{{ field.primary_value|default:'No data available' }}">
+                                            {% endif %}
+                                    
+                                    </div>
+
+
+                                    {% if forloop.counter|divisibleby:4 or forloop.last %}
+                                    </div>
+                                {% endif %}
+                                {% endfor %}
+                                </div>
+                            {% endfor %}
                         </div>
-                    {% endfor %}
-                </div>
-
-            {% elif field.field_type == "checkbox" %}
-                <br>
-                <label class="switch">
-                    <input type="checkbox" name="field_{{ field.id }}"
-                        {% if field.value == "on" %} checked {% endif %}
-                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-                    <span class="slider"></span>
-                </label>
-
-            {% elif field.field_type == "file" %}
-                {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
-                    <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-                        <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
-                               class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                               {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
-
-                        <i class="fa-solid fa-eye eye-icon"
-                           {% if type == "create" %}
-                               onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
-                            {% elif  type == "reference" %}
-                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},'{{type}}')"
-        
-                           {% else %}
-                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
-                           {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
-                        </i>
                     </div>
-
-            {% elif field.field_type == "file multiple" %}
-                <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-                    <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
-                           class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                           {% for attr in field.attributes %} {{ attr }} {% endfor %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
-
-                    <i class="fa-solid fa-eye eye-icon"
-                       {% if type == "create" %}
-                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
-                        {% elif type == "reference"%}
-                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
-                        
-                       {% else %}
-                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
-                       {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
-                    </i>
                 </div>
-
-
-
-            {% elif field.field_type == "textarea" %}
-                <textarea data-toggle="maxlength"  maxlength="150"  class="form-control custom-textarea"
-                          name="field_{{ field.id }}"
-                          rows="3"
-                          {% for attr in field.attributes %}{{ attr }} {% endfor %}
-                          {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}>{{ field.value }}</textarea>
-
-            {% elif field.field_type == "generative" %}
-                <input type="text" class="form-control" disabled
-                       name="field_{{ field.id }}"
-                       value="{{ field.value }}"
-                       placeholder="This Field is System Generated"
-                       {% for attr in field.attributes %}{{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %}readonly{% endif %}/>
-
-            {% elif field.field_type == "number" %}
-                <input type="number" class="form-control"
-                       name="field_{{ field.id }}"
-                       value="{{ field.value }}"
-                       placeholder="Enter Numeric Value"
-                       {% for attr in field.attributes %}{{ attr }} {% endfor %} {% if readonlyWF == '1' or viewStepWFSeq == '3'  %}readonly{% endif %}/>
-
-            {% elif field.field_type == "text" %}
-                <input type="text" class="form-control"
-                       name="field_{{ field.id }}"
-                       value="{{ field.value }}"
-                       {% if field.accept %}maxlength="{{ field.accept }}" {% endif %}
-                       {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
-                       placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
-                       {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
-
-            {% elif field.field_type == "regex" %}
-                <input type="text" class="form-control"
-                       name="field_{{ field.id }}"
-                       id="regex-{{ field.id }}"
-                       data-regex="{{ field.validations.0.value }}"
-                       data-regex-id="{{ field.regex_id }}"
-                       {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
-                       value="{{ field.value|default:'' }}"
-                       oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
-                       placeholder="{{ field.regex_description }}"
-
-                       {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-
-            {% else %}
-                <input type="{{ field.field_type }}" class="form-control"
-                       name="field_{{ field.id }}"
-                       value="{{ field.value }}"
-                       {% for attr in field.attributes %}{{ attr }} {% endfor %}
-                       {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
-            {% endif %}
-
-
-
-        </div> {% if forloop.counter0|add:1|divisibleby:4 or forloop.last %}
-    </div>
-{% endif %}
-{% endfor %}
-
-{% endfor %}
+            {% endfor %}
 </div>
 
 

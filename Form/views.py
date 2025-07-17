@@ -1237,6 +1237,8 @@ def common_form_post(request):
         form_id = request.POST.get("form_id")
         editORcreate  = request.POST.get('editORcreate','')
         firstStep = request.POST.get("firstStep")
+        wfSelected_id = request.POST.get("wfSelected_id")
+        
         
         
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -1539,7 +1541,8 @@ def common_form_post(request):
 
     finally:
         if workflow_YN == '1':
-            return redirect('workflow_starts')
+            # return redirect('workflow_starts')
+            return redirect(f"{reverse('workflow_starts')}?workflowSelect={wfSelected_id}")
         else:
             return redirect('/masters?entity=form_master&type=i')
 
@@ -2182,97 +2185,205 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
         messages.error(request, "Oops...! Something went wrong!")
 
     
-@login_required
+# @login_required
+# def form_preview(request):
+#     user  = request.session.get('user_id', '')
+#     id = request.GET.get("id")
+#     id = dec(id)  
+
+#     if not id:
+#         return render(request, "Form/_formfields.html", {"fields": []})  
+
+#     try:
+#         workflow = get_object_or_404(workflow_matrix, id=id)
+#         form_id = workflow.form_id
+#         action_id = workflow.button_type_id
+
+#         form = get_object_or_404(Form, id=form_id)
+
+#         # Fetch form fields with 'section'
+#         fields = list(FormField.objects.filter(form_id=form_id).values(
+#             "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "order", "section"
+#         ).order_by("order"))
+
+#         # Initialize sectioned fields
+#         sectioned_fields = {}
+
+#         # Fetch action fields
+#         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
+#             "id", "type", "label_name", "button_name", "bg_color", "text_color", 
+#             "button_type", "dropdown_values", "status", "action_id"
+#         ))
+
+#         # Process action fields
+#         for action in action_fields:
+#             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
+
+#         # Process form fields
+#         for field in fields:
+#             field["values"] = field["values"].split(",") if field.get("values") else []
+#             field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+
+
+
+#             # Section name logic
+#             section_id = field.get("section")
+#             if section_id:
+#                 try:
+#                     section = SectionMaster.objects.get(id=section_id)
+#                     section_name = section.name
+#                 except SectionMaster.DoesNotExist:
+#                     section_name = ""
+#             else:
+#                 section_name = ""
+
+#             if field["field_type"] == "field_dropdown":
+#                     split_values = field["values"]
+#                     if len(split_values) == 2:
+#                         dropdown_form_id, dropdown_field_id = split_values
+#                         field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+#                         field["dropdown_data"] = list(field_values)
+
+#             # Fetch validations
+#             validations = FieldValidation.objects.filter(
+#                 field_id=field["id"], form_id=form_id
+#             ).values("value")
+#             field["validations"] = list(validations)
+
+#             # Handle file accept
+#             if field["field_type"] in ["file", "text", "file multiple"]:
+#                 file_validation = next((v for v in field["validations"]), None)
+#                 field["accept"] = file_validation["value"] if file_validation else ""
+
+#             # Group by section
+#             sectioned_fields.setdefault(section_name, []).append(field)
+
+#         return render(request, "Form/_formfieldedit.html", {
+#             "matrix_id": id,
+#             "sectioned_fields": sectioned_fields,
+#             "fields": fields,  # still passed if needed
+#             "form": form,
+#             "form_id": form_id,
+#             "action_id": action_id,
+#             "action_fields": action_fields,
+#             "type": "create"
+#         })
+
+#     except Exception as e:
+#         print(f"Error fetching form data: {e}")
+#         tb = traceback.extract_tb(e.__traceback__)
+#         fun = tb[0].name
+#         callproc("stp_error_log", [fun, str(e), user])
+#         messages.error(request, 'Oops...! Something went wrong!')
+#         return JsonResponse({"error": "Something went wrong!"}, status=500)
+
 def form_preview(request):
-    user  = request.session.get('user_id', '')
     id = request.GET.get("id")
     id = dec(id)  
 
     if not id:
-        return render(request, "Form/_formfields.html", {"fields": []})  
+        return render(request, "Form/_formfields.html", {"forms_data": []})
 
     try:
         workflow = get_object_or_404(workflow_matrix, id=id)
-        form_id = workflow.form_id
+        form_ids = workflow.form_id.split(",")  # Multiple form IDs
         action_id = workflow.button_type_id
 
-        form = get_object_or_404(Form, id=form_id)
+        forms_data = []
 
-        # Fetch form fields with 'section'
-        fields = list(FormField.objects.filter(form_id=form_id).values(
-            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "order", "section"
-        ).order_by("order"))
-
-        # Initialize sectioned fields
-        sectioned_fields = {}
-
-        # Fetch action fields
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
-            "id", "type", "label_name", "button_name", "bg_color", "text_color", 
-            "button_type", "dropdown_values", "status", "action_id"
-        ))
-
-        # Process action fields
+                "id", "type", "label_name", "button_name", "bg_color", "text_color", 
+                "button_type", "dropdown_values", "status", "action_id"
+            ))
+        
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
 
-        # Process form fields
-        for field in fields:
-            field["values"] = field["values"].split(",") if field.get("values") else []
-            field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+        for form_id in form_ids:
+            form_id = form_id.strip()
+            if not form_id:
+                continue
+
+            form = get_object_or_404(Form, id=form_id)
+
+            raw_fields = FormField.objects.filter(form_id=form_id).values(
+                "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
+            ).order_by("order")
 
 
+            sectioned_fields = {}
 
-            # Section name logic
-            section_id = field.get("section")
-            if section_id:
-                try:
-                    section = SectionMaster.objects.get(id=section_id)
-                    section_name = section.name
-                except SectionMaster.DoesNotExist:
+            for field in raw_fields:
+                field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
+                field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
+
+                section_id = field.get("section")
+                if section_id:
+                    try:
+                        section = SectionMaster.objects.get(id=section_id)
+                        section_name = section.name
+                    except SectionMaster.DoesNotExist:
+                        section_name = ""
+                else:
                     section_name = ""
-            else:
-                section_name = ""
 
-            if field["field_type"] == "field_dropdown":
+                field["section_name"] = section_name
+
+                validations = FieldValidation.objects.filter(
+                    field_id=field["id"], form_id=form_id
+                ).values("value")
+                field["validations"] = list(validations)
+
+                if any("^" in v["value"] for v in field["validations"]):
+                    field["field_type"] = "regex"
+                    pattern_value = field["validations"][0]["value"]
+                    try:
+                        regex_obj = RegexPattern.objects.get(regex_pattern=pattern_value)
+                        field["regex_id"] = regex_obj.id
+                        field["regex_description"] = regex_obj.description
+                    except RegexPattern.DoesNotExist:
+                        field["regex_id"] = None
+                        field["regex_description"] = ""
+
+                if field["field_type"] in ["file", "file multiple", "text"]:
+                    file_validation = next((v for v in field["validations"]), None)
+                    field["accept"] = file_validation["value"] if file_validation else ""
+
+                if field["field_type"] == "field_dropdown":
                     split_values = field["values"]
                     if len(split_values) == 2:
                         dropdown_form_id, dropdown_field_id = split_values
                         field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                         field["dropdown_data"] = list(field_values)
 
-            # Fetch validations
-            validations = FieldValidation.objects.filter(
-                field_id=field["id"], form_id=form_id
-            ).values("value")
-            field["validations"] = list(validations)
+                if field["field_type"] in ["master dropdown", "multiple"] and field["values"]:
+                    dropdown_id = field["values"][0]
+                    try:
+                        master_data = MasterDropdownData.objects.get(id=dropdown_id)
+                        query = master_data.query
+                        result = callproc("stp_get_query_data", [query])
+                        field["values"] = [{"id": row[0], "name": row[1]} for row in result]
+                    except MasterDropdownData.DoesNotExist:
+                        field["values"] = []
 
-            # Handle file accept
-            if field["field_type"] in ["file", "text", "file multiple"]:
-                file_validation = next((v for v in field["validations"]), None)
-                field["accept"] = file_validation["value"] if file_validation else ""
+                sectioned_fields.setdefault(section_name, []).append(field)
 
-            # Group by section
-            sectioned_fields.setdefault(section_name, []).append(field)
+            forms_data.append({
+                "form": form,
+                "sectioned_fields": sectioned_fields,
+            })
 
         return render(request, "Form/_formfieldedit.html", {
             "matrix_id": id,
-            "sectioned_fields": sectioned_fields,
-            "fields": fields,  # still passed if needed
-            "form": form,
-            "form_id": form_id,
-            "action_id": action_id,
+            "forms_data": forms_data,
             "action_fields": action_fields,
             "type": "create"
         })
 
     except Exception as e:
-        print(f"Error fetching form data: {e}")
-        tb = traceback.extract_tb(e.__traceback__)
-        fun = tb[0].name
-        callproc("stp_error_log", [fun, str(e), user])
-        messages.error(request, 'Oops...! Something went wrong!')
-        return JsonResponse({"error": "Something went wrong!"}, status=500)
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+        return render(request, "Form/_formfields.html", {"fields": []})
 
     
 

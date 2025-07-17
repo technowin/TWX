@@ -293,9 +293,9 @@ def workflow_starts(request):
     if request.user.is_authenticated:
         user = request.user.id    
         role_id = str(request.user.role_id)
-
+    workflowSelect = request.GET.get('workflowSelect')
     workflow_para = "CIDCO File Scanning and DMS Flow"
-    param = [workflow_para]
+    param = [workflowSelect]
     
     workflow_value = roles.objects.filter(id=role_id).values_list('workflow_view', flat=True).first()
 
@@ -335,7 +335,6 @@ def workflow_starts(request):
             
         })
 
-    # Map of step_id to step info for quick lookup
     step_roles_map = {
         str(step['id']): step
         for step in workflow_steps
@@ -534,6 +533,7 @@ def workflow_starts(request):
     
     return render(request, "Workflow/workflow_starts.html", {
         "WFIndexdata": WFIndexdata,'show_top_button': show_top_button,'firstStep': firstStep, "reference_workflow_status":reference_workflow_status,
+        "workflowSelect":workflowSelect,
     **top_button_context
     })
 
@@ -610,6 +610,7 @@ def workflow_form_step(request):
     new_data_id = request.GET.get("new_data_id")
     reference_type = request.GET.get("reference_type")
     data_save_status = request.GET.get("data_save_status")
+    wfSelected_id = request.GET.get("wfSelected_id")
     if not new_data_id:
         new_data_id = ''
     if new_data_id:
@@ -843,7 +844,7 @@ def workflow_form_step(request):
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,"inward_req_id":inward_req_id,
                 "matched_form_data_id":matched_form_data_id,"new_data_id":new_data_id,
-                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,"data_save_status":data_save_status,
+                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,"data_save_status":data_save_status,"wfSelected_id":wfSelected_id,
             })
         else:
             return render(request, "Form/_formfieldedit.html", {
@@ -855,7 +856,7 @@ def workflow_form_step(request):
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
                 "matched_form_data_id":matched_form_data_id,
-                "action_id":action_id,"step_id":id,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
+                "action_id":action_id,"step_id":id,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,"wfSelected_id":wfSelected_id,
             })
             
 
@@ -1060,3 +1061,20 @@ def redirect_to_workflow_start(request):
     return redirect(reverse('workflow_starts'))
 
 
+@login_required
+def workflow_module(request):  
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor = m.cursor()
+
+    if request.user.is_authenticated:
+        user = request.user.id    
+        role_id = str(request.user.role_id)
+        
+        cursor.callproc("stp_get_Client_module")
+        for result in cursor.stored_results():
+            module_wf = list(result.fetchall())
+
+    return render(request, "Workflow/workflow_module.html", {
+        "module_wf": module_wf,
+    })
