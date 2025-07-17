@@ -1404,7 +1404,7 @@ def common_form_post(request):
                     status=workflow_detail.status,
                     user_id=workflow_detail.user_id,
                     req_id=workflow_detail.req_id,
-                    form_id=request.POST.get('form_id', ''),
+                    # form_id=request.POST.get('form_id', ''),
                     created_by=user,
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
@@ -1425,64 +1425,64 @@ def common_form_post(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
-            if role_idC == '1':
-                latest_record = WorkflowVersionControl.objects.filter(
-                    file_name=form_data.file_ref
-                ).order_by('-id').first()
+            # if role_idC == '1':
+            #     latest_record = WorkflowVersionControl.objects.filter(
+            #         file_name=form_data.file_ref
+            #     ).order_by('-id').first()
 
-                    # Determine the file_category and latest temp_version
-                latest_file_category = latest_record.file_category if latest_record else None
-                latest_temp_version = latest_record.temp_version if latest_record else None
+            #         # Determine the file_category and latest temp_version
+            #     latest_file_category = latest_record.file_category if latest_record else None
+            #     latest_temp_version = latest_record.temp_version if latest_record else None
 
-                    # Determine new temp_version
-                if latest_temp_version is None:
-                    temp_version = Decimal('1.0')
-                else:
-                    temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
+            #         # Determine new temp_version
+            #     if latest_temp_version is None:
+            #         temp_version = Decimal('1.0')
+            #     else:
+            #         temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
 
-                WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
-            if role_idC == '2':
-            # Check if any row with version_no=0 exists for the given file_name
-                reject_case = WorkflowVersionControl.objects.filter(
-                    file_name=file_name,
-                    version_no=0
-                ).exists()
+            #     WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
+            # if role_idC == '2':
+            # # Check if any row with version_no=0 exists for the given file_name
+            #     reject_case = WorkflowVersionControl.objects.filter(
+            #         file_name=file_name,
+            #         version_no=0
+            #     ).exists()
 
-                if not reject_case:
-                    latest_record = WorkflowVersionControl.objects.filter(
-                        file_name=file_name
-                    ).order_by('-id').first()
+            #     if not reject_case:
+            #         latest_record = WorkflowVersionControl.objects.filter(
+            #             file_name=file_name
+            #         ).order_by('-id').first()
 
-                    # Determine the file_category and latest temp_version
-                    latest_file_category = latest_record.file_category if latest_record else None
-                    latest_temp_version = latest_record.temp_version if latest_record else None
+            #         # Determine the file_category and latest temp_version
+            #         latest_file_category = latest_record.file_category if latest_record else None
+            #         latest_temp_version = latest_record.temp_version if latest_record else None
 
-                    # Determine new temp_version
-                    if latest_temp_version is None:
-                        temp_version = Decimal('1.0')
-                    else:
-                        temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
+            #         # Determine new temp_version
+            #         if latest_temp_version is None:
+            #             temp_version = Decimal('1.0')
+            #         else:
+            #             temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
 
-                    # Create the new row
-                    WorkflowVersionControl.objects.create(
-                        file_name=file_name,
-                        version_no=0,
-                        temp_version=temp_version,
-                        modified_by=user_name,
-                        modified_at=now(),
-                        file_category=latest_file_category,
-                        form_data_id=form_dataID
-                    )
+            #         # Create the new row
+            #         WorkflowVersionControl.objects.create(
+            #             file_name=file_name,
+            #             version_no=0,
+            #             temp_version=temp_version,
+            #             modified_by=user_name,
+            #             modified_at=now(),
+            #             file_category=latest_file_category,
+            #             form_data_id=form_dataID
+            #         )
 
                     # WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
-            if role_idC == '5':
-                count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
-                latest_row = WorkflowVersionControl.objects.filter(
-                    file_name=file_name
-                    ).order_by('-id').values_list('id', flat=True).first()
-                if latest_row and count_row == 1:
-                    latest_row.version_no = 1
-                    latest_row.save()
+            # if role_idC == '5':
+            #     count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
+            #     latest_row = WorkflowVersionControl.objects.filter(
+            #         file_name=file_name
+            #         ).order_by('-id').values_list('id', flat=True).first()
+            #     if latest_row and count_row == 1:
+            #         latest_row.version_no = 1
+            #         latest_row.save()
                 
 
             for key, value in request.POST.items():
