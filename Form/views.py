@@ -1335,16 +1335,18 @@ def common_form_post(request):
                         step_id=step_id,
                         status=status_from_matrix,
                         operator=request.POST.get('custom_dropdownOpr', ''),
-                        user_id=user,
-                        created_by=user,
-                        updated_by=user,
-                        created_at=now(),
-                        updated_at=now(),
-                        primary_key=primary_value
-                    )
+                        
+                    workflow_id=wfSelected_id,
+                    user_id=user,
+                            created_by=user,
+                            updated_by=user,
+                            created_at=now(),
+                            updated_at=now(),
+                            primary_key=primary_value
+                        )
 
-                workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
-                workflow_detail.save()
+                    workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
+                    workflow_detail.save()
 
                 # History entry
                 history_workflow_details.objects.create(
@@ -1357,10 +1359,46 @@ def common_form_post(request):
                     user_id=workflow_detail.user_id,
                     req_id=workflow_detail.req_id,
                     operator=workflow_detail.operator,
+                    workflow_id=wfSelected_id,
+                    # form_id=request.POST.get('form_id', ''),
                     created_by=user,
-                    created_at=workflow_detail.updated_at,
-                    primary_key=primary_value
+                    created_at=workflow_detail.updated_at
                 )
+            else:
+                history_workflow_details.objects.create(
+                    form_data_id=workflow_detail.form_data_id,
+                    role_id=workflow_detail.role_id,
+                    action_details_id=workflow_detail.action_details_id,
+                    increment_id=workflow_detail.increment_id,
+                    step_id=workflow_detail.step_id,
+                    status=workflow_detail.status,
+                    user_id=workflow_detail.user_id,
+                    req_id=workflow_detail.req_id,
+                    operator=request.POST.get('custom_dropdownOpr', ''),
+                    workflow_id=wfSelected_id,
+                    created_by=user,
+                    created_at=workflow_detail.updated_at
+                )
+
+            # for key, value in request.POST.items():
+            #     if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+            #         match = re.match(r'action_field_(\d+)', key)
+            #         latest_row = WorkflowVersionControl.objects.filter(file_name=form_data.file_ref).order_by('-id').first()
+
+            #         if role_idC != '5' or role_idC != '6':
+            #             if latest_row and latest_row.temp_version is not None:
+            #                 temp_vers = Decimal(str(latest_row.temp_version))
+            #             else:
+            #                 temp_vers = Decimal('1.0')
+            #         else:
+            #             temp_vers = Decimal('1.0')
+            #         if match:
+            #             field_id = int(match.group(1))
+            #             action_field = get_object_or_404(FormActionField, pk=field_id)
+            #             if action_field.type in ['text', 'textarea', 'select']:
+            #                 created_at=workflow_detail.updated_at,
+            #                 primary_key=primary_value
+                        
 
                 # Action fields
                 for key, value in request.POST.items():
