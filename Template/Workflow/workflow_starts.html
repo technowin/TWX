@@ -128,7 +128,8 @@
                                                      '{{ item.but_type }}',
                                                      '{{ item.but_act }}',
                                                      '{{ item.enc_id_wfd }}',
-                                                     '{{ item.editORcreate }}')">
+                                                     '{{ item.editORcreate }}',
+                                                      '{{ workflowSelect }}')">
                             {{ item.user_prev_step_name }}
                           </button>
                           {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
@@ -168,9 +169,9 @@
     }
 </script>  
 <script>
-    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate){
+    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate,workflowSelect){
       debugger;
-        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}`;
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}&wfSelected_id=${workflowSelect}`;
         window.location.href = url;
     }
 </script>
