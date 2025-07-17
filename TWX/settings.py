@@ -57,7 +57,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Project/Documents/')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
 MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 MEDIA_URL = '/media/'
 
@@ -112,7 +112,6 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     # "django.contrib.sites",
-    'django.contrib.humanize',
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # "django.contrib.humanize", # Handy template tags
@@ -197,7 +196,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            # 'filename': os.path.join(BASE_DIR, 'D:/Python Project/TDMS logs', 'django.log'),  
+            # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
             'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },
