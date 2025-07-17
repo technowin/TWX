@@ -1335,18 +1335,17 @@ def common_form_post(request):
                         step_id=step_id,
                         status=status_from_matrix,
                         operator=request.POST.get('custom_dropdownOpr', ''),
-                        
-                    # workflow_id=wfSelected_id,
-                    # user_id=user,
-                    #         created_by=user,
-                    #         updated_by=user,
-                    #         created_at=now(),
-                    #         updated_at=now(),
-                    #         primary_key=primary_value
-                        )
+                        user_id=user,
+                        created_by=user,
+                        updated_by=user,
+                        created_at=now(),
+                        updated_at=now(),
+                        primary_value=primary_value  # Assuming your model has a field named `primary_value`
+                    )
 
                     workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
                     workflow_detail.save()
+
 
                 # History entry
                 history_workflow_details.objects.create(
