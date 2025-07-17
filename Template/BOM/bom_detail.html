@@ -371,6 +371,74 @@
     </div>
 </div>
 
+
+<div class="card mt-2">
+    <div class="card-header">
+        <i class="bi bi-clipboard-check"></i> Approval History
+    </div>
+    <div class="card-body">
+        {% if bom.approval_requests.exists %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Requested By</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for approval in bom.approval_requests.all %}
+                    <tr>
+                        <td>{{ approval.requested_by.get_full_name }}</td>
+                        <td>{{ approval.requested_date|date:"SHORT_DATE_FORMAT" }}</td>
+                        <td>
+                            {% if approval.status == "Approved" %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif approval.status == "Rejected" %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if approval.status == "Pending" and perms.bom.approve_bom %}
+                                <a href="{% url 'approve_bom' pk=approval.pk %}" class="btn btn-sm btn-success me-1">
+                                    <i class="bi bi-check"></i> Approve
+                                </a>
+                                <a href="{% url 'reject_bom' pk=approval.pk %}" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-x"></i> Reject
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if approval.rejection_reason %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="alert alert-danger py-2 mb-0">
+                                <strong><i class="bi bi-exclamation-triangle"></i> Rejection Reason:</strong> 
+                                {{ approval.rejection_reason }}
+                                <small class="text-muted d-block mt-1">
+                                    Rejected by {{ approval.rejected_by.get_full_name }} on {{ approval.rejected_date|date:"SHORT_DATETIME_FORMAT" }}
+                                </small>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle"></i> No approval requests yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+
 <!-- Add Component Modal -->
 <div class="modal fade" id="addComponentModal" tabindex="-1" aria-labelledby="addComponentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -494,6 +562,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <script>
 $(document).ready(function() {
     // Component search functionality
@@ -754,8 +825,6 @@ $(document).ready(function() {
 });
 </script>
 
-<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 {% if messages %}
   <script>
