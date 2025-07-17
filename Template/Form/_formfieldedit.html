@@ -146,6 +146,7 @@
 
                                             <input type="hidden" id="workflow_YN" name="workflow_YN" value="{{ workflow }}">
                                             <input type="hidden" id="role_id" name="role_id" value="{{ role_id }}">
+                                            <input type="hidden" id="form_ids" name="form_ids" value="{{ form_ids}}">
                                             <input type="hidden" id="action_detail_id" name="action_detail_id" value="{{ action_detail_id }}">
                                             <input type="hidden" id="form_id" name="form_id" value="{{ form.id }}">
                                             <input type="hidden" id="action_id" name="action_id" value="{{ action_id }}">
@@ -160,16 +161,16 @@
                                             <input type="hidden" name="custom_dropdownOpr" id="hidden_operator_input">
                                             <input type="hidden" id="firstStep" name="firstStep" value="{{ firstStep }}">
 
-            <label class="form-label fw-bold">{{ field.label }}</label>
-            <input type="hidden" id = "type" name = "type" value ="{{type}}">
-            <input type="hidden" id = "editORcreate" name = "editORcreate" value ="{{editORcreate}}">
-            <input type="hidden" id = "file_ref_value" name = "file_ref_value" value ="{{file_ref_value}}">
-            <input type="hidden" id = "readonlyWF" name = "readonlyWF" value ="{{readonlyWF}}">
-            <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
-            <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
-            <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
-            <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
-            <input type="hidden" id="wfSelected_id" name="wfSelected_id" value="{{ wfSelected_id }}">
+                                            <label class="form-label fw-bold">{{ field.label }}</label>
+                                            <input type="hidden" id = "type" name = "type" value ="{{type}}">
+                                            <input type="hidden" id = "editORcreate" name = "editORcreate" value ="{{editORcreate}}">
+                                            <input type="hidden" id = "file_ref_value" name = "file_ref_value" value ="{{file_ref_value}}">
+                                            <input type="hidden" id = "readonlyWF" name = "readonlyWF" value ="{{readonlyWF}}">
+                                            <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
+                                            <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
+                                            <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
+                                            <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
+                                            <input type="hidden" id="wfSelected_id" name="wfSelected_id" value="{{ wfSelected_id }}">
             
 
                                         {% if field.field_type == "select" %}
@@ -1092,11 +1093,10 @@
             }
 
 
-             // ✅ Add validation before every manual submit
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
+            //if (!form.checkValidity()) {
+            //    form.reportValidity();
+            //    return;
+            //}
 
             if (buttonType === 'Submit' && type === 'create') {
                 operatorDropdown.removeAttribute('required');
