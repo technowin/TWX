@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
 
@@ -50,7 +51,7 @@
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header ">
-                <i class="uil-chart-bar"></i> Quick Stats
+                <i class="bi bi-bar-chart"></i> Quick Stats
             </div>
             <div class="card-body">
                 <div class="row">
@@ -72,7 +73,7 @@
                     </div>
                 </div>
                 <div class="alert alert-warning">
-                    <i class="uil-exclamation-triangle"></i> 
+                    <i class="bi bi-exclamation-triangle"></i> 
                     <strong>{{ low_stock_items|length }} components</strong> are below minimum stock levels
                 </div>
             </div>
@@ -83,7 +84,7 @@
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header ">
-                <i class="uil-list-ui-alt"></i> Pending Actions
+                <i class="bi bi-list-check"></i> Pending Actions
             </div>
             <div class="card-body">
                 {% if pending_approvals %}
@@ -101,13 +102,13 @@
                     </div>
                 {% else %}
                     <div class="alert alert-info">
-                        <i class="uil-check-circle"></i> No pending actions
+                        <i class="bi bi-check-circle"></i> No pending actions
                     </div>
                 {% endif %}
                 
                 <div class="d-grid gap-2">
                     <a href="#" class="btn btn-outline-primary">
-                        <i class="uil-clipboard-alt"></i> View Inventory Report
+                        <i class="bi bi-clipboard-data"></i> View Inventory Report
                     </a>
                 </div>
             </div>
@@ -118,7 +119,7 @@
 <!-- Recent BOMs -->
 <div class="card mb-4">
     <div class="card-header ">
-        <i class="uil-clock"></i> Recent BOMs (Last 7 Days)
+        <i class="bi bi-clock-history"></i> Recent BOMs (Last 7 Days)
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -156,7 +157,7 @@
                             <td>{{ bom.last_modified|date:"SHORT_DATETIME_FORMAT" }}</td>
                             <td>
                                 <a href="{% url 'bom_detail' pk=bom.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="uil-eye"></i>
+                                    <i class="bi bi-eye"></i>
                                 </a>
                             </td>
                         </tr>
@@ -175,7 +176,7 @@
 {% if low_stock_items %}
 <div class="card">
     <div class="card-header bg-danger text-white">
-        <i class="uil-exclamation-triangle"></i> Low Stock Items
+        <i class="bi bi-exclamation-triangle"></i> Low Stock Items
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -215,6 +216,33 @@
     </div>
 </div>
 {% endif %}
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_javascript %}
