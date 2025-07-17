@@ -66,10 +66,10 @@ def Login(request):
             request.session["user_id"]=(str(user.id))
             request.session["role_id"] = str(user.role_id)
             
-            # if user.role_id in [2,3]:
-            #     return redirect('/index')
-            # if remember_me == 'on':
-            #     request.session.set_expiry(1209600)  # 2 weeks
+            if user.role_id in [2,3]:
+                return redirect('/index')
+            if remember_me == 'on':
+                request.session.set_expiry(1209600)  # 2 weeks
             # else:
             #     request.session.set_expiry(0)  # Browser close
             return redirect('workflow_module') 

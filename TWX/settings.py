@@ -57,7 +57,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Project/Documents/')
 MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 MEDIA_URL = '/media/'
 
@@ -69,9 +69,9 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-$vute#e^tqlu5ehd!)vv5m3x!z5^7p%jb9hm9272-!6%0ouz*r'
 SECRET_KEY1 = '5pQsZXhU8vKyv7GxThldGn_JLK9UXVYyZD3GwQxsztY='
-LOGOUT_REDIRECT_URL ='Account'
-LOGIN_REDIRECT_URL ='Account'
-LOGIN_URL="Account"
+LOGOUT_REDIRECT_URL ='/Login'
+LOGIN_REDIRECT_URL ='/Login'
+LOGIN_URL="/Login"
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -112,6 +112,7 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     # "django.contrib.sites",
+    'django.contrib.humanize',
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # "django.contrib.humanize", # Handy template tags
@@ -166,6 +167,7 @@ MIDDLEWARE = [
     'django_auto_logout.middleware.auto_logout',
     'corsheaders.middleware.CorsMiddleware',
     'axes.middleware.AxesMiddleware',
+    'TWX.middleware.AutoLogoutMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
     'http://15.207.169.98',
@@ -196,7 +198,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
+            # 'filename': os.path.join(BASE_DIR, 'D:/Python Project/TDMS logs', 'django.log'),  
             'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },
