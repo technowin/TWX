@@ -14,7 +14,7 @@ from .models import (
 )
 from .forms import (
     BOMHeaderForm, BOMItemForm, ComponentForm, ComponentSupplierForm,
-    DocumentForm, CommentForm, ApprovalRequestForm
+    DocumentForm, CommentForm, ApprovalRequestForm, RejectionForm
 )
 from BOM import models
 
@@ -275,69 +275,126 @@ class UpdateBOMItemView(View):
             'message': 'BOM item updated successfully.'
         })
 
+# class RequestBOMApprovalView(View):
+#     def post(self, request, *args, **kwargs):
+#         bom_id = request.POST.get('bom_id')
+#         comments = request.POST.get('comments', '')
+        
+#         bom = get_object_or_404(BOMHeader, pk=bom_id)
+        
+#         # Check if there's already a pending request
+#         existing_request = ApprovalRequest.objects.filter(bom=bom, approved_by__isnull=True).first()
+#         if existing_request:
+#             return JsonResponse({
+#                 'success': False,
+#                 'message': 'There is already a pending approval request for this BOM.'
+#             })
+        
+#         # Create the approval request
+#         ApprovalRequest.objects.create(
+#             bom=bom,
+#             requested_by=request.user,
+#             comments=comments
+#         )
+        
+#         # Update BOM status
+#         bom.status = 'PE'
+#         bom.save()
+        
+#         return JsonResponse({
+#             'success': True,
+#             'message': 'Approval request submitted successfully.'
+#         })
+
 class RequestBOMApprovalView(View):
     def post(self, request, *args, **kwargs):
-        bom_id = request.POST.get('bom_id')
-        comments = request.POST.get('comments', '')
+        bom = get_object_or_404(BOMHeader, pk=self.kwargs['pk'])
         
-        bom = get_object_or_404(BOMHeader, pk=bom_id)
-        
-        # Check if there's already a pending request
-        existing_request = ApprovalRequest.objects.filter(bom=bom, approved_by__isnull=True).first()
-        if existing_request:
-            return JsonResponse({
-                'success': False,
-                'message': 'There is already a pending approval request for this BOM.'
-            })
+        # Check if already has pending approval
+        if ApprovalRequest.objects.filter(bom=bom, approved_by__isnull=True).exists():
+            messages.warning(request, f"There is already a pending approval request for BOM {bom.name}")
+            return redirect('bom_detail', pk=bom.pk)
         
         # Create the approval request
-        ApprovalRequest.objects.create(
+        approval = ApprovalRequest.objects.create(
             bom=bom,
             requested_by=request.user,
-            comments=comments
+            comments=request.POST.get('comments', '')
         )
         
         # Update BOM status
-        bom.status = 'PE'
+        bom.status = 'PE'  # Pending Approval
         bom.save()
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Approval request submitted successfully.'
-        })
-
-class ApproveBOMView(View):
-    def post(self, request, *args, **kwargs):
-        request_id = request.POST.get('request_id')
-        comments = request.POST.get('comments', '')
-        
-        approval_request = get_object_or_404(ApprovalRequest, pk=request_id)
-        
-        # Check if already approved
-        if approval_request.approved_by:
-            return JsonResponse({
-                'success': False,
-                'message': 'This request has already been approved.'
+        messages.success(request, f"Approval requested for BOM {bom.name}")
+        return redirect('bom_detail', pk=bom.pk)
+    
+    def get(self, request, *args, **kwargs):
+        bom = get_object_or_404(BOMHeader, pk=self.kwargs['pk'])
+        context = {
+            'bom': bom,
+            'form': ApprovalRequestForm(initial={
+                'bom': bom,
+                'requested_by': request.user
             })
+        }
+        return render(request, 'BOM/request_approval.html', context)
+ 
+class ApproveBOMView( View):
+    def post(self, request, *args, **kwargs):
+        approval = get_object_or_404(ApprovalRequest, pk=self.kwargs['pk'])
         
-        # Approve the request
-        approval_request.approved_by = request.user
-        approval_request.approved_date = timezone.now()
-        approval_request.comments = comments
-        approval_request.save()
+        if approval.approved_by:
+            messages.warning(request, "This request has already been approved")
+            return redirect('bom_detail', pk=approval.bom.pk)
+            
+        approval.approved_by = request.user
+        approval.approved_date = timezone.now()
+        approval.save()
         
         # Update BOM status
-        bom = approval_request.bom
-        bom.status = 'AC'
+        bom = approval.bom
+        bom.status = 'AC'  # Active
         bom.save()
         
-        # Create a revision snapshot
-        self.create_revision_snapshot(bom)
+        messages.success(request, f"BOM {bom.name} approved successfully")
+        return redirect('bom_detail', pk=bom.pk)
+
+class RejectBOMView(View):
+    def post(self, request, *args, **kwargs):
+        approval = get_object_or_404(ApprovalRequest, pk=self.kwargs['pk'])
+        bom = approval.bom
         
-        return JsonResponse({
-            'success': True,
-            'message': 'BOM approved successfully.'
-        })
+        if approval.status != "Pending":
+            messages.warning(request, f"This request has already been {approval.status.lower()}")
+            return redirect('bom_detail', pk=bom.pk)
+            
+        # Update approval request with rejection info
+        approval.rejected_by = request.user
+        approval.rejected_date = timezone.now()
+        approval.rejection_reason = request.POST.get('rejection_reason', '')
+        approval.save()
+        
+        # Update BOM status back to Draft
+        bom.status = 'DR'
+        bom.save()
+        
+        messages.warning(request, f"BOM {bom.name} has been rejected and returned to Draft status")
+        return redirect('bom_detail', pk=bom.pk)
+    
+    def get(self, request, *args, **kwargs):
+        approval = get_object_or_404(ApprovalRequest, pk=self.kwargs['pk'])
+        context = {
+            'approval': approval,
+            'bom': approval.bom,
+            'form': RejectionForm(initial={
+                'approval_request': approval.id,
+                'rejected_by': request.user.id
+            })
+        }
+        return render(request, 'bom/reject_approval.html', context)
+    
+
     
     def create_revision_snapshot(self, bom):
         # Create a JSON snapshot of the current BOM state

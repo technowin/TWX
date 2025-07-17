@@ -79,8 +79,10 @@ urlpatterns = [
     path('api/add-bom-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
     path('api/update-bom-item/', views.UpdateBOMItemView.as_view(), name='update_bom_item'),
     path('api/remove-bom-item/', views.RemoveBOMItemView.as_view(), name='remove_bom_item'),
-    path('api/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
-    path('api/approve-bom/', views.ApproveBOMView.as_view(), name='approve_bom'),
+    # path('api/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
+    # path('api/approve-bom/', views.ApproveBOMView.as_view(), name='approve_bom'),
+    path('approvals/<int:pk>/approve/', views.ApproveBOMView.as_view(), name='approve_bom'),
+    path('approvals/<int:pk>/reject/', views.RejectBOMView.as_view(), name='reject_bom'),
     path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
     
     # API endpoints
@@ -88,9 +90,10 @@ urlpatterns = [
     path('components/new/', views.ComponentCreateView.as_view(), name='component_create'),
     path('components/<int:pk>/edit/', views.ComponentUpdateView.as_view(), name='component_update'),
     path('components/<int:pk>/add-supplier/', views.AddComponentSupplierView.as_view(), name='add_component_supplier'),
+    path('boms/<int:pk>/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
-    path('form_action_builder/', form_action_builder, name='form_action_builder'), 
+    path('form_action_builder/', form_action_builder, name='form_action_builder'),  
     path('form_action_builder_master/', form_action_builder_master, name='form_action_builder_master'),  # Render HTML
     path('save_form/', save_form, name='save_form'), 
     path('save_form_action/', save_form_action, name='save_form_action'), 
