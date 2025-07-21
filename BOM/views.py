@@ -84,7 +84,7 @@ from .forms import CommentForm, BOMRevisionForm
 
 class BOMDetailView(DetailView):
     model = BOMHeader
-    template_name = 'bom/bom_detail.html'
+    template_name = 'BOM/bom_detail.html'
     context_object_name = 'bom'
     
     def get_context_data(self, **kwargs):
