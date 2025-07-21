@@ -52,7 +52,7 @@ class BOMHeaderForm(BaseForm):
 class BOMItemForm(BaseForm):
     class Meta:
         model = BOMItem
-        fields = ['component', 'quantity', 'reference_designators', 'notes']
+        fields = ['component', 'position', 'quantity', 'reference_designators', 'notes']
         widgets = {
             'component': forms.HiddenInput(),
             'bom': forms.HiddenInput(),
@@ -262,3 +262,51 @@ class RejectionForm(forms.ModelForm):
                 'class': 'form-control'
             }),
         }
+
+
+from django import forms
+from .models import BOMItem, Comment, BOMRevision
+
+
+
+class BOMRevisionForm(BaseForm):  # Inherits from BaseForm we created earlier
+    class Meta:
+        model = BOMRevision
+        fields = ['revision', 'change_reason']
+        widgets = {
+            'revision': forms.TextInput(attrs={
+                'class': 'form-control-lg font-monospace',
+                'placeholder': 'A, B, 1.0, 1.1, etc.',
+                'pattern': '[A-Za-z0-9.]+',  # Basic input validation
+                'title': 'Use letters, numbers, or dots (e.g., A, 1, 1.2)'
+            }),
+            'change_reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Describe the changes in this revision and the reason for updating...',
+                'minlength': '10',  # Minimum character requirement
+                'data-bs-toggle': 'tooltip',
+                'data-bs-placement': 'top',
+                'title': 'Provide detailed explanation of changes'
+            }),
+        }
+        help_texts = {
+            'revision': 'Use an alphanumeric revision identifier (e.g., A, B, 1, 1.2, 2.0)',
+            'change_reason': 'Detailed description of what changed and why (minimum 10 characters)'
+        }
+        labels = {
+            'revision': 'Revision Number/Code',
+            'change_reason': 'Change Description'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add some Bootstrap validation classes
+        self.fields['revision'].widget.attrs.update({
+            'class': 'form-control-lg font-monospace' + 
+                     (' is-invalid' if 'revision' in self.errors else '')
+        })
+        self.fields['change_reason'].widget.attrs.update({
+            'class': 'form-control' + 
+                    (' is-invalid' if 'change_reason' in self.errors else '')
+        })

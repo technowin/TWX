@@ -15,7 +15,13 @@ class Component(models.Model):
         ('CH', 'Chemical'),
         ('OT', 'Other'),
     ]
-    
+    PURCHASE_TYPE_CHOICES = [
+        ('IN', 'Inhouse'),
+        ('PU', 'Purchase'),
+        ('OS', 'Outsource'),
+    ]
+    # ... existing fields ...
+    purchase_type = models.CharField(max_length=2, choices=PURCHASE_TYPE_CHOICES, default='PU')
     part_number = models.CharField(max_length=50, unique=True)
     description = models.TextField()
     category = models.CharField(max_length=2, choices=CATEGORY_CHOICES, default='ME')
@@ -125,10 +131,11 @@ class BOMItem(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
     reference_designators = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)
-    sort_order = models.PositiveIntegerField(default=0)
-    
+    sort_order = models.CharField(max_length=20)  # Stores hierarchical position like "1", "1.1", "1.2.1"
+    level = models.IntegerField(default=0)  # Depth in hierarchy (1 for top level, 2 for second level, etc.)
+    position = models.IntegerField(default=0)
     class Meta:
-        ordering = ['sort_order']
+        # ordering = ['sort_order']
         unique_together = ('bom', 'component', 'reference_designators')
     
     def __str__(self):

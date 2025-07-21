@@ -1,0 +1,36 @@
+<!-- bom/bom_tree_item.html -->
+<li class="list-group-item bom-item py-2" data-item-id="{{ item.id }}" style="padding-left: {% widthratio item.level 1 20 %}px;">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            {% if item.children %}
+            <span class="tree-toggle me-1" data-bs-toggle="collapse" href="#children-{{ item.id }}">
+                <i class="bi bi-chevron-right"></i>
+            </span>
+            {% else %}
+            <span class="me-2" style="display: inline-block; width: 16px;">&nbsp;</span>
+            {% endif %}
+            <span class="fw-bold">{{ item.sort_order }}.</span>
+            {{ item.component.part_number|truncatechars:20 }}
+            <span class="badge bg-secondary ms-2">{{ item.quantity }}</span>
+        </div>
+        <small class="text-muted">{{ item.component.get_purchase_type_display }}</small>
+    </div>
+    {% if item.children %}
+    <div class="collapse" id="children-{{ item.id }}">
+        <ul class="list-group list-group-flush mt-1">
+            {% for child in item.children %}
+                {% include "BOM/tree_node.html" with item=child %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</li>
+
+<script>
+$(document).ready(function() {
+    // Handle tree toggle icons
+    $('.tree-toggle').click(function() {
+        $(this).find('i').toggleClass('bi-chevron-right bi-chevron-down');
+    });
+});
+</script>
