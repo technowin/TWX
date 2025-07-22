@@ -440,7 +440,7 @@
                             <label for="parent_item" class="form-label">Parent Item</label>
                             <select class="form-select" id="parent_item" name="parent_item">
                                 <option value="">-- Top Level --</option>
-                                {% for item in bom.items.all %}
+                                {% for item in bom.items.all|natural_sort %}
                                     <option value="{{ item.sort_order }}">{{ item.sort_order }}. {{ item.component.part_number }}</option>
                                 {% endfor %}
                             </select>
