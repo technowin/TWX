@@ -116,6 +116,7 @@
                 </div>
         <br>
     {% csrf_token %}
+    <input type="hidden" name="custom_dropdownOpr" id="hidden_operator_input">
 
 <div class="row">
     {% for form_info in forms_data %}
@@ -159,7 +160,7 @@
 
 
                                             <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
-                                            <input type="hidden" name="custom_dropdownOpr" id="hidden_operator_input">
+                                            {% comment %} <input type="hidden" name="custom_dropdownOpr" id="hidden_operator_input"> {% endcomment %}
                                             <input type="hidden" id="firstStep" name="firstStep" value="{{ firstStep }}">
 
                                             <label class="form-label fw-bold">{{ field.label }}</label>
@@ -172,6 +173,7 @@
                                             <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
                                             <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
                                             <input type="hidden" id="wfSelected_id" name="wfSelected_id" value="{{ wfSelected_id }}">
+                                            <input type="hidden" id="actual_step_id" name="actual_step_id" value="{{ actual_step_id }}">
             
 
                                         {% if field.field_type == "select" %}
@@ -531,35 +533,13 @@
 
 </div>  {% endcomment %}
 
-       <div class="modal fade" id="workflowModal" tabindex="-1" aria-labelledby="workflowModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="workflowModalLabel">Select Operator</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <label for="custom_dropdownOpr">Select Operator:</label>
-        <select name="custom_dropdownOpr" id="custom_dropdownOpr" class="form-control" required>
-            <option value="">--Select--</option>
-            {% for item in WFoperator_dropdown %}
-                <option value="{{ item.0 }}">{{ item.1 }}</option>
-            {% endfor %}
-        </select>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="confirmSubmitBtn" class="btn btn-primary">Confirm</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div> 
+      
 
 {% comment %} <div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0;
     width: 100vw; height: 30vh; background: rgba(0,0,0,0.3); z-index: 9990;"></div> {% endcomment %}
 
-<div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0;
-    width: 100vw; height: 30vh; "></div>
+{% comment %} <div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0;
+    width: 100vw; height: 30vh; "></div> {% endcomment %}
 
 {% comment %} ends here {% endcomment %}
 
@@ -617,6 +597,30 @@
 
 
 </form>
+
+ <div class="modal fade" id="workflowModal" tabindex="-1" aria-labelledby="workflowModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="workflowModalLabel">Select Operator</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label for="custom_dropdownOpr">Select Operator:</label>
+        <select name="custom_dropdownOpr" id="custom_dropdownOpr" class="form-control" required>
+            <option value="">--Select--</option>
+            {% for item in WFoperator_dropdown %}
+                <option value="{{ item.0 }}">{{ item.1 }}</option>
+            {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="confirmSubmitBtn" class="btn btn-primary">Confirm</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div> 
 
   </div>
     </div>
@@ -999,8 +1003,8 @@
 </script>
 
 <script>
-
         document.querySelectorAll('.submit-btn').forEach(button => {
+            debugger;
     button.addEventListener('click', function (e) {
         debugger;
         const form = document.getElementById('dynamicForm');
@@ -1015,6 +1019,9 @@
         const type = $('#type').val();
         const reference_type = $('#reference_type').val();
 
+        const actual_step_id = document.getElementById('actual_step_id');
+        const role_id = document.getElementById('role_id');
+
         const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
         const swalOptions = {
             background: theme === 'dark' ? '#343a40' : '#ffffff',
@@ -1025,14 +1032,14 @@
                 confirmButton: 'btn btn-primary px-4 py-2'
             }
         };
-
         // Assign action ID to hidden field if action
         if (buttonType === 'Action') {
             document.getElementById('clicked_action_id').value = actionId;
         }
 
         // Workflow step validation (First Step + Workflow ON)
-        if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
+        if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1 && parseInt(role_id.value) === 1 ) {
+            debugger;
              e.preventDefault();
              const operatorDropdown = document.getElementById('custom_dropdownOpr');
              const hiddenOperatorInput = document.getElementById('hidden_operator_input');
@@ -1051,6 +1058,7 @@
 // 
          // Action + Step 3
         else if (buttonType === 'Action' && viewStepWFSeq === '3') {
+            debugger;
              e.preventDefault();
 // 
              const categoryDropdown = document.getElementById('category_dropdownOpr');
@@ -1075,16 +1083,17 @@
                  form.submit();
              };
          }
-
         // Other button actions with validation
         else {
+            // prevent default for all other cases first
+
             e.preventDefault(); // prevent default for all other cases first
 
             const operatorDropdown = document.getElementById('custom_dropdownOpr');
             if (operatorDropdown && operatorDropdown.offsetParent === null) {
                 operatorDropdown.removeAttribute('required');
             }
-//
+
             const categoryDropdown = document.querySelector('[name="category"]');
             if (categoryDropdown && categoryDropdown.offsetParent === null) {
                 categoryDropdown.removeAttribute('required');
@@ -1095,7 +1104,6 @@
             //    form.reportValidity();
             //    return;
             //}
-
             if (buttonType === 'Submit' && type === 'create') {
                 operatorDropdown.removeAttribute('required');
                 form.action = "{% url 'common_form_post' %}";

@@ -28,10 +28,13 @@
 <input type="hidden" id="butAct_idH" name="butAct_idH" value={{but_act}}>
 <input type="hidden" id="firstStep " name="firstStep " value={{firstStep }}>
 <input type="hidden" id="workflowSelect " name="workflowSelect " value={{ workflowSelect }}>
+<input type="hidden" id="workflowSelect_enc " name="workflowSelect_enc " value={{ workflowSelect_enc }}>
+
 
 <div class="row">
   <div class="col-12">
     <div class="card" style="border-radius: 15px;">
+      
       {% if show_top_button  %}
         <div class="text-end mt-2 me-5">
           <button class="btn btn-primary"
@@ -58,6 +61,7 @@
           </thead>
           <tbody>
             {% for item in WFIndexdata %}
+            <input type="hidden" id="actual_step_id " name="actual_step_id " value={{ item.actual_step_id }}>
               <tr class="font-16">
                 <td>{{ forloop.counter }}</td>
                 <td>{{ item.file_number }}</td>
@@ -85,9 +89,9 @@
                     <button class="btn btn-primary btn-sm"
                             onclick="startStepEdit('{{ item.form_data_id }}',
                                                    '{{ item.req_num }}',
-                                                   '{{ item.user_prev_step_Check }}',
+                                                   '{{ item.actual_step_id }}',
                                                    '{{ item.form_id }}',
-                                                   '{{ item.enc_id_wfd }}',
+                                                   '{{ workflowSelect_enc }}',
                                                    '{{ item.editORcreate }}')">
                       {{ item.user_prev_step_name }}
                     </button>
@@ -98,7 +102,8 @@
                          style="cursor:pointer"
                          onclick="startStepView('{{ item.form_data_id }}',
                                                  '{{ item.req_num }}',
-                                                 '{{ item.user_prev_step_Check }}')" />
+                                                 '{{ item.actual_step_id }}',
+                                                 '{{ workflowSelect }}')" />
 
                   {% elif item.extra_flag == 'view_only' and item.last_rejected_step and item.workflow_value == 0 %}
                     <img src="{% static 'img/icons8-invisible-100.png' %}"
@@ -107,19 +112,31 @@
 
                   {% else %}
                     {% if item.include_for_current_user %}
-                      {% if item.user_prev_step_Check != item.increment_idCheck %}
+                      {% comment %} {% if item.actual_step_id != item.increment_idCheck %} {% endcomment %}
+                      {% comment %} {% if item.user_prev_step_Check == item.step_id %} {% endcomment %}
+                      {% if item.current_stepId == item.actual_step_id %}
                         {% if item.workflow_value == 1 %}
                           <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
                                alt="View"
                                style="cursor:pointer"
                                onclick="startStepView('{{ item.form_data_id }}',
                                                        '{{ item.req_num }}',
-                                                       '{{ item.user_prev_step_Check }}')" />
+                                                       '{{ item.current_stepId }}',
+                                                        '{{ workflowSelect }}')" />
                         {% else %}
                           <img src="{% static 'img/icons8-invisible-100.png' %}"
                                width="20" height="20"
                                alt="Not allowed" />
                         {% endif %}
+                      {% elif item.workflow_value == 1 and firstStep == '1' %}
+                          <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
+                               alt="View"
+                               style="cursor:pointer"
+                               onclick="startStepView('{{ item.form_data_id }}',
+                                                       '{{ item.req_num }}',
+                                                       '{{ item.current_stepId }}',
+                                                        '{{ workflowSelect }}')" />
+
                       {% else %}
                         {% if item.editORcreate == 1 %}
                           <button class="btn btn-primary btn-sm"
@@ -136,9 +153,9 @@
                           <button class="btn btn-primary btn-sm"
                                   onclick="startStepEdit('{{ item.form_data_id }}',
                                                          '{{ item.req_num }}',
-                                                         '{{ item.user_prev_step_Check }}',
+                                                         '{{ item.actual_step_id }}',
                                                          '{{ item.form_id }}',
-                                                         '{{ item.enc_id_wfd }}',
+                                                         '{{ workflowSelect_enc }}',
                                                          '{{ item.editORcreate }}')">
                             {{ item.user_prev_step_name }}
                           </button>
@@ -176,9 +193,9 @@
     }
 </script>
 <script>
-  function startStepView(id,req_num,step_id) {
+  function startStepView(id,req_num,step_id,wf_id) {
     debugger;
-      const url = `/get_formdataid/?id=${id}&req_num=${req_num}&step_id=${step_id}`;
+      const url = `/get_formdataid/?id=${id}&req_num=${req_num}&step_id=${step_id}&wf_id=${wf_id}`;
       window.location.href = url;
 
       //from this dat aget formd_data_id and that form_data_id send to like `/form_master/?form=${id}`;

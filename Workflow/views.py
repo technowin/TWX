@@ -302,7 +302,7 @@ def workflow_starts(request):
     reference_workflow_status = request.GET.get("reference_workflow_status")
 
 
-    cursor.callproc("stp_getdataWorkflowIndex")
+    cursor.callproc("stp_getdataWorkflowIndex",param)
     WFIndexdata_raw = []
     for result in cursor.stored_results():
         WFIndexdata_raw = result.fetchall()
@@ -331,24 +331,22 @@ def workflow_starts(request):
             'but_act': row[5],
             'status': row[6],
             'color_status': row[8],
+            'actual_stepID': row[7],
             'step_id_flow': str(row[7]) if row[7] else None  
             
         })
 
-    step_roles_map = {
-        str(step['id']): step
-        for step in workflow_steps
-    }
-
     WFIndexdata = [] 
     
-    # for handling involves person
-    step_roles_map = {}
-    for step in workflow_steps:
-        step_roles_map[str(step['id'])] = step
+    step_roles_map = {
+        str(step['actual_stepID']): step
+        for step in workflow_steps
+        if step.get('actual_stepID') is not None
+    }
 
     for item in WFIndexdata_raw:
         step_id_str = str(item[3])
+       
         
         # to get edit or create
         req_num = item[0]    
@@ -387,10 +385,10 @@ def workflow_starts(request):
             forwarded_to_display = "N/A"
         
             
-        try:
-            editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
-        except workflow_matrix.DoesNotExist:
-            editORcreate = ''
+        # try:
+        #     editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
+        # except workflow_matrix.DoesNotExist:
+        #     editORcreate = ''
         # editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
         formDataId_Status= item[7]
         #revised_Status = VersionControlFileMap.objects.filter(form_data=formDataId_Status)
@@ -421,6 +419,9 @@ def workflow_starts(request):
             last_rejected_step = None
             last_rejected_status = None
             
+            
+        if step_id_str not in step_roles_map:
+            print(f"[DEBUG] step_id_str '{step_id_str}' not found in step_roles_map keys: {list(step_roles_map.keys())}")    
         current_step_info = step_roles_map.get(step_id_str)
 
         # Init vars
@@ -436,12 +437,13 @@ def workflow_starts(request):
         if current_step_flow is None:
             continue
         
-        if role_id == '2':
+        if role_id == '2' and item[8] is not None:
             operator_user_id = item[8]  # item[8] is operator column
             if operator_user_id is None or operator_user_id != user:
                 continue  # Skip this row if it's not assigned to the current operator
     
         for step in workflow_steps:
+            current_step_flowForActBut = current_step_flow - 1
             step_flow = int(step['step_id_flow']) if step['step_id_flow'].isdigit() else None
             if step_flow is not None and step_flow <= current_step_flow:
                 if role_id in step['role_ids']:
@@ -453,6 +455,7 @@ def workflow_starts(request):
             if step.get('step_id_flow') and step['step_id_flow'].isdigit():
                 if int(step['step_id_flow']) == next_flow_id:
                     next_step_name = step['step_name']
+                    ActUsenext_step_name = step['step_id_flow']
                     next_step_id = enc(str(step['id']))
 
                     if role_id in step['role_ids']:
@@ -465,12 +468,41 @@ def workflow_starts(request):
             if role_id in step['role_ids']:
                 user_prev_step = step
                 break
+        if user_prev_step:    
+            matrix_obj = workflow_matrix.objects.get(id=user_prev_step['id']) 
+            current_stepId = matrix_obj.step_id_flow
+            editORcreate = matrix_obj.button_act_details
+            
+            
 
         if last_rejected_step is not None and user_prev_step and user_prev_step.get('id') == last_rejected_step - 1:
             extra_flag = 'edit_again'
         else:
             extra_flag = 'view_only'
+        # has_user_submitted = history_workflow_details.objects.filter(
+        #     req_id=req_num,
+        #     step_id=current_EditCrtStep,
+        #     created_by=request.user.id  # or .username/.email as per your schema
+        # ).exists()
         
+        # current_step_actual_id = str(item[3])
+        current_step_actual_id=current_step_info['actual_stepID']
+        user_role_id = str(request.user.role_id)
+        form_increment_id = item[6]  # say 2
+        
+        is_current_user_at_this_step = False
+        is_current_user_done = False
+
+        varfor_row=int(ActUsenext_step_name)-1
+        submitted_by_user = history_workflow_details.objects.filter(
+            req_id=req_num,
+            step_id=int(varfor_row),
+            workflow_id=workflowSelect,
+            created_by=request.user.id  # or use operator if you store it there
+        ).exists()
+
+
+
         if include_for_current_user:
             user_prev_step_id_val = user_prev_step['id'] if user_prev_step else ''
             WFIndexdata.append({
@@ -492,10 +524,13 @@ def workflow_starts(request):
                "form_data_id":form_data_id,
                "editORcreate":editORcreate,
                "reference_workflow_status":reference_workflow_status,
-               
+               "actual_step_id": current_step_info['actual_stepID'] if current_step_info else '',
+               "current_stepId":current_stepId,
                 "next_step_name": next_step_name if next_step_name else 'No next step',
+                "ActUsenext_step_name":int(ActUsenext_step_name),
                 "next_step_id": next_step_id,
                 "increment_idCheck": item[6] + 1,
+                # "has_user_submitted": has_user_submitted,
                 # "user_prev_step_id": user_prev_step['id'] if user_prev_step else '',
                 "user_prev_step_id": enc(str(user_prev_step_id_val)) if user_prev_step_id_val != '' else '',
                  "user_prev_step_Check":user_prev_step_id_val,
@@ -511,21 +546,52 @@ def workflow_starts(request):
                 last_rejected_step = None
                 last_rejected_status = None
             
-    first_step = workflow_steps[0] if workflow_steps else None
+    first_step = next((step for step in workflow_steps if step.get('step_id_flow') == '1'), None)
     show_top_button = False
     top_button_context = {}
 
-    if first_step and role_id in first_step['role_ids']:
-        show_top_button = True
-        top_button_context = {
-            'step_name': first_step['step_name'],
-            'form_id': first_step['form_id'],
-            'but_type': first_step['but_type'],
-            'but_act': first_step['but_act'],
-            'id_firstStep': first_step['id'],
-            'encid_FS': enc(str(first_step['id']))
-               
+    if first_step:
+        if str(role_id) in first_step['role_ids']:
+            show_top_button = True
+            top_button_context = {
+                'step_name': first_step['step_name'],
+                'form_id': first_step['form_id'],
+                'but_type': first_step['but_type'],
+                'but_act': first_step['but_act'],
+                'actual_stepIDForFirstStep': first_step['step_id_flow'],
+                'id_firstStep': first_step['id'],
+                'encid_FS': enc(str(first_step['id']))
         }
+        
+        
+        # Check if any current row is *at* first step
+        # for item in WFIndexdata_raw:
+        #     current_step_id = str(item[3])
+            
+        #     if current_step_id == first_step_actual_id and first_step.get('step_id_flow') == '1':
+        #         if str(role_id) in first_step['role_ids']:
+        #             show_top_button = True
+        #             top_button_context = {
+        #                 'step_name': first_step['step_name'],
+        #                 'form_id': first_step['form_id'],
+        #                 'but_type': first_step['but_type'],
+        #                 'but_act': first_step['but_act'],
+        #                 'id_firstStep': first_step['id'],
+        #                 'encid_FS': enc(str(first_step['id']))
+        #             }
+        #             break    
+
+    # if first_step and role_id in first_step['role_ids']:
+    #     show_top_button = True
+    #     top_button_context = {
+    #         'step_name': first_step['step_name'],
+    #         'form_id': first_step['form_id'],
+    #         'but_type': first_step['but_type'],
+    #         'but_act': first_step['but_act'],
+    #         'id_firstStep': first_step['id'],
+    #         'encid_FS': enc(str(first_step['id']))
+               
+    #     }
     if show_top_button == True:
         firstStep = '1'
     else:
@@ -533,7 +599,7 @@ def workflow_starts(request):
     
     return render(request, "Workflow/workflow_starts.html", {
         "WFIndexdata": WFIndexdata,'show_top_button': show_top_button,'firstStep': firstStep, "reference_workflow_status":reference_workflow_status,
-        "workflowSelect":workflowSelect,
+        "workflowSelect":workflowSelect,"workflowSelect_enc":enc(workflowSelect),
     **top_button_context
     })
 
@@ -549,8 +615,9 @@ def get_formdataid(request):
     id = request.GET.get("id")
     req_num = request.GET.get("req_num")
     step_id = request.GET.get("step_id")
+    wf_id = request.GET.get("wf_id")
     readonlyWF = "1"
-    param=[req_num,step_id]
+    param=[req_num,step_id,wf_id]
     cursor.callproc("stp_getFormDataIdForWorkflow", param)
     workflow_steps = []
     for result in cursor.stored_results():
@@ -580,11 +647,13 @@ def get_formdataidEdit(request):
     wfdetailsID = request.GET.get("wfdetailsID")
     viewStepWF = request.GET.get("editORcreate")
     button_type_id = None
+    if wfdetailsID:
+        wfdetailsID=dec(wfdetailsID)
     if step_id:
-        step = workflow_matrix.objects.get(id=step_id)
+        step = workflow_matrix.objects.get(step_id_flow=step_id,wf_id=wfdetailsID)
         button_type_id = step.button_type_id
     workflow_YN = '1E'
-    param=[form_id,req_num]
+    param=[form_id,req_num,wfdetailsID,step_id]
     cursor.callproc("stp_getFormDataIdForWorkflowEdit", param)
     workflow_steps = []
     for result in cursor.stored_results():
@@ -860,6 +929,7 @@ def workflow_form_step(request):
         role_id = workflow.role_id
         action_detail_id = workflow.button_act_details
         status_wfM = workflow.status
+        actual_step_id = workflow.step_id_flow
 
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
             "id", "type", "label_name", "button_name", "bg_color", "text_color",
@@ -940,7 +1010,7 @@ def workflow_form_step(request):
             "forms_data": forms_data,"type": "create","action_fields": action_fields,"workflow": 1, "WFoperator_dropdown": WFoperator_dropdown,
             "role_id": role_id,"action_detail_id": action_detail_id,"matched_form_data_id": new_data_id,"new_data_id": new_data_id,
             "action_id": action_id,"step_id": id,"status_wfM": status_wfM, "firstStep": firstStep,"editORcreate": editORcreate,"data_save_status": data_save_status,
-            "form_ids":form_ids, "wfSelected_id": wfSelected_id,"reference_type": reference_type,"module":module
+            "form_ids":form_ids, "wfSelected_id": wfSelected_id,"reference_type": reference_type,"module":module,"actual_step_id":actual_step_id,
         }
 
         if wfdetailsid:

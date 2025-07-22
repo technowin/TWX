@@ -1240,6 +1240,7 @@ def common_form_post(request):
         role_idC = request.POST.get('role_id', '')
         step_id = request.POST.get('step_id', '')
         action_id = request.POST.get("action_id")
+        actual_step_id = request.POST.get("actual_step_id")
 
         all_form_data_ids = []
         primary_value = ''
@@ -1303,13 +1304,30 @@ def common_form_post(request):
             workflow_detail.role_id = role_idC
             workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
             workflow_detail.increment_id += 1
-            workflow_detail.step_id = step_id
+            workflow_detail.step_id = actual_step_id
             workflow_detail.status = status_from_matrix
             workflow_detail.user_id = user
             workflow_detail.updated_by = user
             workflow_detail.updated_at = now()
             workflow_detail.primary_key = primary_value
             workflow_detail.save()
+        elif(role_idC == '1'):
+            workflow_detail = workflow_details.objects.create(
+                workflow_id=wfSelected_id,
+                    form_data_id=form_DataID,
+                    role_id=role_idC,
+                    action_details_id=request.POST.get('action_detail_id', ''),
+                    increment_id=1,
+                    step_id=actual_step_id,
+                    status=status_from_matrix,
+                    operator=request.POST.get('custom_dropdownOpr', ''),
+                    user_id=user,
+                    created_by=user,
+                    updated_by=user,
+                    created_at=now(),
+                    updated_at=now(),
+                    primary_key=primary_value  
+                )
         else:
             workflow_detail = workflow_details.objects.create(
                 workflow_id=wfSelected_id,
@@ -1317,9 +1335,9 @@ def common_form_post(request):
                     role_id=role_idC,
                     action_details_id=request.POST.get('action_detail_id', ''),
                     increment_id=1,
-                    step_id=step_id,
+                    step_id=actual_step_id,
                     status=status_from_matrix,
-                    operator=request.POST.get('custom_dropdownOpr', ''),
+                   
                     user_id=user,
                     created_by=user,
                     updated_by=user,
@@ -1332,11 +1350,13 @@ def common_form_post(request):
 
         if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
             history_workflow_details.objects.create(
+                workflow_id=wfSelected_id,
                 form_data_id=workflow_detail.form_data_id,
                 role_id=workflow_detail.role_id,
                 action_details_id=workflow_detail.action_details_id,
                 increment_id=workflow_detail.increment_id,
-                step_id=workflow_detail.step_id,
+                # step_id=workflow_detail.actual_step_id,
+                step_id=actual_step_id,
                 status=workflow_detail.status,
                 user_id=workflow_detail.user_id,
                 req_id=workflow_detail.req_id,
@@ -1346,13 +1366,15 @@ def common_form_post(request):
                 # created_by=workflow_detail.updated_by,
                 created_at=workflow_detail.updated_at
             )
-        else:
+        elif(role_idC == '1'):
             history_workflow_details.objects.create(
+                workflow_id=wfSelected_id,
                 form_data_id=workflow_detail.form_data_id,
                 role_id=workflow_detail.role_id,
                 action_details_id=workflow_detail.action_details_id,
                 increment_id=workflow_detail.increment_id,
-                step_id=workflow_detail.step_id,
+                # step_id=workflow_detail.step_id,
+                step_id=actual_step_id,
                 status=workflow_detail.status,
                 user_id=workflow_detail.user_id,
                 req_id=workflow_detail.req_id,
@@ -1363,6 +1385,25 @@ def common_form_post(request):
                 # created_by=workflow_detail.updated_by,
                 created_at=workflow_detail.updated_at
             )
+        else:
+            history_workflow_details.objects.create(
+                workflow_id=wfSelected_id,
+                form_data_id=workflow_detail.form_data_id,
+                role_id=workflow_detail.role_id,
+                action_details_id=workflow_detail.action_details_id,
+                increment_id=workflow_detail.increment_id,
+                # step_id=workflow_detail.step_id,
+                step_id=actual_step_id,
+                status=workflow_detail.status,
+                user_id=workflow_detail.user_id,
+                req_id=workflow_detail.req_id,
+                # form_id=request.POST.get('form_id', ''),
+                created_by=user,
+                sent_back='0',
+                # created_by=workflow_detail.updated_by,
+                created_at=workflow_detail.updated_at
+            )
+            
                     
             # Action fields
             for key, value in request.POST.items():
@@ -1375,7 +1416,7 @@ def common_form_post(request):
                             value=value,
                             form_data=form_data,
                             field=action_field,
-                            step_id=step_id,
+                            step_id=actual_step_id,
                             created_by=user,
                             updated_by=user,
                             primary_key=primary_value
