@@ -40,6 +40,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    
+    def get_full_name(self):
+        return f"{self.full_name}".strip()
 
 class roles(models.Model):
     id = models.AutoField(primary_key=True)

@@ -32,412 +32,397 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 
-<style>
-    .bom-tree {
-        list-style-type: none;
-        padding-left: 1rem;
-    }
-    .bom-tree li {
-        position: relative;
-        padding-left: 1.5rem;
-    }
-    .bom-tree li:before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0.75rem;
-        width: 1rem;
-        height: 1px;
-        background-color: #dee2e6;
-    }
-    .bom-tree li:after {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 1px;
-        background-color: #dee2e6;
-    }
-    .bom-tree li:last-child:after {
-        height: 0.75rem;
-    }
-    .component-item:hover {
-        background-color: rgba(13, 110, 253, 0.1);
-        cursor: pointer;
-    }
-    .component-item.active {
-        background-color: rgba(13, 110, 253, 0.2);
-    }
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/bom/dashboard">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'bom_list' %}">BOMs</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ bom.name }}</li>
-            </ol>
-        </nav>
-    </div>
-    <div class="col-auto mt-2">
-        <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="bomActionsDropdown" data-bs-toggle="dropdown">
-                <i class="bi bi-gear"></i> Actions
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-pdf"></i> Export PDF</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-file-excel"></i> Export Excel</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{% url 'bom_compare' pk=bom.id %}"><i class="bi bi-file-diff"></i> Compare Versions</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{% url 'bom_update' pk=bom.id %}"><i class="bi bi-pencil"></i> Edit BOM</a></li>
-                {% if bom.status == 'DR' %}
-                    <li><button class="dropdown-item" id="requestApprovalBtn"><i class="bi bi-check-circle"></i> Request Approval</button></li>
-                {% endif %}
-            </ul>
+<!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb" style="margin-bottom: 0 !important">
+                    <li class="breadcrumb-item"><a href="/bom/dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'bom_list' %}">BOMs</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ bom.name }}</li>
+                </ol>
+            </nav>
         </div>
-    </div>
-</div>
-
-<div class="row mb-3">
-    <div class="col">
-        <h2>
-            <i class="bi bi-list-ul"></i> {{ bom.name }}
-            <small class="text-muted">Rev {{ bom.revision }}</small>
-            <small><span style="font-size:12px;"class="badge
-                {% if bom.status == 'AC' %}bg-success
-                {% elif bom.status == 'DR' %}bg-secondary
-                {% elif bom.status == 'PE' %}bg-warning text-dark
-                {% else %}bg-dark{% endif %}">
-                {{ bom.get_status_display }}
-            </span></small>
-            
-        </h2>
-        
-        <p class="lead">{{ bom.description }}</p>
-    </div>
-    <div class="col-auto">
-        <div class="d-flex gap-2">
-            <button class="btn btn-primary" id="saveBomBtn">
-                <i class="bi bi-save"></i> Save
-            </button>
-            <button class="btn btn-outline-secondary">
-                <i class="bi bi-printer"></i> Print
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Left Column - Tree View -->
-    <div class="col-md-4">
-        <div class="card mb-3">
-            <div class="card-header ">
-                <i class="bi bi-diagram-3"></i> BOM Structure
-            </div>
-            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
-                <ul class="bom-tree">
-                    {% for item in bom.items.all %}
-                        <li class="mb-2">
-                            <div class="component-item d-flex justify-content-between align-items-center p-2 rounded" 
-                                 data-item-id="{{ item.id }}"
-                                 data-component-id="{{ item.component.id }}">
-                                <div>
-                                    <strong>{{ item.component.part_number }}</strong>
-                                    <small class="d-block">{{ item.component.description|truncatechars:30 }}</small>
-                                    <small class="text-muted">Qty: {{ item.quantity }}</small>
-                                </div>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-danger remove-item-btn" data-item-id="{{ item.id }}">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </li>
-                    {% empty %}
-                        <div class="alert alert-info">No components added to this BOM yet.</div>
-                    {% endfor %}
+        <div class="col-auto mt-2">
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="bomActionsDropdown" data-bs-toggle="dropdown">
+                    <i class="bi bi-gear"></i> Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-pdf"></i> Export PDF</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-file-excel"></i> Export Excel</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'bom_compare' pk=bom.id %}"><i class="bi bi-file-diff"></i> Compare Versions</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'bom_update' pk=bom.id %}"><i class="bi bi-pencil"></i> Edit BOM</a></li>
+                    {% if bom.status == 'DR' %}
+                        <li><button class="dropdown-item" id="requestApprovalBtn"><i class="bi bi-check-circle"></i> Request Approval</button></li>
+                    {% endif %}
                 </ul>
-                
-                <button class="btn btn-sm btn-outline-primary mt-3 w-100" data-bs-toggle="modal" data-bs-target="#addComponentModal">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <h3>
+                <i class="bi bi-list-ul"></i> {{ bom.name }}
+                <small class="text-muted">Rev {{ bom.revision }}</small>
+                <small><span style="font-size:12px;"class="badge
+                    {% if bom.status == 'AC' %}bg-success
+                    {% elif bom.status == 'DR' %}bg-secondary
+                    {% elif bom.status == 'PE' %}bg-warning text-dark
+                    {% else %}bg-dark{% endif %}">
+                    {{ bom.get_status_display }}
+                </span></small>
+
+            </h3>
+
+            <p class="lead">{{ bom.description }}</p>
+        </div>
+        {% comment %} <div class="col-auto">
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" id="saveBomBtn">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <button class="btn btn-secondary">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div> {% endcomment %}
+    </div>
+
+<div class="container-fluid">
+    <!-- Main Content Area -->
+    <div class="row mt-1">
+        <!-- Tree View Column -->
+        <div class="col-md-4 border-end">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5>BOM Structure</h5>
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addComponentModal">
                     <i class="bi bi-plus-circle"></i> Add Component
                 </button>
             </div>
-        </div>
-        
-        <!-- Comments Section -->
-        <div class="card">
-            <div class="card-header ">
-                <i class="bi bi-chat-left-text"></i> Comments
-            </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                {% for comment in bom.comments.all %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <strong>{{ comment.author.get_full_name }}</strong>
-                            <small class="text-muted">{{ comment.created_date|timesince }} ago</small>
-                        </div>
-                        <p class="mb-0">{{ comment.text }}</p>
-                    </div>
-                    {% if not forloop.last %}<hr>{% endif %}
-                {% empty %}
-                    <p class="text-muted">No comments yet.</p>
-                {% endfor %}
-                
-                <hr>
-                <form method="post" action="{% url 'add_comment' %}">
-                    {% csrf_token %}
-                    {{ comment_form.as_p }}
-                    <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Right Column - Properties and Tabs -->
-    <div class="col-md-8">
-        <div class="card mb-3">
-            <div class="card-header ">
-                <i class="bi bi-info-circle"></i> Properties
-                <span id="propertiesTitle" class="float-end"></span>
-            </div>
-            <div class="card-body" id="propertiesPanel">
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
-                    <p class="mt-3">Select a component to view details</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header ">
-                <ul class="nav nav-tabs card-header-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#componentsTab">
-                            <i class="bi bi-list-ul"></i> Components
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#docsTab">
-                            <i class="bi bi-file-earmark"></i> Documentation
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#historyTab">
-                            <i class="bi bi-clock-history"></i> History
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#whereUsedTab">
-                            <i class="bi bi-diagram-3"></i> Where Used
-                        </a>
-                    </li>
+            
+            <div class="bom-tree mb-3" style="max-height: 60vh; overflow-y: auto;">
+                <ul class="list-group list-group-flush">
+                    {% for item in hierarchical_items %}
+                        {% include "BOM/tree_node.html" with item=item %}
+                    {% endfor %}
                 </ul>
             </div>
-            <div class="card-body">
-                <div class="tab-content">
-                    <!-- Components Tab -->
-                    <div class="tab-pane fade show active" id="componentsTab">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Part No.</th>
-                                        <th>Description</th>
-                                        <th>Qty</th>
-                                        <th>Ref Des</th>
-                                        <th>Unit Cost</th>
-                                        <th>Total Cost</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for item in bom.items.all %}
-                                        <tr data-item-id="{{ item.id }}" class="component-row">
-                                            <td>{{ item.component.part_number }}</td>
-                                            <td>{{ item.component.description|truncatechars:50 }}</td>
-                                            <td>{{ item.quantity }}</td>
-                                            <td>{{ item.reference_designators|default:"-" }}</td>
-                                            <td>${{ item.component.suppliers.first.cost|default:"0.00"|floatformat:2 }}</td>
-                                            <td>${{ item.extended_cost|floatformat:2 }}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary edit-item-btn" data-item-id="{{ item.id }}">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    {% empty %}
-                                        <tr>
-                                            <td colspan="7" class="text-center">No components added to this BOM yet.</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-active">
-                                        <td colspan="5" class="text-end"><strong>Total:</strong></td>
-                                        <td><strong>${{ bom.total_cost|floatformat:2 }}</strong></td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+             <!-- Comments Section -->
+            <div class="card">
+                <div class="card-header ">
+                    <i class="bi bi-chat-left-text"></i> Comments
+                </div>
+                <div class="card-body" style=" overflow-y: auto;">
+                    {% comment %} {% for comment in bom.comments.all %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ comment.author.get_full_name }}</strong>
+                                <small class="text-muted">{{ comment.created_date|timesince }} ago</small>
+                            </div>
+                            <p class="mb-0">{{ comment.text }}</p>
                         </div>
-                    </div>
+                        {% if not forloop.last %}<hr>{% endif %}
+                    {% empty %}
+                        <p class="text-muted">No comments yet.</p>
+                    {% endfor %}
                     
-                    <!-- Documentation Tab -->
-                    <div class="tab-pane fade" id="docsTab">
-                        {% if bom.documents.all %}
-                            <div class="list-group">
-                                {% for doc in bom.documents.all %}
+                    <hr> {% endcomment %}
+                    <form method="post" action="{% url 'add_comment' %}">
+                        {% csrf_token %}
+                        {{ comment_form.as_p }}
+                        <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-2">
+                <div class="card-header">
+                    <i class="bi bi-clipboard-check"></i> Approval History
+                </div>
+                <div class="card-body">
+                    {% if bom.approval_requests.exists %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Requested By</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for approval in bom.approval_requests.all %}
+                                <tr>
+                                    <td>{{ approval.requested_by.get_full_name }}</td>
+                                    <td>{{ approval.requested_date|date:"SHORT_DATE_FORMAT" }}</td>
+                                    <td>
+                                        {% if approval.status == "Approved" %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif approval.status == "Rejected" %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if approval.status == "Pending" and perms.bom.approve_bom %}
+                                            <a href="{% url 'approve_bom' pk=approval.pk %}" class="btn btn-sm btn-success me-1">
+                                                <i class="bi bi-check"></i> Approve
+                                            </a>
+                                            <a href="{% url 'reject_bom' pk=approval.pk %}" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-x"></i> Reject
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if approval.rejection_reason %}
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="alert alert-danger py-2 mb-0">
+                                            <strong><i class="bi bi-exclamation-triangle"></i> Rejection Reason:</strong> 
+                                            {{ approval.rejection_reason }}
+                                            <small class="text-muted d-block mt-1">
+                                                Rejected by {{ approval.rejected_by.get_full_name }} on {{ approval.rejected_date|date:"SHORT_DATETIME_FORMAT" }}
+                                            </small>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> No approval requests yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+
+
+        </div>
+        
+        <!-- Properties Panel Column -->
+        <div class="col-md-8">
+            <div id="properties-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Component / Property Information</h5>
+                    </div>
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Select a component from the tree to view details</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header ">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#components">
+                                <i class="bi bi-list-ul"></i> Components
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#docs">
+                                <i class="bi bi-file-earmark"></i> Documentation
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#history">
+                                <i class="bi bi-clock-history"></i> Revision History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#whereused">
+                                <i class="bi bi-diagram-3"></i> Where Used
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#view_docs">
+                                <i class="bi bi-file-earmark"></i> View Docs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#comments">
+                                <i class="bi bi-chat-left-text"></i> Comments
+                            </a>
+                        </li>
+                    </ul>
+            
+                    <div class="card-body">
+                        <!-- Tab Content -->
+                        <div class="tab-content">
+                            <!-- Components Tab -->
+                            <div class="tab-pane fade show active" id="components">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Sr.No.</th>
+                                                <th>Part No.</th>
+                                                <th>Description</th>
+                                                <th>Qty</th>
+                                                <th>Ref Des</th>
+                                                <th>Purchase Type</th>
+                                                <th>Category</th>
+                                                <th>Unit</th>
+                                                <th>Cost</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in bom.items.all|natural_sort %}
+                                            <tr data-item-id="{{ item.id }}" class="bom-row">
+                                                <td>{{ item.sort_order }}</td>
+                                                <td>{{ item.component.part_number }}</td>
+                                                <td>{{ item.component.description|truncatechars:30 }}</td>
+                                                <td>{{ item.quantity }}</td>
+                                                <td>{{ item.reference_designators|default:"-" }}</td>
+                                                <td>{{ item.component.get_purchase_type_display }}</td>
+                                                <td>{{ item.component.get_category_display }}</td>
+                                                <td>{{ item.component.unit_of_measure }}</td>
+                                                <td>${{ item.extended_cost|floatformat:2 }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        
+                            <!-- Documentation Tab -->
+                            <div class="tab-pane fade" id="docs">
+                   
+                                <h5>Upload New Document</h5>
+                                <form method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    {{ document_form.as_p }}
+                                    <button type="submit" class="btn btn-primary">Upload</button>
+                                </form>
+                                        </div>
+                                    
+                                        <!-- Revision History Tab -->
+                                        <div class="tab-pane fade" id="history">
+                                <div class="list-group">
+                                    {% for rev in revisions %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">Revision {{ rev.revision }}</h6>
+                                            <small>{{ rev.created_date|date:"Y-m-d" }}</small>
+                                        </div>
+                                        <p class="mb-1"><strong>Changed by:</strong> {{ rev.created_by }}</p>
+                                        <p class="mb-1"><strong>Reason:</strong> {{ rev.change_reason }}</p>
+                                        <div class="mt-1">
+                                            <a href="{% url 'bom_compare' pk=bom.id %}?rev1={{ rev.id }}" class="btn btn-sm btn-outline-primary">
+                                                Compare
+                                            </a>
+                                        </div>                        
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        
+                            <!-- Where Used Tab -->
+                            <div class="tab-pane fade" id="whereused" >
+                                {% if where_used %}
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Component</th>
+                                            <th>Used In BOM</th>
+                                            <th>Revision</th>
+                                            <th>Status</th>
+                                            <th>Quantity</th>
+                                            <th>Ref Des</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for usage in where_used %}
+                                        <tr>
+                                            <td>{{ usage.component.part_number }}</td>
+                                            <td><a href="{{ usage.bom.get_absolute_url }}">{{ usage.bom.name }}</a></td>
+                                            <td>{{ usage.bom.revision }}</td>
+                                            <td>{{ usage.bom.get_status_display }}</td>
+                                            <td>{{ usage.quantity }}</td>
+                                            <td>{{ usage.reference_designators|default:"-" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <div class="alert alert-info">Components in this BOM are not used in any other BOMs</div>
+                                {% endif %}
+                            </div>
+                        
+                            <!-- View Docs Tab -->
+                            <div class="tab-pane fade" id="view_docs" >
+                                {% if documents %}
+                                <div class="list-group">
+                                    {% for doc in documents %}
                                     <a href="{{ doc.file.url }}" class="list-group-item list-group-item-action" target="_blank">
                                         <div class="d-flex w-100 justify-content-between">
                                             <h6 class="mb-1">{{ doc.name }}</h6>
                                             <small>{{ doc.get_document_type_display }}</small>
                                         </div>
-                                        <p class="mb-1">{{ doc.description|truncatechars:80 }}</p>
-                                        <small>Uploaded by {{ doc.uploaded_by.get_full_name }} on {{ doc.uploaded_date|date:"SHORT_DATE_FORMAT" }}</small>
+                                        <p class="mb-1">{{ doc.description|default:"No description" }}</p>
+                                        <small>Uploaded by {{ doc.uploaded_by }} on {{ doc.uploaded_date|date:"Y-m-d" }}</small>
                                     </a>
-                                {% endfor %}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="alert alert-info">No documents attached to this BOM</div>
+                                {% endif %}
                             </div>
-                        {% else %}
-                            <div class="alert alert-info">No documents attached to this BOM.</div>
-                        {% endif %}
-                        
-                        <hr>
-                        <h5>Upload New Document</h5>
-                        <form method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            {{ document_form.as_p }}
-                            <button type="submit" class="btn btn-primary">Upload</button>
-                        </form>
-                    </div>
                     
-                    <!-- History Tab -->
-                    <div class="tab-pane fade" id="historyTab">
-                        {% if bom.revisions.all %}
-                            <div class="list-group">
-                                {% for rev in bom.revisions.all %}
-                                    <div class="list-group-item">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1">Revision {{ rev.revision }}</h6>
-                                            <small>{{ rev.created_date|timesince }} ago</small>
+                            <!-- Comments Tab -->
+                            <div class="tab-pane fade" id="comments" >
+                                {% comment %} <div class="mb-3">
+                                    <form method="post" action="{% url 'add_bom_comment' bom.id %}">
+                                        {% csrf_token %}
+                                        <div class="input-group">
+                                            <textarea class="form-control" name="comment" placeholder="Add a comment..." rows="2"></textarea>
+                                            <button class="btn btn-primary" type="submit">Post</button>
                                         </div>
-                                        <p class="mb-1">{{ rev.change_reason }}</p>
-                                        <small>Created by {{ rev.created_by.get_full_name }}</small>
-                                        <div class="mt-2">
-                                            <a href="{% url 'bom_compare' pk=bom.id %}?rev1={{ rev.id }}" class="btn btn-sm btn-outline-primary">
-                                                Compare
-                                            </a>
+                                    </form>
+                                </div> {% endcomment %}
+
+                                {% for comment in comments %}
+                                <div class="card mb-2">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex">
+                                            <div class="flex-shrink-0 me-2">
+                                                <i class="bi bi-person-circle" style="font-size: 1.5rem;"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between">
+                                                    <strong>{{ comment.author }}</strong>
+                                                    <small class="text-muted">{{ comment.created_date|timesince }} ago</small>
+                                                </div>
+                                                <p class="mb-0">{{ comment.text }}</p>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                {% empty %}
+                                <div class="alert alert-info">No comments yet</div>
                                 {% endfor %}
                             </div>
-                        {% else %}
-                            <div class="alert alert-info">No revision history for this BOM.</div>
-                        {% endif %}
+                        </div>
                     </div>
-                    
-                    <!-- Where Used Tab -->
-                    <div class="tab-pane fade" id="whereUsedTab">
-                        {% if bom.child_boms.all %}
-                            <div class="list-group">
-                                {% for child in bom.child_boms.all %}
-                                    <a href="{% url 'bom_detail' pk=child.id %}" class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1">{{ child.name }}</h6>
-                                            <span class="badge 
-                                                {% if child.status == 'AC' %}bg-success
-                                                {% elif child.status == 'DR' %}bg-secondary
-                                                {% elif child.status == 'PE' %}bg-warning text-dark
-                                                {% else %}bg-dark{% endif %}">
-                                                {{ child.get_status_display }}
-                                            </span>
-                                        </div>
-                                        <p class="mb-1">{{ child.description|truncatechars:80 }}</p>
-                                        <small>Rev {{ child.revision }} | Created by {{ child.created_by.get_full_name }}</small>
-                                    </a>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="alert alert-info">This BOM is not used in any other assemblies.</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
         </div>
+
     </div>
 </div>
-
-
-<div class="card mt-2">
-    <div class="card-header">
-        <i class="bi bi-clipboard-check"></i> Approval History
-    </div>
-    <div class="card-body">
-        {% if bom.approval_requests.exists %}
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Requested By</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for approval in bom.approval_requests.all %}
-                    <tr>
-                        <td>{{ approval.requested_by.get_full_name }}</td>
-                        <td>{{ approval.requested_date|date:"SHORT_DATE_FORMAT" }}</td>
-                        <td>
-                            {% if approval.status == "Approved" %}
-                                <span class="badge bg-success">Approved</span>
-                            {% elif approval.status == "Rejected" %}
-                                <span class="badge bg-danger">Rejected</span>
-                            {% else %}
-                                <span class="badge bg-warning text-dark">Pending</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if approval.status == "Pending" and perms.bom.approve_bom %}
-                                <a href="{% url 'approve_bom' pk=approval.pk %}" class="btn btn-sm btn-success me-1">
-                                    <i class="bi bi-check"></i> Approve
-                                </a>
-                                <a href="{% url 'reject_bom' pk=approval.pk %}" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-x"></i> Reject
-                                </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% if approval.rejection_reason %}
-                    <tr>
-                        <td colspan="4">
-                            <div class="alert alert-danger py-2 mb-0">
-                                <strong><i class="bi bi-exclamation-triangle"></i> Rejection Reason:</strong> 
-                                {{ approval.rejection_reason }}
-                                <small class="text-muted d-block mt-1">
-                                    Rejected by {{ approval.rejected_by.get_full_name }} on {{ approval.rejected_date|date:"SHORT_DATETIME_FORMAT" }}
-                                </small>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="alert alert-info mb-0">
-            <i class="bi bi-info-circle"></i> No approval requests yet.
-        </div>
-        {% endif %}
-    </div>
-</div>
-
 
 <!-- Add Component Modal -->
 <div class="modal fade" id="addComponentModal" tabindex="-1" aria-labelledby="addComponentModalLabel" aria-hidden="true">
@@ -447,56 +432,60 @@
                 <h5 class="modal-title" id="addComponentModalLabel">Add Component to BOM</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="addComponentForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="componentSearch" class="form-label">Search Components</label>
-                        <input type="text" class="form-control" id="componentSearch" placeholder="Type to search...">
-                        <div id="searchResults" class="mt-2" style="max-height: 200px; overflow-y: auto; display: none;">
-                            <div class="list-group" id="componentResultsList"></div>
-                        </div>
-                    </div>
-                    
-                    <div id="selectedComponentInfo" class="mb-3 p-3 bg-light rounded" style="display: none;">
-                        <h6 id="selectedComponentName"></h6>
-                        <p class="mb-1" id="selectedComponentDesc"></p>
-                        <small class="text-muted" id="selectedComponentCategory"></small>
-                    </div>
-                    
-                    <input type="hidden" id="selectedComponentId" name="component">
-                    <input type="hidden" name="bom" value="{{ bom.id }}">
-                    
-                    <div class="row">
+            <form method="post" action="{% url 'add_bom_item' bom.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="quantity" class="form-label">Quantity</label>
-                                <input type="number" step="0.01" min="0.01" class="form-control" id="quantity" name="quantity" value="1" required>
-                            </div>
+                            <label for="parent_item" class="form-label">Parent Item</label>
+                            <select class="form-select" id="parent_item" name="parent_item">
+                                <option value="">-- Top Level --</option>
+                                {% for item in bom.items.all %}
+                                    <option value="{{ item.sort_order }}">{{ item.sort_order }}. {{ item.component.part_number }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
+                        
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="reference_designators" class="form-label">Reference Designators</label>
-                                <input type="text" class="form-control" id="reference_designators" name="reference_designators" placeholder="A1, B2, C3...">
-                            </div>
+                            <label for="id_component" class="form-label">Component</label>
+                            <select class="form-select" id="id_component" name="component" required>
+                                <option value="">-- Select Component --</option>
+                                {% for comp in components %}
+                                    <option value="{{ comp.id }}">{{ comp.part_number }} - {{ comp.description }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="position" class="form-label">Position</label>
+                            <input type="number" class="form-control" id="position" name="position" min="1" value="1" required>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="id_quantity" class="form-label">Quantity</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="id_quantity" name="quantity" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="id_reference_designators" class="form-label">Reference Designators</label>
+                            <input type="text" class="form-control" id="id_reference_designators" name="reference_designators">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="id_notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="id_notes" name="notes" rows="2"></textarea>
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmAddComponent">Add to BOM</button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Component</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Edit Item Modal -->
 <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -504,30 +493,76 @@
                 <h5 class="modal-title" id="editItemModalLabel">Edit BOM Item</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="editItemForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="editItemId" name="item_id">
-                    
+            <form method="post" action="{% url 'edit_bom_item' 0 %}">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" id="edit_item_id">
+                <div class="modal-body">
                     <div class="mb-3">
-                        <label for="editQuantity" class="form-label">Quantity</label>
-                        <input type="number" step="0.01" min="0.01" class="form-control" id="editQuantity" name="quantity" required>
+                        <label for="id_component" class="form-label">Component</label>
+                        <select class="form-select" id="id_component" name="component" required>
+                            {% for comp in components %}
+                                <option value="{{ comp.id }}">{{ comp.part_number }} - {{ comp.description }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="editReferenceDesignators" class="form-label">Reference Designators</label>
-                        <input type="text" class="form-control" id="editReferenceDesignators" name="reference_designators">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="id_quantity" class="form-label">Quantity</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="id_quantity" name="quantity" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_reference_designators" class="form-label">Reference Designators</label>
+                            <input type="text" class="form-control" id="id_reference_designators" name="reference_designators">
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="editNotes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="editNotes" name="notes" rows="3"></textarea>
+                    <div class="mt-3">
+                        <label for="id_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="id_notes" name="notes" rows="3"></textarea>
                     </div>
-                </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Component Properties Template (hidden, used by JS) -->
+<div id="componentPropertiesTemplate" style="display: none;">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Part: <span id="componentPartNumber"></span></h5>
+            <div>
+                <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#editItemModal" >
+                    <i class="bi bi-pencil"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-secondary" id="viewDocs">
+                    <i class="bi bi-file-earmark-text"></i> View Docs
+                </button>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmEditItem">Save Changes</button>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Description:</strong> <span id="componentDescription"></span></p>
+                    <p><strong>Quantity:</strong> <span id="componentQuantity"></span></p>
+                    <p><strong>Reference Designators:</strong> <span id="componentRefDes"></span></p>
+                    <p><strong>Purchase Type:</strong> <span id="componentPurchaseType"></span></p>
+                    <p><strong>Category:</strong> <span id="componentCategory"></span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Supplier:</strong> <span id="componentSupplier"></span></p>
+                    <p><strong>Cost:</strong> <span id="componentCost"></span></p>
+                    <p><strong>Lead Time:</strong> <span id="componentLeadTime"></span></p>
+                    <p><strong>Stock:</strong> <span id="componentStock"></span></p>
+                    <p><strong>Unit:</strong> <span id="componentUnit"></span></p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <p><strong>Notes:</strong></p>
+                <div id="componentNotes" class="border p-2 bg-light"></div>
             </div>
         </div>
     </div>
@@ -559,272 +594,9 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-
-<script>
-$(document).ready(function() {
-    // Component search functionality
-    $('#componentSearch').on('input', function() {
-        const query = $(this).val();
-        if (query.length < 2) {
-            $('#searchResults').hide();
-            return;
-        }
-        
-        // Filter from the preloaded components
-        const filtered = window.allComponents.filter(comp => 
-            comp.part_number.toLowerCase().includes(query.toLowerCase()) || 
-            comp.description.toLowerCase().includes(query.toLowerCase())
-        );
-        
-        const resultsList = $('#componentResultsList');
-        resultsList.empty();
-        
-        if (filtered.length > 0) {
-            filtered.forEach(comp => {
-                resultsList.append(`
-                    <a href="#" class="list-group-item list-group-item-action component-result" 
-                       data-id="${comp.id}" 
-                       data-part="${comp.part_number}" 
-                       data-desc="${comp.description}" 
-                       data-category="${comp.category}">
-                        <strong>${comp.part_number}</strong> - ${comp.description}
-                    </a>
-                `);
-            });
-            $('#searchResults').show();
-        } else {
-            resultsList.append('<div class="list-group-item">No components found</div>');
-            $('#searchResults').show();
-        }
-    });
-    
-    // Component selection
-    $(document).on('click', '.component-result', function(e) {
-        e.preventDefault();
-        const id = $(this).data('id');
-        const part = $(this).data('part');
-        const desc = $(this).data('desc');
-        const category = $(this).data('category');
-        
-        $('#selectedComponentId').val(id);
-        $('#selectedComponentName').text(part);
-        $('#selectedComponentDesc').text(desc);
-        $('#selectedComponentCategory').text('Category: ' + category);
-        $('#selectedComponentInfo').show();
-    });
-    
-    // Add component to BOM
-    $('#confirmAddComponent').click(function() {
-        const form = $('#addComponentForm');
-        $.ajax({
-            url: '{% url "add_bom_item" %}',
-            type: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.message);
-                }
-            },
-            error: function() {
-                alert('An error occurred while adding the component.');
-            }
-        });
-    });
-    
-    // Edit item modal
-    $(document).on('click', '.edit-item-btn', function() {
-        const itemId = $(this).data('item-id');
-        const row = $(`tr[data-item-id="${itemId}"]`);
-        
-        // Get the item details (in a real app, you'd fetch this from the server)
-        const qty = row.find('td:nth-child(3)').text();
-        const refDes = row.find('td:nth-child(4)').text();
-        // Notes would typically come from a server request
-        
-        $('#editItemId').val(itemId);
-        $('#editQuantity').val(qty);
-        $('#editReferenceDesignators').val(refDes);
-        $('#editItemModal').modal('show');
-    });
-    
-    // Save edited item
-    $('#confirmEditItem').click(function() {
-        const form = $('#editItemForm');
-        $.ajax({
-            url: '{% url "update_bom_item" %}',
-            type: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.message);
-                }
-            },
-            error: function() {
-                alert('An error occurred while updating the item.');
-            }
-        });
-    });
-    
-    // Remove item
-    $(document).on('click', '.remove-item-btn', function() {
-        if (confirm('Are you sure you want to remove this component from the BOM?')) {
-            const itemId = $(this).data('item-id');
-            $.ajax({
-                url: '{% url "remove_bom_item" %}',
-                type: 'POST',
-                data: {
-                    'item_id': itemId,
-                    'csrfmiddlewaretoken': '{{ csrf_token }}'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert(response.message);
-                    }
-                },
-                error: function() {
-                    alert('An error occurred while removing the item.');
-                }
-            });
-        }
-    });
-    
-    // Component selection in tree/list
-    $(document).on('click', '.component-item, .component-row', function() {
-        const componentId = $(this).data('component-id');
-        const itemId = $(this).data('item-id');
-        
-        // Highlight selected item
-        $('.component-item, .component-row').removeClass('active');
-        $(this).addClass('active');
-        
-        // Load component details via AJAX
-        $.get(`/api/components/${componentId}/`, function(data) {
-            // Update properties panel
-            $('#propertiesTitle').html(`<small>${data.part_number}</small>`);
-            
-            let suppliersHtml = '';
-            if (data.suppliers.length > 0) {
-                suppliersHtml = '<table class="table table-sm"><thead><tr><th>Supplier</th><th>Part No.</th><th>Cost</th><th>Lead Time</th></tr></thead><tbody>';
-                data.suppliers.forEach(supplier => {
-                    suppliersHtml += `
-                        <tr>
-                            <td>${supplier.supplier_name}</td>
-                            <td>${supplier.supplier_part_number}</td>
-                            <td>$${supplier.cost}</td>
-                            <td>${supplier.lead_time_days} days</td>
-                        </tr>
-                    `;
-                });
-                suppliersHtml += '</tbody></table>';
-            } else {
-                suppliersHtml = '<div class="alert alert-warning">No supplier information available</div>';
-            }
-            
-            let inventoryHtml = '';
-            if (data.inventory.length > 0) {
-                inventoryHtml = '<table class="table table-sm"><thead><tr><th>Location</th><th>On Hand</th><th>Allocated</th><th>Available</th></tr></thead><tbody>';
-                data.inventory.forEach(inv => {
-                    inventoryHtml += `
-                        <tr>
-                            <td>${inv.location_name}</td>
-                            <td>${inv.quantity_on_hand}</td>
-                            <td>${inv.quantity_allocated}</td>
-                            <td>${inv.quantity_on_hand - inv.quantity_allocated}</td>
-                        </tr>
-                    `;
-                });
-                inventoryHtml += '</tbody></table>';
-            } else {
-                inventoryHtml = '<div class="alert alert-warning">No inventory information available</div>';
-            }
-            
-            $('#propertiesPanel').html(`
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="text-center mb-3">
-                            ${data.thumbnail ? `<img src="${data.thumbnail}" class="img-fluid" alt="${data.part_number}">` : '<i class="bi bi-box-seam" style="font-size: 3rem;"></i>'}
-                        </div>
-                        <h5>${data.part_number}</h5>
-                        <p>${data.description}</p>
-                        <p><strong>Category:</strong> ${data.category_display}</p>
-                        <p><strong>UOM:</strong> ${data.unit_of_measure}</p>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="mb-4">
-                            <h6>Specifications</h6>
-                            <table class="table table-sm">
-                                <tr><th>Material</th><td>${data.material || '-'}</td></tr>
-                                <tr><th>Tolerance</th><td>${data.tolerance || '-'}</td></tr>
-                                <tr><th>Finish</th><td>${data.finish || '-'}</td></tr>
-                                <tr><th>Weight</th><td>${data.weight ? data.weight + ' kg' : '-'}</td></tr>
-                            </table>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <h6>Suppliers</h6>
-                            ${suppliersHtml}
-                        </div>
-                        
-                        <div class="mb-4">
-                            <h6>Inventory</h6>
-                            ${inventoryHtml}
-                        </div>
-                    </div>
-                </div>
-                <div class="d-flex justify-content-end">
-                    <a href="/components/${componentId}/" class="btn btn-sm btn-outline-primary me-2">
-                        <i class="bi bi-box-arrow-up-right"></i> View Details
-                    </a>
-                    <button class="btn btn-sm btn-outline-secondary edit-item-btn" data-item-id="${itemId}">
-                        <i class="bi bi-pencil"></i> Edit Item
-                    </button>
-                </div>
-            `);
-        }).fail(function() {
-            $('#propertiesPanel').html('<div class="alert alert-danger">Failed to load component details</div>');
-        });
-    });
-    
-    // Request approval
-    $('#requestApprovalBtn').click(function() {
-        $('#requestApprovalModal').modal('show');
-    });
-    
-    $('#confirmRequestApproval').click(function() {
-        const form = $('#approvalRequestForm');
-        $.ajax({
-            url: '{% url "request_bom_approval" %}',
-            type: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.message);
-                }
-            },
-            error: function() {
-                alert('An error occurred while submitting the approval request.');
-            }
-        });
-    });
-    
-    // Initialize all components for search
-    window.allComponents = JSON.parse('{{ all_components|escapejs }}');
-});
-</script>
-
 
 {% if messages %}
   <script>
@@ -849,7 +621,96 @@ $(document).ready(function() {
   </script>
 {% endif %}
 
+
+<script>
+$(document).ready(function() {
+    // Handle component selection from tree
+    $('.bom-item').click(function() {
+        const itemId = $(this).data('item-id');
+        loadComponentDetails(itemId);
+    });
+    
+    // Handle component selection from table
+    $('.bom-row').click(function() {
+        const itemId = $(this).data('item-id');
+        loadComponentDetails(itemId);
+    });
+    
+    function loadComponentDetails(itemId) {
+        $.get(`/api/items/${itemId}/`, function(data) {
+            const template = $('#componentPropertiesTemplate').html();
+            $('#properties-panel').html(template);
+            
+            // Populate data
+            $('#componentPartNumber').text(data.component.part_number);
+            $('#componentDescription').text(data.component.description);
+            $('#componentQuantity').text(data.quantity);
+            $('#componentRefDes').text(data.reference_designators || '-');
+            $('#componentPurchaseType').text(data.component.purchase_type_display);
+            $('#componentCategory').text(data.component.category_display);
+            $('#componentNotes').text(data.notes || 'No notes');
+            $('#componentUnit').text(data.component.unit_of_measure);
+            
+            // Supplier info
+            if (data.component.suppliers && data.component.suppliers.length > 0) {
+                const supplier = data.component.suppliers[0];
+                $('#componentSupplier').text(supplier.supplier_name);
+                $('#componentCost').text('$' + supplier.cost);
+                $('#componentLeadTime').text(supplier.lead_time_days + ' days');
+            } else {
+                $('#componentSupplier').text('No supplier');
+                $('#componentCost').text('N/A');
+                $('#componentLeadTime').text('N/A');
+            }
+            
+            // Inventory info
+            if (data.component.inventory && data.component.inventory.length > 0) {
+                const totalStock = data.component.inventory.reduce((sum, inv) => sum + inv.quantity_on_hand, 0);
+                $('#componentStock').text(totalStock + ' available');
+            } else {
+                $('#componentStock').text('No stock data');
+            }
+            
+            document.getElementById('viewDocs').addEventListener('click', function() {
+            // Create a new tab instance and show it
+            var viewDocsTab = new bootstrap.Tab(document.querySelector('a[href="#view_docs"]'));
+            viewDocsTab.show();
+
+            // Alternatively, you can use this simpler approach:
+            // bootstrap.Tab.getInstance(document.querySelector('a[href="#view_docs"]')).show();
+        });
+        }).fail(function() {
+            $('#properties-panel').html(`
+                <div class="alert alert-danger">
+                    Failed to load component details. Please try again.
+                </div>
+            `);
+        });
+    }
+    
+    // Initialize tabs
+    const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+    tabEls.forEach(tabEl => {
+        tabEl.addEventListener('shown.bs.tab', function (event) {
+            localStorage.setItem('lastBomTab', event.target.id);
+        });
+    });
+    
+    // Restore last active tab
+    //const lastTab = localStorage.getItem('lastBomTab');
+    //if (lastTab) {
+    //    const tab = new bootstrap.Tab(document.getElementById(lastTab));
+    //    tab.show();
+    //}
+});
+</script>
+
+
 {% endblock %}
+
+
+
+
 
 {% block extra_javascript %}
 
