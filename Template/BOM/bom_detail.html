@@ -282,7 +282,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for item in bom.items.all %}
+                                            {% for item in bom.items.all|natural_sort %}
                                             <tr data-item-id="{{ item.id }}" class="bom-row">
                                                 <td>{{ item.sort_order }}</td>
                                                 <td>{{ item.component.part_number }}</td>

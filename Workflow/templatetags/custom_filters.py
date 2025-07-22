@@ -102,3 +102,13 @@ def filter_by_status(items, status):
     return [item for item in items if item['status'] == status]
 
 
+@register.filter
+def natural_sort(items):
+    """Sorts items by their sort_order field treating it as version numbers"""
+    def sort_key(item):
+        try:
+            return [int(part) for part in item.sort_order.split('.')]
+        except (ValueError, AttributeError):
+            return []
+    
+    return sorted(items, key=sort_key)
