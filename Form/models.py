@@ -187,7 +187,7 @@ class form_data_master(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
-        db_table = 'form_data'
+        db_table = 'form_data_master'
 
 class AttributeMaster(models.Model):
     control_name = models.TextField(null=True, blank=True)
