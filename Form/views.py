@@ -952,7 +952,7 @@ def form_master(request):
                     split_values = field["values"]
                     if len(split_values) == 2:
                         dropdown_form_id, dropdown_field_id = split_values
-                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                        field_values = form_field_values.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                         field["dropdown_data"] = list(field_values)
 
                 # Master Dropdown
@@ -1420,7 +1420,7 @@ def common_form_edit(request):
         if not form_data_id:
             return JsonResponse({"error": "form_data_id is required"}, status=400)
 
-        form_data = get_object_or_404(FormData, id=form_data_id)
+        form_data = get_object_or_404(form_data_master, id=form_data_id)
         form_data.updated_by = user
         form_data.save()
 
@@ -1449,21 +1449,21 @@ def common_form_edit(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    file_name = get_object_or_404(FormFieldValues, form_data_id=form_data, field_id=field).value
+                    file_name = get_object_or_404(form_field_values, form_data_id=form_data, field_id=field).value
                     continue
 
                 if field.field_type in ['file', 'file multiple']:
                     continue
 
                 if type != 'reference' or reference_type !='1':
-                    existing_value = FormFieldValues.objects.filter(
+                    existing_value = form_field_values.objects.filter(
                         form_data=form_data, form=form, field=field
                     ).first()
                     if existing_value:
                         existing_value.value = input_value
                         existing_value.save()
                     else:
-                        FormFieldValues.objects.create(
+                        form_field_values.objects.create(
                             form_data=form_data,
                             form=form,
                             field=field,
@@ -1489,7 +1489,7 @@ def common_form_edit(request):
 
             if last_step and current_step == last_step:
                 # Archive existing values
-                old_values = FormFieldValues.objects.filter(form=form, form_data=form_data)
+                old_values = form_field_values.objects.filter(form=form, form_data=form_data)
                 for val in old_values:
                     FormFieldValuesHist.objects.create(
                         form=val.form,
@@ -1504,7 +1504,7 @@ def common_form_edit(request):
                 # Move temp to main table
                 temp_values = FormFieldValuesTemp.objects.filter(form_id=form.id, form_data_id=form_data.id)
                 for temp in temp_values:
-                    FormFieldValues.objects.create(
+                    form_field_values.objects.create(
                         form_id=temp.form_id,
                         form_data_id=temp.form_data_id,
                         field_id=temp.field_id,
@@ -1513,7 +1513,7 @@ def common_form_edit(request):
                     )
                 temp_values.delete()
 
-                old_files = FormFile.objects.filter(form=form, form_data=form_data)
+                old_files = form_file.objects.filter(form=form, form_data=form_data)
                 for file in old_files:
                     FormFileHist.objects.create(
                         form=file.form,
@@ -1533,10 +1533,10 @@ def common_form_edit(request):
                 # --- Move Temp FormFile to Main FormFile ---
                 temp_files = FormFileTemp.objects.filter(form_id=form.id, form_data_id=form_data.id)
                 for temp_file in temp_files:
-                    FormFile.objects.create(
+                    form_file.objects.create(
                         file_name = temp_file.file_name,
                         form=get_object_or_404(Form, id =temp_file.form_id),
-                        form_data=get_object_or_404(FormData, id = temp_file.form_data_id),
+                        form_data=get_object_or_404(form_data_master, id = temp_file.form_data_id),
                         field=get_object_or_404(FormField, id = temp_file.field_id),
                         file_path=temp_file.file_path,
                         uploaded_name=temp_file.uploaded_name,
@@ -1785,7 +1785,7 @@ def handle_generative_fields(form, form_data, created_by):
                 if not selected_field:
                     continue
 
-                value_obj = FormFieldValues.objects.filter(
+                value_obj = form_field_values.objects.filter(
                     form_data=form_data,
                     form=form,
                     field=selected_field
@@ -1799,7 +1799,7 @@ def handle_generative_fields(form, form_data, created_by):
             final_value = f"{prefix}-{base_part}-{padded_number}{current_increment}"
 
             # Step 3: Save the generated value
-            FormFieldValues.objects.create(
+            form_field_values.objects.create(
                 form_data=form_data,
                 form=form,
                 field=field,
@@ -2098,7 +2098,7 @@ def form_preview(request):
                     split_values = field["values"]
                     if len(split_values) == 2:
                         dropdown_form_id, dropdown_field_id = split_values
-                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                        field_values = form_field_values.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                         field["dropdown_data"] = list(field_values)
 
                 if field["field_type"] in ["master dropdown", "multiple"] and field["values"]:
@@ -2141,7 +2141,7 @@ def common_form_action(request):
     try:
         if request.method == 'POST':
             form_data_id = request.POST.get('form_data_id')
-            form_data = get_object_or_404(FormData, pk=form_data_id)
+            form_data = get_object_or_404(form_data_master, pk=form_data_id)
             button_type = request.POST.get('button_type')
             clicked_action_id = request.POST.get('clicked_action_id')
             if workflow_YN == '1E':
@@ -2284,7 +2284,7 @@ def common_form_action(request):
             
                         
                 if role_idC == '5':
-                    field_ids = FormFieldValues.objects.filter(form_data_id=form_data_id).values_list('field_id', flat=True)
+                    field_ids = form_field_values.objects.filter(form_data_id=form_data_id).values_list('field_id', flat=True)
                     for field_id in field_ids:
                         matched_field = FormField.objects.filter(
                                 id=field_id,
@@ -2292,7 +2292,7 @@ def common_form_action(request):
                                 label='File Name'
                             ).first()
                         if matched_field:
-                            value_entry = FormFieldValues.objects.filter(
+                            value_entry = form_field_values.objects.filter(
                                 form_data_id=form_data_id,
                                 field_id=field_id
                             ).first()
@@ -2353,9 +2353,9 @@ def download_file(request):
 
         # Lookup uploaded name from DB using file_path
         try:
-            file_obj = FormFile.objects.get(file_path=filepath)
+            file_obj = form_file.objects.get(file_path=filepath)
             uploaded_name = file_obj.uploaded_name
-        except FormFile.DoesNotExist:
+        except form_file.DoesNotExist:
             uploaded_name = os.path.basename(filepath)  # fallback
 
         response = FileResponse(open(full_path, 'rb'), as_attachment=True, filename=uploaded_name)
@@ -2411,7 +2411,7 @@ def delete_file(request):
             else:
                 if os.path.exists(full_path):
                     os.remove(full_path)
-                    FormFile.objects.filter(id=file_id).delete()
+                    form_file.objects.filter(id=file_id).delete()
 
             return JsonResponse({"success": True})
 
@@ -2438,13 +2438,13 @@ def get_uploaded_files(request):
                 form_data_id=form_data_id
             )
             if not files:
-                files = FormFile.objects.filter(
+                files = form_file.objects.filter(
                 field_id=field_id,
                 form_data_id=form_data_id
             )
 
         else:
-            files = FormFile.objects.filter(
+            files = form_file.objects.filter(
                 field_id=field_id,
                 form_data_id=form_data_id
             )
@@ -2498,7 +2498,7 @@ def check_field_before_delete(request):
         if  not field_id:
             return JsonResponse({"success": False, "error": "Missing form or field ID."})
 
-        data_exists = FormFieldValues.objects.filter(field_id=field_id).exists()
+        data_exists = form_field_values.objects.filter(field_id=field_id).exists()
 
         if data_exists:
             return JsonResponse({"exists": True})  # Indicates data is present; can't delete
@@ -2570,7 +2570,7 @@ def reference_workflow(request):
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
         FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
 
-        form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
+        form_files = form_file.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
         for file_obj in form_files:
             FormFileTemp.objects.create(
                 form_data_id=file_obj.form_data.id,
@@ -2591,7 +2591,7 @@ def reference_workflow(request):
                 field_type = FormField.objects.filter(id=field_id).values_list('field_type', flat=True).first()
 
                 if field_type == "generative" or field_type in ['file', 'file multiple'] or field_id == file_no_field_id:
-                    existing_value_obj = FormFieldValues.objects.filter(
+                    existing_value_obj = form_field_values.objects.filter(
                         form_data_id=matched_form_data_id,
                         form_id=form_id,
                         field_id=field_id
@@ -2655,7 +2655,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
             field_type = FormField.objects.filter(id=field_id).values_list('field_type', flat=True).first()
             is_multiple = field_type == "file multiple"
             form = get_object_or_404(Form,name = form_name)
-            req_no = get_object_or_404(FormData, id = matched_form_data_id).req_no
+            req_no = get_object_or_404(form_data_master, id = matched_form_data_id).req_no
             form_id = form.id
 
             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, req_no)
@@ -2732,10 +2732,10 @@ def get_compare_data(request, final_id):
     try:
         form_data_id = final_id
 
-        old_values = FormFieldValues.objects.filter(form_data_id=form_data_id).select_related('field')
+        old_values = form_field_values.objects.filter(form_data_id=form_data_id).select_related('field')
         new_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id)
 
-        old_files = FormFile.objects.filter(form_data_id=form_data_id)
+        old_files = form_file.objects.filter(form_data_id=form_data_id)
         new_files = FormFileTemp.objects.filter(form_data_id=form_data_id)
 
         temp_versions = WorkflowVersionControl.objects.filter(form_data_id=form_data_id).order_by('-modified_at')[:2]
@@ -3201,7 +3201,7 @@ def show_form(request):
                             split_values = field["values"]
                             if len(split_values) == 2:
                                 dropdown_form_id, dropdown_field_id = split_values
-                                field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                                field_values = form_field_values.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                                 field["dropdown_data"] = list(field_values)
 
                         if field["field_type"] in ["master dropdown", "multiple"] and field["values"]:
@@ -3374,6 +3374,149 @@ def view_form(request):
             "forms_data": forms_data,
             "view": "1"
         })
+
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        print(e)
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+    
+def common_form_post_master(request):
+    user = request.session.get('user_id', '')
+    user_name = request.session.get('username', '')
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
+        
+        
+        created_by = user
+        form_name = request.POST.get('form_name', '').strip()
+        type = request.POST.get('type','')
+
+        workflow_YN = request.POST.get('workflow_YN', '')
+        form_id = request.POST.get("form_id")
+        editORcreate  = request.POST.get('editORcreate','')
+        firstStep = request.POST.get("firstStep")
+        
+        
+        # form_id = request.POST.get(form_id_key, '').strip()
+        form = get_object_or_404(Form, id=request.POST.get("form_id"))
+
+        if type != 'master':
+            # action_id = request.PSOT.get("action_id")action_id = request.POST.get(action_id_key, '').strip()
+            action = get_object_or_404(FormAction,id  = request.POST.get("action_id"))
+
+        if type == 'master':
+            form_data = form_data_master.objects.create(form=form)
+        else:
+            form_data = form_data_master.objects.create(form=form,action=action)
+            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
+        form_data.created_by = user
+        form_data.save()
+        module = 1
+        
+        form_dataID = form_data.id
+        first_field_checked = False
+        
+
+        # Process each field
+        for key, value in request.POST.items():
+            if key.startswith("field_id_"):
+                field_id = value.strip()
+                field = get_object_or_404(FormField, id=field_id)
+
+                if field.field_type == "select multiple":
+                    selected_values = request.POST.getlist(f"field_{field_id}")
+                    input_value = ','.join([val.strip() for val in selected_values if val.strip()])
+                else:
+                    input_value = request.POST.get(f"field_{field_id}", "").strip()
+                    
+                    
+                if field.field_type == "generative":                   
+                    continue
+                
+                if not first_field_checked and firstStep == '1':
+                    totalStep_wf = workflow_matrix.objects.filter(
+                        workflow_name='CIDCO File Scanning and DMS Flow'
+                    ).count()
+
+                    step_ids_list = list(
+                        workflow_details.objects.filter(
+                            file_number=input_value
+                        ).values_list('step_id', flat=True)
+                    )
+
+                    already_exists = form_field_values.objects.filter(
+                        value=input_value,
+                        field_id=field_id
+                    ).exists()
+                    fileNumber_input_WF =input_value
+
+                    # Logic:
+                    # If any of the step_ids for this file are not the final step number, then stop
+                    if already_exists:
+                        if any(step_id != totalStep_wf for step_id in step_ids_list):
+                            print("Same file is already in process and not at final step. Halting process.")
+                            break
+                        else:
+                            print("Same file is at final step. Proceeding.")
+                    else:
+                        print("File number not found before. Proceeding.")
+
+                    first_field_checked = True
+                else:
+                    already_exists = False
+                         
+                form_field_values.objects.create(
+                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
+                )
+
+                if field.field_type == "file_name":
+
+                    form_data.file_ref = input_value
+                    if input_value and input_value != 'New File':
+                        VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value,status= 0)
+                    form_data.save()
+                    if input_value and input_value != 'New File':
+
+                        form_field_value_obj = form_field_values.objects.filter(value=input_value).first()
+                        if form_field_value_obj:
+                            form_data_id = form_field_value_obj.form_data_id
+                        if form_data:
+                            VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value, status= 0)
+
+                if field.field_type == 'field_dropdown':
+                    values = field.values 
+                    
+                    if values:
+                        parts = values.split(',')
+                        if len(parts) == 2:
+                            form_id = parts[0].strip()
+                            field_id = parts[1].strip()
+
+                            try:
+                            # Lookup FormField with the extracted form_id and field_id
+                                linked_field = FormField.objects.get(id=field_id, form_id=form_id)
+
+                                if linked_field.label == "File Name":
+                                    # Check if input_value exists in ControlFileMap
+                                    if VersionControlFileMap.objects.filter(file_name=input_value).exists():
+                                        VersionControlFileMap.objects.create(
+                                            form_data=form_dataID,
+                                            file_name=input_value
+                                        )
+                            except FormField.DoesNotExist:
+                                pass  
+
+        if already_exists is not True:
+            handle_uploaded_files(request, form_name, created_by, form_data, user, module)
+            file_name = handle_generative_fields(form, form_data, created_by)
+
+        # callproc('create_dynamic_form_views')
+        messages.success(request, "Form data saved successfully!") 
+        return redirect('/masters?entity=form_master&type=i')
 
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)

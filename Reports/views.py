@@ -7,7 +7,7 @@ from django.http import Http404, JsonResponse
 from django.shortcuts import render,redirect
 from django.contrib.auth.decorators import login_required
 import requests
-from Form.models import FormFile
+from Form.models import form_file
 from Reports.models import *
 from Account.models import *
 import Db 
@@ -373,12 +373,12 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user,is_export):
 
 def dl_file(request, file_id):
     try:
-        form_file = FormFile.objects.get(id=dec(file_id))
+        form_file = form_file.objects.get(id=dec(file_id))
         file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
         if not os.path.exists(file_path):
             raise Http404("File not found.")
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=form_file.uploaded_name)
-    except FormFile.DoesNotExist:
+    except form_file.DoesNotExist:
         raise Http404("File not found.")
 
 def preprocess_data_list(result_data, is_export):
@@ -392,16 +392,16 @@ def preprocess_data_list(result_data, is_export):
                 if is_export == '1':
                     for file_id in file_ids:
                         try:
-                            form_file = FormFile.objects.get(id=file_id)
+                            form_file = form_file.objects.get(id=file_id)
                             uploaded_names.append(form_file.uploaded_name)
-                        except FormFile.DoesNotExist:
+                        except form_file.DoesNotExist:
                             continue
                     processed_row.append(', '.join(uploaded_names))
                 else:
                     file_links = []
                     for file_id in file_ids:
                         try:
-                            form_file = FormFile.objects.get(id=file_id)
+                            form_file = form_file.objects.get(id=file_id)
                             # form_file_id1 = callproc("stp_get_check_file",[form_file.id,user])
                             # if form_file_id1 and form_file_id1[0][0] == form_file.id:
                             file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
@@ -415,7 +415,7 @@ def preprocess_data_list(result_data, is_export):
                             #     uploaded_names.append(form_file.uploaded_name)
                             #     processed_row.append(', '.join(uploaded_names))
 
-                        except FormFile.DoesNotExist:
+                        except form_file.DoesNotExist:
                             continue
                     if file_links:
                         processed_row.append({'file_links': file_links})

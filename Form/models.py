@@ -144,9 +144,9 @@ class FormActionField(models.Model):
     class Meta:
         db_table = 'form_action_field'
 
-class FormFieldValues(models.Model):
+class form_field_values(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_id')
+    form_data = models.ForeignKey('Form.form_data_master',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_id')
     value = models.TextField(null=True, blank=True)
     file_ref = models.TextField(null=True, blank=True)
@@ -158,17 +158,17 @@ class FormFieldValues(models.Model):
     class Meta:
         db_table = 'form_field_values'
 
-class FormFile(models.Model):
+class form_file(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
     primary_key = models.TextField(null= True,blank=True)
     file_size = models.TextField(null=True,blank=True)
     num_pages = models.TextField(null=True,blank=True)
-    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
+    file = models.ForeignKey('Form.form_field_values',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_filr_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_id')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_id')
+    form_data = models.ForeignKey('Form.form_data_master',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -176,7 +176,7 @@ class FormFile(models.Model):
     class Meta:
         db_table = 'form_file'
 
-class FormData(models.Model):
+class form_data_master(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
     action = models.ForeignKey('Form.FormAction',null=True, blank=True, on_delete=models.CASCADE, related_name='form_action_id')
     primary_key = models.TextField(null= True,blank=True)
@@ -201,7 +201,7 @@ class AttributeMaster(models.Model):
 
 class ActionData(models.Model):
     value = models.TextField(null=True, blank=True)
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
+    form_data = models.ForeignKey('Form.form_data_master',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
     field = models.ForeignKey('Form.FormActionField',null=True, blank=True, on_delete=models.CASCADE, related_name='action_field_id')
     step_id = models.IntegerField(null=True,blank=True)
     version = models.FloatField(null=True, blank=True)
@@ -259,7 +259,7 @@ class SectionMaster(models.Model):
         db_table = 'section_master'
 
 class WorkflowVersionControl(models.Model):
-    form_data =  models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_version_id')
+    form_data =  models.ForeignKey('Form.form_data_master',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_version_id')
     file_name = models.TextField(null=True, blank=True)
     version_no = models.FloatField(null=True, blank=True)
     temp_version = models.FloatField(null=True, blank=True)
@@ -275,7 +275,7 @@ class WorkflowVersionControl(models.Model):
 
 class FormFieldValuesHist(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_hist_data')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_hist_value_id')
+    form_data = models.ForeignKey('Form.form_data_master',null=True, blank=True, on_delete=models.CASCADE, related_name='form_hist_value_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_hist_value_id')
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -291,10 +291,10 @@ class FormFileHist(models.Model):
     file_path = models.TextField(null=True, blank=True)
     file_size = models.TextField(null=True,blank=True)
     num_pages = models.TextField(null=True,blank=True)
-    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_hist_id')
+    file = models.ForeignKey('Form.form_field_values',null=True, blank=True, on_delete=models.CASCADE, related_name='file_hist_id')
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_file_hist_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_hist_id')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_hist_id')
+    form_data = models.ForeignKey('Form.form_data_master',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_hist_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
