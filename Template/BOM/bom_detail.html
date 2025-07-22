@@ -36,10 +36,10 @@
 
 {% block content %}
 <!-- Header Row -->
-    <div class="row mb-1">
+    <div class="row">
         <div class="col">
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
+                <ol class="breadcrumb" style="margin-bottom: 0 !important">
                     <li class="breadcrumb-item"><a href="/bom/dashboard">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'bom_list' %}">BOMs</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ bom.name }}</li>
@@ -66,9 +66,9 @@
         </div>
     </div>
 
-    <div class="row mb-1">
+    <div class="row">
         <div class="col">
-            <h2>
+            <h3>
                 <i class="bi bi-list-ul"></i> {{ bom.name }}
                 <small class="text-muted">Rev {{ bom.revision }}</small>
                 <small><span style="font-size:12px;"class="badge
@@ -79,11 +79,11 @@
                     {{ bom.get_status_display }}
                 </span></small>
 
-            </h2>
+            </h3>
 
             <p class="lead">{{ bom.description }}</p>
         </div>
-        <div class="col-auto">
+        {% comment %} <div class="col-auto">
             <div class="d-flex gap-2">
                 <button class="btn btn-primary" id="saveBomBtn">
                     <i class="bi bi-save"></i> Save
@@ -92,12 +92,12 @@
                     <i class="bi bi-printer"></i> Print
                 </button>
             </div>
-        </div>
+        </div> {% endcomment %}
     </div>
 
 <div class="container-fluid">
     <!-- Main Content Area -->
-    <div class="row mt-3">
+    <div class="row mt-1">
         <!-- Tree View Column -->
         <div class="col-md-4 border-end">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -217,7 +217,7 @@
             <div id="properties-panel">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">Component Details</h5>
+                        <h5 class="card-title mb-0">Component / Property Information</h5>
                     </div>
                     <div class="card-body text-center py-5">
                         <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
