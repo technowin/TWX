@@ -529,7 +529,6 @@
     </div>
 </div>
 
-
 <!-- Component Properties Template (hidden, used by JS) -->
 <div id="componentPropertiesTemplate" style="display: none;">
     <div class="card">
@@ -672,16 +671,14 @@ $(document).ready(function() {
                 $('#componentStock').text('No stock data');
             }
             
-            // Set up edit button
-            //$('#editComponent').click(function() {
-            //    window.location.href = `/items/${itemId}/edit/`;
-            //});
-            
-            // Set up view docs button
-            $('#viewDocs').click(function() {
-                $('#docs-view-tab').tab('show');
-                window.location.hash = '#docs';
-            });
+            document.getElementById('viewDocs').addEventListener('click', function() {
+            // Create a new tab instance and show it
+            var viewDocsTab = new bootstrap.Tab(document.querySelector('a[href="#view_docs"]'));
+            viewDocsTab.show();
+
+            // Alternatively, you can use this simpler approach:
+            // bootstrap.Tab.getInstance(document.querySelector('a[href="#view_docs"]')).show();
+        });
         }).fail(function() {
             $('#properties-panel').html(`
                 <div class="alert alert-danger">
@@ -700,11 +697,11 @@ $(document).ready(function() {
     });
     
     // Restore last active tab
-    const lastTab = localStorage.getItem('lastBomTab');
-    if (lastTab) {
-        const tab = new bootstrap.Tab(document.getElementById(lastTab));
-        tab.show();
-    }
+    //const lastTab = localStorage.getItem('lastBomTab');
+    //if (lastTab) {
+    //    const tab = new bootstrap.Tab(document.getElementById(lastTab));
+    //    tab.show();
+    //}
 });
 </script>
 
