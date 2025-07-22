@@ -64,7 +64,7 @@
         </div>
 
         <!-- Dynamic Form Inside the Same Card -->
-        <form method="POST" action="{% url 'common_form_post' %}" enctype="multipart/form-data">
+        <form method="POST" action="{% url 'common_form_post_master' %}" enctype="multipart/form-data">
             {% csrf_token %}
             <div id="dynamic_form" class="col-md-12 mt-3"></div>
 

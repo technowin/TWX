@@ -43,6 +43,45 @@ class DashboardView(TemplateView):
         
         return context
 
+# class BOMDetailView(DetailView):
+#     model = BOMHeader
+#     template_name = 'BOM/bom_detail.html'
+#     context_object_name = 'bom'
+    
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         bom = self.object
+        
+#         # Add forms for related models
+#         context['item_form'] = BOMItemForm(initial={'bom': bom})
+#         context['comment_form'] = CommentForm(initial={'bom': bom, 'author': self.request.user})
+#         context['document_form'] = DocumentForm(initial={'bom': bom, 'uploaded_by': self.request.user})
+        
+#         # Get all components for the typeahead search
+#         context['all_components'] = Component.objects.all().values('id', 'part_number', 'description')
+        
+#         # Check if user can approve
+#         context['can_approve'] = self.request.user.has_perm('bom.approve_bom')
+        
+#         return context
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
+from django.views import View
+from django.db.models import Prefetch
+from django.contrib import messages
+from django.forms.models import model_to_dict
+from .models import BOMHeader, BOMItem, Component, Document, Supplier, ComponentSupplier, Inventory, BOMRevision, Comment, ApprovalRequest
+from .forms import BOMItemForm, CommentForm, BOMRevisionForm
+
+from django.shortcuts import render, get_object_or_404
+from django.views import View
+from django.db import models
+from django.db.models import Prefetch
+from .models import BOMHeader, BOMItem, Document
+from .forms import CommentForm, BOMRevisionForm
+
 class BOMDetailView(DetailView):
     model = BOMHeader
     template_name = 'BOM/bom_detail.html'
@@ -52,18 +91,221 @@ class BOMDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         bom = self.object
         
-        # Add forms for related models
-        context['item_form'] = BOMItemForm(initial={'bom': bom})
+        # Get all BOM items and structure them hierarchically
+        items = bom.items.all().order_by('sort_order')
+        hierarchical_items = self.build_hierarchy(items)
+        
+        # Get related data
+        context['hierarchical_items'] = hierarchical_items
+        context['documents'] = bom.documents.all()
+        context['comments'] = bom.comments.all().order_by('-created_date')
+        context['revisions'] = bom.revisions.all().order_by('-created_date')[:5]
         context['comment_form'] = CommentForm(initial={'bom': bom, 'author': self.request.user})
         context['document_form'] = DocumentForm(initial={'bom': bom, 'uploaded_by': self.request.user})
-        
         # Get all components for the typeahead search
         context['all_components'] = Component.objects.all().values('id', 'part_number', 'description')
-        
         # Check if user can approve
         context['can_approve'] = self.request.user.has_perm('bom.approve_bom')
+        # For where-used analysis, we'll get components used in this BOM and find other BOMs that use them
+        components_in_bom = [item.component for item in bom.items.all()]
+        context['components_in_bom'] = components_in_bom
+        context['components']  = Component.objects.all().order_by('part_number') 
+
+        # Find where these components are used in other BOMs
+        where_used = []
+        for component in components_in_bom:
+            usages = BOMItem.objects.filter(component=component).exclude(bom=bom).select_related('bom')
+            for usage in usages:
+                where_used.append({
+                    'component': component,
+                    'bom_item': usage,
+                    'bom': usage.bom,
+                    'quantity': usage.quantity,
+                    'reference_designators': usage.reference_designators
+                })
+        context['where_used'] = where_used
         
         return context
+    
+    def build_hierarchy(self, items):
+        """Convert flat BOM items list into hierarchical structure"""
+        root_items = []
+        item_dict = {}
+        
+        # Create dictionary with sort_order as key
+        for item in items:
+            item_dict[item.sort_order] = item
+        
+        # Build hierarchy
+        for item in items:
+            if '.' not in item.sort_order:  # Top level item
+                root_items.append(item)
+            else:
+                # Find parent by getting the sort_order without the last part
+                parent_sort = '.'.join(item.sort_order.split('.')[:-1])
+                parent = item_dict.get(parent_sort)
+                if parent:
+                    if not hasattr(parent, 'children'):
+                        parent.children = []
+                    parent.children.append(item)
+        
+        return root_items
+
+def bom_item_details(request, item_id):
+    item = get_object_or_404(BOMItem.objects.select_related(
+        'component'
+    ).prefetch_related(
+        'component__suppliers',
+        'component__inventory'
+    ), pk=item_id)
+    
+    data = {
+        'id': item.id,
+        'quantity': float(item.quantity),
+        'reference_designators': item.reference_designators,
+        'notes': item.notes,
+        'component': {
+            'id': item.component.id,
+            'part_number': item.component.part_number,
+            'description': item.component.description,
+            'purchase_type_display': item.component.get_purchase_type_display(),
+            'category_display': item.component.get_category_display(),
+            'unit_of_measure': item.component.unit_of_measure,
+            'suppliers': [{
+                'supplier_name': cs.supplier.name,
+                'cost': float(cs.cost),
+                'lead_time_days': cs.lead_time_days
+            } for cs in item.component.suppliers.filter(is_approved=True)[:1]],  # Just get first approved supplier
+            'inventory': [{
+                'quantity_on_hand': inv.quantity_on_hand,
+                'location': inv.location.name
+            } for inv in item.component.inventory.all()]
+        }
+    }
+    
+    return JsonResponse(data)
+class BOMItemDetailView(View):
+    def get(self, request, item_id):
+        item = get_object_or_404(
+            BOMItem.objects.select_related('component'),
+            pk=item_id
+        )
+        
+        suppliers = item.component.suppliers.filter(is_approved=True)
+        inventory = item.component.inventory.first()
+        documents = item.component.documents.all()
+        
+        data = {
+            'item': model_to_dict(item, exclude=['bom', 'component']),
+            'component': model_to_dict(item.component, exclude=['thumbnail']),
+            'suppliers': [{
+                'id': s.id,
+                'name': s.supplier.name,
+                'supplier_part_number': s.supplier_part_number,
+                'lead_time_days': s.lead_time_days,
+                'cost': str(s.cost),
+                'is_approved': s.is_approved,
+            } for s in suppliers],
+            'inventory': model_to_dict(inventory) if inventory else None,
+            'documents': [{
+                'id': d.id,
+                'name': d.name,
+                'document_type': d.get_document_type_display(),
+                'uploaded_date': d.uploaded_date.strftime('%Y-%m-%d'),
+                'url': d.file.url,
+            } for d in documents],
+        }
+        return JsonResponse(data)
+
+class AddBOMItemView(View):
+    def post(self, request, bom_id):
+        bom = get_object_or_404(BOMHeader, pk=bom_id)
+        form = BOMItemForm(request.POST)
+        if form.is_valid():
+            item = form.save(commit=False)
+            item.bom = bom
+            # Calculate sort_order and level based on parent selection
+            parent_sort_order = request.POST.get('parent_item', '')
+            if parent_sort_order:
+                item.sort_order = f"{parent_sort_order}.{form.cleaned_data['position']}"
+                item.level = len(item.sort_order.split('.'))
+            else:
+                item.sort_order = str(form.cleaned_data['position'])
+                item.level = 1
+            
+            item.save()
+            messages.success(request, 'Component added successfully')
+            return redirect('bom_detail', pk=bom_id)
+        
+        messages.error(request, 'Error adding component')
+        return redirect('bom_detail', pk=bom_id)
+
+class EditBOMItemView(View):
+    def post(self, request, item_id):
+        item = get_object_or_404(BOMItem, pk=item_id)
+        form = BOMItemForm(request.POST, instance=item)
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Component updated successfully')
+            return redirect('bom_detail', pk=item.bom.pk)
+        
+        messages.error(request, 'Error updating component')
+        return redirect('bom_detail', pk=item.bom.pk)
+
+class DeleteBOMItemView(View):
+    def post(self, request, item_id):
+        item = get_object_or_404(BOMItem, pk=item_id)
+        bom_id = item.bom.pk
+        item.delete()
+        messages.success(request, 'Component removed successfully')
+        return redirect('bom_detail', pk=bom_id)
+
+class AddCommentView1(View):
+    def post(self, request, bom_id):
+        bom = get_object_or_404(BOMHeader, pk=bom_id)
+        form = CommentForm(request.POST)
+        
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.bom = bom
+            comment.author = request.user
+            comment.save()
+            messages.success(request, 'Comment added successfully')
+        else:
+            messages.error(request, 'Error adding comment')
+        
+        return redirect('bom_detail', pk=bom_id)
+
+class CreateRevisionView(View):
+    def post(self, request, bom_id):
+        bom = get_object_or_404(BOMHeader, pk=bom_id)
+        form = BOMRevisionForm(request.POST)
+        
+        if form.is_valid():
+            # Create snapshot of current BOM structure
+            snapshot = {
+                'items': list(bom.items.values(
+                    'component_id', 'quantity', 'reference_designators', 
+                    'notes', 'sort_order', 'level'
+                ))
+            }
+            
+            revision = form.save(commit=False)
+            revision.bom = bom
+            revision.created_by = request.user
+            revision.snapshot_data = snapshot
+            revision.save()
+            
+            # Update BOM revision
+            bom.revision = revision.revision
+            bom.save()
+            
+            messages.success(request, 'New revision created successfully')
+        else:
+            messages.error(request, 'Error creating revision')
+        
+        return redirect('bom_detail', pk=bom_id)
 
 class BOMCreateView(CreateView):
     model = BOMHeader
@@ -109,6 +351,9 @@ class BOMDeleteView(DeleteView):
         context['child_boms'] = self.object.child_boms.all()
         return context
     
+from django.db.models import Q
+from difflib import Differ
+
 class BOMCompareView(View):
     template_name = 'BOM/bom_compare.html'
     
@@ -123,14 +368,16 @@ class BOMCompareView(View):
         
         rev1 = rev2 = None
         if rev1_id:
-            rev1 = get_object_or_404(BOMRevision, pk=rev1_id)
+            rev1 = get_object_or_404(BOMRevision, pk=rev1_id, bom=bom)
         if rev2_id:
-            rev2 = get_object_or_404(BOMRevision, pk=rev2_id)
+            rev2 = get_object_or_404(BOMRevision, pk=rev2_id, bom=bom)
         
         # If we have both revisions, generate the diff
         diff_data = None
+        revision_changes = None
         if rev1 and rev2:
             diff_data = self.generate_diff(rev1, rev2)
+            revision_changes = self.get_revision_changes(rev1, rev2)
         
         context = {
             'bom': bom,
@@ -138,60 +385,151 @@ class BOMCompareView(View):
             'rev1': rev1,
             'rev2': rev2,
             'diff_data': diff_data,
+            'revision_changes': revision_changes,
+            'status_choices': BOMHeader.STATUS_CHOICES,
         }
         return render(request, self.template_name, context)
     
     def generate_diff(self, rev1, rev2):
-        # This is a simplified diff - you might want to use a proper diff library
+        """Generate a detailed comparison between two BOM revisions."""
         items1 = rev1.snapshot_data.get('items', [])
         items2 = rev2.snapshot_data.get('items', [])
         
-        # Create dictionaries for easy lookup
-        items1_dict = {(item['component_id'], item.get('reference_designators', '')): item for item in items1}
-        items2_dict = {(item['component_id'], item.get('reference_designators', '')): item for item in items2}
+        # Create dictionaries for easy lookup with component_id and reference_designators as key
+        items1_dict = {
+            (item['component_id'], tuple(sorted(item.get('reference_designators', [])))): item 
+            for item in items1
+        }
+        items2_dict = {
+            (item['component_id'], tuple(sorted(item.get('reference_designators', [])))): item 
+            for item in items2
+        }
         
         all_keys = set(items1_dict.keys()).union(set(items2_dict.keys()))
         
         diff = []
-        for key in sorted(all_keys):
+        for key in sorted(all_keys, key=lambda x: (x[0], x[1])):
             item1 = items1_dict.get(key)
             item2 = items2_dict.get(key)
+            component_id, ref_des = key
             
             if item1 and not item2:
                 # Item was removed
                 diff.append({
-                    'component_id': item1['component_id'],
+                    'component_id': component_id,
+                    'reference_designators': item1.get('reference_designators', []),
                     'part_number': item1['part_number'],
                     'description': item1['description'],
                     'status': 'removed',
                     'qty1': item1['quantity'],
                     'qty2': None,
+                    'notes1': item1.get('notes', ''),
+                    'notes2': '',
                 })
             elif not item1 and item2:
                 # Item was added
                 diff.append({
-                    'component_id': item2['component_id'],
+                    'component_id': component_id,
+                    'reference_designators': item2.get('reference_designators', []),
                     'part_number': item2['part_number'],
                     'description': item2['description'],
                     'status': 'added',
                     'qty1': None,
                     'qty2': item2['quantity'],
+                    'notes1': '',
+                    'notes2': item2.get('notes', ''),
                 })
             else:
                 # Item exists in both - check for changes
-                if item1['quantity'] != item2['quantity'] or item1.get('notes', '') != item2.get('notes', ''):
+                changes = {}
+                
+                # Check quantity changes
+                if item1['quantity'] != item2['quantity']:
+                    changes['quantity'] = {
+                        'old': item1['quantity'],
+                        'new': item2['quantity']
+                    }
+                
+                # Check notes changes
+                notes1 = item1.get('notes', '')
+                notes2 = item2.get('notes', '')
+                if notes1 != notes2:
+                    changes['notes'] = {
+                        'old': notes1,
+                        'new': notes2,
+                        'diff': self.generate_text_diff(notes1, notes2)
+                    }
+                
+                # Check reference designator changes
+                ref_des1 = set(item1.get('reference_designators', []))
+                ref_des2 = set(item2.get('reference_designators', []))
+                if ref_des1 != ref_des2:
+                    added = list(ref_des2 - ref_des1)
+                    removed = list(ref_des1 - ref_des2)
+                    changes['reference_designators'] = {
+                        'added': added,
+                        'removed': removed
+                    }
+                
+                if changes:
                     diff.append({
-                        'component_id': item1['component_id'],
+                        'component_id': component_id,
+                        'reference_designators': item2.get('reference_designators', []),
                         'part_number': item1['part_number'],
                         'description': item1['description'],
                         'status': 'changed',
                         'qty1': item1['quantity'],
                         'qty2': item2['quantity'],
-                        'notes1': item1.get('notes', ''),
-                        'notes2': item2.get('notes', ''),
+                        'notes1': notes1,
+                        'notes2': notes2,
+                        'changes': changes,
                     })
         
         return diff
+    
+    def get_revision_changes(self, rev1, rev2):
+        """Compare metadata changes between revisions."""
+        changes = {}
+        
+        # Compare BOM header changes
+        bom1 = rev1.snapshot_data.get('header', {})
+        bom2 = rev2.snapshot_data.get('header', {})
+        
+        if bom1.get('name') != bom2.get('name'):
+            changes['name'] = {
+                'old': bom1.get('name'),
+                'new': bom2.get('name')
+            }
+        
+        if bom1.get('description') != bom2.get('description'):
+            changes['description'] = {
+                'old': bom1.get('description'),
+                'new': bom2.get('description'),
+                'diff': self.generate_text_diff(bom1.get('description', ''), bom2.get('description', ''))
+            }
+        
+        if bom1.get('status') != bom2.get('status'):
+            changes['status'] = {
+                'old': dict(BOMHeader.STATUS_CHOICES).get(bom1.get('status'), bom1.get('status')),
+                'new': dict(BOMHeader.STATUS_CHOICES).get(bom2.get('status'), bom2.get('status'))
+            }
+        
+        if bom1.get('revision') != bom2.get('revision'):
+            changes['revision'] = {
+                'old': bom1.get('revision'),
+                'new': bom2.get('revision')
+            }
+        
+        return changes
+    
+    def generate_text_diff(self, text1, text2):
+        """Generate a line-by-line diff between two text blocks."""
+        d = Differ()
+        text1_lines = text1.splitlines() if text1 else []
+        text2_lines = text2.splitlines() if text2 else []
+        
+        diff = list(d.compare(text1_lines, text2_lines))
+        return '\n'.join(diff)
 
 class ComponentDetailView(DetailView):
     model = Component
@@ -217,38 +555,38 @@ class ComponentDetailView(DetailView):
         return context
 
 # AJAX views for BOM editor functionality
-class AddBOMItemView(View):
-    def post(self, request, *args, **kwargs):
-        bom_id = request.POST.get('bom')
-        component_id = request.POST.get('component')
-        quantity = request.POST.get('quantity')
-        reference_designators = request.POST.get('reference_designators', '')
-        notes = request.POST.get('notes', '')
+# class AddBOMItemView(View):
+#     def post(self, request, *args, **kwargs):
+#         bom_id = request.POST.get('bom')
+#         component_id = request.POST.get('component')
+#         quantity = request.POST.get('quantity')
+#         reference_designators = request.POST.get('reference_designators', '')
+#         notes = request.POST.get('notes', '')
         
-        bom = get_object_or_404(BOMHeader, pk=bom_id)
-        component = get_object_or_404(Component, pk=component_id)
+#         bom = get_object_or_404(BOMHeader, pk=bom_id)
+#         component = get_object_or_404(Component, pk=component_id)
         
-        # Check if item already exists in BOM
-        existing_item = BOMItem.objects.filter(bom=bom, component=component, reference_designators=reference_designators).first()
-        if existing_item:
-            return JsonResponse({
-                'success': False,
-                'message': 'This component with the same reference designators already exists in the BOM.'
-            })
+#         # Check if item already exists in BOM
+#         existing_item = BOMItem.objects.filter(bom=bom, component=component, reference_designators=reference_designators).first()
+#         if existing_item:
+#             return JsonResponse({
+#                 'success': False,
+#                 'message': 'This component with the same reference designators already exists in the BOM.'
+#             })
         
-        # Create new item
-        BOMItem.objects.create(
-            bom=bom,
-            component=component,
-            quantity=quantity,
-            reference_designators=reference_designators,
-            notes=notes
-        )
+#         # Create new item
+#         BOMItem.objects.create(
+#             bom=bom,
+#             component=component,
+#             quantity=quantity,
+#             reference_designators=reference_designators,
+#             notes=notes
+#         )
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Component added to BOM successfully.'
-        })
+#         return JsonResponse({
+#             'success': True,
+#             'message': 'Component added to BOM successfully.'
+#         })
 
 class RemoveBOMItemView(View):
     def post(self, request, *args, **kwargs):

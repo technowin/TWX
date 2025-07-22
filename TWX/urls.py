@@ -76,14 +76,14 @@ urlpatterns = [
     path('components/<int:pk>/', views.ComponentDetailView.as_view(), name='component_detail'),
     
     # AJAX endpoints
-    path('api/add-bom-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
+    # path('api/add-bom-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
     path('api/update-bom-item/', views.UpdateBOMItemView.as_view(), name='update_bom_item'),
     path('api/remove-bom-item/', views.RemoveBOMItemView.as_view(), name='remove_bom_item'),
     # path('api/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
     # path('api/approve-bom/', views.ApproveBOMView.as_view(), name='approve_bom'),
     path('approvals/<int:pk>/approve/', views.ApproveBOMView.as_view(), name='approve_bom'),
     path('approvals/<int:pk>/reject/', views.RejectBOMView.as_view(), name='reject_bom'),
-    path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
+    # path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
     
     # API endpoints
     path('api/components/<int:pk>/', views.ComponentAPIView.as_view(), name='component_api'),
@@ -91,6 +91,22 @@ urlpatterns = [
     path('components/<int:pk>/edit/', views.ComponentUpdateView.as_view(), name='component_update'),
     path('components/<int:pk>/add-supplier/', views.AddComponentSupplierView.as_view(), name='add_component_supplier'),
     path('boms/<int:pk>/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
+
+    # path('<int:pk>/', views.BOMDetailView.as_view(), name='bom_detail'),
+    path('item/<int:item_id>/', views.BOMItemDetailView.as_view(), name='bom_item_detail'),
+
+    path('<int:bom_id>/add-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
+    path('item/<int:item_id>/edit/', views.EditBOMItemView.as_view(), name='edit_bom_item'),
+    path('item/<int:item_id>/delete/', views.DeleteBOMItemView.as_view(), name='delete_bom_item'),
+    path('<int:bom_id>/add-comment/', views.AddCommentView1.as_view(), name='add_bom_comment'),
+    path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
+
+    path('<int:bom_id>/create-revision/', views.CreateRevisionView.as_view(), name='create_revision'),
+    # path('<int:bom_id>/export/', views.ExportBOMView.as_view(), name='export_bom'),
+    # path('<int:bom_id>/request-approval/', views.RequestApprovalView.as_view(), name='request_approval'),
+    path('api/items/<int:item_id>/', views.bom_item_details, name='bom_item_details'),
+
+
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
@@ -194,7 +210,9 @@ urlpatterns = [
     path('get_versiondata/', get_versiondata, name='get_versiondata'),
     path('check_fileNameExistsInVersion/', check_fileNameExistsInVersion, name='check_fileNameExistsInVersion'),
     path('view_access/', view_access, name='view_access'),
+    path('common_form_post_master/', common_form_post_master, name='common_form_post_master'),
     path('workflow_module/', workflow_module, name='workflow_module'),
+
 
 
     # Media files
