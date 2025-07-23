@@ -1446,6 +1446,8 @@ def common_form_edit(request):
     user_name = request.session.get('username', '')
     workflow_YN = request.POST.get("workflow_YN")
     step_id  = request.POST.get("step_id")
+    wfSelected_id = request.POST.get("wfSelected_id")
+    actual_step_id = request.POST.get("actual_step_id")
     
     try:
         if request.method != "POST":
