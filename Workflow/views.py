@@ -1219,7 +1219,11 @@ def workflow_form_step(request):
                 if field["field_type"] == "field_dropdown":
                     if len(field["values"]) == 2:
                         dropdown_form_id, dropdown_field_id = field["values"]
+<<<<<<< HEAD
                         field_values = DataTable.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+=======
+                        field_values = form_field_values.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+>>>>>>> 9fbf8eb2b95654f406f0a1133aae8975e56bede2
                         field["dropdown_data"] = list(field_values)
 
                 # Master Dropdown or Multiple
