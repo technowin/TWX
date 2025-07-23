@@ -2,12 +2,17 @@ from django.shortcuts import render
 from datetime import datetime
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render,redirect
+from Account import apps
 from Account.models import *
+from Form.views import common_module_master
 from Masters.models import *
 from Workflow.models import *
 from Form.models import *
 import traceback
 from Account.db_utils import callproc
+
+from django.apps import apps
+
 
 from django.contrib import messages
 from django.conf import settings
@@ -363,7 +368,7 @@ def workflow_starts(request):
             ).values_list('form_data_id', flat=True).first()
 
             if form_data:
-                file_number = FormFieldValues.objects.filter(
+                file_number = form_field_values.objects.filter(
                     form_data_id=form_data
                 ).order_by('id').values_list('value', flat=True).first()
             else:
@@ -898,6 +903,161 @@ def get_formdataidEdit(request):
 #         Db.closeConnection()
     # save to yuor workflow_details and call nect step in index
 
+    
+def common_module_master(module_id):
+    try: # assuming this is the field that links Form to ModuleMaster
+        module = get_object_or_404(ModuleMaster, id=module_id)
+
+        return {
+            "index_table": module.index_table,  # this should be the model class or its name
+            "data_table": module.data_table,
+            "file_table": module.file_table,
+            "action_table": module.action_table,
+        }
+    except Exception as e:
+        raise Exception(f"Error in retrieving module tables: {str(e)}")
+
+# def workflow_form_step(request):
+#     Db.closeConnection()
+#     m = Db.get_connection()
+#     cursor = m.cursor()
+
+#     id = request.GET.get("id")
+#     wfdetailsid = request.GET.get("wfdetailsID")
+#     firstStep = request.GET.get("firstStep")
+#     editORcreate = request.GET.get("editORcreate")
+#     new_data_id = request.GET.get("new_data_id") or ''
+#     reference_type = request.GET.get("reference_type") or '0'
+#     data_save_status = request.GET.get("data_save_status") or '0'
+#     wfSelected_id = request.GET.get("wfSelected_id")
+
+#     id = dec(id)
+#     if not id:
+#         return render(request, "Form/_formfields.html", {"fields": []})
+
+#     try:
+#         # Get Operator Dropdown
+#         cursor.callproc("stp_getOperatorWorkflow")
+#         WFoperator_dropdown = []
+#         for result in cursor.stored_results():
+#             WFoperator_dropdown = result.fetchall()
+
+#         workflow = get_object_or_404(workflow_matrix, id=id)
+#         form_ids = [fid.strip() for fid in workflow.form_id.split(",") if fid.strip()]
+#         action_id = workflow.button_type_id
+#         role_id = workflow.role_id
+#         action_detail_id = workflow.button_act_details
+#         status_wfM = workflow.status
+#         actual_step_id = workflow.step_id_flow
+#         module = get_object_or_404(workflow_details,id = id).module
+#         primary_key = get_object_or_404(workflow_details, id = id).primary_key
+
+#         module_tables = common_module_master(module)
+            
+
+#         IndexTable = apps.get_model('Form', module_tables["index_table"])
+#         DataTable = apps.get_model('Form', module_tables["data_table"])
+#         FileTable = apps.get_model('Form', module_tables["file_table"])
+
+#         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
+#             "id", "type", "label_name", "button_name", "bg_color", "text_color",
+#             "button_type", "dropdown_values", "status", "action_id"
+#         ))
+#         for action in action_fields:
+#             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
+
+#         forms_data = []
+#         for form_id in form_ids:
+#             form = get_object_or_404(Form, id=form_id)
+#             module = form.module
+#             raw_fields = FormField.objects.filter(form_id=form_id).values(
+#                 "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section","is_primary","foriegn_key_form_id"
+#             ).order_by("order")
+
+#             sectioned_fields = {}
+#             for field in raw_fields:
+#                 field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
+#                 field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
+
+#                 section_id = field.get("section")
+#                 section_name = ""
+#                 if section_id:
+#                     section = SectionMaster.objects.filter(id=section_id).first()
+#                     if section:
+#                         section_name = section.name
+
+#                 field["section_name"] = section_name
+
+#                 # Field Validations
+#                 validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
+#                 field["validations"] = list(validations)
+
+#                 # Regex Field Type
+#                 if any("^" in v["value"] for v in field["validations"]):
+#                     field["field_type"] = "regex"
+#                     pattern_value = field["validations"][0]["value"]
+#                     regex_obj = RegexPattern.objects.filter(regex_pattern=pattern_value).first()
+#                     if regex_obj:
+#                         field["regex_id"] = regex_obj.id
+#                         field["regex_description"] = regex_obj.description
+#                     else:
+#                         field["regex_id"] = None
+#                         field["regex_description"] = ""
+
+#                 # File Accept
+#                 if field["field_type"] in ["file", "file multiple", "text"]:
+#                     file_validation = next((v for v in field["validations"]), None)
+#                     field["accept"] = file_validation["value"] if file_validation else ""
+
+#                 # Field Dropdown
+#                 if field["field_type"] == "field_dropdown":
+#                     if len(field["values"]) == 2:
+#                         dropdown_form_id, dropdown_field_id = field["values"]
+#                         field_values = form_field_values.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+#                         field["dropdown_data"] = list(field_values)
+
+#                 # Master Dropdown or Multiple
+#                 if field["field_type"] in ["master dropdown", "multiple"] and field["values"]:
+#                     dropdown_id = field["values"][0]
+#                     master_data = MasterDropdownData.objects.filter(id=dropdown_id).first()
+#                     if master_data:
+#                         query = master_data.query
+#                         result = callproc("stp_get_query_data", [query])
+#                         field["values"] = [{"id": row[0], "name": row[1]} for row in result]
+#                     else:
+#                         field["values"] = []
+
+#                 sectioned_fields.setdefault(section_name, []).append(field)
+
+#             forms_data.append({
+#                 "form": form,
+#                 "sectioned_fields": sectioned_fields,
+#             })
+
+#         context = {
+#             "forms_data": forms_data,"type": "create","action_fields": action_fields,"workflow": 1, "WFoperator_dropdown": WFoperator_dropdown,
+#             "role_id": role_id,"action_detail_id": action_detail_id,"matched_form_data_id": new_data_id,"new_data_id": new_data_id,
+#             "action_id": action_id,"step_id": id,"status_wfM": status_wfM, "firstStep": firstStep,"editORcreate": editORcreate,"data_save_status": data_save_status,
+#             "form_ids":form_ids, "wfSelected_id": wfSelected_id,"reference_type": reference_type,"module":module,"actual_step_id":actual_step_id,
+#         }
+
+#         if wfdetailsid:
+#             context["wfdetailsid"] = wfdetailsid
+
+#         return render(request, "Form/_formfieldedit.html", context)
+
+#     except Exception as e:
+#         traceback.print_exc()
+#         messages.error(request, "Oops...! Something went wrong!")
+#         return render(request, "Form/_formfields.html", {"fields": []})
+
+#     finally:
+#         cursor.close()
+#         m.commit()
+#         m.close()
+#         Db.closeConnection()
+
+
 def workflow_form_step(request):
     Db.closeConnection()
     m = Db.get_connection()
@@ -917,7 +1077,7 @@ def workflow_form_step(request):
         return render(request, "Form/_formfields.html", {"fields": []})
 
     try:
-        # Get Operator Dropdown
+        # Get Operator Dropdownwfdetailsid
         cursor.callproc("stp_getOperatorWorkflow")
         WFoperator_dropdown = []
         for result in cursor.stored_results():
@@ -930,6 +1090,57 @@ def workflow_form_step(request):
         action_detail_id = workflow.button_act_details
         status_wfM = workflow.status
         actual_step_id = workflow.step_id_flow
+        
+        # Initialize variables that might be used later
+        module = get_object_or_404(ModuleMaster,id = wfSelected_id).id
+        module_tables = common_module_master(module)
+                
+        IndexTable = apps.get_model('Form', module_tables["index_table"])
+        DataTable = apps.get_model('Form', module_tables["data_table"])
+        FileTable = apps.get_model('Form', module_tables["file_table"])
+        primary_key = None
+        module_tables = None
+        
+        existing_data = {}
+        file_data = {}
+        
+        if actual_step_id != 1:
+            workflow_detail = get_object_or_404(workflow_details, id=dec(wfdetailsid))
+            # module = workflow_detail.module
+            primary_key = workflow_detail.primary_key
+
+            if primary_key: 
+                
+                index_record = IndexTable.objects.filter(
+                    primary_key=primary_key
+                ).first()
+
+                if index_record:
+                    # Get all data records for this index
+                    data_records = DataTable.objects.filter(
+                        form_data_id=index_record.id
+                    ).select_related('field')
+
+                    # Organize data by form_id and field_id
+                    for record in data_records:
+                        if str(record.field.form_id) not in existing_data:
+                            existing_data[str(record.field.form_id)] = {}
+                        existing_data[str(record.field.form_id)][str(record.field_id)] = record.value
+
+                    # Get file records
+                    file_records = FileTable.objects.filter(
+                        form_data_id=index_record.id
+                    ).select_related('field')
+
+                    for file_record in file_records:
+                        if str(file_record.field.form_id) not in file_data:
+                            file_data[str(file_record.field.form_id)] = {}
+                        file_data[str(file_record.field.form_id)][str(file_record.field_id)] = {
+                            'file_name': file_record.file_name,
+                            'file_path': file_record.file_path
+                        }
+
+                    form_data_id = index_record.id
 
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
             "id", "type", "label_name", "button_name", "bg_color", "text_color",
@@ -941,13 +1152,36 @@ def workflow_form_step(request):
         forms_data = []
         for form_id in form_ids:
             form = get_object_or_404(Form, id=form_id)
-            module = form.module
+            if actual_step_id != 1 and not module:  # If module wasn't set earlier, get it from form
+                module = form.module
+                
             raw_fields = FormField.objects.filter(form_id=form_id).values(
                 "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section","is_primary","foriegn_key_form_id"
             ).order_by("order")
 
             sectioned_fields = {}
             for field in raw_fields:
+                field = dict(field)  # Convert to mutable dict
+                field_id_str = str(field["id"])
+                form_id_str = str(field["form_id"])
+
+                # Set default values
+                field["value"] = ""
+                field["saved_value"] = ""
+                field["existing_file"] = None
+
+                # Prefill existing data if available
+                if existing_data and form_id_str in existing_data and field_id_str in existing_data[form_id_str]:
+                    field["value"] = existing_data[form_id_str][field_id_str]
+                    field["saved_value"] = existing_data[form_id_str][field_id_str]
+
+                # Handle file data
+                if field["field_type"] in ['file', 'file multiple']:
+                    if file_data and form_id_str in file_data and field_id_str in file_data[form_id_str]:
+                        field["existing_file"] = file_data[form_id_str][field_id_str]
+                        field["value"] = file_data[form_id_str][field_id_str]["file_name"]
+
+                # Process field values and attributes
                 field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
                 field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
 
@@ -985,7 +1219,7 @@ def workflow_form_step(request):
                 if field["field_type"] == "field_dropdown":
                     if len(field["values"]) == 2:
                         dropdown_form_id, dropdown_field_id = field["values"]
-                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                        field_values = DataTable.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                         field["dropdown_data"] = list(field_values)
 
                 # Master Dropdown or Multiple
@@ -999,20 +1233,55 @@ def workflow_form_step(request):
                     else:
                         field["values"] = []
 
+                if field["field_type"] == "foreign" and index_record:
+                    foreign_form_id = field.get("foriegn_key_form_id")
+                    if foreign_form_id:
+                        try:
+                            # Get the foreign index record using the current index_record.id and foreign form_id
+                            foreign_index = IndexTable.objects.get(
+                                id=index_record.id,
+                                form_id=foreign_form_id
+                            )
+                            field["foreign_data"] = foreign_index.primary_key  # Return the primary_key value
+                        except IndexTable.DoesNotExist:
+                            field["foreign_data"] = None
+
                 sectioned_fields.setdefault(section_name, []).append(field)
 
             forms_data.append({
                 "form": form,
                 "sectioned_fields": sectioned_fields,
+                "has_existing_data": form_id_str in existing_data if existing_data else False
             })
 
         context = {
-            "forms_data": forms_data,"type": "create","action_fields": action_fields,"workflow": 1, "WFoperator_dropdown": WFoperator_dropdown,
-            "role_id": role_id,"action_detail_id": action_detail_id,"matched_form_data_id": new_data_id,"new_data_id": new_data_id,
-            "action_id": action_id,"step_id": id,"status_wfM": status_wfM, "firstStep": firstStep,"editORcreate": editORcreate,"data_save_status": data_save_status,
-            "form_ids":form_ids, "wfSelected_id": wfSelected_id,"reference_type": reference_type,"module":module,"actual_step_id":actual_step_id,
+            "forms_data": forms_data,
+            "type": "create",
+            "action_fields": action_fields,
+            "workflow": 1, 
+            "WFoperator_dropdown": WFoperator_dropdown,
+            "role_id": role_id,
+            "action_detail_id": action_detail_id,
+            "matched_form_data_id": new_data_id,
+            "new_data_id": new_data_id,
+            "action_id": action_id,
+            "step_id": id,
+            "status_wfM": status_wfM, 
+            "firstStep": firstStep,
+            "editORcreate": editORcreate,
+            "data_save_status": data_save_status,
+            "form_ids": form_ids, 
+            "wfSelected_id": wfSelected_id,
+            "reference_type": reference_type,
+            "actual_step_id": actual_step_id,
+            "primary_key": primary_key,
+            "module": module
         }
 
+        # Only add module to context if it exists
+        # if module:
+        #     context["module"] = module
+            
         if wfdetailsid:
             context["wfdetailsid"] = wfdetailsid
 
@@ -1028,7 +1297,6 @@ def workflow_form_step(request):
         m.commit()
         m.close()
         Db.closeConnection()
-
     
 def reject_workflow_step(request):
     wfdetailsid = request.POST.get("wfdetailsid")

@@ -995,13 +995,14 @@ def form_master(request):
             type = request.GET.get('type','')
             req_num = request.GET.get('req_num','')
             primary_key = request.GET.get('primary_key','')
+            form_ids = request.GET.get('form_idWF')
             category_dropD = para_master.objects.filter(para_name='Category').values(value=F('para_details'), text=F('description'))
 
 
             if form_data_id:
                 form_data_id = dec(form_data_id)
 
-                module = 2
+                module = 9
                 module_tables = common_module_master(module)
                 IndexTable = apps.get_model('Form', module_tables["index_table"])
                 DataTable = apps.get_model('Form', module_tables["data_table"])
@@ -1053,41 +1054,52 @@ def form_master(request):
                     sr_no_counter += 1
 
                 
-                form_ids = workflow_matrix.objects.filter(step_id_flow=step_id).values_list('form_id', flat=True).distinct()
 
                 forms_data = []
-                file_cat_val = None  # initialize to include in render context
-
+                if isinstance(form_ids, str):
+                    form_ids = [int(id.strip()) for id in form_ids.split(',') if id.strip().isdigit()]
+                elif isinstance(form_ids, (list, tuple)):
+                    form_ids = [int(id) for id in form_ids if str(id).strip().isdigit()]
+    
                 for form_id in form_ids:
+                    
                     try:
                         form = Form.objects.get(id=form_id)
                     except Form.DoesNotExist:
                         continue
-
+                    
                     form_data_instance = IndexTable.objects.filter(form_id=form_id, primary_key=primary_key).first()
                     form_data_id_local = form_data_instance.id if form_data_instance else None
                     action_id = form_data_instance.action_id if form_data_instance else None
 
-                    # Override if button_type_id is passed
+                    # Override action if button_type_id is passed
                     if button_type_id:
                         action_id = button_type_id
 
+                    # Get existing field values if form_data exists
                     values_dict = {}
                     if form_data_id_local:
                         field_values = DataTable.objects.filter(form_data_id=form_data_id_local).values("field_id", "value")
                         values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
 
+                    # Get all fields for this form
                     fields = FormField.objects.filter(form_id=form_id).values(
-                        "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
+                        "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section",
+                        "is_primary", "foriegn_key_form_id"  # Added missing fields
                     ).order_by("order")
                     fields = list(fields)
 
                     sectioned_fields = defaultdict(list)
 
                     for field in fields:
+                        field = dict(field)  # Convert to mutable dict
+                        field_id = field["id"]
+                        
+                        # Process field values and attributes
                         field["values"] = field["values"].split(",") if field.get("values") else []
                         field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
+                        # Get section name
                         section_id = field.get("section")
                         section_name = ""
                         if section_id:
@@ -1095,9 +1107,11 @@ def form_master(request):
                             if section:
                                 section_name = section.name
 
-                        validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
+                        # Field validations
+                        validations = FieldValidation.objects.filter(field_id=field_id, form_id=form_id).values("value")
                         field["validations"] = list(validations)
 
+                        # Regex field type
                         if any("^" in v["value"] for v in field["validations"]):
                             field["field_type"] = "regex"
                             pattern_value = field["validations"][0]["value"]
@@ -1105,41 +1119,51 @@ def form_master(request):
                             field["regex_id"] = regex_obj.id if regex_obj else None
                             field["regex_description"] = regex_obj.description if regex_obj else ""
 
+                        # File handling
                         if field["field_type"] in ["file", "file multiple", "text"]:
-                            file_exists = FileTable.objects.filter(field_id=field["id"], form_data_id=form_data_id_local).exists() if form_data_id_local else False
+                            file_exists = FileTable.objects.filter(
+                                field_id=field_id, 
+                                form_data_id=form_data_id_local
+                            ).exists() if form_data_id_local else False
                             field["file_uploaded"] = 1 if file_exists else 0
                             if file_exists and "required" in field["attributes"]:
                                 field["attributes"].remove("required")
 
-                        saved_value = values_dict.get(field["id"], "")
+                        # Set saved value
+                        saved_value = values_dict.get(field_id, "")
                         if field["field_type"] == "select multiple":
                             field["value"] = [val.strip() for val in saved_value.split(",") if val.strip()]
                         else:
                             field["value"] = saved_value
 
+                        # Field dropdown handling
                         if field["field_type"] == "field_dropdown":
-                            split_values = field["values"]
-                            if len(split_values) == 2:
+                            if len(field["values"]) == 2:
                                 try:
-                                    dropdown_field_id = int(split_values[1])
-                                    dropdown_field_values = DataTable.objects.filter(field_id=dropdown_field_id)
-                                    field["dropdown_data"] = list(dropdown_field_values.values())
-                                    field["saved_value"] = values_dict.get(field["id"])
+                                    dropdown_form_id = int(field["values"][0])
+                                    dropdown_field_id = int(field["values"][1])
+                                    dropdown_field_values = form_field_values.objects.filter(
+                                        field_id=dropdown_field_id
+                                    ).values("value").distinct()
+                                    field["dropdown_data"] = list(dropdown_field_values)
+                                    field["saved_value"] = values_dict.get(field_id, "")
                                 except (ValueError, IndexError):
                                     field["dropdown_data"] = []
                                     field["saved_value"] = ""
 
+                        # File name field handling
                         if field["field_type"] == "file_name":
                             qs = WorkflowVersionControl.objects.filter(~Q(baseline_date__isnull=True))
                             field["file_name_options"] = list(qs.values_list("file_name", flat=True).distinct())
-                            saved = (
-                                DataTable.objects.filter(form_data_id=form_data_id_local, field_id=field["id"])
-                                .values_list("value", flat=True).first()
-                            )
-                            field["saved_value"] = saved
+                            saved = DataTable.objects.filter(
+                                form_data_id=form_data_id_local, 
+                                field_id=field_id
+                            ).values_list("value", flat=True).first()
+                            field["saved_value"] = saved if saved else ""
                             if saved and saved not in field["file_name_options"]:
                                 field["file_name_options"].insert(0, saved)
 
+                        # Master dropdown handling
                         if field["field_type"] == "master dropdown" and field["values"]:
                             try:
                                 dropdown_id = field["values"][0]
@@ -1150,11 +1174,26 @@ def form_master(request):
                             except (MasterDropdownData.DoesNotExist, IndexError):
                                 field["values"] = []
 
+                        if field["field_type"] == "foreign":
+                            foreign_form_id = field.get("foriegn_key_form_id")
+                            if foreign_form_id:
+                                try:
+                                    # Get the foreign index record using the current index_record.id and foreign form_id
+                                    foreign_index = IndexTable.objects.get(
+                                        id=form_data_id_local
+                                    )
+                                    field["foreign_data"] = foreign_index.primary_key  # Return the primary_key value
+                                except IndexTable.DoesNotExist:
+                                    field["foreign_data"] = None
+
+                        # Add to section
                         sectioned_fields[section_name].append(field)
 
                     forms_data.append({
                         "form": form,
-                        "sectioned_fields": dict(sectioned_fields)
+                        "sectioned_fields": dict(sectioned_fields),
+                        "form_data_id": form_data_id_local,
+                        "action_id": action_id
                     })
 
                     # Keep last file_cat_val for render (you can adjust logic if needed)
@@ -1177,11 +1216,11 @@ def form_master(request):
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
 
                    
-                    if workflow_YN == '1E':
-                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data})
-                    else:
-                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data})
+                if workflow_YN == '1E':
+                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
+                            "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data})
+                else:
+                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all().order_by('-id')
@@ -1243,20 +1282,58 @@ def common_form_post(request):
         actual_step_id = request.POST.get("actual_step_id")
 
         all_form_data_ids = []
-        primary_value = ''
+        primary_value = request.POST.get("primray_key", "").strip()
+        
+        # First pass: Collect primary_value if not provided but exists in form fields
+        if not primary_value:
+            for form_id in form_ids:
+                fields = FormField.objects.filter(form_id=form_id, is_primary=True)
+                for field in fields:
+                    input_value = request.POST.get(f"field_{field.id}", "").strip()
+                    if input_value:
+                        primary_value = input_value
+                        break
+                if primary_value:
+                    break
 
         for form_id in form_ids:
             form = get_object_or_404(Form, id=form_id)
             action = get_object_or_404(FormAction, id=action_id) if type != 'master' else None
 
-            form_data = IndexTable.objects.create(form=form, action=action if action else None)
-            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
-            form_data.created_by = created_by
+            # Check if record exists with this primary_key and form_id
+            form_data = None
+            if primary_value:
+                form_data = IndexTable.objects.filter(
+                    primary_key=primary_value,
+                    form_id=form_id
+                ).first()
+
+            if form_data:
+                # Existing record - update it
+                form_data.action = action if action else None
+                form_data.updated_by = created_by
+                form_data.updated_at = now()
+                form_data.save()
+                message = "updated"
+                
+                # Delete existing data records for this form_data
+                DataTable.objects.filter(form_data=form_data).delete()
+            else:
+                # New record - create it
+                form_data = IndexTable.objects.create(
+                    form=form,
+                    action=action if action else None,
+                    created_by=created_by,
+                    primary_key=primary_value if primary_value else None
+                )
+                form_data.req_no = f"UNIQ-NO-00{form_data.id}"
+                form_data.save()
+                message = "created"
 
             form_DataID = form_data.id 
 
+            # Process all fields for this form
             fields = FormField.objects.filter(form_id=form_id)
-
             for field in fields:
                 field_id = field.id
                 if field.field_type == "select multiple":
@@ -1268,16 +1345,21 @@ def common_form_post(request):
                 if field.field_type == "generative":
                     continue  # Handle later
 
-                if field.is_primary == '1' or field.is_primary == True:
-                    primary_value = input_value  # Save for later use
+                # If this is a primary field and we didn't have a primary_value, use this
+                if (field.is_primary == '1' or field.is_primary == True) and not primary_value and input_value:
+                    primary_value = input_value
+                    form_data.primary_key = primary_value
+                    form_data.save()
 
+                # Create data record
                 DataTable.objects.create(
-                    form_data=form_data, form=form, field=field,primary_key = primary_value,
-                    value=input_value, created_by=created_by
+                    form_data=form_data,
+                    form=form,
+                    field=field,
+                    primary_key=primary_value if primary_value else None,
+                    value=input_value,
+                    created_by=created_by
                 )
-
-            form_data.primary_key = primary_value  # If IndexTable has a field named primary_value
-            form_data.save()
 
             handle_uploaded_files(request, form_name, created_by, form_data, user, module)
             handle_generative_fields(form, form_data, created_by)
@@ -1305,6 +1387,7 @@ def common_form_post(request):
             workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
             workflow_detail.increment_id += 1
             workflow_detail.step_id = actual_step_id
+            workflow_detail.module = module
             workflow_detail.status = status_from_matrix
             workflow_detail.user_id = user
             workflow_detail.updated_by = user
@@ -1320,6 +1403,7 @@ def common_form_post(request):
                     increment_id=1,
                     step_id=actual_step_id,
                     status=status_from_matrix,
+                    module = module,
                     operator=request.POST.get('custom_dropdownOpr', ''),
                     user_id=user,
                     created_by=user,
@@ -1337,7 +1421,7 @@ def common_form_post(request):
                     increment_id=1,
                     step_id=actual_step_id,
                     status=status_from_matrix,
-                   
+                    module = module,
                     user_id=user,
                     created_by=user,
                     updated_by=user,
@@ -1355,6 +1439,7 @@ def common_form_post(request):
                 role_id=workflow_detail.role_id,
                 action_details_id=workflow_detail.action_details_id,
                 increment_id=workflow_detail.increment_id,
+                module=workflow_detail.module,
                 # step_id=workflow_detail.actual_step_id,
                 step_id=actual_step_id,
                 status=workflow_detail.status,
@@ -1375,6 +1460,7 @@ def common_form_post(request):
                 increment_id=workflow_detail.increment_id,
                 # step_id=workflow_detail.step_id,
                 step_id=actual_step_id,
+                module=workflow_detail.module,
                 status=workflow_detail.status,
                 user_id=workflow_detail.user_id,
                 req_id=workflow_detail.req_id,
@@ -1392,6 +1478,7 @@ def common_form_post(request):
                 role_id=workflow_detail.role_id,
                 action_details_id=workflow_detail.action_details_id,
                 increment_id=workflow_detail.increment_id,
+                module=workflow_detail.module,
                 # step_id=workflow_detail.step_id,
                 step_id=actual_step_id,
                 status=workflow_detail.status,

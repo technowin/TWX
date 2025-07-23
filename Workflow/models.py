@@ -93,6 +93,7 @@ class workflow_details(models.Model):
     action_details_id = models.IntegerField(null=True, blank=True)
     role_id = models.TextField(null=True, blank=True)
     status = models.TextField(null=True, blank=True)
+    module = models.TextField(null= True, blank=True)
     user_id = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)             
     created_by = models.TextField(null=True, blank=True) 
@@ -115,7 +116,7 @@ class history_workflow_details(models.Model):
     action_details_id = models.IntegerField(null=True, blank=True)
     role_id = models.TextField(null=True, blank=True)
     status = models.TextField(null=True, blank=True)
-    
+    module = models.TextField(null= True, blank=True)
     operator = models.IntegerField(null=True, blank=True)
     
     user_id = models.IntegerField(null=True, blank=True)
