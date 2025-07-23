@@ -363,7 +363,7 @@ def workflow_starts(request):
             ).values_list('form_data_id', flat=True).first()
 
             if form_data:
-                file_number = FormFieldValues.objects.filter(
+                file_number = form_field_values.objects.filter(
                     form_data_id=form_data
                 ).order_by('id').values_list('value', flat=True).first()
             else:
@@ -985,7 +985,7 @@ def workflow_form_step(request):
                 if field["field_type"] == "field_dropdown":
                     if len(field["values"]) == 2:
                         dropdown_form_id, dropdown_field_id = field["values"]
-                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                        field_values = form_field_values.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                         field["dropdown_data"] = list(field_values)
 
                 # Master Dropdown or Multiple
