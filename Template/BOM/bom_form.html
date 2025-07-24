@@ -63,9 +63,9 @@
             <i class="bi bi-list-ul"></i> {% if object %}Edit BOM: {{ object.name }}{% else %}Create New Bill of Materials{% endif %}
             {% if object %}
                 <span class="badge 
-                    {% if object.status == 'AC' %}bg-success
-                    {% elif object.status == 'DR' %}bg-secondary
-                    {% elif object.status == 'PE' %}bg-warning text-dark
+                    {% if object.status == 'Active' %}bg-success
+                    {% elif object.status == 'Draft' %}bg-secondary
+                    {% elif object.status == 'Pending Approval' %}bg-warning text-dark
                     {% else %}bg-dark{% endif %}">
                     {{ object.get_status_display }}
                 </span>

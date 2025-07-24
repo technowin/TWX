@@ -38,8 +38,8 @@ class DashboardView(TemplateView):
 
         
         # BOM stats
-        context['active_bom_count'] = BOMHeader.objects.filter(status='AC').count()
-        context['draft_bom_count'] = BOMHeader.objects.filter(status='DR').count()
+        context['active_bom_count'] = BOMHeader.objects.filter(status='Active').count()
+        context['draft_bom_count'] = BOMHeader.objects.filter(status='Draft').count()
         
         return context
 
@@ -692,7 +692,7 @@ class ApproveBOMView( View):
         
         # Update BOM status
         bom = approval.bom
-        bom.status = 'AC'  # Active
+        bom.status = 'Active'  # Active
         bom.save()
         
         messages.success(request, f"BOM {bom.name} approved successfully")

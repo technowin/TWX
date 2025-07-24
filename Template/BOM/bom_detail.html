@@ -72,9 +72,10 @@
                 <i class="bi bi-list-ul"></i> {{ bom.name }}
                 <small class="text-muted">Rev {{ bom.revision }}</small>
                 <small><span style="font-size:12px;"class="badge
-                    {% if bom.status == 'AC' %}bg-success
-                    {% elif bom.status == 'DR' %}bg-secondary
-                    {% elif bom.status == 'PE' %}bg-warning text-dark
+                    {% if bom.status == 'Active' %}bg-success
+                    {% elif bom.status == 'Approved' %}bg-success
+                    {% elif bom.status == 'Draft' %}bg-secondary
+                    {% elif bom.status == 'Pending Approval' %}bg-warning text-dark
                     {% else %}bg-dark{% endif %}">
                     {{ bom.get_status_display }}
                 </span></small>
