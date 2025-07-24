@@ -1020,6 +1020,7 @@
         const reference_type = $('#reference_type').val();
 
         const actual_step_id = document.getElementById('actual_step_id');
+        const wfSelected_id = document.getElementById('wfSelected_id');
         const role_id = document.getElementById('role_id');
 
         const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
@@ -1057,7 +1058,7 @@
          }
 // 
          // Action + Step 3
-        else if (buttonType === 'Action' && viewStepWFSeq === '3') {
+        else if (buttonType === 'Action' && viewStepWFSeq === '3' && parseInt(role_id.value) === 1) {
             debugger;
              e.preventDefault();
 // 
@@ -1111,6 +1112,10 @@
             } else if (buttonType === 'Reject' && parseInt(workflow_YN.value) === 1) {
                 operatorDropdown.removeAttribute('required');
                 form.action = "{% url 'reject_workflow_step' %}";
+                form.submit();
+            }else if (buttonType === 'Action' && viewStepWFSeq === '3') {
+                operatorDropdown.removeAttribute('required');
+                form.action = "{% url 'common_form_action' %}";
                 form.submit();
             } else if (buttonType === 'Submit' && (type === 'edit' || type === 'reference')) {
                 operatorDropdown.removeAttribute('required');

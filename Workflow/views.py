@@ -377,7 +377,7 @@ def workflow_starts(request):
             file_number = None
         
         try:
-            next_matrix_entry = workflow_matrix.objects.get(id=next_step)
+            next_matrix_entry = workflow_matrix.objects.get(step_id_flow=next_step,wf_id=workflowSelect)
             forwarded_to_role = next_matrix_entry.role_id  
             
             #next_matrix_role1 = roles.objects.get(id=forwarded_to_role)
