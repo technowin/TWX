@@ -103,7 +103,8 @@
                          onclick="startStepView('{{ item.form_data_id }}',
                                                  '{{ item.req_num }}',
                                                  '{{ item.actual_step_id }}',
-                                                 '{{ workflowSelect }}')" />
+                                                 '{{ workflowSelect }}',
+                                                 '{{ form_id }}')" />
 
                   {% elif item.extra_flag == 'view_only' and item.last_rejected_step and item.workflow_value == 0 %}
                     <img src="{% static 'img/icons8-invisible-100.png' %}"
@@ -122,7 +123,8 @@
                                onclick="startStepView('{{ item.form_data_id }}',
                                                        '{{ item.req_num }}',
                                                        '{{ item.current_stepId }}',
-                                                        '{{ workflowSelect }}')" />
+                                                        '{{ workflowSelect }}',
+                                                        '{{ form_id }}')" />
                         {% else %}
                           <img src="{% static 'img/icons8-invisible-100.png' %}"
                                width="20" height="20"
@@ -135,7 +137,8 @@
                                onclick="startStepView('{{ item.form_data_id }}',
                                                        '{{ item.req_num }}',
                                                        '{{ item.current_stepId }}',
-                                                        '{{ workflowSelect }}')" />
+                                                        '{{ workflowSelect }}',
+                                                        '{{ form_id }}')" />
 
                       {% else %}
                         {% if item.editORcreate == 1 %}
@@ -193,9 +196,9 @@
     }
 </script>
 <script>
-  function startStepView(id,req_num,step_id,wf_id) {
+  function startStepView(id,req_num,step_id,wf_id,form_id) {
     debugger;
-      const url = `/get_formdataid/?id=${id}&req_num=${req_num}&step_id=${step_id}&wf_id=${wf_id}`;
+      const url = `/get_formdataid/?id=${id}&req_num=${req_num}&step_id=${step_id}&wf_id=${wf_id}&form_id=${form_id}`;
       window.location.href = url;
 
       //from this dat aget formd_data_id and that form_data_id send to like `/form_master/?form=${id}`;

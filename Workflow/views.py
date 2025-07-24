@@ -620,6 +620,7 @@ def get_formdataid(request):
     id = request.GET.get("id")
     req_num = request.GET.get("req_num")
     step_id = request.GET.get("step_id")
+    form_id = request.GET.get("form_id")
     wf_id = request.GET.get("wf_id")
     readonlyWF = "1"
     param=[req_num,step_id,wf_id]
@@ -631,7 +632,7 @@ def get_formdataid(request):
     primary_value = get_object_or_404(workflow_details,req_id = req_num).primary_key
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}&req_num={req_num}&primary_key={primary_value}'
+    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}&req_num={req_num}&primary_key={primary_value}&form_idWF={form_id}'
     return redirect(url)
 
 
