@@ -1,0 +1,260 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block page_actions %}
+    <a href="{% url 'mcp:machine_update' machine.pk %}" class="btn btn-warning">
+        <i class="bi bi-pencil"></i> Edit
+    </a>
+    <a href="{% url 'mcp:machine_delete' machine.pk %}" class="btn btn-danger">
+        <i class="bi bi-trash"></i> Delete
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">Machine Information</div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Machine ID:</dt>
+                    <dd class="col-sm-8">{{ machine.machine_id }}</dd>
+                    
+                    <dt class="col-sm-4">Name:</dt>
+                    <dd class="col-sm-8">{{ machine.name }}</dd>
+                    
+                    <dt class="col-sm-4">Type:</dt>
+                    <dd class="col-sm-8">{{ machine.machine_type }}</dd>
+                    
+                    <dt class="col-sm-4">Status:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge 
+                            {% if machine.status == 'OP' %}bg-success
+                            {% elif machine.status == 'MN' %}bg-warning
+                            {% elif machine.status == 'OO' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ machine.get_status_display }}
+                        </span>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Manufacturer:</dt>
+                    <dd class="col-sm-8">{{ machine.manufacturer|default:"-" }}</dd>
+                    
+                    <dt class="col-sm-4">Model Number:</dt>
+                    <dd class="col-sm-8">{{ machine.model_number|default:"-" }}</dd>
+                    
+                    <dt class="col-sm-4">Serial Number:</dt>
+                    <dd class="col-sm-8">{{ machine.serial_number|default:"-" }}</dd>
+                    
+                    <dt class="col-sm-4">Installation Date:</dt>
+                    <dd class="col-sm-8">{{ machine.installation_date|date:"Y-m-d"|default:"-" }}</dd>
+                    
+                    <dt class="col-sm-4">Capacity:</dt>
+                    <dd class="col-sm-8">{{ machine.capacity }}</dd>
+                    
+                    <dt class="col-sm-4">Operational Hours/Day:</dt>
+                    <dd class="col-sm-8">{{ machine.operational_hours_per_day }}</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">Notes</div>
+            <div class="card-body">
+                {{ machine.notes|linebreaks|default:"No notes available" }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Capabilities</span>
+                    <a href="{% url 'mcp:machine_capability_create' %}?machine={{ machine.pk }}" 
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Add
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if capabilities %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Component</th>
+                                <th>Setup Time</th>
+                                <th>Processing Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for capability in capabilities %}
+                            <tr>
+                                <td>{{ capability.component.part_number }}</td>
+                                <td>{{ capability.setup_time }}</td>
+                                <td>{{ capability.processing_time }}</td>
+                                <td>
+                                    <a href="{% url 'mcp:machine_capability_update' capability.pk %}" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'mcp:machine_capability_delete' capability.pk %}" 
+                                       class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No capabilities defined for this machine.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Upcoming Schedules</span>
+                    <a href="{% url 'mcp:machine_schedule_create' %}?machine={{ machine.pk }}" 
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Add
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if schedules %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Component</th>
+                                <th>Quantity</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules %}
+                            <tr>
+                                <td>{{ schedule.component.part_number }}</td>
+                                <td>{{ schedule.quantity }}</td>
+                                <td>{{ schedule.start_time|date:"Y-m-d H:i" }}</td>
+                                <td>{{ schedule.end_time|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if schedule.status == 'PL' %}bg-info
+                                        {% elif schedule.status == 'IP' %}bg-primary
+                                        {% elif schedule.status == 'CO' %}bg-success
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ schedule.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No upcoming schedules for this machine.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Upcoming Maintenance</span>
+                    <a href="{% url 'mcp:maintenance_schedule_create' %}?machine={{ machine.pk }}" 
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Add
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if maintenance_schedules %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Scheduled Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for maintenance in maintenance_schedules %}
+                            <tr>
+                                <td>{{ maintenance.maintenance_type }}</td>
+                                <td>{{ maintenance.scheduled_date|date:"Y-m-d" }}</td>
+                                <td>
+                                    {% if maintenance.completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No upcoming maintenance scheduled for this machine.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}

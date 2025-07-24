@@ -1,0 +1,323 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Machine Capabilities{% endblock %}
+{% block page_title %}Machine Capabilities{% endblock %}
+
+{% block content %}
+
+{% block page_actions %}
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCapabilityModal">
+    <i class="bi bi-plus-circle"></i> Add Capability
+</button>
+{% endblock %}
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <select class="form-select" id="machineFilter">
+            <option value="">All Machines</option>
+            {% for machine in machines %}
+            <option value="{{ machine.id }}" {% if request.GET.machine == machine.id|stringformat:"s" %}selected{% endif %}>
+                {{ machine.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <select class="form-select" id="componentFilter">
+            <option value="">All Components</option>
+            {% for component in components %}
+            <option value="{{ component.id }}" {% if request.GET.component == component.id|stringformat:"s" %}selected{% endif %}>
+                {{ component.part_number }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <input type="text" class="form-control" placeholder="Search..." id="searchInput">
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Machine</th>
+                <th>Component</th>
+                <th>Setup Time</th>
+                <th>Processing Time</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for capability in capabilities %}
+            <tr>
+                <td>{{ capability.machine.name }}</td>
+                <td>{{ capability.component.part_number }}</td>
+                <td>{{ capability.setup_time }}</td>
+                <td>{{ capability.processing_time }}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#editCapabilityModal"
+                            data-id="{{ capability.id }}"
+                            data-machine="{{ capability.machine.id }}"
+                            data-component="{{ capability.component.id }}"
+                            data-setup="{{ capability.setup_time }}"
+                            data-processing="{{ capability.processing_time }}"
+                            data-notes="{{ capability.notes }}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal"
+                            data-id="{{ capability.id }}"
+                            data-name="{{ capability.machine.name }} - {{ capability.component.part_number }}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-4">No capabilities found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'machineplan/pagination.html' %}
+
+<!-- Add Capability Modal -->
+<div class="modal fade" id="addCapabilityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Machine Capability</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'mcp:machine_capability_create' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Machine</label>
+                        <select name="machine" class="form-select" required>
+                            {% for machine in machines %}
+                            <option value="{{ machine.id }}">{{ machine.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Component</label>
+                        <select name="component" class="form-select" required>
+                            {% for component in components %}
+                            <option value="{{ component.id }}">{{ component.part_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Setup Time (HH:MM:SS)</label>
+                        <input type="time" name="setup_time" step="1" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Processing Time (HH:MM:SS)</label>
+                        <input type="time" name="processing_time" step="1" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Capability Modal -->
+<div class="modal fade" id="editCapabilityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Machine Capability</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Machine</label>
+                        <select name="machine" class="form-select" required id="editMachine">
+                            {% for machine in machines %}
+                            <option value="{{ machine.id }}">{{ machine.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Component</label>
+                        <select name="component" class="form-select" required id="editComponent">
+                            {% for component in components %}
+                            <option value="{{ component.id }}">{{ component.part_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Setup Time (HH:MM:SS)</label>
+                        <input type="time" name="setup_time" step="1" class="form-control" required id="editSetup">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Processing Time (HH:MM:SS)</label>
+                        <input type="time" name="processing_time" step="1" class="form-control" required id="editProcessing">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" id="editNotes"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Delete capability: <strong id="deleteName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="" id="deleteForm">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    document.getElementById('machineFilter').addEventListener('change', function() {
+        const machineId = this.value;
+        const componentId = document.getElementById('componentFilter').value;
+        updateFilters(machineId, componentId);
+    });
+    
+    document.getElementById('componentFilter').addEventListener('change', function() {
+        const componentId = this.value;
+        const machineId = document.getElementById('machineFilter').value;
+        updateFilters(machineId, componentId);
+    });
+    
+    function updateFilters(machineId, componentId) {
+        let url = '{% url "mcp:machine_capability_list" %}?';
+        if (machineId) url += `machine=${machineId}&`;
+        if (componentId) url += `component=${componentId}`;
+        window.location.href = url;
+    }
+    
+    // Edit modal setup
+    const editModal = document.getElementById('editCapabilityModal');
+    if (editModal) {
+        editModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const machineId = button.getAttribute('data-machine');
+            const componentId = button.getAttribute('data-component');
+            const setupTime = button.getAttribute('data-setup');
+            const processingTime = button.getAttribute('data-processing');
+            const notes = button.getAttribute('data-notes');
+            
+            const form = editModal.querySelector('form');
+            form.action = `/machine-planning/capabilities/${id}/edit/`;
+            
+            document.getElementById('editMachine').value = machineId;
+            document.getElementById('editComponent').value = componentId;
+            document.getElementById('editSetup').value = setupTime;
+            document.getElementById('editProcessing').value = processingTime;
+            document.getElementById('editNotes').value = notes;
+        });
+    }
+    
+    // Delete modal setup
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            
+            const form = deleteModal.querySelector('form');
+            form.action = `/machine-planning/capabilities/${id}/delete/`;
+            
+            document.getElementById('deleteName').textContent = name;
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
