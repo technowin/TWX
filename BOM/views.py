@@ -314,7 +314,7 @@ class BOMCreateView(CreateView):
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
-        form.instance.status = 'DR'
+        form.instance.status = 'Draft'
         response = super().form_valid(form)
         messages.success(self.request, f"BOM {self.object.name} created successfully.")
         return response
@@ -636,7 +636,7 @@ class UpdateBOMItemView(View):
 #         )
         
 #         # Update BOM status
-#         bom.status = 'PE'
+#         bom.status = 'Pending Approval'
 #         bom.save()
         
 #         return JsonResponse({
@@ -661,7 +661,7 @@ class RequestBOMApprovalView(View):
         )
         
         # Update BOM status
-        bom.status = 'PE'  # Pending Approval
+        bom.status = 'Pending Approval'  # Pending Approval
         bom.save()
         
         messages.success(request, f"Approval requested for BOM {bom.name}")
@@ -714,7 +714,7 @@ class RejectBOMView(View):
         approval.save()
         
         # Update BOM status back to Draft
-        bom.status = 'DR'
+        bom.status = 'Draft'
         bom.save()
         
         messages.warning(request, f"BOM {bom.name} has been rejected and returned to Draft status")
