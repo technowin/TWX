@@ -176,7 +176,7 @@ python manage.py migrate Reports
 python manage.py migrate Workflow
 python manage.py migrate BOM
 
-python manage.py startapp BOM
+python manage.py startapp MaterialPlan
 curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"
