@@ -106,7 +106,6 @@ urlpatterns = [
     # path('<int:bom_id>/request-approval/', views.RequestApprovalView.as_view(), name='request_approval'),
     path('api/items/<int:item_id>/', views.bom_item_details, name='bom_item_details'),
 
-
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
