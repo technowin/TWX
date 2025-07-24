@@ -2487,23 +2487,31 @@ def common_form_action(request):
     actual_step_id = request.POST.get('actual_step_id', '')
     try:
         if request.method == 'POST':
+
+            module = 9 
+            module_tables = common_module_master(module)
+            IndexTable = apps.get_model('Form', module_tables["index_table"])
+            DataTable = apps.get_model('Form', module_tables["data_table"])
+            FileTable = apps.get_model('Form', module_tables["file_table"])
+            ActionTable = apps.get_model('Form', module_tables["action_table"])
             form_data_id = request.POST.get('form_data_id')
-            form_data = get_object_or_404(form_data_master, pk=form_data_id)
+            form_data = get_object_or_404(IndexTable, pk=form_data_id)
             button_type = request.POST.get('button_type')
             clicked_action_id = request.POST.get('clicked_action_id')
             if workflow_YN == '1E':
                 step_id = request.POST.get('actual_step_id', '')
 
-            latest_row = WorkflowVersionControl.objects.filter(form_data=form_data).order_by('-id').first()
+            # latest_row = WorkflowVersionControl.objects.filter(form_data=form_data).order_by('-id').first()
 
-                    # Set temp_vers based on whether a row was found
-            if latest_row and latest_row.temp_version is not None:
-                temp_vers = Decimal(str(latest_row.temp_version))
-            else:
-                temp_vers = Decimal('1.0')
+            #         # Set temp_vers based on whether a row was found
+            # if latest_row and latest_row.temp_version is not None:
+            #     temp_vers = Decimal(str(latest_row.temp_version))
+            # else:
+            #     temp_vers = Decimal('1.0')
             
             # Process only if it's an Action button
             # if button_type == 'Action':
+            temp_vers = 0
             clicked_action_id = request.POST.get('clicked_action_id')
             if clicked_action_id:
                 try:
@@ -2515,7 +2523,7 @@ def common_form_action(request):
                 # Save the clicked action button with its status
                 action_field = get_object_or_404(FormActionField, pk=clicked_action_id)
                 if action_field.button_type == 'Action':
-                    ActionData.objects.create(
+                    ActionTable.objects.create(
                         value=action_field.status,  # saving the status from FormActionField
                         form_data=form_data,
                         field=action_field,
@@ -2528,13 +2536,13 @@ def common_form_action(request):
             # Now process the non-button fields (text, textarea, dropdown)
             for key, value in request.POST.items():
                 if key.startswith("action_field_") and not key.startswith("action_field_id_"):
-                    # Extract the numeric ID using a regular expression to avoid non-integer parts
+                    # temp_vers = 0
                     match = re.match(r'action_field_(\d+)', key)
                     if match:
                         field_id = int(match.group(1))
                         action_field = get_object_or_404(FormActionField, pk=field_id)
                         if action_field.type in ['text', 'textarea', 'select']:
-                            ActionData.objects.create(
+                            ActionTable.objects.create(
                                 value=value,
                                 form_data=form_data,
                                 field=action_field,
