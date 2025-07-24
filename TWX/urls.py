@@ -31,6 +31,7 @@ from BOM import views
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
+
     path('admin/', admin.site.urls),
     # User management
     # path("users/", include("bootstrap.users.urls", namespace="users")),
@@ -212,6 +213,10 @@ urlpatterns = [
     path('view_access/', view_access, name='view_access'),
     path('common_form_post_master/', common_form_post_master, name='common_form_post_master'),
     path('workflow_module/', workflow_module, name='workflow_module'),
+
+
+    # MachinePlan
+    path('mcp/', include('MachinePlan.urls', namespace='mcp')),
 
 
 
