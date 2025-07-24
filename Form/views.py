@@ -1218,7 +1218,7 @@ def form_master(request):
                    
                 if workflow_YN == '1E':
                     return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                            "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data})
+                            "actual_step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data,"wfSelected_id":wfdetailsID,})
                 else:
                     return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data})
             else:
@@ -2268,6 +2268,8 @@ def common_form_action(request):
     workflow_YN = request.POST.get("workflow_YN")
     type = request.POST.get("type")
     reference_type = request.POST.get("reference_type")
+    wfSelected_id = request.POST.get('wfSelected_id', '')
+    actual_step_id = request.POST.get('actual_step_id', '')
     try:
         if request.method == 'POST':
             form_data_id = request.POST.get('form_data_id')
@@ -2275,7 +2277,7 @@ def common_form_action(request):
             button_type = request.POST.get('button_type')
             clicked_action_id = request.POST.get('clicked_action_id')
             if workflow_YN == '1E':
-                step_id = request.POST.get('step_id', '')
+                step_id = request.POST.get('actual_step_id', '')
 
             latest_row = WorkflowVersionControl.objects.filter(form_data=form_data).order_by('-id').first()
 
@@ -2332,7 +2334,7 @@ def common_form_action(request):
             if workflow_YN == '1E':
         
                 wfdetailsid = request.POST.get('wfdetailsid', '')
-                step_id = request.POST.get('step_id', '')
+                step_id = request.POST.get('actual_step_id', '')
                 role_idC = request.POST.get('role_id', '')
                 category_dropdownOpr = request.POST.get('category_dropdownOpr', '')
 
@@ -2342,7 +2344,7 @@ def common_form_action(request):
                     wfdetailsid = None  
                 
                 if step_id:
-                    matrix_entry = workflow_matrix.objects.filter(id=step_id).first()
+                    matrix_entry = workflow_matrix.objects.filter(step_id_flow=step_id,wf_id=wfSelected_id).first()
                     if matrix_entry:
                         status_from_matrix = matrix_entry.status  # adjust field name if needed
                         
