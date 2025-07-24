@@ -43,7 +43,7 @@
         <div class="col-12">
             <h1 class="mt-4">Material Plan: {{ plan.name }}</h1>
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item"><a href="{% url 'material_planning:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url '/dashboard' %}">Dashboard</a></li>
                 <li class="breadcrumb-item active">Material Plan</li>
             </ol>
             
@@ -90,7 +90,7 @@
                 <div class="card-footer">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <a href="{% url 'material_planning:plan_update' pk=plan.id %}" class="btn btn-primary">
+                            <a href="{% url '/plan_update' pk=plan.id %}" class="btn btn-primary">
                                 <i class="fas fa-edit"></i> Edit Plan
                             </a>
                         </div>
@@ -148,11 +148,11 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{% url 'material_planning:item_update' pk=item.id %}" class="btn btn-primary">
+                                            <a href="{% url '/item_update' pk=item.id %}" class="btn btn-primary">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             {% if item.quantity_available > 0 %}
-                                            <form method="post" action="{% url 'material_planning:inventory_reserve' plan_id=plan.id item_id=item.id %}">
+                                            <form method="post" action="{% url '/inventory_reserve' plan_id=plan.id item_id=item.id %}">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-success">
                                                     <i class="fas fa-box"></i>
@@ -160,7 +160,7 @@
                                             </form>
                                             {% endif %}
                                             {% if item.quantity_to_purchase > 0 %}
-                                            <a href="{% url 'material_planning:requisition_create' plan_id=plan.id item_id=item.id %}" class="btn btn-warning">
+                                            <a href="{% url '/requisition_create' plan_id=plan.id item_id=item.id %}" class="btn btn-warning">
                                                 <i class="fas fa-file-invoice-dollar"></i>
                                             </a>
                                             {% endif %}
@@ -209,7 +209,7 @@
                                     <td>{{ alert.required_date|date:"Y-m-d" }}</td>
                                     <td>{{ alert.potential_delay_days }} days</td>
                                     <td>
-                                        <a href="{% url 'material_planning:shortage_resolve' alert_id=alert.id %}" class="btn btn-sm btn-primary">
+                                        <a href="{% url '/shortage_resolve' alert_id=alert.id %}" class="btn btn-sm btn-primary">
                                             <i class="fas fa-check-circle"></i> Resolve
                                         </a>
                                     </td>
@@ -266,7 +266,7 @@
                                     </td>
                                     <td>
                                         {% if req.status == 'draft' %}
-                                        <form method="post" action="{% url 'material_planning:requisition_submit' pk=req.id %}">
+                                        <form method="post" action="{% url '/requisition_submit' pk=req.id %}">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-success">
                                                 <i class="fas fa-paper-plane"></i> Submit
@@ -305,7 +305,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="{% url 'material_planning:plan_confirm' pk=plan.id %}">
+                <form method="post" action="{% url '/plan_confirm' pk=plan.id %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-success">Confirm Plan</button>
                 </form>

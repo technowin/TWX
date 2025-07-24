@@ -43,8 +43,8 @@
         <div class="col-12">
             <h1 class="mt-4">Resolve Material Shortage</h1>
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item"><a href="{% url 'material_planning:dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'material_planning:plan_detail' pk=alert.plan.id %}">Material Plan</a></li>
+                <li class="breadcrumb-item"><a href="{% url '/dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url '/plan_detail' pk=alert.plan.id %}">Material Plan</a></li>
                 <li class="breadcrumb-item active">Resolve Shortage</li>
             </ol>
             
@@ -87,7 +87,7 @@
                         </div>
                         
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'material_planning:plan_detail' pk=alert.plan.id %}" class="btn btn-secondary">
+                            <a href="{% url '/plan_detail' pk=alert.plan.id %}" class="btn btn-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-success">
