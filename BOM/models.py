@@ -8,23 +8,28 @@ from Account.models import CustomUser
 
 class Component(models.Model):
     CATEGORY_CHOICES = [
-        ('ME', 'Mechanical'),
-        ('EL', 'Electrical'),
-        ('PL', 'Plastic'),
-        ('MT', 'Metal'),
-        ('CH', 'Chemical'),
-        ('OT', 'Other'),
+        ('Mechanical', 'Mechanical'),
+        ('Electrical', 'Electrical'),
+        ('Electronic', 'Electronic'),
+        ('Sealing', 'Sealing'),
+        ('Plastic', 'Plastic'),
+        ('Metal', 'Metal'),
+        ('Chemical', 'Chemical'),
+        ('Structural', 'Structural'),
+        ('Electro-Mechanical', 'Electro-Mechanical'),
+        ('Other', 'Other'),
     ]
     PURCHASE_TYPE_CHOICES = [
-        ('IN', 'Inhouse'),
-        ('PU', 'Purchase'),
-        ('OS', 'Outsource'),
+        ('Inhouse', 'Inhouse'),
+        ('Purchase', 'Purchase'),
+        ('Outsource', 'Outsource'),
+        ('Manufactured', 'Manufactured'),
     ]
     # ... existing fields ...
-    purchase_type = models.CharField(max_length=2, choices=PURCHASE_TYPE_CHOICES, default='PU')
+    purchase_type = models.CharField(max_length=100, choices=PURCHASE_TYPE_CHOICES, default='Purchase')
     part_number = models.CharField(max_length=50, unique=True)
     description = models.TextField()
-    category = models.CharField(max_length=2, choices=CATEGORY_CHOICES, default='ME')
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='Mechanical')
     unit_of_measure = models.CharField(max_length=20, default='Each')
     material = models.CharField(max_length=100, blank=True)
     tolerance = models.CharField(max_length=50, blank=True)
@@ -96,16 +101,17 @@ class Inventory(models.Model):
 
 class BOMHeader(models.Model):
     STATUS_CHOICES = [
-        ('DR', 'Draft'),
-        ('AC', 'Active'),
-        ('OB', 'Obsolete'),
-        ('PE', 'Pending Approval'),
+        ('Draft', 'Draft'),
+        ('Active', 'Active'),
+        ('Obsolete', 'Obsolete'),
+        ('Pending Approval', 'Pending Approval'),
+        ('Approved', 'Approved'),
     ]
     
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     revision = models.CharField(max_length=10, default='1.0')
-    status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='DR')
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='Draft')
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_boms')
     created_date = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
@@ -151,15 +157,15 @@ class BOMItem(models.Model):
 
 class Document(models.Model):
     DOCUMENT_TYPES = [
-        ('DS', 'Datasheet'),
-        ('DR', 'Drawing'),
-        ('IN', 'Instruction'),
-        ('CE', 'Certificate'),
-        ('OT', 'Other'),
+        ('Datasheet', 'Datasheet'),
+        ('Drawing', 'Drawing'),
+        ('Instruction', 'Instruction'),
+        ('Certificate', 'Certificate'),
+        ('Other', 'Other'),
     ]
     
     name = models.CharField(max_length=100)
-    document_type = models.CharField(max_length=2, choices=DOCUMENT_TYPES, default='DS')
+    document_type = models.CharField(max_length=100, choices=DOCUMENT_TYPES, default='Datasheet')
     file = models.FileField(upload_to='documents/')
     uploaded_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     uploaded_date = models.DateTimeField(auto_now_add=True)

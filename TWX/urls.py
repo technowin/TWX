@@ -6,7 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 Examples:
 Function views
     1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+    2. Add a URL to urlpatterns:  path('',home, name='home')
 Class-based views
     1. Add an import:  from other_app.views import Home
     2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
@@ -27,7 +27,8 @@ from Form.views import *
 from Reports.views import *
 from MenuManager.views import *
 from Workflow.views import *
-from BOM import views
+from BOM.views import *
+from MaterialPlan.views import *
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
@@ -61,52 +62,83 @@ urlpatterns = [
     path('ocr_files', ocr_files, name='ocr_files'),
 
     # Dashboard
-    path('bom/dashboard', views.DashboardView.as_view(), name='dashboard'),
+    path('bom/dashboard',DashboardView.as_view(), name='dashboard'),
     
     # BOM Management
-    path('boms/', views.BOMListView.as_view(), name='bom_list'),
-    path('boms/new/', views.BOMCreateView.as_view(), name='bom_create'),
-    path('boms/<int:pk>/', views.BOMDetailView.as_view(), name='bom_detail'),
-    path('boms/<int:pk>/edit/', views.BOMUpdateView.as_view(), name='bom_update'),
-    path('boms/<int:pk>/delete/', views.BOMDeleteView.as_view(), name='bom_delete'),
+    path('boms/',BOMListView.as_view(), name='bom_list'),
+    path('boms/new/',BOMCreateView.as_view(), name='bom_create'),
+    path('boms/<int:pk>/',BOMDetailView.as_view(), name='bom_detail'),
+    path('boms/<int:pk>/edit/',BOMUpdateView.as_view(), name='bom_update'),
+    path('boms/<int:pk>/delete/',BOMDeleteView.as_view(), name='bom_delete'),
 
-    path('boms/<int:pk>/compare/', views.BOMCompareView.as_view(), name='bom_compare'),
+    path('boms/<int:pk>/compare/',BOMCompareView.as_view(), name='bom_compare'),
     
     # Component Management
-    path('components/', views.ComponentListView.as_view(), name='component_list'),
-    path('components/<int:pk>/', views.ComponentDetailView.as_view(), name='component_detail'),
+    path('components/',ComponentListView.as_view(), name='component_list'),
+    path('components/<int:pk>/',ComponentDetailView.as_view(), name='component_detail'),
     
     # AJAX endpoints
-    # path('api/add-bom-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
-    path('api/update-bom-item/', views.UpdateBOMItemView.as_view(), name='update_bom_item'),
-    path('api/remove-bom-item/', views.RemoveBOMItemView.as_view(), name='remove_bom_item'),
-    # path('api/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
-    # path('api/approve-bom/', views.ApproveBOMView.as_view(), name='approve_bom'),
-    path('approvals/<int:pk>/approve/', views.ApproveBOMView.as_view(), name='approve_bom'),
-    path('approvals/<int:pk>/reject/', views.RejectBOMView.as_view(), name='reject_bom'),
-    # path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
+    # path('api/add-bom-item/',AddBOMItemView.as_view(), name='add_bom_item'),
+    path('api/update-bom-item/',UpdateBOMItemView.as_view(), name='update_bom_item'),
+    path('api/remove-bom-item/',RemoveBOMItemView.as_view(), name='remove_bom_item'),
+    # path('api/request-approval/',RequestBOMApprovalView.as_view(), name='request_bom_approval'),
+    # path('api/approve-bom/',ApproveBOMView.as_view(), name='approve_bom'),
+    path('approvals/<int:pk>/approve/',ApproveBOMView.as_view(), name='approve_bom'),
+    path('approvals/<int:pk>/reject/',RejectBOMView.as_view(), name='reject_bom'),
+    # path('api/add-comment/',AddCommentView.as_view(), name='add_comment'),
     
     # API endpoints
-    path('api/components/<int:pk>/', views.ComponentAPIView.as_view(), name='component_api'),
-    path('components/new/', views.ComponentCreateView.as_view(), name='component_create'),
-    path('components/<int:pk>/edit/', views.ComponentUpdateView.as_view(), name='component_update'),
-    path('components/<int:pk>/add-supplier/', views.AddComponentSupplierView.as_view(), name='add_component_supplier'),
-    path('boms/<int:pk>/request-approval/', views.RequestBOMApprovalView.as_view(), name='request_bom_approval'),
+    path('api/components/<int:pk>/',ComponentAPIView.as_view(), name='component_api'),
+    path('components/new/',ComponentCreateView.as_view(), name='component_create'),
+    path('components/<int:pk>/edit/',ComponentUpdateView.as_view(), name='component_update'),
+    path('components/<int:pk>/add-supplier/',AddComponentSupplierView.as_view(), name='add_component_supplier'),
+    path('boms/<int:pk>/request-approval/',RequestBOMApprovalView.as_view(), name='request_bom_approval'),
 
-    # path('<int:pk>/', views.BOMDetailView.as_view(), name='bom_detail'),
-    path('item/<int:item_id>/', views.BOMItemDetailView.as_view(), name='bom_item_detail'),
+    # path('<int:pk>/',BOMDetailView.as_view(), name='bom_detail'),
+    path('item/<int:item_id>/',BOMItemDetailView.as_view(), name='bom_item_detail'),
 
-    path('<int:bom_id>/add-item/', views.AddBOMItemView.as_view(), name='add_bom_item'),
-    path('item/<int:item_id>/edit/', views.EditBOMItemView.as_view(), name='edit_bom_item'),
-    path('item/<int:item_id>/delete/', views.DeleteBOMItemView.as_view(), name='delete_bom_item'),
-    path('<int:bom_id>/add-comment/', views.AddCommentView1.as_view(), name='add_bom_comment'),
-    path('api/add-comment/', views.AddCommentView.as_view(), name='add_comment'),
+    path('<int:bom_id>/add-item/',AddBOMItemView.as_view(), name='add_bom_item'),
+    path('item/<int:item_id>/edit/',EditBOMItemView.as_view(), name='edit_bom_item'),
+    path('item/<int:item_id>/delete/',DeleteBOMItemView.as_view(), name='delete_bom_item'),
+    path('<int:bom_id>/add-comment/',AddCommentView1.as_view(), name='add_bom_comment'),
+    path('api/add-comment/',AddCommentView.as_view(), name='add_comment'),
 
-    path('<int:bom_id>/create-revision/', views.CreateRevisionView.as_view(), name='create_revision'),
-    # path('<int:bom_id>/export/', views.ExportBOMView.as_view(), name='export_bom'),
-    # path('<int:bom_id>/request-approval/', views.RequestApprovalView.as_view(), name='request_approval'),
-    path('api/items/<int:item_id>/', views.bom_item_details, name='bom_item_details'),
+    path('<int:bom_id>/create-revision/',CreateRevisionView.as_view(), name='create_revision'),
+    # path('<int:bom_id>/export/',ExportBOMView.as_view(), name='export_bom'),
+    # path('<int:bom_id>/request-approval/',RequestApprovalView.as_view(), name='request_approval'),
+    path('api/items/<int:item_id>/',bom_item_details, name='bom_item_details'),
 
+    # Material Planning
+
+    # Dashboard and list views
+    path('mtp/dashboard',MaterialPlanDashboardView.as_view(), name='dashboard'),
+    path('plans/',MaterialPlanListView.as_view(), name='plan_list'),
+    
+    # Material Plan CRUD
+    path('plans/create/',MaterialPlanCreateView.as_view(), name='plan_create'),
+    path('plans/<uuid:pk>/',MaterialPlanDetailView.as_view(), name='plan_detail'),
+    path('plans/<uuid:pk>/update/',MaterialPlanUpdateView.as_view(), name='plan_update'),
+    
+    # Plan items
+    path('items/<uuid:pk>/update/',MaterialPlanItemUpdateView.as_view(), name='item_update'),
+    
+    # Purchase Requisitions
+    path('plans/<uuid:plan_id>/items/<uuid:item_id>/requisition/create/',
+         PurchaseRequisitionCreateView.as_view(), name='requisition_create'),
+    path('requisitions/<uuid:pk>/submit/',
+         PurchaseRequisitionSubmitView.as_view(), name='requisition_submit'),
+    
+    # Inventory actions
+    path('plans/<uuid:plan_id>/items/<uuid:item_id>/reserve/',
+         InventoryReservationView.as_view(), name='inventory_reserve'),
+    
+    # Shortage alerts
+    path('alerts/<uuid:alert_id>/resolve/',
+         MaterialShortageResolutionView.as_view(), name='shortage_resolve'),
+    
+    # Production Orders
+    path('production-orders/create/',ProductionOrderCreateView.as_view(), name='production_order_create'),
+    path('production-orders/<uuid:pk>/',ProductionOrderDetailView.as_view(), name='production_order_detail'),
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),

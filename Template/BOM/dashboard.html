@@ -147,9 +147,10 @@
                             <td>{{ bom.created_by.get_full_name }}</td>
                             <td>
                                 <span class="badge 
-                                    {% if bom.status == 'AC' %}bg-success
-                                    {% elif bom.status == 'DR' %}bg-secondary
-                                    {% elif bom.status == 'PE' %}bg-warning text-dark
+                                    {% if bom.status == 'Active' %}bg-success
+                                    {% elif bom.status == 'Approved' %}bg-success
+                                    {% elif bom.status == 'Draft' %}bg-secondary
+                                    {% elif bom.status == 'Pending Approval' %}bg-warning text-dark
                                     {% else %}bg-dark{% endif %}">
                                     {{ bom.get_status_display }}
                                 </span>
