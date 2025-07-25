@@ -38,123 +38,173 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-4">
+    <!-- Header with Breadcrumb -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Material Planning Dashboard</h1>
-        <div class="btn-group">
-            <a href="/plans/create/" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus"></i> New Plan
-            </a>
-            <a href="/production-orders/create/" class="btn btn-sm btn-success">
-                <i class="fas fa-industry"></i> New Production Order
-            </a>
+        <div>
+            <h1 class="h3 mb-0 text-gray-800"> Dashboard</h1>
+           
+        </div>
+        <div class="btn-group mt-2">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus me-1"></i> Create New
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="plans/create/">
+                    <i class="fas fa-clipboard-list me-2"></i>New Plan
+                </a></li>
+                <li><a class="dropdown-item" href="/production-orders/create/">
+                    <i class="fas fa-industry me-2"></i>New Production Order
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#">
+                    <i class="fas fa-file-import me-2"></i>Import Data
+                </a></li>
+            </ul>
         </div>
     </div>
 
     <!-- Dashboard Cards -->
-    <div class="row">
+    <div class="row g-4 mb-4">
         <!-- Pending Plans Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-start-primary border-3 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Pending Plans</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_plans }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-sm fw-semibold text-primary mb-1">PENDING PLANS</p>
+                            <h2 class="fw-bold mb-0">{{ pending_plans }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-clipboard-list text-primary fa-lg"></i>
                         </div>
                     </div>
+                    <div class="mt-3">
+                        <a href="/plans/?status=draft" class="text-sm text-decoration-none">
+                            View all pending plans <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="/plans?status=draft" class="small-box-footer">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
             </div>
         </div>
 
         <!-- Shortage Alerts Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-start-warning border-3 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Shortage Alerts</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ shortage_alerts }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-sm fw-semibold text-warning mb-1">SHORTAGE ALERTS</p>
+                            <h2 class="fw-bold mb-0">{{ shortage_alerts }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-exclamation-triangle text-warning fa-lg"></i>
                         </div>
                     </div>
+                    <div class="mt-3">
+                        <a href="#" class="text-sm text-decoration-none" data-bs-toggle="modal" data-bs-target="#shortageAlertsModal">
+                            View shortage details <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="#" class="small-box-footer" data-bs-toggle="modal" data-bs-target="#shortageAlertsModal">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
             </div>
         </div>
 
         <!-- Late Orders Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-start-danger border-3 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Late Orders</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ late_orders }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-sm fw-semibold text-danger mb-1">LATE ORDERS</p>
+                            <h2 class="fw-bold mb-0">{{ late_orders }}</h2>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        <div class="bg-danger bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-clock text-danger fa-lg"></i>
                         </div>
                     </div>
+                    <div class="mt-3">
+                        <a href="#" class="text-sm text-decoration-none">
+                            View late orders <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="#" class="small-box-footer">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
+            </div>
+        </div>
+
+        <!-- Inventory Status Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-start-info border-3 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-sm fw-semibold text-info mb-1">CRITICAL ITEMS</p>
+                            <h2 class="fw-bold mb-0">{{ critical_items }}</h2>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-boxes text-info fa-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="#" class="text-sm text-decoration-none">
+                            View inventory status <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Recent Orders Section -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-            <h6 class="m-0 font-weight-bold text-primary">Orders Requiring Material Planning</h6>
-            <div class="dropdown no-arrow">
-                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" 
-                   data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow animated--fade-in" 
-                    aria-labelledby="dropdownMenuLink">
-                    <li><a class="dropdown-item" href="#">Export to Excel</a></li>
-                    <li><a class="dropdown-item" href="#">Print</a></li>
-                </ul>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-transparent py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 fw-bold">Orders Requiring Material Planning</h6>
+            <div>
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <input type="text" class="form-control" placeholder="Search orders...">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
             </div>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Order #</th>
+                            <th class="ps-4">Order #</th>
                             <th>Product</th>
-                            <th>Quantity</th>
+                            <th class="text-end">Quantity</th>
                             <th>Due Date</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for order in recent_orders %}
                         <tr>
-                            <td>{{ order.order_number }}</td>
-                            <td>{{ order.bom.name }}</td>
-                            <td>{{ order.quantity }}</td>
-                            <td>{{ order.start_date|date:"Y-m-d" }}</td>
+                            <td class="ps-4 fw-semibold">{{ order.order_number }}</td>
                             <td>
-                                <span class="badge 
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-2">
+                                        <i class="fas fa-cube text-primary"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        {{ order.bom.name }}
+                                        <div class="text-muted small">{{ order.bom.code }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-end">{{ order.quantity }}</td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span>{{ order.start_date|date:"M d, Y" }}</span>
+                                    <small class="text-muted">{{ order.start_date|timeuntil }} remaining</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill 
                                     {% if order.status == 'planned' %}bg-secondary
                                     {% elif order.status == 'scheduled' %}bg-primary
                                     {% elif order.status == 'in_progress' %}bg-info
@@ -163,76 +213,152 @@
                                     {{ order.get_status_display }}
                                 </span>
                             </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
                                     <a href="{% url 'production_order_detail' pk=order.id %}" 
-                                       class="btn btn-primary" title="View">
+                                       class="btn btn-outline-primary" title="View" data-bs-toggle="tooltip">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="/plans/create/?production_order={{ order.id }}" 
-                                       class="btn btn-success" title="Create Plan">
+                                    <a href="/plans/create?production_order={{ order.id }}" 
+                                       class="btn btn-outline-success" title="Create Plan" data-bs-toggle="tooltip">
                                         <i class="fas fa-calculator"></i>
                                     </a>
+                                    <button class="btn btn-outline-secondary" title="More options" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-file-alt me-2"></i>View Details</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit Order</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash-alt me-2"></i>Cancel Order</a></li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center">No orders requiring planning</td>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No orders requiring planning</p>
+                                    <a href="{% url 'production_order_create' %}" class="btn btn-sm btn-primary mt-2">
+                                        <i class="fas fa-plus me-1"></i> Create New Order
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                Showing <strong>{{ recent_orders|length }}</strong> of <strong>{{ total_orders }}</strong> orders
+            </div>
+            <nav aria-label="Table navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Next</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 </div>
 
 <!-- Shortage Alerts Modal -->
 <div class="modal fade" id="shortageAlertsModal" tabindex="-1" aria-labelledby="shortageAlertsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
             <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title" id="shortageAlertsModalLabel">Material Shortage Alerts</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="shortageAlertsModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Material Shortage Alerts
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th>Required</th>
-                            <th>Available</th>
-                            <th>Shortage</th>
-                            <th>Required By</th>
-                            <th>Potential Delay</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for alert in recent_alerts %}
-                        <tr>
-                            <td>{{ alert.component.part_number }}</td>
-                            <td>{{ alert.required_quantity }}</td>
-                            <td>{{ alert.available_quantity }}</td>
-                            <td>{{ alert.required_quantity|subtract:alert.available_quantity }}</td>
-                            <td>{{ alert.required_date|date:"Y-m-d" }}</td>
-                            <td>{{ alert.potential_delay_days }} days</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">No active shortage alerts</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>{{ shortage_alerts }} active shortages</strong> detected in your inventory that may affect production schedules.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Component</th>
+                                <th class="text-end">Required</th>
+                                <th class="text-end">Available</th>
+                                <th class="text-end">Shortage</th>
+                                <th>Required By</th>
+                                <th class="text-end">Delay Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in recent_alerts %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-light text-dark me-2">{{ alert.component.part_number }}</span>
+                                        {{ alert.component.name }}
+                                    </div>
+                                </td>
+                                <td class="text-end">{{ alert.required_quantity }}</td>
+                                <td class="text-end">{{ alert.available_quantity }}</td>
+                                <td class="text-end fw-bold text-danger">{{ alert.required_quantity|subtract:alert.available_quantity }}</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span>{{ alert.required_date|date:"M d, Y" }}</span>
+                                        <small class="text-muted">{{ alert.required_date|timeuntil }} remaining</small>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger">
+                                        {{ alert.potential_delay_days }} days
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                        <p class="text-muted mb-0">No active shortage alerts</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-warning">
+                    <i class="fas fa-file-export me-1"></i> Export Report
+                </button>
                 <a href="#" class="btn btn-primary">View All Alerts</a>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+})
+</script>
 
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
