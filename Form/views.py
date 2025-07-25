@@ -2633,6 +2633,7 @@ def common_form_action(request):
                         status=workflow_detail.status,
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
+                        workflow_id=wfSelected_id,
                         # form_id=request.POST.get('form_id', ''),
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
@@ -2650,6 +2651,7 @@ def common_form_action(request):
                         req_id=workflow_detail.req_id,
                         operator=request.POST.get('custom_dropdownOpr', ''),
                         # form_id=request.POST.get('form_id', ''),
+                        workflow_id=wfSelected_id,
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
                         created_at=workflow_detail.updated_at
@@ -2665,6 +2667,7 @@ def common_form_action(request):
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
                         # form_id=request.POST.get('form_id', ''),
+                        workflow_id=wfSelected_id,
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
                         created_at=workflow_detail.updated_at
