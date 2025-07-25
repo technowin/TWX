@@ -53,7 +53,7 @@
             <option value="">All Components</option>
             {% for component in components %}
             <option value="{{ component.id }}" {% if request.GET.component == component.id|stringformat:"s" %}selected{% endif %}>
-                {{ component.part_number }}
+                {{ component.name }}
             </option>
             {% endfor %}
         </select>
@@ -78,7 +78,7 @@
             {% for capability in capabilities %}
             <tr>
                 <td>{{ capability.machine.name }}</td>
-                <td>{{ capability.component.part_number }}</td>
+                <td>{{ capability.component.name }}</td>
                 <td>{{ capability.setup_time }}</td>
                 <td>{{ capability.processing_time }}</td>
                 <td>
@@ -136,7 +136,7 @@
                         <label class="form-label">Component</label>
                         <select name="component" class="form-select" required>
                             {% for component in components %}
-                            <option value="{{ component.id }}">{{ component.part_number }}</option>
+                            <option value="{{ component.id }}">{{ component.name }}</option>
                             {% endfor %}
                         </select>
                     </div>

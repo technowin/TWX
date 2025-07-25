@@ -254,3 +254,44 @@ class MachinePlanningForm(forms.ModelForm):
         for field in self.fields:
             if 'class' not in self.fields[field].widget.attrs:
                 self.fields[field].widget.attrs['class'] = 'form-control'
+
+
+class OperationForm(forms.ModelForm):
+    class Meta:
+        model = Operation
+        fields = ['code', 'name', 'description']
+        widgets = {
+            'code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter operation code'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter operation name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter description...'
+            }),
+        }
+
+class WorkCenterForm(forms.ModelForm):
+    class Meta:
+        model = WorkCenter
+        fields = ['code', 'name', 'description']
+        widgets = {
+            'code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter work center code'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter work center name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter description...'
+            }),
+        }

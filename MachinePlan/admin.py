@@ -81,3 +81,10 @@ class RoutingAdmin(admin.ModelAdmin):
     list_filter = ['work_center', 'operation']
     search_fields = ['component__part_number', 'operation__name']
     ordering = ['component', 'sequence']
+
+
+@admin.register(Operation)
+class OperationAdmin(admin.ModelAdmin):
+    list_display = ['code', 'name', 'description']
+    search_fields = ['code', 'name']
+    ordering = ['code']
