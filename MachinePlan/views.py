@@ -1,4 +1,5 @@
 # MachinePlan/views.py
+from pyexpat.errors import messages
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
@@ -39,10 +40,25 @@ class MachineTypeDetailView( DetailView):
     template_name = 'MachinePlan/machine_type_detail.html'
     context_object_name = 'machine_type'
 
-class MachineTypeDeleteView( DeleteView):
+# class MachineTypeDeleteView( DeleteView):
+#     model = MachineType
+#     template_name = 'MachinePlan/machine_type_confirm_delete.html'
+#     success_url = reverse_lazy('mcp:machine_type_list')
+
+class MachineTypeDeleteView(LoginRequiredMixin, DeleteView):
     model = MachineType
-    template_name = 'MachinePlan/machine_type_confirm_delete.html'
     success_url = reverse_lazy('mcp:machine_type_list')
+    
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        self.object.delete()
+        return messages.success(request, 'Machine type deleted successfully.')
+        
+        # if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        #     return JsonResponse({'success': True, 'redirect_url': success_url})
+        # return redirect(success_url)
 
 class MachineListView( ListView):
     model = Machine
@@ -415,3 +431,51 @@ def machine_planning_delete(request, pk):
         })
     
     return render(request, 'MachinePlan/machine_planning_list.html', {'plan': plan})
+
+
+class OperationListView(ListView):
+    model = Operation
+    template_name = 'MachinePlan/operation_list.html'
+    context_object_name = 'operations'
+    paginate_by = 20
+
+class OperationCreateView(CreateView):
+    model = Operation
+    form_class = OperationForm
+    template_name = 'MachinePlan/operation_form.html'
+    success_url = reverse_lazy('mcp:operation_list')
+
+class OperationUpdateView(UpdateView):
+    model = Operation
+    form_class = OperationForm
+    template_name = 'MachinePlan/operation_form.html'
+    success_url = reverse_lazy('mcp:operation_list')
+
+class OperationDeleteView(DeleteView):
+    model = Operation
+    template_name = 'MachinePlan/operation_confirm_delete.html'
+    success_url = reverse_lazy('mcp:operation_list')
+
+
+class WorkCenterListView(ListView):
+    model = WorkCenter
+    template_name = 'MachinePlan/workcenter_list.html'
+    context_object_name = 'workcenters'
+    paginate_by = 20
+
+class WorkCenterCreateView(CreateView):
+    model = WorkCenter
+    form_class = WorkCenterForm
+    template_name = 'MachinePlan/workcenter_form.html'
+    success_url = reverse_lazy('mcp:workcenter_list')
+
+class WorkCenterUpdateView(UpdateView):
+    model = WorkCenter
+    form_class = WorkCenterForm
+    template_name = 'MachinePlan/workcenter_form.html'
+    success_url = reverse_lazy('mcp:workcenter_list')
+
+class WorkCenterDeleteView(DeleteView):
+    model = WorkCenter
+    template_name = 'MachinePlan/workcenter_confirm_delete.html'
+    success_url = reverse_lazy('mcp:workcenter_list')

@@ -180,7 +180,7 @@
                                 <label class="form-label">Component</label>
                                 <select name="component" class="form-select" required id="editComponent">
                                     {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.part_number }}</option>
+                                    <option value="{{ component.id }}">{{ component.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -305,21 +305,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% endblock %}
 
-{% block extra_javascript %}
-{% include "bootstrap/partials/syntax-highlight.html" %}
-<!-- Third party js -->
-<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
-<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
-<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
-<!-- Third party js ends -->
-
-<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
-
-<!-- Init js -->
-<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
-<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
-<!-- Init js end -->
-
-<!-- Selectize.js JS -->
-<script src="{% static 'js/selectize.min.js' %}"></script>
-{% endblock %}
