@@ -1129,6 +1129,7 @@ def workflow_form_step(request):
         DataTable = apps.get_model('Form', module_tables["data_table"])
         FileTable = apps.get_model('Form', module_tables["file_table"])
         primary_key = None
+        form_data_id = None
         module_tables = None
         
         existing_data = {}
@@ -1291,6 +1292,7 @@ def workflow_form_step(request):
         context = {
             "forms_data": forms_data,
             "type": "create",
+            "form_data_id":form_data_id,
             "action_fields": action_fields,
             "workflow": 1, 
             "WFoperator_dropdown": WFoperator_dropdown,
