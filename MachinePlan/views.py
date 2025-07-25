@@ -117,10 +117,19 @@ class MachineDetailView( DetailView):
         ).order_by('scheduled_date')[:5]
         return context
 
-class MachineDeleteView( DeleteView):
+class MachineDeleteView(DeleteView):
     model = Machine
-    template_name = 'MachinePlan/machine_confirm_delete.html'
+    # template_name = 'MachinePlan/machine_confirm_delete.html'
     success_url = reverse_lazy('mcp:machine_list')
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            self.object = self.get_object()
+            self.object.delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            raise Exception(f"Error in retrieving module tables: {str(e)}")
+
 
 class MachineCapabilityListView( ListView):
     model = MachineCapability
@@ -143,7 +152,7 @@ class MachineCapabilityListView( ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['machines'] = Machine.objects.filter(status='OP')
-        context['components'] = Component.objects.all()
+        context['components'] = BOMHeader.objects.all()
         return context
 
 class MachineCapabilityCreateView( CreateView):

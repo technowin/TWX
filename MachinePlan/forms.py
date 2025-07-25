@@ -195,7 +195,7 @@ class RoutingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Add any custom queryset filtering if needed
         # For example:
-        self.fields['work_center'].queryset = WorkCenter.objects.filter(is_active=True)
+        # self.fields['work_center'].queryset = WorkCenter.objects.filter(is_active=True)
 
 class MachinePlanningForm(forms.ModelForm):
     class Meta:

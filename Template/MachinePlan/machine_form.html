@@ -25,11 +25,33 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
-
-{% block title %}{% if object %}Edit{% else %}Add{% endif %} Machine{% endblock %}
-{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Machine{% endblock %}
+{% comment %} 
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Machine Type{% endblock %}
+{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Machine Type{% endblock %} {% endcomment %}
 
 {% block content %}
+{% block page_actions %}
+
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="#">Machine List</a></li>
+                <li class="breadcrumb-item"><a href="#">{% if object %}Edit{% else %}Add{% endif %} Machine {% endblock %}</a></li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="bi bi-box"></i> {% if object %}Edit {{ object.name }}{% else %}Create New Machine{% endif %}
+        </h2>
+    </div>
+</div>
+
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     
