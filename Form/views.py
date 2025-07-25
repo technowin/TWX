@@ -2501,7 +2501,7 @@ def common_form_action(request):
             form_data = get_object_or_404(IndexTable, pk=form_data_id)
             button_type = request.POST.get('button_type')
             clicked_action_id = request.POST.get('clicked_action_id')
-            if workflow_YN == '1E':
+            if workflow_YN == '1E' or workflow_YN == '1':
                 step_id = request.POST.get('actual_step_id', '')
 
             # latest_row = WorkflowVersionControl.objects.filter(form_data=form_data).order_by('-id').first()
@@ -2557,7 +2557,7 @@ def common_form_action(request):
             
         
             messages.success(request, "Action data saved successfully!")
-            if workflow_YN == '1E':
+            if workflow_YN == '1E' or workflow_YN == '1':
         
                 wfdetailsid = request.POST.get('wfdetailsid', '')
                 step_id = request.POST.get('actual_step_id', '')
@@ -2633,7 +2633,7 @@ def common_form_action(request):
                         status=workflow_detail.status,
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
-                        form_id=request.POST.get('form_id', ''),
+                        # form_id=request.POST.get('form_id', ''),
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
                         created_at=workflow_detail.updated_at
@@ -2649,7 +2649,7 @@ def common_form_action(request):
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
                         operator=request.POST.get('custom_dropdownOpr', ''),
-                        form_id=request.POST.get('form_id', ''),
+                        # form_id=request.POST.get('form_id', ''),
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
                         created_at=workflow_detail.updated_at
@@ -2664,7 +2664,7 @@ def common_form_action(request):
                         status=workflow_detail.status,
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
-                        form_id=request.POST.get('form_id', ''),
+                        # form_id=request.POST.get('form_id', ''),
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
                         created_at=workflow_detail.updated_at
@@ -2712,7 +2712,7 @@ def common_form_action(request):
                 messages.success(request, "Workflow data saved successfully!")
         
         
-        if workflow_YN == '1E':
+        if workflow_YN == '1E' or workflow_YN == '1':
             # return redirect('workflow_starts',workflowSelect=wfSelected_id)
             # url = reverse('workflow_starts')
             # return HttpResponseRedirect(f"{url}?workflowSelect={wfSelected_id}")

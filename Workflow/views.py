@@ -445,7 +445,7 @@ def workflow_starts(request):
                 if role_id in step['role_ids']:
                     include_for_current_user = True
                     break
-                
+        ActUsenext_step_name = None        
         next_flow_id = current_step_flow + 1
         for step in workflow_steps:
             if step.get('step_id_flow') and step['step_id_flow'].isdigit():
@@ -556,7 +556,8 @@ def workflow_starts(request):
                "actual_step_id": current_step_info['actual_stepID'] if current_step_info else '',
                "current_stepId":current_stepId,
                 "next_step_name": next_step_name if next_step_name else 'No next step',
-                "ActUsenext_step_name":int(ActUsenext_step_name),
+                # "ActUsenext_step_name":int(ActUsenext_step_name),
+                "ActUsenext_step_name": int(ActUsenext_step_name) if ActUsenext_step_name not in [None, ''] else None,
                 "next_step_id": next_step_id,
                 "increment_idCheck": item[6] + 1,
                 # "has_user_submitted": has_user_submitted,
@@ -1112,8 +1113,10 @@ def workflow_form_step(request):
         WFoperator_dropdown = []
         for result in cursor.stored_results():
             WFoperator_dropdown = result.fetchall()
-
-        workflow = get_object_or_404(workflow_matrix, wf_id=wfSelected_id,step_id_flow=next_step)
+        if wfDetails_id:
+            workflow = get_object_or_404(workflow_matrix, wf_id=wfSelected_id,step_id_flow=next_step)
+        else:
+            workflow = get_object_or_404(workflow_matrix,wf_id = wfSelected_id,step_id_flow = 1)
         form_ids = [fid.strip() for fid in workflow.form_id.split(",") if fid.strip()]
         action_id = workflow.button_type_id
         role_id = workflow.role_id
