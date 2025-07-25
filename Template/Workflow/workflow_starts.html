@@ -85,14 +85,15 @@
                   </span>
                 </td>
                 <td class="text-center">
-                  {% if item.extra_flag == 'edit_again' and item.last_rejected_step %}
+                  {% comment %} {% if item.extra_flag == 'edit_again' and item.last_rejected_step %}
                     <button class="btn btn-primary btn-sm"
                             onclick="startStepEdit('{{ item.form_data_id }}',
                                                    '{{ item.req_num }}',
                                                    '{{ item.current_stepId }}',
                                                    '{{ item.form_id }}',
                                                    '{{ workflowSelect_enc }}',
-                                                   '{{ item.editORcreate }}')">
+                                                   '{{ item.editORcreate }}',
+                                                   '{{ item.id_wfd }}')">
                       {{ item.user_prev_step_name }}
                     </button>
 
@@ -113,8 +114,7 @@
 
                   {% else %}
                     {% if item.include_for_current_user %}
-                      {% comment %} {% if item.actual_step_id != item.increment_idCheck %} {% endcomment %}
-                      {% comment %} {% if item.user_prev_step_Check == item.step_id %} {% endcomment %}
+                      
                       {% if item.current_stepId == item.actual_step_id %}
                         {% if item.workflow_value == 1 %}
                           <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
@@ -159,7 +159,8 @@
                                                          '{{ item.current_stepId }}',
                                                          '{{ item.form_id }}',
                                                          '{{ workflowSelect_enc }}',
-                                                         '{{ item.editORcreate }}')">
+                                                         '{{ item.editORcreate }}',
+                                                         '{{ item.id_wfd }}')">
                             {{ item.user_prev_step_name }}
                           </button>
                         {% endif %}
@@ -167,7 +168,98 @@
                     {% else %}
                       <span class="text-muted">{{ item.step_name }}</span>
                     {% endif %}
-                  {% endif %}
+                  {% endif %} {% endcomment %}
+
+
+
+
+
+
+                  {% comment %} {% if item.include_for_current_user %}
+                      <!-- 🟢 Show action button -->
+                      {% if item.editORcreate == 1 %}
+                        <button class="btn btn-primary btn-sm"
+                                onclick="startStep('{{ item.user_prev_step_id }}',
+                                                  '{{ item.form_id }}',
+                                                  '{{ item.but_type }}',
+                                                  '{{ item.but_act }}',
+                                                  '{{ item.enc_id_wfd }}',
+                                                  '{{ item.editORcreate }}',
+                                                  '{{ workflowSelect }}')">
+                          {{ item.user_prev_step_name }}
+                        </button>
+                      {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
+                        <button class="btn btn-primary btn-sm"
+                                onclick="startStepEdit('{{ item.form_data_id }}',
+                                                      '{{ item.req_num }}',
+                                                      '{{ item.current_stepId }}',
+                                                      '{{ item.form_id }}',
+                                                      '{{ workflowSelect_enc }}',
+                                                      '{{ item.editORcreate }}',
+                                                      '{{ item.id_wfd }}')">
+                          {{ item.user_prev_step_name }}
+                        </button>
+                      {% endif %}
+                    
+                    {% elif item.can_view_as_readonly %}
+                      <!-- 👁️ Show eye icon -->
+                      <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
+                          alt="View"
+                          style="cursor:pointer"
+                          onclick="startStepView('{{ item.form_data_id }}',
+                                                  '{{ item.req_num }}',
+                                                  '{{ item.actual_step_id }}',
+                                                  '{{ workflowSelect }}',
+                                                  '{{ item.form_id }}')" />
+                    {% else %}
+                      <!-- ❌ No action (not part of flow at all) -->
+                      <img src="{% static 'img/icons8-invisible-100.png' %}"
+                          width="20" height="20"
+                          alt="Not allowed" />
+                    {% endif %} {% endcomment %}
+
+                    {% if item.action_button %}
+                          {% if item.editORcreate == 1 %}
+                              <button class="btn btn-primary btn-sm"
+                                      onclick="startStep('{{ item.user_prev_step_id }}',
+                                                        '{{ item.form_id }}',
+                                                        '{{ item.but_type }}',
+                                                        '{{ item.but_act }}',
+                                                        '{{ item.enc_id_wfd }}',
+                                                        '{{ item.editORcreate }}',
+                                                        {% comment %} below are imp ids {% endcomment %}
+                                                        '{{ item.id_wfd }}',
+                                                        '{{ item.next_step_id }}',
+                                                        '{{ workflowSelect }}')">
+                                  {{ item.action_button_name }}
+                              </button>
+                          {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
+                                  <button class="btn btn-primary btn-sm"
+                                      onclick="startStepEdit('{{ item.form_data_id }}',
+                                                            '{{ item.req_num }}',
+                                                            '{{ item.current_stepId }}',
+                                                            '{{ item.form_id }}',
+                                                            '{{ workflowSelect_enc }}',
+                                                            '{{ item.editORcreate }}',
+                                                            '{{ item.id_wfd }}')">
+                                    {{ item.action_button_name }}
+                                  </button>
+                          {% endif %}  
+
+                        {% comment %} {{ item.action_button|safe }} {% endcomment %}
+                    {% else %}
+                        <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
+                              alt="View"
+                              style="cursor:pointer"
+                              onclick="startStepView('{{ item.form_data_id }}',
+                                                      '{{ item.req_num }}',
+                                                      '{{ item.actual_step_id }}',
+                                                      '{{ workflowSelect }}',
+                                                      '{{ item.form_id }}')" />
+                    
+                    {% endif %}
+                      
+
                 </td>
               </tr>
             {% endfor %}
@@ -189,9 +281,9 @@
     }
 </script>  
 <script>
-    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate,workflowSelect){
+    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate,id_wfd,next_step,workflowSelect){
       debugger;
-        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}&wfSelected_id=${workflowSelect}`;
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}&wfSelected_id=${workflowSelect}&next_step=${next_step}&wfDetails_id=${id_wfd}`;
         window.location.href = url;
     }
 </script>
@@ -205,9 +297,9 @@
   }
 </script>
 <script>
-  function startStepEdit(id,req_num,step_id,form_id,WFdetailsID,editORcreate) {
+  function startStepEdit(id,req_num,step_id,form_id,WFdetailsID,editORcreate,wd_id) {
     debugger;
-      const url = `/get_formdataidEdit/?id=${id}&req_num=${req_num}&step_id=${step_id}&form_id=${form_id}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}`;
+      const url = `/get_formdataidEdit/?id=${id}&req_num=${req_num}&step_id=${step_id}&form_id=${form_id}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}&wf_id=${wd_id}`;
       window.location.href = url;
 
       //from this dat aget formd_data_id and that form_data_id send to like `/form_master/?form=${id}`;

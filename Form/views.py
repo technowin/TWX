@@ -886,7 +886,7 @@ def update_action_form(request, form_id):
 def form_master(request):
     user  = request.session.get('user_id', '')
     try:
-
+        
         if request.method == "POST":
             form_id = request.POST.get("form")
             form = get_object_or_404(Form, id=form_id)
@@ -996,6 +996,7 @@ def form_master(request):
             req_num = request.GET.get('req_num','')
             primary_key = request.GET.get('primary_key','')
             form_ids = request.GET.get('form_idWF')
+            wfDetailsTable_id = request.GET.get('wfDetailsTable_id')
             category_dropD = para_master.objects.filter(para_name='Category').values(value=F('para_details'), text=F('description'))
 
 
@@ -1218,9 +1219,9 @@ def form_master(request):
                    
                 if workflow_YN == '1E':
                     return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                            "actual_step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data,"wfSelected_id":wfdetailsID,})
+                            "actual_step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data,"wfSelected_id":wfdetailsID,"wfDetailsTable_id":wfDetailsTable_id,})
                 else:
-                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data})
+                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data,"wfDetailsTable_id":wfDetailsTable_id,})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all().order_by('-id')
@@ -2485,10 +2486,12 @@ def common_form_action(request):
     reference_type = request.POST.get("reference_type")
     wfSelected_id = request.POST.get('wfSelected_id', '')
     actual_step_id = request.POST.get('actual_step_id', '')
+    wd_Done_step_id = int(actual_step_id) - 1
+    wfDetailsTable_id = request.POST.get('wfDetailsTable_id', '')
     try:
         if request.method == 'POST':
 
-            module = 9 
+            module = int(wfSelected_id) 
             module_tables = common_module_master(module)
             IndexTable = apps.get_model('Form', module_tables["index_table"])
             DataTable = apps.get_model('Form', module_tables["data_table"])
@@ -2561,29 +2564,45 @@ def common_form_action(request):
                 role_idC = request.POST.get('role_id', '')
                 category_dropdownOpr = request.POST.get('category_dropdownOpr', '')
 
-                if wfdetailsid and wfdetailsid != 'undefined':
-                    wfdetailsid=dec(wfdetailsid)
-                else:
-                    wfdetailsid = None  
+                # if wfdetailsid and wfdetailsid != 'undefined':
+                #     wfdetailsid=dec(wfdetailsid)
+                # else:
+                #     wfdetailsid = None  
                 
                 if step_id:
-                    matrix_entry = workflow_matrix.objects.filter(step_id_flow=step_id,wf_id=wfSelected_id).first()
+                    matrix_entry = workflow_matrix.objects.filter(step_id_flow=wd_Done_step_id,wf_id=wfSelected_id).first()
                     if matrix_entry:
                         status_from_matrix = matrix_entry.status  # adjust field name if needed
                         
-                if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+                if wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
                     # Update existing record
-                    workflow_detail = workflow_details.objects.get(id=wfdetailsid)
+                    workflow_detail = workflow_details.objects.get(id=wfDetailsTable_id,step_id=wd_Done_step_id,workflow_id=wfSelected_id)
                     workflow_detail.form_data_id = form_data_id
                     workflow_detail.role_id = request.POST.get('role_id', '')
                     workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
                     workflow_detail.increment_id += 1
-                    workflow_detail.step_id = request.POST.get('step_id', '')
+                    workflow_detail.step_id = request.POST.get('actual_step_id', '')
                     workflow_detail.status = status_from_matrix or ''
                     workflow_detail.user_id = user
                     workflow_detail.updated_by = user  # Or use `modified_by` if applicable
                     workflow_detail.updated_at = now()
-                    workflow_detail.save()    
+                    workflow_detail.save() 
+                elif(role_idC == '1'):    
+                    workflow_detail = workflow_details.objects.create(
+                    form_data_id=form_data_id,
+                    role_id=request.POST.get('role_id', ''),
+                    action_details_id=request.POST.get('action_detail_id', ''),
+                    increment_id=1,
+                    # form_id=request.POST.get('form_id', ''),
+                    # action_id=request.POST.get('action_id', ''),
+                    status = status_from_matrix or '',
+                    step_id=request.POST.get('actual_step_id', ''),
+                    operator=request.POST.get('custom_dropdownOpr', ''),
+                    user_id=user,
+                    created_by=user,
+                    created_at=now()
+                    
+                    )   
                 else:    
                     workflow_detail = workflow_details.objects.create(
                     form_data_id=form_data_id,
@@ -2593,7 +2612,7 @@ def common_form_action(request):
                     # form_id=request.POST.get('form_id', ''),
                     # action_id=request.POST.get('action_id', ''),
                     status = status_from_matrix or '',
-                    step_id=request.POST.get('step_id', ''),
+                    step_id=request.POST.get('actual_step_id', ''),
                     operator=request.POST.get('custom_dropdownOpr', ''),
                     user_id=user,
                     created_by=user,
@@ -2604,7 +2623,7 @@ def common_form_action(request):
                 # Now set and save req_id using the generated ID
                 workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
                 workflow_detail.save()
-                if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+                if wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
                     history_workflow_details.objects.create(
                         form_data_id=workflow_detail.form_data_id,
                         role_id=workflow_detail.role_id,
@@ -2614,6 +2633,22 @@ def common_form_action(request):
                         status=workflow_detail.status,
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
+                        form_id=request.POST.get('form_id', ''),
+                        created_by=user,
+                        # created_by=workflow_detail.updated_by,
+                        created_at=workflow_detail.updated_at
+                    )
+                elif(role_idC == '1'):
+                    history_workflow_details.objects.create(
+                        form_data_id=workflow_detail.form_data_id,
+                        role_id=workflow_detail.role_id,
+                        action_details_id=workflow_detail.action_details_id,
+                        increment_id=workflow_detail.increment_id,
+                        step_id=workflow_detail.step_id,
+                        status=workflow_detail.status,
+                        user_id=workflow_detail.user_id,
+                        req_id=workflow_detail.req_id,
+                        operator=request.POST.get('custom_dropdownOpr', ''),
                         form_id=request.POST.get('form_id', ''),
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
@@ -2629,7 +2664,6 @@ def common_form_action(request):
                         status=workflow_detail.status,
                         user_id=workflow_detail.user_id,
                         req_id=workflow_detail.req_id,
-                        operator=request.POST.get('custom_dropdownOpr', ''),
                         form_id=request.POST.get('form_id', ''),
                         created_by=user,
                         # created_by=workflow_detail.updated_by,
@@ -2679,7 +2713,10 @@ def common_form_action(request):
         
         
         if workflow_YN == '1E':
-            return redirect('workflow_starts')
+            # return redirect('workflow_starts',workflowSelect=wfSelected_id)
+            # url = reverse('workflow_starts')
+            # return HttpResponseRedirect(f"{url}?workflowSelect={wfSelected_id}")
+            return redirect(f"/workflow_starts/?workflowSelect={wfSelected_id}")
         else:
             return redirect('/masters?entity=form_master&type=i')
     
