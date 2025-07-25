@@ -21,7 +21,7 @@ from .forms import (
     ProductionOrderForm, MaterialShortageResolutionForm
 )
 
-class MaterialPlanDashboardView(LoginRequiredMixin, View):
+class MaterialPlanDashboardView(View):
     template_name = 'MaterialPlan/dashboard.html'
     
     def get(self, request):
@@ -47,7 +47,7 @@ class MaterialPlanDashboardView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
-class MaterialPlanListView(LoginRequiredMixin, ListView):
+class MaterialPlanListView(ListView):
     model = MaterialPlan
     template_name = 'MaterialPlan/plan_list.html'
     context_object_name = 'plans'
@@ -75,13 +75,13 @@ class MaterialPlanListView(LoginRequiredMixin, ListView):
         return context
 
 
-class MaterialPlanCreateView(LoginRequiredMixin, CreateView):
+class MaterialPlanCreateView(CreateView):
     model = MaterialPlan
     form_class = MaterialPlanForm
     template_name = 'MaterialPlan/plan_create.html'
     
     def get_success_url(self):
-        return reverse_lazy('material_planning:plan_detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('/plan_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
@@ -95,7 +95,7 @@ class MaterialPlanCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class MaterialPlanDetailView(LoginRequiredMixin, DetailView):
+class MaterialPlanDetailView(DetailView):
     model = MaterialPlan
     template_name = 'MaterialPlan/plan_detail.html'
     context_object_name = 'plan'
@@ -124,13 +124,13 @@ class MaterialPlanDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class MaterialPlanUpdateView(LoginRequiredMixin, UpdateView):
+class MaterialPlanUpdateView(UpdateView):
     model = MaterialPlan
     form_class = MaterialPlanForm
     template_name = 'MaterialPlan/plan_update.html'
     
     def get_success_url(self):
-        return reverse_lazy('material_planning:plan_detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('/plan_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         form.instance.last_updated = timezone.now()
@@ -139,13 +139,13 @@ class MaterialPlanUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
-class MaterialPlanItemUpdateView(LoginRequiredMixin, UpdateView):
+class MaterialPlanItemUpdateView(UpdateView):
     model = MaterialPlanItem
     form_class = MaterialPlanItemForm
     template_name = 'MaterialPlan/item_update.html'
     
     def get_success_url(self):
-        return reverse_lazy('material_planning:plan_detail', kwargs={'pk': self.object.plan.pk})
+        return reverse_lazy('/plan_detail', kwargs={'pk': self.object.plan.pk})
     
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -153,7 +153,7 @@ class MaterialPlanItemUpdateView(LoginRequiredMixin, UpdateView):
         return response
 
 
-class PurchaseRequisitionCreateView(LoginRequiredMixin, View):
+class PurchaseRequisitionCreateView(View):
     template_name = 'MaterialPlan/requisition_create.html'
     
     def get(self, request, plan_id, item_id):
@@ -196,7 +196,7 @@ class PurchaseRequisitionCreateView(LoginRequiredMixin, View):
             requisition.save()
             
             messages.success(request, "Purchase requisition created successfully.")
-            return redirect('material_planning:plan_detail', pk=plan.pk)
+            return redirect('/plan_detail', pk=plan.pk)
         
         # Get preferred suppliers for this component
         suppliers = ComponentSupplier.objects.filter(
@@ -213,29 +213,29 @@ class PurchaseRequisitionCreateView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
-class PurchaseRequisitionSubmitView(LoginRequiredMixin, View):
+class PurchaseRequisitionSubmitView(View):
     def post(self, request, pk):
         requisition = get_object_or_404(PurchaseRequisition, pk=pk)
         
         if requisition.status != 'draft':
             messages.error(request, "Only draft requisitions can be submitted.")
-            return redirect('material_planning:plan_detail', pk=requisition.plan.pk)
+            return redirect('/plan_detail', pk=requisition.plan.pk)
         
         requisition.status = 'submitted'
         requisition.save()
         
         messages.success(request, "Purchase requisition submitted for approval.")
-        return redirect('material_planning:plan_detail', pk=requisition.plan.pk)
+        return redirect('/plan_detail', pk=requisition.plan.pk)
 
 
-class InventoryReservationView(LoginRequiredMixin, View):
+class InventoryReservationView(View):
     def post(self, request, plan_id, item_id):
         plan = get_object_or_404(MaterialPlan, pk=plan_id)
         item = get_object_or_404(MaterialPlanItem, pk=item_id, plan=plan)
         
         if item.quantity_available <= 0:
             messages.error(request, "No available inventory to reserve.")
-            return redirect('material_planning:plan_detail', pk=plan.pk)
+            return redirect('/plan_detail', pk=plan.pk)
         
         # Find available inventory
         available_inventory = Inventory.objects.filter(
@@ -284,10 +284,10 @@ class InventoryReservationView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f"Error reserving inventory: {str(e)}")
         
-        return redirect('material_planning:plan_detail', pk=plan.pk)
+        return redirect('/plan_detail', pk=plan.pk)
 
 
-class MaterialShortageResolutionView(LoginRequiredMixin, View):
+class MaterialShortageResolutionView(View):
     template_name = 'MaterialPlan/shortage_resolution.html'
     
     def get(self, request, alert_id):
@@ -312,7 +312,7 @@ class MaterialShortageResolutionView(LoginRequiredMixin, View):
             alert.save()
             
             messages.success(request, "Shortage alert resolved successfully.")
-            return redirect('material_planning:plan_detail', pk=alert.plan.pk)
+            return redirect('/plan_detail', pk=alert.plan.pk)
         
         context = {
             'alert': alert,
@@ -321,13 +321,13 @@ class MaterialShortageResolutionView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
-class ProductionOrderCreateView(LoginRequiredMixin, CreateView):
+class ProductionOrderCreateView(CreateView):
     model = ProductionOrder
     form_class = ProductionOrderForm
     template_name = 'MaterialPlan/production_order_create.html'
     
     def get_success_url(self):
-        return reverse_lazy('material_planning:production_order_detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('/production_order_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
@@ -351,7 +351,7 @@ class ProductionOrderCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class ProductionOrderDetailView(LoginRequiredMixin, DetailView):
+class ProductionOrderDetailView(DetailView):
     model = ProductionOrder
     template_name = 'MaterialPlan/production_order_detail.html'
     context_object_name = 'order'

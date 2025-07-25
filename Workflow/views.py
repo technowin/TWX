@@ -380,21 +380,12 @@ def workflow_starts(request):
             next_matrix_entry = workflow_matrix.objects.get(step_id_flow=next_step,wf_id=workflowSelect)
             forwarded_to_role = next_matrix_entry.role_id  
             
-            #next_matrix_role1 = roles.objects.get(id=forwarded_to_role)
-            #next_matrix_role = next_matrix_role1.role_name
-            
             role_ids = [int(role_id.strip()) for role_id in forwarded_to_role.split(',')]
             role_names = roles.objects.filter(id__in=role_ids).values_list('role_name', flat=True)
             forwarded_to_display = ', '.join(role_names)
         except workflow_matrix.DoesNotExist:
             forwarded_to_display = "N/A"
-        
-            
-        # try:
-        #     editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
-        # except workflow_matrix.DoesNotExist:
-        #     editORcreate = ''
-        # editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
+
         formDataId_Status= item[7]
         #revised_Status = VersionControlFileMap.objects.filter(form_data=formDataId_Status)
         revised_Status = WorkflowVersion.objects.filter(req_id=req_num).exclude(version=1)
@@ -484,29 +475,62 @@ def workflow_starts(request):
             extra_flag = 'edit_again'
         else:
             extra_flag = 'view_only'
-        # has_user_submitted = history_workflow_details.objects.filter(
+        
+        # # current_step_actual_id = str(item[3])
+        # current_step_actual_id=current_step_info['actual_stepID']
+        # user_role_id = str(request.user.role_id)
+        # form_increment_id = item[6]  # say 2
+        
+        # is_current_user_at_this_step = False
+        # is_current_user_done = False
+
+        # varfor_row=int(ActUsenext_step_name)-1
+        # submitted_by_user = history_workflow_details.objects.filter(
         #     req_id=req_num,
-        #     step_id=current_EditCrtStep,
-        #     created_by=request.user.id  # or .username/.email as per your schema
+        #     step_id=int(varfor_row),
+        #     workflow_id=workflowSelect,
+        #     created_by=request.user.id  # or use operator if you store it there
         # ).exists()
         
-        # current_step_actual_id = str(item[3])
-        current_step_actual_id=current_step_info['actual_stepID']
-        user_role_id = str(request.user.role_id)
-        form_increment_id = item[6]  # say 2
         
-        is_current_user_at_this_step = False
-        is_current_user_done = False
+        # here just bring all needing ids for current step
+        workflow_detail = workflow_details.objects.get(req_id=req_num)
+        current_step_id = workflow_detail.step_id
+        wf_id = workflow_detail.workflow_id
 
-        varfor_row=int(ActUsenext_step_name)-1
-        submitted_by_user = history_workflow_details.objects.filter(
-            req_id=req_num,
-            step_id=int(varfor_row),
-            workflow_id=workflowSelect,
-            created_by=request.user.id  # or use operator if you store it there
-        ).exists()
+        # Calculate next step
+        next_step_id = current_step_id + 1
 
+        # Get all matrix rows where wf_id and step_id_flow match
+        matching_matrix_entries = workflow_matrix.objects.filter(
+            wf_id=wf_id,
+            step_id_flow=next_step_id
+        )
 
+        # Flag to track role presence
+        matching_step = None
+
+        # Loop through matches and check if role is included
+        for matrix_row in matching_matrix_entries:
+            matrix_roles = [r.strip() for r in matrix_row.role_id.split(',')]
+            if role_id in matrix_roles:
+                matching_step = matrix_row
+                break
+
+        if matching_step:
+            # action_button = f'<button class="btn btn-primary">{matching_step.step_name}</button>'
+            action_button = True
+            action_button_name = matching_step.step_name
+        else:
+            
+            # action_button = f'''
+            #     <img src="/static/img/eye-open.png" width="20" height="20"
+            #         alt="View"
+            #         style="cursor:pointer"
+            #         onclick="startStepView('{form_data_id}', '{req_num}', '{current_step_id}', '{workflowSelect}')"
+            #     />
+            # '''
+            action_button = False
 
         if include_for_current_user:
             user_prev_step_id_val = user_prev_step['id'] if user_prev_step else ''
@@ -542,7 +566,7 @@ def workflow_starts(request):
                  "updated_at":updated_at,"updated_by":updated_by,
                 "user_prev_step_name": user_prev_step['step_name'] if user_prev_step else '',
                 "include_for_current_user": include_for_current_user,
-                "last_rejected_step": last_rejected_step,
+                "last_rejected_step": last_rejected_step,'action_button': action_button,"action_button_name": action_button_name if action_button else "",
                 "last_rejected_status": last_rejected_status,"file_number":file_number,
                 'extra_flag': extra_flag,"next_matrix_role":forwarded_to_display,"workflow_value":workflow_value,
             })
@@ -652,12 +676,15 @@ def get_formdataidEdit(request):
     form_id = request.GET.get("form_id")
     wfdetailsID = request.GET.get("wfdetailsID")
     viewStepWF = request.GET.get("editORcreate")
+    wfDetailsTable_id = request.GET.get("wf_id")
     button_type_id = None
     if wfdetailsID:
         wfdetailsID=dec(wfdetailsID)
     if step_id:
         step = workflow_matrix.objects.get(step_id_flow=step_id,wf_id=wfdetailsID)
         button_type_id = step.button_type_id
+    if id:
+        id=dec(id)
     workflow_YN = '1E'
     param=[form_id,req_num,wfdetailsID,step_id]
     cursor.callproc("stp_getFormDataIdForWorkflowEdit", param)
@@ -668,7 +695,7 @@ def get_formdataidEdit(request):
     primary_value = get_object_or_404(workflow_details,req_id = req_num).primary_key
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&req_num={req_num}&primary_key={primary_value}'
+    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&req_num={req_num}&primary_key={primary_value}&wfDetailsTable_id={wfDetailsTable_id}'
     return redirect(url)
     
         
@@ -1072,6 +1099,8 @@ def workflow_form_step(request):
     reference_type = request.GET.get("reference_type") or '0'
     data_save_status = request.GET.get("data_save_status") or '0'
     wfSelected_id = request.GET.get("wfSelected_id")
+    next_step = request.GET.get("next_step")
+    wfDetails_id = request.GET.get("wfDetails_id")
 
     id = dec(id)
     if not id:
@@ -1084,7 +1113,7 @@ def workflow_form_step(request):
         for result in cursor.stored_results():
             WFoperator_dropdown = result.fetchall()
 
-        workflow = get_object_or_404(workflow_matrix, id=id)
+        workflow = get_object_or_404(workflow_matrix, wf_id=wfSelected_id,step_id_flow=next_step)
         form_ids = [fid.strip() for fid in workflow.form_id.split(",") if fid.strip()]
         action_id = workflow.button_type_id
         role_id = workflow.role_id
@@ -1280,7 +1309,7 @@ def workflow_form_step(request):
             "reference_type": reference_type,
             "actual_step_id": actual_step_id,
             "primary_key": primary_key,
-            "module": module
+            "module": module,"wfDetailsTable_id":wfDetails_id,
         }
 
         # Only add module to context if it exists

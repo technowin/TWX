@@ -58,7 +58,7 @@
                     <li><a class="dropdown-item" href="{% url 'bom_compare' pk=bom.id %}"><i class="bi bi-file-diff"></i> Compare Versions</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="{% url 'bom_update' pk=bom.id %}"><i class="bi bi-pencil"></i> Edit BOM</a></li>
-                    {% if bom.status == 'DR' %}
+                    {% if bom.status == 'Draft' %}
                         <li><button class="dropdown-item" id="requestApprovalBtn"><i class="bi bi-check-circle"></i> Request Approval</button></li>
                     {% endif %}
                 </ul>

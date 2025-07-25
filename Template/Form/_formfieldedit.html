@@ -174,6 +174,7 @@
                                             <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
                                             <input type="hidden" id="wfSelected_id" name="wfSelected_id" value="{{ wfSelected_id }}">
                                             <input type="hidden" id="actual_step_id" name="actual_step_id" value="{{ actual_step_id }}">
+                                            <input type="hidden" id="wfDetailsTable_id" name="wfDetailsTable_id" value="{{ wfDetailsTable_id }}">
             
 
                                         {% if field.field_type == "select" %}
@@ -1022,6 +1023,7 @@
         const actual_step_id = document.getElementById('actual_step_id');
         const wfSelected_id = document.getElementById('wfSelected_id');
         const role_id = document.getElementById('role_id');
+        const wfDetailsTable_id = document.getElementById('wfDetailsTable_id');
 
         const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
         const swalOptions = {
