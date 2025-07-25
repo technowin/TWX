@@ -112,3 +112,14 @@ def natural_sort(items):
             return []
     
     return sorted(items, key=sort_key)
+
+@register.filter
+def subtract1(value, arg):
+    """Subtract the arg from the value."""
+    try:
+        return float(value) - float(arg)
+    except (ValueError, TypeError):
+        try:
+            return value - arg
+        except Exception:
+            return ''

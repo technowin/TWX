@@ -263,9 +263,10 @@
                                                 <td>{{ item.bom.revision }}</td>
                                                 <td>
                                                     <span class="badge 
-                                                        {% if item.bom.status == 'AC' %}bg-success
-                                                        {% elif item.bom.status == 'DR' %}bg-secondary
-                                                        {% elif item.bom.status == 'PE' %}bg-warning text-dark
+                                                        {% if item.bom.status == 'Active' %}bg-success
+                                                        {% elif item.bom.status == 'Approved' %}bg-success
+                                                        {% elif item.bom.status == 'Draft' %}bg-secondary
+                                                        {% elif item.bom.status == 'Pending Approval' %}bg-warning text-dark
                                                         {% else %}bg-dark{% endif %}">
                                                         {{ item.bom.get_status_display }}
                                                     </span>
