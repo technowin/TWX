@@ -2161,7 +2161,7 @@ def common_form_edit(request):
     step_id = request.POST.get("step_id")
     wfSelected_id = request.POST.get("wfSelected_id")
     actual_step_id = request.POST.get("actual_step_id")
-    module = request.POST.get("module")  # Get module from request
+    module = request.POST.get("module")  
 
     try:
         if request.method != "POST":
@@ -2530,7 +2530,7 @@ def common_form_action(request):
                         value=action_field.status,  # saving the status from FormActionField
                         form_data=form_data,
                         field=action_field,
-                        step_id=step_id,
+                        step_id=actual_step_id,
                         version = temp_vers,
                         created_by=user,
                         updated_by=user,
@@ -2549,7 +2549,7 @@ def common_form_action(request):
                                 value=value,
                                 form_data=form_data,
                                 field=action_field,
-                                step_id=step_id,
+                                step_id=actual_step_id,
                                 created_by=user,
                                 version = temp_vers,
                                 updated_by=user,
