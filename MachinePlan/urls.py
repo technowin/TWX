@@ -37,4 +37,15 @@ urlpatterns = [
     path('maintenance/add/', views.MaintenanceScheduleCreateView.as_view(), name='maintenance_schedule_create'),
     path('maintenance/<int:pk>/edit/', views.MaintenanceScheduleUpdateView.as_view(), name='maintenance_schedule_update'),
     path('maintenance/<int:pk>/delete/', views.MaintenanceScheduleDeleteView.as_view(), name='maintenance_schedule_delete'),
+
+    path('routings/', views.RoutingListView.as_view(), name='routing_list'),
+    path('routings/add/', views.RoutingCreateView.as_view(), name='routing_create'),
+    path('routings/<int:pk>/edit/', views.RoutingUpdateView.as_view(), name='routing_edit'),
+    path('routings/<int:pk>/delete/', views.RoutingDeleteView.as_view(), name='routing_delete'),
+    
+    # Machine Planning URLs
+    path('machine-plans/', views.machine_planning_list, name='machine_planning_list'),
+    path('machine-plans/create/', views.machine_planning_create, name='machine_planning_create'),
+    path('machine-plans/edit/<int:pk>/', views.machine_planning_edit, name='machine_planning_edit'),
+    path('machine-plans/delete/<int:pk>/', views.machine_planning_delete, name='machine_planning_delete'),
 ]

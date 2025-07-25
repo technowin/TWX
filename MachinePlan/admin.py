@@ -1,6 +1,6 @@
 # machineplan/admin.py
 from django.contrib import admin
-from .models import Machine, MachineType, MachineCapability, MachineSchedule, MaintenanceSchedule
+from .models import *
 
 class MachineCapabilityInline(admin.TabularInline):
     model = MachineCapability
@@ -72,3 +72,12 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
         if not obj.pk:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(Routing)
+class RoutingAdmin(admin.ModelAdmin):
+    list_display = ['component', 'sequence', 'operation', 'work_center', 
+                   'setup_time', 'run_time_per_unit']
+    list_filter = ['work_center', 'operation']
+    search_fields = ['component__part_number', 'operation__name']
+    ordering = ['component', 'sequence']

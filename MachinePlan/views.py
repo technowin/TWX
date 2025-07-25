@@ -1,17 +1,16 @@
 # MachinePlan/views.py
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from BOM.models import Component
 from .models import Machine, MachineType, MachineCapability, MachineSchedule, MaintenanceSchedule
-from  .forms import (
-    MachineTypeForm, MachineForm, MachineCapabilityForm, 
-    MachineScheduleForm, MaintenanceScheduleForm
-)
-from django.shortcuts import get_object_or_404
+from  .forms import *
+from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Q
 from django.utils import timezone
+from django.template.loader import render_to_string
 
 class MachineTypeListView(ListView):
     model = MachineType
@@ -143,12 +142,12 @@ class MachineCapabilityUpdateView( UpdateView):
     template_name = 'MachinePlan/machine_capability_form.html'
     success_url = reverse_lazy('mcp:machine_capability_list')
 
-class MachineCapabilityDeleteView( DeleteView):
+class MachineCapabilityDeleteView(DeleteView):
     model = MachineCapability
     template_name = 'MachinePlan/machine_capability_confirm_delete.html'
     success_url = reverse_lazy('mcp:machine_capability_list')
 
-class MachineScheduleListView( ListView):
+class MachineScheduleListView(ListView):
     model = MachineSchedule
     template_name = 'MachinePlan/machine_schedule_list.html'
     context_object_name = 'schedules'
@@ -267,3 +266,152 @@ class MachineCalendarView( ListView):
         context = super().get_context_data(**kwargs)
         context['machines'] = Machine.objects.filter(status='OP')
         return context
+    
+
+class RoutingListView(ListView):
+    model = Routing
+    template_name = 'MachinePlan/routing_list.html'
+    context_object_name = 'routings'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.select_related('component', 'operation', 'work_center')
+
+class RoutingCreateView(CreateView):
+    model = Routing
+    form_class = RoutingForm
+    template_name = 'MachinePlan/routing_form.html'
+    success_url = reverse_lazy('mcp:routing_list')
+
+class RoutingUpdateView(UpdateView):
+    model = Routing
+    form_class = RoutingForm
+    template_name = 'MachinePlan/routing_form.html'
+    success_url = reverse_lazy('mcp:routing_list')
+
+class RoutingDeleteView(DeleteView):
+    model = Routing
+    template_name = 'MachinePlan/routing_confirm_delete.html'
+    success_url = reverse_lazy('mcp:routing_list')
+
+
+def machine_planning_list(request):
+    plans = MachinePlanning.objects.all().select_related(
+        'production_order', 'component', 'operation', 'machine'
+    ).order_by('scheduled_start')
+    
+    # AJAX request handling
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        data = {
+            'html': render_to_string('MachinePlan/partials/planning_table.html', {'plans': plans}, request=request)
+        }
+        return JsonResponse(data)
+    
+    return render(request, 'MachinePlan/machine_planning_list.html', {'plans': plans})
+
+def machine_planning_create(request):
+    if request.method == 'POST':
+        form = MachinePlanningForm(request.POST)
+        if form.is_valid():
+            plan = form.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Machine Schedule created successfully!'
+                })
+            return redirect(reverse('machine_planning_list'))
+        
+        # Form is invalid
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors,
+                'form_html': render_to_string(
+                    'MachinePlan/partials/planning_form.html', 
+                    {'form': form}, 
+                    request=request
+                )
+            }, status=400)
+        return render(request, 'MachinePlan/machine_planning_list.html', {'form': form})
+    
+    # GET request
+    form = MachinePlanningForm()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'form_html': render_to_string(
+                'MachinePlan/partials/planning_form.html', 
+                {'form': form}, 
+                request=request
+            )
+        })
+    
+    return render(request, 'MachinePlan/machine_planning_list.html', {'form': form})
+
+def machine_planning_edit(request, pk):
+    plan = get_object_or_404(MachinePlanning, pk=pk)
+    
+    if request.method == 'POST':
+        form = MachinePlanningForm(request.POST, instance=plan)
+        if form.is_valid():
+            form.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Machine Schedule updated successfully!'
+                })
+            return redirect(reverse('machine_planning_list'))
+        
+        # Form is invalid
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors,
+                'form_html': render_to_string(
+                    'MachinePlan/partials/planning_form.html', 
+                    {'form': form, 'plan': plan}, 
+                    request=request
+                )
+            }, status=400)
+        return render(request, 'MachinePlan/machine_planning_list.html', {'form': form, 'plan': plan})
+    
+    # GET request
+    form = MachinePlanningForm(instance=plan)
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'form_html': render_to_string(
+                'MachinePlan/partials/planning_form.html', 
+                {'form': form, 'plan': plan}, 
+                request=request
+            )
+        })
+    
+    return render(request, 'MachinePlan/machine_planning_list.html', {'form': form, 'plan': plan})
+
+def machine_planning_delete(request, pk):
+    plan = get_object_or_404(MachinePlanning, pk=pk)
+    
+    if request.method == 'POST':
+        plan.delete()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Machine Schedule deleted successfully!'
+            })
+        return redirect(reverse('machine_planning_list'))
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'confirm_html': render_to_string(
+                'MachinePlan/partials/delete_confirm.html', 
+                {'item': plan, 'type': 'Machine Schedule'}, 
+                request=request
+            )
+        })
+    
+    return render(request, 'MachinePlan/machine_planning_list.html', {'plan': plan})

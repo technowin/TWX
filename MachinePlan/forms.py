@@ -1,6 +1,7 @@
 # machineplan/forms.py
+from datetime import timezone
 from django import forms
-from .models import Machine, MachineType, MachineCapability, MachineSchedule, MaintenanceSchedule
+from .models import *
 from BOM.models import BOMHeader, Component
 from django.contrib.auth import get_user_model
 
@@ -122,7 +123,7 @@ class MachineScheduleForm(BootstrapFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['machine'].queryset = Machine.objects.filter(status='OP')
-        self.fields['component'].queryset = Component.objects.all()
+        self.fields['component'].queryset = BOMHeader.objects.all()
 
 class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
@@ -156,3 +157,100 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
                 'placeholder': 'Enter any additional notes'
             }),
         }
+
+class RoutingForm(forms.ModelForm):
+    class Meta:
+        model = Routing
+        fields = ['component', 'sequence', 'operation', 'work_center', 
+                 'setup_time', 'run_time_per_unit', 'notes']
+        widgets = {
+            'component': forms.Select(attrs={'class': 'form-select'}),
+            'operation': forms.Select(attrs={'class': 'form-select'}),
+            'work_center': forms.Select(attrs={'class': 'form-select'}),
+            'sequence': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1
+            }),
+            'setup_time': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'step': 1
+            }),
+            'run_time_per_unit': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'step': 1
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter any additional notes...'
+            }),
+        }
+        labels = {
+            'run_time_per_unit': 'Run Time (min/unit)'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add any custom queryset filtering if needed
+        # For example:
+        # self.fields['work_center'].queryset = WorkCenter.objects.filter(is_active=True)
+
+class MachinePlanningForm(forms.ModelForm):
+    class Meta:
+        model = MachinePlanning
+        fields = '__all__'
+        widgets = {
+            'production_order': forms.Select(attrs={
+                'class': 'form-select select2',
+                'data-placeholder': 'Select Production Order'
+            }),
+            'component': forms.Select(attrs={
+                'class': 'form-select select2',
+                'data-placeholder': 'Select BOM Component'
+            }),
+            'operation': forms.Select(attrs={
+                'class': 'form-select select2',
+                'data-placeholder': 'Select Operation'
+            }),
+            'machine': forms.Select(attrs={
+                'class': 'form-select select2',
+                'data-placeholder': 'Select Machine'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'scheduled_start': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control datetimepicker'
+            }),
+            'scheduled_end': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control datetimepicker'
+            }),
+            'actual_start': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control datetimepicker'
+            }),
+            'actual_end': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control datetimepicker'
+            }),
+        }
+        labels = {
+            'component': 'BOM Component'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial datetime values
+        if not self.instance.pk:
+            now = timezone.now()
+            self.initial['scheduled_start'] = now.strftime('%Y-%m-%dT%H:%M')
+            self.initial['scheduled_end'] = (now + timezone.timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M')
+        
+        # Add form-control class to all fields
+        for field in self.fields:
+            if 'class' not in self.fields[field].widget.attrs:
+                self.fields[field].widget.attrs['class'] = 'form-control'

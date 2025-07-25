@@ -118,7 +118,7 @@ class BOMHeader(models.Model):
     parent_bom = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='child_boms')
     
     def __str__(self):
-        return f"{self.name} (Rev {self.revision})"
+        return f"{self.name})"
     
     def get_absolute_url(self):
         return reverse('bom_detail', kwargs={'pk': self.pk})

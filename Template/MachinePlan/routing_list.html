@@ -1,0 +1,325 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+{% load static %}
+
+{% block title %}BOM Routing Management{% endblock %}
+{% block page_title %}BOM Routing Management{% endblock %}
+
+{% block content %}
+
+{% block page_actions %}
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoutingModal">
+    <i class="bi bi-plus-circle"></i> Add Routing
+</button>
+{% endblock %}
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>BOM Component</th>
+                <th>Sequence</th>
+                <th>Operation</th>
+                <th>Work Center</th>
+                <th>Setup Time</th>
+                <th>Run Time</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for routing in routings %}
+            <tr>
+                <td>{{ routing.component.name }}</td>
+                <td>{{ routing.sequence }}</td>
+                <td>{{ routing.operation.name }}</td>
+                <td>{{ routing.work_center.name }}</td>
+                <td>{{ routing.setup_time }} min</td>
+                <td>{{ routing.run_time_per_unit }} min/unit</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#editRoutingModal"
+                            data-id="{{ routing.id }}"
+                            data-component="{{ routing.component.id }}"
+                            data-sequence="{{ routing.sequence }}"
+                            data-operation="{{ routing.operation.id }}"
+                            data-work-center="{{ routing.work_center.id }}"
+                            data-setup="{{ routing.setup_time }}"
+                            data-run-time="{{ routing.run_time_per_unit }}"
+                            data-notes="{{ routing.notes }}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal"
+                            data-id="{{ routing.id }}"
+                            data-name="{{ routing.component.part_number }} - Op {{ routing.sequence }}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center py-4">No routings found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'MachinePlan/pagination.html' %}
+
+<!-- Add Routing Modal -->
+<div class="modal fade" id="addRoutingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add BOM Routing</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'mcp:routing_create' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Component</label>
+                                <select name="component" class="form-select" required>
+                                    {% for component in components %}
+                                    <option value="{{ component.id }}">{{ component.part_number }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Operation</label>
+                                <select name="operation" class="form-select" required>
+                                    {% for operation in operations %}
+                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Work Center</label>
+                                <select name="work_center" class="form-select" required>
+                                    {% for work_center in work_centers %}
+                                    <option value="{{ work_center.id }}">{{ work_center.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Sequence</label>
+                                <input type="number" name="sequence" class="form-control" min="1" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Setup Time (min)</label>
+                                <input type="number" name="setup_time" class="form-control" min="0" step="1" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Run Time (min/unit)</label>
+                                <input type="number" name="run_time_per_unit" class="form-control" min="0" step="1" required>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea name="notes" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Routing Modal -->
+<div class="modal fade" id="editRoutingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit BOM Routing</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Component</label>
+                                <select name="component" class="form-select" required id="editComponent">
+                                    {% for component in components %}
+                                    <option value="{{ component.id }}">{{ component.part_number }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Operation</label>
+                                <select name="operation" class="form-select" required id="editOperation">
+                                    {% for operation in operations %}
+                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Work Center</label>
+                                <select name="work_center" class="form-select" required id="editWorkCenter">
+                                    {% for work_center in work_centers %}
+                                    <option value="{{ work_center.id }}">{{ work_center.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Sequence</label>
+                                <input type="number" name="sequence" class="form-control" min="1" required id="editSequence">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Setup Time (min)</label>
+                                <input type="number" name="setup_time" class="form-control" min="0" step="1" required id="editSetup">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Run Time (min/unit)</label>
+                                <input type="number" name="run_time_per_unit" class="form-control" min="0" step="1" required id="editRunTime">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea name="notes" class="form-control" rows="2" id="editNotes"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal (same as in capabilities) -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Delete routing: <strong id="deleteName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="" id="deleteForm">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit modal setup
+    const editModal = document.getElementById('editRoutingModal');
+    if (editModal) {
+        editModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const componentId = button.getAttribute('data-component');
+            const sequence = button.getAttribute('data-sequence');
+            const operationId = button.getAttribute('data-operation');
+            const workCenterId = button.getAttribute('data-work-center');
+            const setupTime = button.getAttribute('data-setup');
+            const runTime = button.getAttribute('data-run-time');
+            const notes = button.getAttribute('data-notes');
+            
+            const form = editModal.querySelector('form');
+            form.action = `/machine-planning/routings/${id}/edit/`;
+            
+            document.getElementById('editComponent').value = componentId;
+            document.getElementById('editSequence').value = sequence;
+            document.getElementById('editOperation').value = operationId;
+            document.getElementById('editWorkCenter').value = workCenterId;
+            document.getElementById('editSetup').value = setupTime;
+            document.getElementById('editRunTime').value = runTime;
+            document.getElementById('editNotes').value = notes;
+        });
+    }
+    
+    // Delete modal setup
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            
+            const form = deleteModal.querySelector('form');
+            form.action = `/machine-planning/routings/${id}/delete/`;
+            
+            document.getElementById('deleteName').textContent = name;
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+{% include "bootstrap/partials/syntax-highlight.html" %}
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+{% endblock %}

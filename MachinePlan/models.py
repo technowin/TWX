@@ -152,3 +152,81 @@ class MaintenanceSchedule(models.Model):
 
     def __str__(self):
         return f"{self.maintenance_type} for {self.machine} on {self.scheduled_date}"
+    
+
+class Operation(models.Model):
+    code = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class WorkCenter(models.Model):
+    code = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class Routing(models.Model):
+    component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
+    sequence = models.PositiveIntegerField()
+    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)
+    setup_time = models.PositiveIntegerField(help_text="Setup time in minutes")
+    run_time_per_unit = models.PositiveIntegerField(help_text="Run time per unit in minutes")
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        unique_together = ('component', 'sequence')
+        ordering = ['component', 'sequence']
+        verbose_name = "BOM Routing"
+    
+    def __str__(self):
+        return f"{self.component} - Op {self.sequence}: {self.operation}"
+    
+    def get_absolute_url(self):
+        return reverse('routing_list')
+
+class ProductionOrder(models.Model):
+    order_number = models.CharField(max_length=50, unique=True)
+    component = models.ForeignKey(BOMHeader, on_delete=models.PROTECT, verbose_name="BOM Component" ,related_name="machine_production_orders" )
+    quantity = models.PositiveIntegerField()
+    due_date = models.DateField()
+    status = models.CharField(max_length=20, choices=[
+        ('PLANNED', 'Planned'),
+        ('RELEASED', 'Released'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ], default='PLANNED')
+    
+    def __str__(self):
+        return f"{self.order_number} - {self.component} ({self.quantity})"
+
+class MachinePlanning(models.Model):
+    production_order = models.ForeignKey('MachinePlan.ProductionOrder', on_delete=models.CASCADE)
+    component = models.ForeignKey(BOMHeader, on_delete=models.PROTECT, verbose_name="BOM Component")
+    operation = models.ForeignKey(Operation, on_delete=models.PROTECT)
+    machine = models.ForeignKey('Machine', on_delete=models.PROTECT)
+    scheduled_start = models.DateTimeField()
+    scheduled_end = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=[
+        ('SCHEDULED', 'Scheduled'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ], default='SCHEDULED')
+    actual_start = models.DateTimeField(null=True, blank=True)
+    actual_end = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "BOM Machine Planning"
+    
+    def __str__(self):
+        return f"{self.production_order} - {self.operation} on {self.machine}"
+    
+    def get_absolute_url(self):
+        return reverse('machine_planning_list')
