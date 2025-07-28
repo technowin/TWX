@@ -69,8 +69,8 @@ class MachineCapability(models.Model):
     """What operations/components a machine can handle"""
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='capabilities')
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE)
-    setup_time = models.TimeField(help_text="Time required to setup machine for this component")
-    processing_time = models.TimeField(help_text="Time required to process one unit")
+    setup_time = models.DurationField(help_text="Time required to setup machine for this component")
+    processing_time = models.DurationField(help_text="Time required to process one unit")
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

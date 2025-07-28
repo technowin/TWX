@@ -1,6 +1,7 @@
 {% extends "bootstrap/vertical_base.html" %}
 {% load static %}
 {% block extra_css %}
+{% load custom_filters %}
 <!-- Select2 css -->
 <link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
 <!-- Daterangepicker css -->
@@ -88,8 +89,8 @@
                             data-id="{{ capability.id }}"
                             data-machine="{{ capability.machine.id }}"
                             data-component="{{ capability.component.id }}"
-                            data-setup="{{ capability.setup_time }}"
-                            data-processing="{{ capability.processing_time }}"
+                            data-setup="{{ capability.setup_time|duration_format  }}"
+                            data-processing="{{ capability.processing_time|duration_format  }}"
                             data-notes="{{ capability.notes }}">
                         <i class="bi bi-pencil"></i>
                     </button>
@@ -185,7 +186,7 @@
                         <label class="form-label">Component</label>
                         <select name="component" class="form-select" required id="editComponent">
                             {% for component in components %}
-                            <option value="{{ component.id }}">{{ component.part_number }}</option>
+                            <option value="{{ component.id }}">{{ component.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
