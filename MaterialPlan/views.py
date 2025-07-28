@@ -78,7 +78,7 @@ class MaterialPlanListView(ListView):
 class MaterialPlanCreateView(CreateView):
     model = MaterialPlan
     form_class = MaterialPlanForm
-    template_name = 'MaterialPlan/plan_create.html'
+    template_name = 'MaterialPlan/plan_form.html'
     
     def get_success_url(self):
         return reverse_lazy('/plan_detail', kwargs={'pk': self.object.pk})
@@ -127,7 +127,7 @@ class MaterialPlanDetailView(DetailView):
 class MaterialPlanUpdateView(UpdateView):
     model = MaterialPlan
     form_class = MaterialPlanForm
-    template_name = 'MaterialPlan/plan_update.html'
+    template_name = 'MaterialPlan/plan_form.html'
     
     def get_success_url(self):
         return reverse_lazy('/plan_detail', kwargs={'pk': self.object.pk})

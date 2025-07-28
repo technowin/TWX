@@ -116,29 +116,29 @@ urlpatterns = [
     
     # Material Plan CRUD
     path('plans/create/',MaterialPlanCreateView.as_view(), name='plan_create'),
-    path('plans/<uuid:pk>/',MaterialPlanDetailView.as_view(), name='plan_detail'),
-    path('plans/<uuid:pk>/update/',MaterialPlanUpdateView.as_view(), name='plan_update'),
+    path('plans/<int:pk>/',MaterialPlanDetailView.as_view(), name='plan_detail'),
+    path('plans/<int:pk>/update/',MaterialPlanUpdateView.as_view(), name='plan_update'),
     
     # Plan items
-    path('items/<uuid:pk>/update/',MaterialPlanItemUpdateView.as_view(), name='item_update'),
+    path('items/<int:pk>/update/',MaterialPlanItemUpdateView.as_view(), name='item_update'),
     
     # Purchase Requisitions
-    path('plans/<uuid:plan_id>/items/<uuid:item_id>/requisition/create/',
+    path('plans/<int:plan_id>/items/<int:item_id>/requisition/create/',
          PurchaseRequisitionCreateView.as_view(), name='requisition_create'),
-    path('requisitions/<uuid:pk>/submit/',
+    path('requisitions/<int:pk>/submit/',
          PurchaseRequisitionSubmitView.as_view(), name='requisition_submit'),
     
     # Inventory actions
-    path('plans/<uuid:plan_id>/items/<uuid:item_id>/reserve/',
+    path('plans/<int:plan_id>/items/<int:item_id>/reserve/',
          InventoryReservationView.as_view(), name='inventory_reserve'),
     
     # Shortage alerts
-    path('alerts/<uuid:alert_id>/resolve/',
+    path('alerts/<int:alert_id>/resolve/',
          MaterialShortageResolutionView.as_view(), name='shortage_resolve'),
     
     # Production Orders
     path('production-orders/create/',ProductionOrderCreateView.as_view(), name='production_order_create'),
-    path('production-orders/<uuid:pk>/',ProductionOrderDetailView.as_view(), name='production_order_detail'),
+    path('production-orders/<int:pk>/',ProductionOrderDetailView.as_view(), name='production_order_detail'),
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
