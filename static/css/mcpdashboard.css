@@ -1,0 +1,44 @@
+/* Custom dashboard styles */
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    font-weight: 500;
+}
+
+#sidebar {
+    box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
+    min-height: calc(100vh - 56px);
+}
+
+/* Dark theme adjustments */
+[data-bs-theme="dark"] .card {
+    background-color: #2c2c2c;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .card-header {
+    background-color: #343a40;
+    border-bottom: 1px solid #444;
+}
+
+[data-bs-theme="dark"] #sidebar {
+    background-color: #212529;
+    box-shadow: 1px 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Timeline items */
+.timeline-item {
+    border-left: 3px solid #0d6efd;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #sidebar {
+        min-height: auto;
+    }
+}

@@ -27,15 +27,27 @@
 {% endblock %}
 
 
-{% block title %}Work Centers Management{% endblock %}
-{% block page_title %}Work Centers Management{% endblock %}
-
 {% block content %}
 
 {% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addWorkCenterModal">
-    <i class="bi bi-plus-circle"></i> Add Work Center
-</button>
+
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Work Center List</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addWorkCenterModal">
+            <i class="bi bi-plus-circle"></i> Add Work Center
+        </button>
+    </div>
+</div>
+
+
 {% endblock %}
 
 <div class="table-responsive">

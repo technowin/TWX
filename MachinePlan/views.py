@@ -1,6 +1,9 @@
 # MachinePlan/views.py
+from datetime import timedelta
+from itertools import count
 from django.contrib import messages
 from django.http import JsonResponse
+from django.db.models import Count, Q
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -488,3 +491,65 @@ class WorkCenterDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         """Override delete to ensure compatibility"""
         return self.post(request, *args, **kwargs)
+    
+def dashboard(request):
+    # Machine status counts
+    machine_status_counts = Machine.objects.values('status').annotate(count=Count('status'))
+    status_map = {'OP': 'Operational', 'MN': 'Maintenance', 'OO': 'Out of Order', 'RT': 'Retired'}
+    components= BOMHeader.objects.all()
+    
+    operational_machines_count = Machine.objects.filter(status='OP').count()
+    maintenance_machines_count = Machine.objects.filter(status='MN').count()
+    ooo_machines_count = Machine.objects.filter(status='OO').count()
+    retired_machines_count = Machine.objects.filter(status='RT').count()
+    
+    # Production orders
+    active_orders_count = ProductionOrder.objects.exclude(
+        Q(status='COMPLETED') | Q(status='CANCELLED')
+    ).count()
+    
+    # Upcoming maintenance (next 7 days)
+    upcoming_maintenance = MaintenanceSchedule.objects.filter(
+        scheduled_date__gte=timezone.now().date(),
+        scheduled_date__lte=timezone.now().date() + timedelta(days=7)
+        # completed=False
+    ).order_by('scheduled_date')[:5]
+    
+    # Production schedules for today and tomorrow
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    production_schedules = MachineSchedule.objects.filter(
+        start_time__gte=today_start,
+        end_time__lte=today_end
+    ).order_by('start_time')
+    
+    # Machine utilization data (simplified)
+    machines = Machine.objects.filter(status='OP')
+    machine_names = [m.name for m in machines]
+    machine_utilization = [75, 60, 85, 45, 90]  # In real app, calculate actual utilization
+    
+    # Work center capacity data
+    work_centers = WorkCenter.objects.all()
+    work_center_names = [wc.name for wc in work_centers]
+    work_center_available = [40, 40, 40, 40]  # Assuming 40 hours available per week
+    work_center_scheduled = [32, 28, 35, 25]  # Scheduled hours
+    
+    context = {
+        'machine_types': MachineType.objects.all(),
+        'work_centers': work_centers,
+        'operational_machines_count': operational_machines_count,
+        'maintenance_machines_count': maintenance_machines_count,
+        'ooo_machines_count': ooo_machines_count,
+        'retired_machines_count': retired_machines_count,
+        'active_orders_count': active_orders_count,
+        'upcoming_maintenance': upcoming_maintenance,
+        'production_schedules': production_schedules,
+        'machine_names': machine_names,
+        'machine_utilization': machine_utilization,
+        'work_center_names': work_center_names,
+        'work_center_available': work_center_available,
+        'work_center_scheduled': work_center_scheduled,
+        'components': components,  # Replace with actual BOMHeader queryset
+    }
+    
+    return render(request, 'MachinePlan/dashboard.html', context)

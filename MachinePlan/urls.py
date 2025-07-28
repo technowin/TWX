@@ -1,10 +1,13 @@
 # machineplan/urls.py
 from django.urls import path
+
+import MachinePlan
 # from . import vfrom MaterialPlan.views import *iews 
 
 app_name = 'mcp'
 
 
+from Account import views
 from MachinePlan.views import *
 
 urlpatterns = [
@@ -57,4 +60,6 @@ urlpatterns = [
     path('workcenters/create/', WorkCenterCreateView.as_view(), name='workcenter_create'),
     path('workcenters/<int:pk>/edit/', WorkCenterUpdateView.as_view(), name='workcenter_update'),
     path('workcenters/<int:pk>/delete/', WorkCenterDeleteView.as_view(), name='workcenter_delete'),
+
+    path('dashboard/',dashboard, name='dashboard'),
 ]
