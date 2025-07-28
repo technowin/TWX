@@ -33,7 +33,7 @@
 
 <nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{% url 'mcp:workcenter_list' %}">Operations List</a></li>
         <li class="breadcrumb-item active" aria-current="page">
             {% if object %}Edit{% else %}Add{% endif %} Operation

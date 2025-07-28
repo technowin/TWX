@@ -1,6 +1,7 @@
 # MachinePlan/views.py
 from datetime import timedelta
 from itertools import count
+import json
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Count, Q
@@ -524,9 +525,22 @@ def dashboard(request):
     ).order_by('start_time')
     
     # Machine utilization data (simplified)
-    machines = Machine.objects.filter(status='OP')
-    machine_names = [m.name for m in machines]
-    machine_utilization = [75, 60, 85, 45, 90]  # In real app, calculate actual utilization
+    machine_types = MachineType.objects.annotate(
+        operational_machines=Count('machine', filter=Q(machine__status='OP')),
+        total_machines=Count('machine')
+    )
+    
+    # Calculate utilization for each machine type
+    machine_type_data = []
+    for mt in machine_types:
+        if mt.total_machines > 0:
+            # Calculate utilization percentage (example logic - adjust as needed)
+            utilization = (mt.operational_machines / mt.total_machines) * 100
+            # Or use your actual utilization calculation logic here
+            machine_type_data.append({
+                'name': mt.name,
+                'utilization': min(round(utilization), 100)  # Cap at 100%
+            })
     
     # Work center capacity data
     work_centers = WorkCenter.objects.all()
@@ -544,8 +558,8 @@ def dashboard(request):
         'active_orders_count': active_orders_count,
         'upcoming_maintenance': upcoming_maintenance,
         'production_schedules': production_schedules,
-        'machine_names': machine_names,
-        'machine_utilization': machine_utilization,
+        'machine_type_names': json.dumps([mt['name'] for mt in machine_type_data]),
+        'machine_type_utilization': json.dumps([mt['utilization'] for mt in machine_type_data]),
         'work_center_names': work_center_names,
         'work_center_available': work_center_available,
         'work_center_scheduled': work_center_scheduled,
