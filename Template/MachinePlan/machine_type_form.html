@@ -50,7 +50,7 @@
     </div>
 
 </div>
-{% endblock %}
+{% comment %} {% endblock %} {% endcomment %}
 
 
 <div class="row justify-content-center">
@@ -94,8 +94,10 @@
         </div>
     </div>
 </div>
+
+
 {% endblock %}
-{% endblock %}
+
 {% block extra_javascript %}
 
 {% include "bootstrap/partials/syntax-highlight.html" %}

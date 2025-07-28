@@ -88,3 +88,11 @@ class OperationAdmin(admin.ModelAdmin):
     list_display = ['code', 'name', 'description']
     search_fields = ['code', 'name']
     ordering = ['code']
+
+@admin.register(MachinePlanning)
+class MachinePlanningAdmin(admin.ModelAdmin):
+    list_display = ('production_order', 'component', 'operation', 'machine', 'status', 'scheduled_start', 'scheduled_end')
+    list_filter = ('status', 'machine')
+    search_fields = ('production_order__order_number', 'component__part_number')
+    date_hierarchy = 'scheduled_start'
+    ordering = ('-scheduled_start',)
