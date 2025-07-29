@@ -25,9 +25,9 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
-
+{% comment %} 
 {% block title %}Machine Types List{% endblock %}
-{% block page_title %}Machine Types List{% endblock %}
+{% block page_title %}Machine Types List{% endblock %} {% endcomment %}
 
 {% block content %}
 {% block page_actions %}
@@ -35,7 +35,7 @@
     <div class="col">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Machine Types</li>
             </ol>
         </nav>

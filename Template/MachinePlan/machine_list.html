@@ -27,13 +27,12 @@
 {% endblock %}
 
 {% block content %}
-{% block page_actions %}
 
 <div class="row mb-3">
     <div class="col">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="#">Machine List</a></li>
             </ol>
         </nav>
@@ -45,7 +44,6 @@
     </div>
 
 </div>
-{% endblock %}
     {% comment %} <a href="{% url 'mcp:machine_create' %}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Add Machine
     </a> {% endcomment %}
@@ -57,6 +55,7 @@
                 <th>Machine ID</th>
                 <th>Name</th>
                 <th>Type</th>
+                <th>Work Center</th>
                 <th>Status</th>
                 <th>Capacity</th>
                 <th>Actions</th>
@@ -68,6 +67,7 @@
                 <td>{{ machine.machine_id }}</td>
                 <td>{{ machine.name }}</td>
                 <td>{{ machine.machine_type }}</td>
+                <td>{{ machine.work_center }}</td>
                 <td>
                     <span class="badge 
                         {% if machine.status == 'OP' %}bg-success

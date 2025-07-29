@@ -1,6 +1,7 @@
 {% extends "bootstrap/vertical_base.html" %}
 {% load static %}
 {% block extra_css %}
+{% load custom_filters %}
 <!-- Select2 css -->
 <link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
 <!-- Daterangepicker css -->
@@ -26,16 +27,26 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
-{% block title %}Machine Capabilities{% endblock %}
-{% block page_title %}Machine Capabilities{% endblock %}
 
 {% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="#">Machine Capabilities</a></li>
+                {% comment %} <li class="breadcrumb-item"><a href="#">{% if object %}Edit{% else %}Add{% endif %} Machine Type{% endblock %}</a></li> {% endcomment %}
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCapabilityModal">
+        <i class="bi bi-plus-circle"></i> Add Capability
+    </button>
+    </div>
 
-{% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCapabilityModal">
-    <i class="bi bi-plus-circle"></i> Add Capability
-</button>
-{% endblock %}
+</div>
+
 
 <div class="row mb-3">
     <div class="col-md-4">
@@ -88,8 +99,8 @@
                             data-id="{{ capability.id }}"
                             data-machine="{{ capability.machine.id }}"
                             data-component="{{ capability.component.id }}"
-                            data-setup="{{ capability.setup_time }}"
-                            data-processing="{{ capability.processing_time }}"
+                            data-setup="{{ capability.setup_time|duration_format  }}"
+                            data-processing="{{ capability.processing_time|duration_format  }}"
                             data-notes="{{ capability.notes }}">
                         <i class="bi bi-pencil"></i>
                     </button>
@@ -99,6 +110,11 @@
                             data-id="{{ capability.id }}"
                             data-name="{{ capability.machine.name }} - {{ capability.component.part_number }}">
                         <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="btn btn-sm btn-info view-btn" 
+                            data-id="{{ capability.id }}"
+                            title="View Details">
+                        <i class="bi bi-eye"></i>
                     </button>
                 </td>
             </tr>
@@ -185,7 +201,7 @@
                         <label class="form-label">Component</label>
                         <select name="component" class="form-select" required id="editComponent">
                             {% for component in components %}
-                            <option value="{{ component.id }}">{{ component.part_number }}</option>
+                            <option value="{{ component.id }}">{{ component.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -234,7 +250,49 @@
     </div>
 </div>
 
-{% block extra_js %}
+<!-- Add this modal for viewing details -->
+<div class="modal fade" id="viewCapabilityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Capability Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Machine:</strong>
+                        <p id="viewMachine"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Component:</strong>
+                        <p id="viewComponent"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Setup Time:</strong>
+                        <p id="viewSetup"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Processing Time:</strong>
+                        <p id="viewProcessing"></p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Notes:</strong>
+                    <p id="viewNotes" class="text-muted"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update your actions column in the table -->
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Filter functionality
@@ -270,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const notes = button.getAttribute('data-notes');
             
             const form = editModal.querySelector('form');
-            form.action = `/machine-planning/capabilities/${id}/edit/`;
+            form.action = "{% url 'mcp:machine_capability_update' pk=0 %}".replace('0', id);
             
             document.getElementById('editMachine').value = machineId;
             document.getElementById('editComponent').value = componentId;
@@ -294,9 +352,26 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('deleteName').textContent = name;
         });
     }
+
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const capabilityId = this.getAttribute('data-id');
+            fetch(`/machine-planning/capabilities/${capabilityId}/detail/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('viewMachine').textContent = data.machine;
+                    document.getElementById('viewComponent').textContent = data.component;
+                    document.getElementById('viewSetup').textContent = data.setup_time;
+                    document.getElementById('viewProcessing').textContent = data.processing_time;
+                    document.getElementById('viewNotes').textContent = data.notes;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('viewCapabilityModal'));
+                    modal.show();
+                });
+        });
+    });
 });
 </script>
-{% endblock %}
 {% endblock %}
 
 

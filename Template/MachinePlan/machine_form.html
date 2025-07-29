@@ -30,15 +30,14 @@
 {% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Machine Type{% endblock %} {% endcomment %}
 
 {% block content %}
-{% block page_actions %}
 
 <div class="row mb-3">
     <div class="col">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="#">Machine List</a></li>
-                <li class="breadcrumb-item"><a href="#">{% if object %}Edit{% else %}Add{% endif %} Machine {% endblock %}</a></li>
+                <li class="breadcrumb-item"><a href="#">{% if object %}Edit{% else %}Add{% endif %} Machine </a></li>
             </ol>
         </nav>
     </div>
@@ -79,6 +78,16 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    <div class="mb-3">
+                        {{ form.work_center.label_tag }}
+                        {{ form.work_center }}
+                        {% if form.work_center.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.work_center.errors.as_text }}
+                        </div>
+                        {% endif %}
+                    </div>
                     
                     <div class="mb-3">
                         {{ form.machine_type.label_tag }}
@@ -89,6 +98,8 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    
                     
                     <div class="mb-3">
                         {{ form.status.label_tag }}

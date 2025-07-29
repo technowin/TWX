@@ -1,6 +1,10 @@
 # MachinePlan/views.py
-from pyexpat.errors import messages
+from datetime import timedelta
+from itertools import count
+import json
+from django.contrib import messages
 from django.http import JsonResponse
+from django.db.models import Count, Q
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -303,6 +307,14 @@ class RoutingListView(ListView):
         queryset = super().get_queryset()
         return queryset.select_related('component', 'operation', 'work_center')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add dropdown options for the modal forms
+        context['components'] = BOMHeader.objects.all()
+        context['operations'] = Operation.objects.all()
+        context['work_centers'] = WorkCenter.objects.all()
+        return context
+
 class RoutingCreateView(CreateView):
     model = Routing
     form_class = RoutingForm
@@ -321,125 +333,71 @@ class RoutingDeleteView(DeleteView):
     success_url = reverse_lazy('mcp:routing_list')
 
 
-def machine_planning_list(request):
-    plans = MachinePlanning.objects.all().select_related(
-        'production_order', 'component', 'operation', 'machine'
-    ).order_by('scheduled_start')
+class MachinePlanningListView(ListView):
+    model = MachinePlanning
+    template_name = 'MachinePlan/machine_planning_list.html'
+    context_object_name = 'plans'
     
-    # AJAX request handling
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        data = {
-            'html': render_to_string('MachinePlan/partials/planning_table.html', {'plans': plans}, request=request)
-        }
-        return JsonResponse(data)
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'production_order', 'component', 'operation', 'machine'
+        ).order_by('scheduled_start')
     
-    return render(request, 'MachinePlan/machine_planning_list.html', {'plans': plans})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add the additional context needed for dropdowns
+        context['production_orders'] = ProductionOrder.objects.all()
+        context['components'] = BOMHeader.objects.all()
+        context['operations'] = Operation.objects.all()
+        context['machines'] = Machine.objects.all()
+        status_field = MachinePlanning._meta.get_field('status')
+        context['status_choices'] = status_field.choices  # Assuming STATUS_CHOICES is defined in your model
+        return context
 
-def machine_planning_create(request):
-    if request.method == 'POST':
-        form = MachinePlanningForm(request.POST)
-        if form.is_valid():
-            plan = form.save()
-            
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Machine Schedule created successfully!'
-                })
-            return redirect(reverse('machine_planning_list'))
-        
-        # Form is invalid
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': False,
-                'errors': form.errors,
-                'form_html': render_to_string(
-                    'MachinePlan/partials/planning_form.html', 
-                    {'form': form}, 
-                    request=request
-                )
-            }, status=400)
-        return render(request, 'MachinePlan/machine_planning_list.html', {'form': form})
+class MachinePlanningCreateView(CreateView):
+    model = MachinePlanning
+    form_class = MachinePlanningForm
+    success_url = reverse_lazy('mcp:machine_planning_list')
     
-    # GET request
-    form = MachinePlanningForm()
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
+        messages.success(self.request, "Schedule created successfully!")
+        return response
     
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({
-            'form_html': render_to_string(
-                'MachinePlan/partials/planning_form.html', 
-                {'form': form}, 
-                request=request
-            )
-        })
-    
-    return render(request, 'MachinePlan/machine_planning_list.html', {'form': form})
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        return super().form_invalid(form)
 
-def machine_planning_edit(request, pk):
-    plan = get_object_or_404(MachinePlanning, pk=pk)
+class MachinePlanningUpdateView(UpdateView):
+    model = MachinePlanning
+    form_class = MachinePlanningForm
+    success_url = reverse_lazy('mcp:machine_planning_list')
     
-    if request.method == 'POST':
-        form = MachinePlanningForm(request.POST, instance=plan)
-        if form.is_valid():
-            form.save()
-            
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Machine Schedule updated successfully!'
-                })
-            return redirect(reverse('machine_planning_list'))
-        
-        # Form is invalid
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': False,
-                'errors': form.errors,
-                'form_html': render_to_string(
-                    'MachinePlan/partials/planning_form.html', 
-                    {'form': form, 'plan': plan}, 
-                    request=request
-                )
-            }, status=400)
-        return render(request, 'MachinePlan/machine_planning_list.html', {'form': form, 'plan': plan})
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
+        messages.success(self.request, "Schedule updated successfully!")
+        return response
     
-    # GET request
-    form = MachinePlanningForm(instance=plan)
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({
-            'form_html': render_to_string(
-                'MachinePlan/partials/planning_form.html', 
-                {'form': form, 'plan': plan}, 
-                request=request
-            )
-        })
-    
-    return render(request, 'MachinePlan/machine_planning_list.html', {'form': form, 'plan': plan})
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        return super().form_invalid(form)
 
-def machine_planning_delete(request, pk):
-    plan = get_object_or_404(MachinePlanning, pk=pk)
+class MachinePlanningDeleteView(DeleteView):
+    model = MachinePlanning
+    success_url = reverse_lazy('mcp:machine_planning_list')
     
-    if request.method == 'POST':
-        plan.delete()
-        
+    def delete(self, request, *args, **kwargs):
+        response = super().delete(request, *args, **kwargs)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': True,
-                'message': 'Machine Schedule deleted successfully!'
-            })
-        return redirect(reverse('machine_planning_list'))
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({
-            'confirm_html': render_to_string(
-                'MachinePlan/partials/delete_confirm.html', 
-                {'item': plan, 'type': 'Machine Schedule'}, 
-                request=request
-            )
-        })
-    
-    return render(request, 'MachinePlan/machine_planning_list.html', {'plan': plan})
+            return JsonResponse({'success': True})
+        messages.success(request, "Schedule deleted successfully!")
+        return response
 
 
 class OperationListView(ListView):
@@ -460,10 +418,28 @@ class OperationUpdateView(UpdateView):
     template_name = 'MachinePlan/operation_form.html'
     success_url = reverse_lazy('mcp:operation_list')
 
+
 class OperationDeleteView(DeleteView):
     model = Operation
-    template_name = 'MachinePlan/operation_confirm_delete.html'
     success_url = reverse_lazy('mcp:operation_list')
+    
+    def form_valid(self, form):
+        success_message = "Operation deleted successfully!"
+        self.object = self.get_object()
+        self.object.delete()
+        
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'message': success_message
+            })
+        else:
+            # For regular requests, add message and redirect
+            messages.success(self.request, success_message)
+            return super().form_valid(form)
+    
+    def delete(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
 
 
 class WorkCenterListView(ListView):
@@ -477,14 +453,126 @@ class WorkCenterCreateView(CreateView):
     form_class = WorkCenterForm
     template_name = 'MachinePlan/workcenter_form.html'
     success_url = reverse_lazy('mcp:workcenter_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Work Center created successfully!")
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, "Please correct the errors below.")
+        return super().form_invalid(form)
 
 class WorkCenterUpdateView(UpdateView):
     model = WorkCenter
     form_class = WorkCenterForm
     template_name = 'MachinePlan/workcenter_form.html'
     success_url = reverse_lazy('mcp:workcenter_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Work Center updated successfully!")
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, "Please correct the errors below.")
+        return super().form_invalid(form)
+
 
 class WorkCenterDeleteView(DeleteView):
     model = WorkCenter
-    template_name = 'MachinePlan/workcenter_confirm_delete.html'
     success_url = reverse_lazy('mcp:workcenter_list')
+    
+    def form_valid(self, form):
+        """Handle successful form submission (DELETE request)"""
+        success_message = "Work Center deleted successfully!"
+        self.object = self.get_object()
+        self.object.delete()
+        
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # For AJAX requests, return JSON with message
+            return JsonResponse({
+                'status': 'success',
+                'message': success_message
+            })
+        else:
+            # For regular requests, add message and redirect
+            messages.success(self.request, success_message)
+            return super().form_valid(form)
+    
+    def delete(self, request, *args, **kwargs):
+        """Override delete to ensure compatibility"""
+        return self.post(request, *args, **kwargs)
+    
+def dashboard(request):
+    # Machine status counts
+    machine_status_counts = Machine.objects.values('status').annotate(count=Count('status'))
+    status_map = {'OP': 'Operational', 'MN': 'Maintenance', 'OO': 'Out of Order', 'RT': 'Retired'}
+    components= BOMHeader.objects.all()
+    
+    operational_machines_count = Machine.objects.filter(status='OP').count()
+    maintenance_machines_count = Machine.objects.filter(status='MN').count()
+    ooo_machines_count = Machine.objects.filter(status='OO').count()
+    retired_machines_count = Machine.objects.filter(status='RT').count()
+    
+    # Production orders
+    active_orders_count = ProductionOrder.objects.exclude(
+        Q(status='COMPLETED') | Q(status='CANCELLED')
+    ).count()
+    
+    # Upcoming maintenance (next 7 days)
+    upcoming_maintenance = MaintenanceSchedule.objects.filter(
+        scheduled_date__gte=timezone.now().date(),
+        scheduled_date__lte=timezone.now().date() + timedelta(days=7)
+        # completed=False
+    ).order_by('scheduled_date')[:5]
+    
+    # Production schedules for today and tomorrow
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    production_schedules = MachineSchedule.objects.filter(
+        start_time__gte=today_start,
+        end_time__lte=today_end
+    ).order_by('start_time')
+    
+    # Machine utilization data (simplified)
+    machine_types = MachineType.objects.annotate(
+        operational_machines=Count('machine', filter=Q(machine__status='OP')),
+        total_machines=Count('machine')
+    )
+    
+    # Calculate utilization for each machine type
+    machine_type_data = []
+    for mt in machine_types:
+        if mt.total_machines > 0:
+            # Calculate utilization percentage (example logic - adjust as needed)
+            utilization = (mt.operational_machines / mt.total_machines) * 100
+            # Or use your actual utilization calculation logic here
+            machine_type_data.append({
+                'name': mt.name,
+                'utilization': min(round(utilization), 100)  # Cap at 100%
+            })
+    
+    # Work center capacity data
+    work_centers = WorkCenter.objects.all()
+    work_center_names = [wc.name for wc in work_centers]
+    work_center_available = [40, 40, 40, 40]  # Assuming 40 hours available per week
+    work_center_scheduled = [32, 28, 35, 25]  # Scheduled hours
+    
+    context = {
+        'machine_types': MachineType.objects.all(),
+        'work_centers': work_centers,
+        'operational_machines_count': operational_machines_count,
+        'maintenance_machines_count': maintenance_machines_count,
+        'ooo_machines_count': ooo_machines_count,
+        'retired_machines_count': retired_machines_count,
+        'active_orders_count': active_orders_count,
+        'upcoming_maintenance': upcoming_maintenance,
+        'production_schedules': production_schedules,
+        'machine_type_names': json.dumps([mt['name'] for mt in machine_type_data]),
+        'machine_type_utilization': json.dumps([mt['utilization'] for mt in machine_type_data]),
+        'work_center_names': work_center_names,
+        'work_center_available': work_center_available,
+        'work_center_scheduled': work_center_scheduled,
+        'components': components,  # Replace with actual BOMHeader queryset
+    }
+    
+    return render(request, 'MachinePlan/dashboard.html', context)

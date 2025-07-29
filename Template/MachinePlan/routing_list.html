@@ -27,17 +27,24 @@
 {% endblock %}
 {% load static %}
 
-{% block title %}BOM Routing Management{% endblock %}
-{% block page_title %}BOM Routing Management{% endblock %}
 
 {% block content %}
 
-{% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoutingModal">
-    <i class="bi bi-plus-circle"></i> Add Routing
-</button>
-{% endblock %}
-
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Routing List</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoutingModal">
+            <i class="bi bi-plus-circle"></i> Add Routing
+        </button>
+    </div>
+</div>
 <div class="table-responsive">
     <table class="table table-hover">
         <thead>
@@ -71,7 +78,7 @@
                             data-work-center="{{ routing.work_center.id }}"
                             data-setup="{{ routing.setup_time }}"
                             data-run-time="{{ routing.run_time_per_unit }}"
-                            data-notes="{{ routing.notes }}">
+                            data-notes="{{ routing.notes|default:'' }}">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-danger" 
@@ -111,7 +118,7 @@
                                 <label class="form-label">Component</label>
                                 <select name="component" class="form-select" required>
                                     {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.part_number }}</option>
+                                    <option value="{{ component.id }}">{{ component.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -180,7 +187,7 @@
                                 <label class="form-label">Component</label>
                                 <select name="component" class="form-select" required id="editComponent">
                                     {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.name }}</option>
+                                    <option value="{{ component.id }}">{{ component.part_number }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -255,9 +262,8 @@
     </div>
 </div>
 
-{% endblock %}
 
-{% block extra_js %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Edit modal setup
@@ -265,43 +271,52 @@ document.addEventListener('DOMContentLoaded', function() {
     if (editModal) {
         editModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
-            const id = button.getAttribute('data-id');
-            const componentId = button.getAttribute('data-component');
-            const sequence = button.getAttribute('data-sequence');
-            const operationId = button.getAttribute('data-operation');
-            const workCenterId = button.getAttribute('data-work-center');
-            const setupTime = button.getAttribute('data-setup');
-            const runTime = button.getAttribute('data-run-time');
-            const notes = button.getAttribute('data-notes');
+            const routingId = button.dataset.id;
             
-            const form = editModal.querySelector('form');
-            form.action = `/machine-planning/routings/${id}/edit/`;
-            
-            document.getElementById('editComponent').value = componentId;
-            document.getElementById('editSequence').value = sequence;
-            document.getElementById('editOperation').value = operationId;
-            document.getElementById('editWorkCenter').value = workCenterId;
-            document.getElementById('editSetup').value = setupTime;
-            document.getElementById('editRunTime').value = runTime;
-            document.getElementById('editNotes').value = notes;
-        });
-    }
-    
-    // Delete modal setup
-    const deleteModal = document.getElementById('deleteModal');
-    if (deleteModal) {
-        deleteModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const id = button.getAttribute('data-id');
-            const name = button.getAttribute('data-name');
-            
-            const form = deleteModal.querySelector('form');
-            form.action = `/machine-planning/routings/${id}/delete/`;
-            
-            document.getElementById('deleteName').textContent = name;
+            // Update form action
+            const form = this.querySelector('form');
+            form.action = `/mcp/routings/${routingId}/edit/`;
+
+            // Set all values - more defensive approach
+            const setValue = (id, value) => {
+                const el = document.getElementById(id);
+                if (el && value !== null) el.value = value;
+            };
+
+            setValue('editComponent', button.dataset.component);
+            setValue('editSequence', button.dataset.sequence);
+            setValue('editOperation', button.dataset.operation);
+            setValue('editWorkCenter', button.dataset.workCenter);
+            setValue('editSetup', button.dataset.setup);
+            setValue('editRunTime', button.dataset.runTime);
+            setValue('editNotes', button.dataset.notes || '');
         });
     }
 });
 </script>
 {% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
+
 

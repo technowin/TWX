@@ -26,18 +26,23 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
-
-{% block title %}Operations Management{% endblock %}
-{% block page_title %}Operations Management{% endblock %}
-
 {% block content %}
 
-{% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addOperationModal">
-    <i class="bi bi-plus-circle"></i> Add Operation
-</button>
-{% endblock %}
-
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Operation List</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addOperationModal">
+            <i class="bi bi-plus-circle"></i> Add Operation
+        </button>
+    </div>
+</div>
 <div class="table-responsive">
     <table class="table table-hover">
         <thead>
@@ -155,9 +160,8 @@
     <!-- Same delete modal as in routing_list.html -->
 </div>
 
-{% endblock %}
 
-{% block extra_js %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Edit modal setup
@@ -171,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const description = button.getAttribute('data-description');
             
             const form = editModal.querySelector('form');
-            form.action = `/machine-planning/operations/${id}/edit/`;
+            form.action = `/mcp/operations/${id}/edit/`;
             
             document.getElementById('editCode').value = code;
             document.getElementById('editName').value = name;
@@ -188,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = button.getAttribute('data-name');
             
             const form = deleteModal.querySelector('form');
-            form.action = `/machine-planning/operations/${id}/delete/`;
+            form.action = `/mcp/operations/${id}/delete/`;
             
             document.getElementById('deleteName').textContent = name;
         });

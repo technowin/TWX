@@ -2162,6 +2162,7 @@ def common_form_edit(request):
     wfSelected_id = request.POST.get("wfSelected_id")
     actual_step_id = request.POST.get("actual_step_id")
     module = request.POST.get("module")  
+    wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
 
     try:
         if request.method != "POST":
@@ -2273,14 +2274,14 @@ def common_form_edit(request):
                 wfdetailsid = None
 
             status_from_matrix = ''
-            if step_id:
-                matrix_entry = workflow_matrix.objects.filter(id=step_id).first()
+            if actual_step_id:
+                matrix_entry = workflow_matrix.objects.filter(id=wfDetailsTable_id).first()
                 if matrix_entry:
                     status_from_matrix = matrix_entry.status
 
-            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+            if wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
                 # Update existing workflow detail
-                workflow_detail = workflow_details.objects.get(id=wfdetailsid)
+                workflow_detail = workflow_details.objects.get(id=wfDetailsTable_id)
                 workflow_detail.form_data_id = form_data_id
                 workflow_detail.role_id = role_idC
                 workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
@@ -2289,6 +2290,7 @@ def common_form_edit(request):
                 workflow_detail.status = status_from_matrix
                 workflow_detail.user_id = user
                 workflow_detail.updated_by = user
+                workflow_detail.workflow_id = wfSelected_id
                 workflow_detail.updated_at = now()
                 workflow_detail.save()
             else:
@@ -2306,6 +2308,7 @@ def common_form_edit(request):
                     user_id=user,
                     created_by=user,
                     updated_by=user,
+                    
                     created_at=now(),
                     updated_at=now(),
                     primary_key=primary_key
@@ -2488,6 +2491,32 @@ def common_form_action(request):
     actual_step_id = request.POST.get('actual_step_id', '')
     wd_Done_step_id = int(actual_step_id) - 1
     wfDetailsTable_id = request.POST.get('wfDetailsTable_id', '')
+    
+    # exists = history_workflow_details.objects.filter(
+    #     workflow_id=wfSelected_id,
+    #     step_id=wd_Done_step_id,
+    #     sent_back=1
+    #     ).exists()
+    sent_back_row = history_workflow_details.objects.filter(
+        workflow_id=wfSelected_id,
+        step_id=wd_Done_step_id,
+        sent_back=1
+    ).order_by('-id').first()  # Assuming higher ID means later
+
+    exists = False
+
+    if sent_back_row:
+        req_id = sent_back_row.req_id  # get the req_id of that row
+        current_id = sent_back_row.id  # or use created_at if preferred
+
+        # Step 2: Check if any later rows exist for the same req_id
+        has_later_rows = history_workflow_details.objects.filter(
+            req_id=req_id,
+            id__gt=current_id  # check if any row has greater ID
+        ).exists()
+
+        if not has_later_rows:
+            exists = True  # only if no newer rows exist
     try:
         if request.method == 'POST':
 
@@ -2560,7 +2589,12 @@ def common_form_action(request):
             if workflow_YN == '1E' or workflow_YN == '1':
         
                 wfdetailsid = request.POST.get('wfdetailsid', '')
+                
                 step_id = request.POST.get('actual_step_id', '')
+                if exists:
+                    actual_step_id = int(actual_step_id) - 1
+                    # wd_Done_step_id = actual_step_id - 1
+                    step_id = int(step_id)-1
                 role_idC = request.POST.get('role_id', '')
                 category_dropdownOpr = request.POST.get('category_dropdownOpr', '')
 
@@ -2573,8 +2607,22 @@ def common_form_action(request):
                     matrix_entry = workflow_matrix.objects.filter(step_id_flow=wd_Done_step_id,wf_id=wfSelected_id).first()
                     if matrix_entry:
                         status_from_matrix = matrix_entry.status  # adjust field name if needed
-                        
-                if wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
+                if exists:
+                    if wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
+                        # Update existing record
+                        workflow_detail = workflow_details.objects.get(id=wfDetailsTable_id,step_id=wd_Done_step_id,workflow_id=wfSelected_id)
+                        # workflow_detail.form_data_id = form_data_id
+                        # workflow_detail.role_id = request.POST.get('role_id', '')
+                        # workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
+                        # workflow_detail.increment_id += 1
+                        # workflow_detail.step_id = request.POST.get('actual_step_id', '')
+                        # workflow_detail.status = status_from_matrix or ''
+                        # workflow_detail.user_id = user
+                        workflow_detail.updated_by = user  # Or use `modified_by` if applicable
+                        workflow_detail.updated_at = now()
+                        workflow_detail.save() 
+                            
+                elif(wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists()):
                     # Update existing record
                     workflow_detail = workflow_details.objects.get(id=wfDetailsTable_id,step_id=wd_Done_step_id,workflow_id=wfSelected_id)
                     workflow_detail.form_data_id = form_data_id
@@ -2587,22 +2635,23 @@ def common_form_action(request):
                     workflow_detail.updated_by = user  # Or use `modified_by` if applicable
                     workflow_detail.updated_at = now()
                     workflow_detail.save() 
-                elif(role_idC == '1'):    
-                    workflow_detail = workflow_details.objects.create(
-                    form_data_id=form_data_id,
-                    role_id=request.POST.get('role_id', ''),
-                    action_details_id=request.POST.get('action_detail_id', ''),
-                    increment_id=1,
-                    # form_id=request.POST.get('form_id', ''),
-                    # action_id=request.POST.get('action_id', ''),
-                    status = status_from_matrix or '',
-                    step_id=request.POST.get('actual_step_id', ''),
-                    operator=request.POST.get('custom_dropdownOpr', ''),
-                    user_id=user,
-                    created_by=user,
-                    created_at=now()
+                
+                # elif(role_idC == '1'):    
+                #     workflow_detail = workflow_details.objects.create(
+                #     form_data_id=form_data_id,
+                #     role_id=request.POST.get('role_id', ''),
+                #     action_details_id=request.POST.get('action_detail_id', ''),
+                #     increment_id=1,
+                #     # form_id=request.POST.get('form_id', ''),
+                #     # action_id=request.POST.get('action_id', ''),
+                #     status = status_from_matrix or '',
+                #     step_id=request.POST.get('actual_step_id', ''),
+                #     operator=request.POST.get('custom_dropdownOpr', ''),
+                #     user_id=user,
+                #     created_by=user,
+                #     created_at=now()
                     
-                    )   
+                #     )   
                 else:    
                     workflow_detail = workflow_details.objects.create(
                     form_data_id=form_data_id,
