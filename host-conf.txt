@@ -169,6 +169,7 @@ python manage.py makemigrations Reports
 python manage.py makemigrations Workflow
 python manage.py makemigrations BOM
 python manage.py makemigrations MaterialPlan
+python manage.py makemigrations BookMetadata
 
 python manage.py migrate Account
 python manage.py migrate Masters
@@ -177,6 +178,7 @@ python manage.py migrate Reports
 python manage.py migrate Workflow
 python manage.py migrate BOM
 python manage.py migrate MaterialPlan
+python manage.py migrate BookMetadata
 
 
 python manage.py migrate Account
@@ -188,6 +190,7 @@ git config --global user.name "technowin"
 git config --global user.email "technowinitinfra@gmail.com"
 git remote add origin https://github.com/technowin/TWX.git
 
+python manage.py startapp BookMetadata
 
 #######  FOR GUNICORN TIMEOUT  ######
 

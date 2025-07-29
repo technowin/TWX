@@ -29,6 +29,7 @@ from MenuManager.views import *
 from Workflow.views import *
 from BOM.views import *
 from MaterialPlan.views import *
+from BookMetadata.views import *
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
@@ -140,6 +141,12 @@ urlpatterns = [
     path('production-orders/create/',ProductionOrderCreateView.as_view(), name='production_order_create'),
     path('production-orders/<int:pk>/',ProductionOrderDetailView.as_view(), name='production_order_detail'),
 
+    # Book Metadata
+    path('book_list/', BookListView.as_view(), name='book_list'),
+    path('book_create/', BookCreateView.as_view(), name='book_create'),
+    path('<int:pk>/', BookDetailView.as_view(), name='book_detail'),
+    path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
+    path('book_upload/', BookUploadView.as_view(), name='book_upload'),
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
