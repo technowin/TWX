@@ -1,6 +1,7 @@
 {% extends "bootstrap/vertical_base.html" %}
 {% load static %}
 {% block extra_css %}
+{% load custom_filters %}
 <!-- Select2 css -->
 <link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
 <!-- Daterangepicker css -->
@@ -84,8 +85,8 @@
             <tr>
                 <td>{{ schedule.machine.name }}</td>
                 <td>{{ schedule.component.part_number }}</td>
-                <td>{{ schedule.start_time|date:"Y-m-d H:i" }}</td>
-                <td>{{ schedule.end_time|date:"Y-m-d H:i" }}</td>
+                <td>{{ schedule.start_time|duration_format }}</td>
+                <td>{{ schedule.end_time|duration_format }}</td>
                 <td>
                     <span class="badge 
                         {% if schedule.status == 'PL' %}bg-info

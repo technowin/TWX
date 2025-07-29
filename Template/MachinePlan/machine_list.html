@@ -27,15 +27,13 @@
 {% endblock %}
 
 {% block content %}
-{% block page_actions %}
 
 <div class="row mb-3">
     <div class="col">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="#">Machine List</a></li>
-               <li class="breadcrumb-item active" aria-current="page">{{ component.part_number }}</li> 
             </ol>
         </nav>
     </div>
@@ -49,7 +47,6 @@
     {% comment %} <a href="{% url 'mcp:machine_create' %}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> Add Machine
     </a> {% endcomment %}
-{% endblock %}
 
 <div class="table-responsive">
     <table class="table table-hover">
@@ -58,6 +55,7 @@
                 <th>Machine ID</th>
                 <th>Name</th>
                 <th>Type</th>
+                <th>Work Center</th>
                 <th>Status</th>
                 <th>Capacity</th>
                 <th>Actions</th>
@@ -69,6 +67,7 @@
                 <td>{{ machine.machine_id }}</td>
                 <td>{{ machine.name }}</td>
                 <td>{{ machine.machine_type }}</td>
+                <td>{{ machine.work_center }}</td>
                 <td>
                     <span class="badge 
                         {% if machine.status == 'OP' %}bg-success
@@ -86,9 +85,10 @@
                     <a href="{% url 'mcp:machine_update' machine.pk %}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i>
                     </a>
-                    <a href="{% url 'mcp:machine_delete' machine.pk %}" class="btn btn-sm btn-danger">
+                    {% comment %} <button onclick="confirmDelete('{% url 'mcp:machine_delete' machine.pk %}', '{{ machine.name }}')" 
+                            class="btn btn-sm btn-danger">
                         <i class="bi bi-trash"></i>
-                    </a>
+                    </button> {% endcomment %}
                 </td>
             </tr>
             {% empty %}
@@ -127,7 +127,9 @@
     </nav>
     {% endif %}
 </div>
-{% endblock %}
+
+
+
 {% block extra_javascript %}
 
 {% include "bootstrap/partials/syntax-highlight.html" %}
@@ -147,5 +149,83 @@
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{% endblock %}
+
+<script>
+function confirmDelete(url, machineName) {
+    const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    
+    Swal.fire({
+        title: 'Confirm Delete',
+        html: `Are you sure you want to delete <strong>${machineName}</strong>?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        background: theme === 'dark' ? '#343a40' : '#ffffff',
+        color: theme === 'dark' ? '#f8f9fa' : '#212529',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-danger px-4 py-2',
+            cancelButton: 'btn btn-secondary px-4 py-2 ms-2'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Send delete request
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Reload the page to see changes
+                    location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to delete machine.',
+                        icon: 'error'
+                    });
+                }
+            }).catch(error => {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while deleting.',
+                    icon: 'error'
+                });
+            });
+        }
+    });
+}
+
+
+
+{% if messages %}
+    document.addEventListener("DOMContentLoaded", function () {
+        const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+        {% for message in messages %}
+        Swal.fire({
+            title: "{{ message.tags|title }}",
+            text: "{{ message|escapejs }}",
+            icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+            confirmButtonText: "OK",
+            background: theme === 'dark' ? '#343a40' : '#ffffff',
+            color: theme === 'dark' ? '#f8f9fa' : '#212529',
+            confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+            customClass: {
+                popup: 'rounded-4 shadow',
+                confirmButton: 'btn btn-primary px-4 py-2'
+            }
+        });
+        {% endfor %}
+    });
+{% endif %}
+</script>
 
 {% endblock %}

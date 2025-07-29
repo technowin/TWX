@@ -36,7 +36,7 @@ class MachineForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Machine
         fields = [
-            'machine_id', 'name', 'machine_type', 'status', 
+            'machine_id', 'name', 'machine_type','work_center','status', 
             'manufacturer', 'model_number', 'serial_number',
             'installation_date', 'capacity', 'operational_hours_per_day', 'notes'
         ]
@@ -44,6 +44,7 @@ class MachineForm(BootstrapFormMixin, forms.ModelForm):
             'machine_id': forms.TextInput(attrs={'placeholder': 'Enter machine ID'}),
             'name': forms.TextInput(attrs={'placeholder': 'Enter machine name'}),
             'machine_type': forms.Select(attrs={'class': 'form-select'}),
+            'work_center': forms.Select(attrs={'class': 'form-select','required': 'required','data-placeholder': 'Select work center'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'manufacturer': forms.TextInput(attrs={'placeholder': 'Enter manufacturer'}),
             'model_number': forms.TextInput(attrs={'placeholder': 'Enter model number'}),
@@ -195,7 +196,7 @@ class RoutingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Add any custom queryset filtering if needed
         # For example:
-        self.fields['work_center'].queryset = WorkCenter.objects.filter(is_active=True)
+        # self.fields['work_center'].queryset = WorkCenter.objects.filter(is_active=True)
 
 class MachinePlanningForm(forms.ModelForm):
     class Meta:

@@ -1103,10 +1103,10 @@
             }
 
 
-            //if (!form.checkValidity()) {
-            //    form.reportValidity();
-            //    return;
-            //}
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
             if (buttonType === 'Submit' && type === 'create') {
                 operatorDropdown.removeAttribute('required');
                 form.action = "{% url 'common_form_post' %}";

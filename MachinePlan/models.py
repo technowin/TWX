@@ -37,6 +37,7 @@ class Machine(models.Model):
     machine_id = models.CharField(max_length=50, unique=True, verbose_name="Machine ID")
     name = models.CharField(max_length=100)
     machine_type = models.ForeignKey(MachineType, on_delete=models.PROTECT)
+    work_center = models.ForeignKey('MachinePlan.WorkCenter', on_delete=models.CASCADE)
     status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='OP')
     manufacturer = models.CharField(max_length=100, blank=True)
     model_number = models.CharField(max_length=50, blank=True)
@@ -69,8 +70,8 @@ class MachineCapability(models.Model):
     """What operations/components a machine can handle"""
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='capabilities')
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE)
-    setup_time = models.TimeField(help_text="Time required to setup machine for this component")
-    processing_time = models.TimeField(help_text="Time required to process one unit")
+    setup_time = models.DurationField(help_text="Time required to setup machine for this component")
+    processing_time = models.DurationField(help_text="Time required to process one unit")
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

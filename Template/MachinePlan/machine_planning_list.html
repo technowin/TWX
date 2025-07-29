@@ -51,7 +51,7 @@
     <div class="col-md-3">
         <select class="form-select" id="statusFilter">
             <option value="">All Statuses</option>
-            {% for value, display in status_choices %}
+            {% for value, display in status %}
             <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
                 {{ display }}
             </option>
@@ -160,7 +160,7 @@
                                 <label class="form-label">Component</label>
                                 <select name="component" class="form-select select2" required>
                                     {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.part_number }}</option>
+                                    <option value="{{ component.id }}">{{ component.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -185,7 +185,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select" required>
-                                    {% for value, display in status_choices %}
+                                    {% for value, display in status %}
                                     <option value="{{ value }}">{{ display }}</option>
                                     {% endfor %}
                                 </select>
@@ -247,9 +247,7 @@
     </div>
 </div>
 
-{% endblock %}
 
-{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Select2

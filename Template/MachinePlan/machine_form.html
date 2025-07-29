@@ -25,11 +25,32 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
-
-{% block title %}{% if object %}Edit{% else %}Add{% endif %} Machine{% endblock %}
-{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Machine{% endblock %}
+{% comment %} 
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Machine Type{% endblock %}
+{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Machine Type{% endblock %} {% endcomment %}
 
 {% block content %}
+
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="#">Machine List</a></li>
+                <li class="breadcrumb-item"><a href="#">{% if object %}Edit{% else %}Add{% endif %} Machine </a></li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="bi bi-box"></i> {% if object %}Edit {{ object.name }}{% else %}Create New Machine{% endif %}
+        </h2>
+    </div>
+</div>
+
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     
@@ -57,6 +78,16 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    <div class="mb-3">
+                        {{ form.work_center.label_tag }}
+                        {{ form.work_center }}
+                        {% if form.work_center.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.work_center.errors.as_text }}
+                        </div>
+                        {% endif %}
+                    </div>
                     
                     <div class="mb-3">
                         {{ form.machine_type.label_tag }}
@@ -67,6 +98,8 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    
                     
                     <div class="mb-3">
                         {{ form.status.label_tag }}

@@ -8,7 +8,7 @@
 
 {% load static %}
 
-{% block title %}{{ component.part_number }}{% endblock %}
+{% block title %}Material Plan{% endblock %}
 
 {% block extra_css %}
 <!-- Select2 css -->
@@ -39,258 +39,273 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="mt-4">Material Plan: {{ plan.name }}</h1>
-            <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item"><a href="{% url '/dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item active">Material Plan</li>
-            </ol>
-            
-            <!-- Plan Summary Card -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Plan Summary
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <h5>Product Details</h5>
-                            <p><strong>BOM:</strong> {{ plan.bom.name }} (Rev: {{ plan.bom.revision }})</p>
-                            <p><strong>Quantity:</strong> {{ plan.quantity }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h5>Order Details</h5>
-                            {% if plan.production_order %}
-                            <p><strong>Production Order:</strong> {{ plan.production_order.order_number }}</p>
-                            {% endif %}
-                            {% if plan.sales_order_reference %}
-                            <p><strong>Sales Order:</strong> {{ plan.sales_order_reference }}</p>
-                            {% endif %}
-                            <p><strong>Due Date:</strong> {{ plan.due_date|date:"Y-m-d" }}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h5>Plan Status</h5>
-                            <p>
-                                <strong>Status:</strong> 
-                                <span class="badge 
-                                    {% if plan.status == 'draft' %}bg-secondary
-                                    {% elif plan.status == 'confirmed' %}bg-primary
-                                    {% elif plan.status == 'executed' %}bg-success
-                                    {% else %}bg-dark{% endif %}">
-                                    {{ plan.get_status_display }}
-                                </span>
-                            </p>
-                            <p><strong>Created:</strong> {{ plan.created_at|date:"Y-m-d" }} by {{ plan.created_by }}</p>
-                            <p><strong>Last Updated:</strong> {{ plan.last_updated|date:"Y-m-d H:i" }}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <a href="{% url '/plan_update' pk=plan.id %}" class="btn btn-primary">
-                                <i class="fas fa-edit"></i> Edit Plan
-                            </a>
-                        </div>
-                        <div>
-                            {% if plan.status == 'draft' %}
-                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#confirmPlanModal">
-                                <i class="fas fa-check"></i> Confirm Plan
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Material Requirements Card -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-list-ol me-1"></i>
-                    Material Requirements
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Component</th>
-                                    <th>Description</th>
-                                    <th>Required Qty</th>
-                                    <th>In Stock</th>
-                                    <th>To Purchase</th>
-                                    <th>To Produce</th>
-                                    <th>Reserved</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in items %}
-                                <tr>
-                                    <td>{{ item.component.part_number }}</td>
-                                    <td>{{ item.component.description }}</td>
-                                    <td>{{ item.quantity_required }}</td>
-                                    <td>{{ item.quantity_available }}</td>
-                                    <td>{{ item.quantity_to_purchase }}</td>
-                                    <td>{{ item.quantity_to_produce }}</td>
-                                    <td>{{ item.quantity_reserved }}</td>
-                                    <td>
-                                        <span class="badge 
-                                            {% if item.status == 'pending' %}bg-secondary
-                                            {% elif item.status == 'reserved' %}bg-success
-                                            {% elif item.status == 'partially_fulfilled' %}bg-warning
-                                            {% else %}bg-primary{% endif %}">
-                                            {{ item.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{% url '/item_update' pk=item.id %}" class="btn btn-primary">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            {% if item.quantity_available > 0 %}
-                                            <form method="post" action="{% url '/inventory_reserve' plan_id=plan.id item_id=item.id %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="fas fa-box"></i>
-                                                </button>
-                                            </form>
-                                            {% endif %}
-                                            {% if item.quantity_to_purchase > 0 %}
-                                            <a href="{% url '/requisition_create' plan_id=plan.id item_id=item.id %}" class="btn btn-warning">
-                                                <i class="fas fa-file-invoice-dollar"></i>
-                                            </a>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="9" class="text-center">No material requirements calculated yet</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Shortage Alerts Card -->
-            {% if shortage_alerts %}
-            <div class="card mb-4 border-danger">
-                <div class="card-header bg-danger text-white">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Material Shortage Alerts
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Component</th>
-                                    <th>Required Qty</th>
-                                    <th>Available</th>
-                                    <th>Shortage</th>
-                                    <th>Required By</th>
-                                    <th>Potential Delay</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for alert in shortage_alerts %}
-                                <tr>
-                                    <td>{{ alert.component.part_number }}</td>
-                                    <td>{{ alert.required_quantity }}</td>
-                                    <td>{{ alert.available_quantity }}</td>
-                                    <td>{{ alert.required_quantity|subtract1:alert.available_quantity }}</td>
-                                    <td>{{ alert.required_date|date:"Y-m-d" }}</td>
-                                    <td>{{ alert.potential_delay_days }} days</td>
-                                    <td>
-                                        <a href="{% url '/shortage_resolve' alert_id=alert.id %}" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-check-circle"></i> Resolve
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Purchase Requisitions Card -->
-            {% if purchase_requisitions %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-file-invoice-dollar me-1"></i>
-                    Purchase Requisitions
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Component</th>
-                                    <th>Supplier</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Cost</th>
-                                    <th>Total Cost</th>
-                                    <th>Required By</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for req in purchase_requisitions %}
-                                <tr>
-                                    <td>{{ req.component.part_number }}</td>
-                                    <td>{{ req.supplier.name }}</td>
-                                    <td>{{ req.quantity }}</td>
-                                    <td>{{ req.unit_cost }}</td>
-                                    <td>{{ req.total_cost }}</td>
-                                    <td>{{ req.required_by_date|date:"Y-m-d" }}</td>
-                                    <td>
-                                        <span class="badge 
-                                            {% if req.status == 'draft' %}bg-secondary
-                                            {% elif req.status == 'submitted' %}bg-primary
-                                            {% elif req.status == 'approved' %}bg-info
-                                            {% elif req.status == 'ordered' %}bg-warning
-                                            {% elif req.status == 'received' %}bg-success
-                                            {% else %}bg-dark{% endif %}">
-                                            {{ req.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if req.status == 'draft' %}
-                                        <form method="post" action="{% url '/requisition_submit' pk=req.id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                <i class="fas fa-paper-plane"></i> Submit
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Material Plan: {{ plan.name }}</h1>
+        <div class="btn-group mt-2">
+            <a href="{% url 'plan_update' pk=plan.id %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-edit"></i> Edit Plan
+            </a>&nbsp;&nbsp;
+            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#confirmPlanModal">
+                <i class="fas fa-check"></i> Confirm Plan
+            </button>&nbsp;&nbsp;
+            <a href="{% url 'plan_list' %}" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
         </div>
     </div>
+
+    <!-- Plan Summary Card -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Product Details</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>BOM:</strong> {{ plan.bom.name }} (Rev: {{ plan.bom.revision }})</p>
+                    <p><strong>Quantity:</strong> {{ plan.quantity }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Order Details</h6>
+                </div>
+                <div class="card-body">
+                    {% if plan.production_order %}
+                    <p><strong>Production Order:</strong> 
+                        <a href="{% url 'production_order_detail' pk=plan.production_order.id %}">
+                            {{ plan.production_order.order_number }}
+                        </a>
+                    </p>
+                    {% endif %}
+                    {% if plan.sales_order_reference %}
+                    <p><strong>Sales Order:</strong> {{ plan.sales_order_reference }}</p>
+                    {% endif %}
+                    <p><strong>Due Date:</strong> {{ plan.due_date|date:"Y-m-d" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Plan Status</h6>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>Status:</strong> 
+                        <span class="badge 
+                            {% if plan.status == 'draft' %}bg-secondary
+                            {% elif plan.status == 'confirmed' %}bg-primary
+                            {% elif plan.status == 'executed' %}bg-success
+                            {% else %}bg-danger{% endif %}">
+                            {{ plan.get_status_display }}
+                        </span>
+                    </p>
+                    <p><strong>Created:</strong> {{ plan.created_at|date:"Y-m-d" }} by {{ plan.created_by }}</p>
+                    <p><strong>Last Updated:</strong> {{ plan.last_updated|date:"Y-m-d H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Material Requirements Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Material Requirements</h6>
+            <div class="dropdown no-arrow">
+                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" 
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow animated--fade-in" 
+                    aria-labelledby="dropdownMenuLink">
+                    <li><a class="dropdown-item" href="#">Export to Excel</a></li>
+                    <li><a class="dropdown-item" href="#">Print</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Component</th>
+                            <th>Description</th>
+                            <th>Required Qty</th>
+                            <th>In Stock</th>
+                            <th>To Purchase</th>
+                            <th>To Produce</th>
+                            <th>Reserved</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ item.component.part_number }}</td>
+                            <td>{{ item.component.description }}</td>
+                            <td>{{ item.quantity_required }}</td>
+                            <td>{{ item.quantity_available }}</td>
+                            <td>{{ item.quantity_to_purchase }}</td>
+                            <td>{{ item.quantity_to_produce }}</td>
+                            <td>{{ item.quantity_reserved }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if item.status == 'pending' %}bg-secondary
+                                    {% elif item.status == 'reserved' %}bg-success
+                                    {% elif item.status == 'partially_fulfilled' %}bg-warning
+                                    {% else %}bg-primary{% endif %}">
+                                    {{ item.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'item_update' pk=item.id %}" 
+                                       class="btn btn-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>&nbsp;&nbsp;
+                                    {% if item.quantity_available > 0 %}
+                                    <form method="post" action="{% url 'inventory_reserve' plan_id=plan.id item_id=item.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success" title="Reserve">
+                                            <i class="fas fa-box"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    {% if item.quantity_to_purchase > 0 %}
+                                    &nbsp;&nbsp;
+                                    <a href="{% url 'requisition_create' plan_id=plan.id item_id=item.id %}" 
+                                       class="btn btn-warning" title="Create Requisition">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No material requirements calculated yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortage Alerts Card -->
+    {% if shortage_alerts %}
+    <div class="card shadow mb-4 border-left-danger">
+        <div class="card-header py-3 bg-danger text-white">
+            <h6 class="m-0 font-weight-bold">Material Shortage Alerts</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Required Qty</th>
+                            <th>Available</th>
+                            <th>Shortage</th>
+                            <th>Required By</th>
+                            <th>Potential Delay</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alert in shortage_alerts %}
+                        <tr>
+                            <td>{{ alert.component.part_number }}</td>
+                            <td>{{ alert.required_quantity }}</td>
+                            <td>{{ alert.available_quantity }}</td>
+                            <td>{{ alert.required_quantity|subtract:alert.available_quantity }}</td>
+                            <td>{{ alert.required_date|date:"Y-m-d" }}</td>
+                            <td>{{ alert.potential_delay_days }} days</td>
+                            <td>
+                                <a href="{% url 'shortage_resolve' alert_id=alert.id %}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-check-circle"></i> Resolve
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Purchase Requisitions Card -->
+    {% if purchase_requisitions %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Purchase Requisitions</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Supplier</th>
+                            <th>Quantity</th>
+                            <th>Unit Cost</th>
+                            <th>Total Cost</th>
+                            <th>Required By</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in purchase_requisitions %}
+                        <tr>
+                            <td>{{ req.component.part_number }}</td>
+                            <td>{{ req.supplier.name }}</td>
+                            <td>{{ req.quantity }}</td>
+                            <td>${{ req.unit_cost }}</td>
+                            <td>${{ req.total_cost }}</td>
+                            <td>{{ req.required_by_date|date:"Y-m-d" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if req.status == 'draft' %}bg-secondary
+                                    {% elif req.status == 'submitted' %}bg-primary
+                                    {% elif req.status == 'approved' %}bg-info
+                                    {% elif req.status == 'ordered' %}bg-warning
+                                    {% elif req.status == 'received' %}bg-success
+                                    {% else %}bg-dark{% endif %}">
+                                    {{ req.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if req.status == 'draft' %}
+                                <form method="post" action="{% url 'requisition_submit' pk=req.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-paper-plane"></i> Submit
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Confirm Plan Modal -->
 <div class="modal fade" id="confirmPlanModal" tabindex="-1" aria-labelledby="confirmPlanModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="confirmPlanModalLabel">Confirm Material Plan</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -305,9 +320,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="{% url '/plan_confirm' pk=plan.id %}">
+                <form method="post" action="#">
+                    {% comment %} {% url 'plan_confirm' pk=plan.id %} {% endcomment %}
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success">Confirm Plan</button>
+                    <button type="submit" class="btn btn-primary">Confirm Plan</button>
                 </form>
             </div>
         </div>

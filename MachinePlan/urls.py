@@ -1,10 +1,13 @@
 # machineplan/urls.py
 from django.urls import path
+
+import MachinePlan
 # from . import vfrom MaterialPlan.views import *iews 
 
 app_name = 'mcp'
 
 
+from Account import views
 from MachinePlan.views import *
 
 urlpatterns = [
@@ -27,13 +30,8 @@ urlpatterns = [
     path('capabilities/add/', MachineCapabilityCreateView.as_view(), name='machine_capability_create'),
     path('capabilities/<int:pk>/edit/', MachineCapabilityUpdateView.as_view(), name='machine_capability_update'),
     path('capabilities/<int:pk>/delete/', MachineCapabilityDeleteView.as_view(), name='machine_capability_delete'),
+    # path('capabilities/<int:pk>/detail/', machine_capability_detail, name='machine_capability_detail'),
     
-    # Machine Schedule URLs
-    path('schedules/', MachineScheduleListView.as_view(), name='machine_schedule_list'),
-    path('schedules/add/', MachineScheduleCreateView.as_view(), name='machine_schedule_create'),
-    path('schedules/<int:pk>/edit/', MachineScheduleUpdateView.as_view(), name='machine_schedule_update'),
-    path('schedules/<int:pk>/delete/', MachineScheduleDeleteView.as_view(), name='machine_schedule_delete'),
-    path('schedules/calendar/', MachineCalendarView.as_view(), name='machine_calendar'),
     
     # Maintenance Schedule URLs
     path('maintenance/', MaintenanceScheduleListView.as_view(), name='maintenance_schedule_list'),
@@ -43,14 +41,15 @@ urlpatterns = [
 
     path('routings/', RoutingListView.as_view(), name='routing_list'),
     path('routings/add/', RoutingCreateView.as_view(), name='routing_create'),
-    path('routings/<int:pk>/edit/', RoutingUpdateView.as_view(), name='routing_edit'),
+    path('routings/<int:pk>/edit/', RoutingUpdateView.as_view(), name='routing_update'),
+    path('routings/<int:pk>/delete/', RoutingDeleteView.as_view(), name='routing_delete'),
     path('routings/<int:pk>/delete/', RoutingDeleteView.as_view(), name='routing_delete'),
     
     # Machine Planning URLs
-    path('machine-plans/', machine_planning_list, name='machine_planning_list'),
-    path('machine-plans/create/', machine_planning_create, name='machine_planning_create'),
-    path('machine-plans/edit/<int:pk>/', machine_planning_edit, name='machine_planning_edit'),
-    path('machine-plans/delete/<int:pk>/', machine_planning_delete, name='machine_planning_delete'),
+    path('machine-plans/', MachinePlanningListView.as_view(), name='machine_planning_list'),
+    path('machine-plans/create/', MachinePlanningCreateView.as_view(), name='machine_planning_create'),
+    path('machine-plans/<int:pk>/edit/', MachinePlanningUpdateView.as_view(), name='machine_planning_edit'),
+    path('machine-plans/<int:pk>/delete/', MachinePlanningDeleteView.as_view(), name='machine_planning_delete'),
 
     path('operations/', OperationListView.as_view(), name='operation_list'),
     path('operations/add/', OperationCreateView.as_view(), name='operation_create'),
@@ -58,7 +57,9 @@ urlpatterns = [
     path('operations/<int:pk>/delete/', OperationDeleteView.as_view(), name='operation_delete'),
 
     path('workcenters/', WorkCenterListView.as_view(), name='workcenter_list'),
-    path('workcenters/add/', WorkCenterCreateView.as_view(), name='workcenter_create'),
-    path('workcenters/<int:pk>/edit/', WorkCenterUpdateView.as_view(), name='workcenter_edit'),
+    path('workcenters/create/', WorkCenterCreateView.as_view(), name='workcenter_create'),
+    path('workcenters/<int:pk>/edit/', WorkCenterUpdateView.as_view(), name='workcenter_update'),
     path('workcenters/<int:pk>/delete/', WorkCenterDeleteView.as_view(), name='workcenter_delete'),
+
+    path('dashboard/',dashboard, name='dashboard'),
 ]

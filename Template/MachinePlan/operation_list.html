@@ -26,10 +26,6 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
-
-{% block title %}Operations Management{% endblock %}
-{% block page_title %}Operations Management{% endblock %}
-
 {% block content %}
 
 {% block page_actions %}
@@ -155,9 +151,8 @@
     <!-- Same delete modal as in routing_list.html -->
 </div>
 
-{% endblock %}
 
-{% block extra_js %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Edit modal setup
@@ -171,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const description = button.getAttribute('data-description');
             
             const form = editModal.querySelector('form');
-            form.action = `/machine-planning/operations/${id}/edit/`;
+            form.action = `/mcp/operations/${id}/edit/`;
             
             document.getElementById('editCode').value = code;
             document.getElementById('editName').value = name;
@@ -188,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = button.getAttribute('data-name');
             
             const form = deleteModal.querySelector('form');
-            form.action = `/machine-planning/operations/${id}/delete/`;
+            form.action = `/mcp/operations/${id}/delete/`;
             
             document.getElementById('deleteName').textContent = name;
         });
