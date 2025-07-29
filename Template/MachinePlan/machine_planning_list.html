@@ -26,17 +26,23 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
-{% block title %}Machine Planning{% endblock %}
-{% block page_title %}Machine Planning Schedule{% endblock %}
-
 {% block content %}
 
-{% block page_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#planningModal">
-    <i class="bi bi-plus-circle"></i> Add Schedule
-</button>
-{% endblock %}
-
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Machine Schedule List</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#planningModal">
+            <i class="bi bi-plus-circle"></i> Add Schedule
+        </button>
+    </div>
+</div>
 <div class="row mb-3">
     <div class="col-md-3">
         <select class="form-select" id="machineFilter">
@@ -185,7 +191,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select" required>
-                                    {% for value, display in status %}
+                                    {% for value, display in status_choices %}
                                     <option value="{{ value }}">{{ display }}</option>
                                     {% endfor %}
                                 </select>

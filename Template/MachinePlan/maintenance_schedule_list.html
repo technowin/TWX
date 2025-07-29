@@ -25,15 +25,25 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
-{% block title %}Maintenance Schedules{% endblock %}
-{% block page_title %}Maintenance Schedules{% endblock %}
 
 
 {% block content %}
 
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">
-    <i class="bi bi-plus-circle"></i> Add Maintenance
-</button>
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Machine Maintenance</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">
+        <i class="bi bi-plus-circle"></i> Add Maintenance
+    </button>
+    </div>
+</div>
 
 
 <div class="row mb-3">

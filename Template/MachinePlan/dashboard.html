@@ -228,7 +228,49 @@
                         </div>
                     </div>
                 </div>
+                {% comment %} <div class="row mb-4"> {% endcomment %}
                 <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5>Upcoming Maintenance</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Machine</th>
+                                            <th>Type</th>
+                                            <th>Scheduled</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for maintenance in upcoming_maintenance %}
+                                        <tr>
+                                            <td>{{ maintenance.machine.name }}</td>
+                                            <td>{{ maintenance.maintenance_type }}</td>
+                                            <td>{{ maintenance.scheduled_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if maintenance.completed %}
+                                                <span class="badge bg-success">Completed</span>
+                                                {% else %}
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center">No upcoming maintenance</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% comment %} </div> {% endcomment %}
+                </div>
+                {% comment %} <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
                             <h5>Production Schedule Timeline</h5>
@@ -239,11 +281,11 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> {% endcomment %}
             </div>
 
             <!-- Maintenance Alerts and Machine Utilization -->
-            <div class="row mb-4">
+            {% comment %} <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-warning text-dark">
@@ -284,8 +326,8 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-6">
+                </div> {% endcomment %}
+                <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
                             <h5>Machine Utilization</h5>
@@ -298,7 +340,7 @@
             </div>
 
             <!-- Work Center Capacity -->
-            <div class="row">
+            {% comment %} <div class="row">
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
@@ -309,7 +351,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> {% endcomment %}
         </main>
     </div>
 </div>

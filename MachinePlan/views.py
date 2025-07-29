@@ -307,6 +307,14 @@ class RoutingListView(ListView):
         queryset = super().get_queryset()
         return queryset.select_related('component', 'operation', 'work_center')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add dropdown options for the modal forms
+        context['components'] = BOMHeader.objects.all()
+        context['operations'] = Operation.objects.all()
+        context['work_centers'] = WorkCenter.objects.all()
+        return context
+
 class RoutingCreateView(CreateView):
     model = Routing
     form_class = RoutingForm
@@ -342,7 +350,8 @@ class MachinePlanningListView(ListView):
         context['components'] = BOMHeader.objects.all()
         context['operations'] = Operation.objects.all()
         context['machines'] = Machine.objects.all()
-        context['status_choices'] = MachinePlanning.status  # Assuming STATUS_CHOICES is defined in your model
+        status_field = MachinePlanning._meta.get_field('status')
+        context['status_choices'] = status_field.choices  # Assuming STATUS_CHOICES is defined in your model
         return context
 
 class MachinePlanningCreateView(CreateView):
