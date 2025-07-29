@@ -492,6 +492,22 @@ def workflow_starts(request):
         #     created_by=request.user.id  # or use operator if you store it there
         # ).exists()
         
+        actual_step_id = int(current_step_info['actual_stepID']) if current_step_info else 0
+        next_stepID_forRejectedStep = actual_step_id + 1
+        role_id_value = (
+            workflow_matrix.objects
+            .filter(step_id_flow=next_stepID_forRejectedStep, wf_id=workflowSelect)
+            .values_list('role_id', flat=True)
+            .first()
+        )
+        tocheck_role=role_id
+        allowed_roles = [r.strip() for r in role_id_value.split(',')] if role_id_value else []
+
+        is_allowed_to_view = tocheck_role in allowed_roles
+
+        # Pass to template
+        # context['is_allowed_to_view'] = is_allowed_to_view
+        # context['rejected_step_id'] = next_stepID_forRejectedStep
         
         # here just bring all needing ids for current step
         workflow_detail = workflow_details.objects.get(req_id=req_num)
@@ -554,6 +570,7 @@ def workflow_starts(request):
                "editORcreate":editORcreate,
                "reference_workflow_status":reference_workflow_status,
                "actual_step_id": current_step_info['actual_stepID'] if current_step_info else '',
+               "tocheck_role":tocheck_role,"role_id_value":role_id_value,
                "current_stepId":current_stepId,
                 "next_step_name": next_step_name if next_step_name else 'No next step',
                 # "ActUsenext_step_name":int(ActUsenext_step_name),
@@ -1339,14 +1356,21 @@ def workflow_form_step(request):
     
 def reject_workflow_step(request):
     wfdetailsid = request.POST.get("wfdetailsid")
-    if wfdetailsid:
-        wfdetailsid = dec(wfdetailsid)
+    wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
+    wfSelected_id = request.POST.get("wfSelected_id")
+    logged_actual_step_id = request.POST.get("actual_step_id")
+    logged_StepId = int(logged_actual_step_id)
+    wd_stepId = logged_StepId - 1
+    forwf_stepId = wd_stepId -1
+    
+    # if wfdetailsid:
+    #     wfdetailsid = dec(wfdetailsid)
 
-    step_id_previous = int(request.POST.get("step_id"))  # Current step
+    step_id_previous = int(wd_stepId)  # Current step
     step_id = step_id_previous - 1  # Previous step
 
     # Get req_id from workflow_details
-    wf_record = workflow_details.objects.filter(id=wfdetailsid, step_id=step_id).first()
+    wf_record = workflow_details.objects.filter(id=wfDetailsTable_id, step_id=wd_stepId).first()
     # if not wf_record:
     #     return {'status': False, 'message': 'Workflow detail not found'}
 
@@ -1354,7 +1378,8 @@ def reject_workflow_step(request):
 
     # 1. Insert rejected status in history_workflow_details
     history_workflow_details.objects.create(
-        workflow_id=None,
+        workflow_id=wfSelected_id,
+        # workflow_id=None,
         step_id=step_id_previous,
         form_data_id=wf_record.form_data_id,
         req_id=req_id,
@@ -1375,6 +1400,7 @@ def reject_workflow_step(request):
     workflow_details.objects.filter(req_id=req_id).update(
         increment_id=wf_record.increment_id - 1,
         status=(wf_record.status or '') + " - Rejected"
+        # step_id=forwf_stepId
     )
     
     # context={"reject":1}
@@ -1409,7 +1435,8 @@ def reject_workflow_step(request):
 
     # return JsonResponse({'status': True, 'message': 'Rejected and moved back to previous step successfully'})
     messages.success(request, "Workflow Rejected successfully!")
-    return redirect('workflow_starts')
+    # return redirect('workflow_starts')
+    return redirect(f"{reverse('workflow_starts')}?workflowSelect={wfSelected_id}")
     
     # NOT USING THIS
 def workflowcommon_form_post(request):

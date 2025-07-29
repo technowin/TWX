@@ -218,46 +218,88 @@
                           alt="Not allowed" />
                     {% endif %} {% endcomment %}
 
-                    {% if item.action_button %}
-                          {% if item.editORcreate == 1 %}
-                              <button class="btn btn-primary btn-sm"
-                                      onclick="startStep('{{ item.user_prev_step_id }}',
-                                                        '{{ item.form_id }}',
-                                                        '{{ item.but_type }}',
-                                                        '{{ item.but_act }}',
-                                                        '{{ item.enc_id_wfd }}',
-                                                        '{{ item.editORcreate }}',
-                                                        {% comment %} below are imp ids {% endcomment %}
-                                                        '{{ item.id_wfd }}',
-                                                        '{{ item.next_step_id }}',
-                                                        '{{ workflowSelect }}')">
-                                  {{ item.action_button_name }}
-                              </button>
-                          {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
-                                  <button class="btn btn-primary btn-sm"
-                                      onclick="startStepEdit('{{ item.form_data_id }}',
-                                                            '{{ item.req_num }}',
-                                                            '{{ item.current_stepId }}',
-                                                            '{{ item.form_id }}',
-                                                            '{{ workflowSelect_enc }}',
-                                                            '{{ item.editORcreate }}',
-                                                            '{{ item.id_wfd }}')">
-                                    {{ item.action_button_name }}
-                                  </button>
-                          {% endif %}  
 
-                        {% comment %} {{ item.action_button|safe }} {% endcomment %}
+                    {% comment %} main logic {% endcomment %}
+                    {% if item.last_rejected_step %}
+                        {% if item.step_id == item.last_rejected_step and item.role_id_value != item.tocheck_role %}
+                            {# Skip showing button for the rejected step #}
+                            <button class="btn btn-warning btn-sm"
+                                    onclick="startStep('{{ item.user_prev_step_id }}',
+                                                      '{{ item.form_id }}',
+                                                      '{{ item.but_type }}',
+                                                      '{{ item.but_act }}',
+                                                      '{{ item.enc_id_wfd }}',
+                                                      '{{ item.editORcreate }}',
+                                                      '{{ item.id_wfd }}',
+                                                      '{{ item.next_step_id }}',
+                                                      '{{ workflowSelect }}')">
+                                {{ item.step_name }}
+
+                            
+                            </button>
+                            
+                        {% elif item.role_id_value == item.tocheck_role %}
+                            {# Show the button for the previous step (this is the actual rejected step) #}                           
+
+                            <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
+                                alt="View"
+                                style="cursor:pointer"
+                                onclick="startStepView('{{ item.form_data_id }}',
+                                                        '{{ item.req_num }}',
+                                                        '{{ item.actual_step_id }}',
+                                                        '{{ workflowSelect }}',
+                                                        '{{ item.form_id }}')" />
+                        {% else %}
+                            {# Default view for other steps #}
+                            <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
+                                alt="View"
+                                style="cursor:pointer"
+                                onclick="startStepView('{{ item.form_data_id }}',
+                                                        '{{ item.req_num }}',
+                                                        '{{ item.actual_step_id }}',
+                                                        '{{ workflowSelect }}',
+                                                        '{{ item.form_id }}')" />
+                        {% endif %}
                     {% else %}
-                        <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
-                              alt="View"
-                              style="cursor:pointer"
-                              onclick="startStepView('{{ item.form_data_id }}',
-                                                      '{{ item.req_num }}',
-                                                      '{{ item.actual_step_id }}',
-                                                      '{{ workflowSelect }}',
-                                                      '{{ item.form_id }}')" />
-                    
+                        {# If no rejection, follow normal logic #}
+                        {% if item.action_button %}
+                            {% if item.editORcreate == 1 %}
+                                <button class="btn btn-primary btn-sm"
+                                        onclick="startStep('{{ item.user_prev_step_id }}',
+                                                          '{{ item.form_id }}',
+                                                          '{{ item.but_type }}',
+                                                          '{{ item.but_act }}',
+                                                          '{{ item.enc_id_wfd }}',
+                                                          '{{ item.editORcreate }}',
+                                                          '{{ item.id_wfd }}',
+                                                          '{{ item.next_step_id }}',
+                                                          '{{ workflowSelect }}')">
+                                    {{ item.action_button_name }}
+                                </button>
+                            {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
+                                <button class="btn btn-primary btn-sm"
+                                        onclick="startStepEdit('{{ item.form_data_id }}',
+                                                              '{{ item.req_num }}',
+                                                              '{{ item.current_stepId }}',
+                                                              '{{ item.form_id }}',
+                                                              '{{ workflowSelect_enc }}',
+                                                              '{{ item.editORcreate }}',
+                                                              '{{ item.id_wfd }}')">
+                                    {{ item.action_button_name }}
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <img src="{% static 'img/eye-open.png' %}" width="20" height="20"
+                                alt="View"
+                                style="cursor:pointer"
+                                onclick="startStepView('{{ item.form_data_id }}',
+                                                        '{{ item.req_num }}',
+                                                        '{{ item.actual_step_id }}',
+                                                        '{{ workflowSelect }}',
+                                                        '{{ item.form_id }}')" />
+                        {% endif %}
                     {% endif %}
+
                       
 
                 </td>
