@@ -256,6 +256,7 @@ urlpatterns = [
 
     # MachinePlan
     path('mcp/', include('MachinePlan.urls', namespace='mcp')),
+    path('manpower/', include('Manpower.urls', namespace='manpower')),
 
 
 

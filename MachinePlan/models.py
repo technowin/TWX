@@ -37,7 +37,7 @@ class Machine(models.Model):
     machine_id = models.CharField(max_length=50, unique=True, verbose_name="Machine ID")
     name = models.CharField(max_length=100)
     machine_type = models.ForeignKey(MachineType, on_delete=models.PROTECT)
-    work_center = models.ForeignKey('MachinePlan.WorkCenter', on_delete=models.CASCADE)
+    work_center = models.ForeignKey('MachinePlan.WorkCenter', on_delete=models.CASCADE,null=True,blank=True)
     status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='OP')
     manufacturer = models.CharField(max_length=100, blank=True)
     model_number = models.CharField(max_length=50, blank=True)
