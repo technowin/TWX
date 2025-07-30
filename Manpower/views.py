@@ -685,8 +685,7 @@ def skill_gaps_report(request):
     skill_gaps = LaborRequirement.objects.filter(
         routing__production_orders__due_date__gte=timezone.now().date()
     ).values('skill__skill_name', 'skill__skill_code').annotate(
-        total_needed=Sum('employees_needed'),
-        assigned=Count('routing__labor_assignments__employee', distinct=True)
+        total_needed=Sum('employees_needed')
     )
     
     context = {

@@ -280,7 +280,6 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -303,10 +302,10 @@
     });
 
     // Date picker
-    document.getElementById('datePickerBtn').addEventListener('click', function() {
+    {% comment %} document.getElementById('datePickerBtn').addEventListener('click', function() {
         const selectedDate = document.getElementById('datePicker').value;
         window.location.href = `{% url 'manpower_dashboard' %}?date=${selectedDate}`;
-    });
+    }); {% endcomment %}
 
     // Assignments Chart
     const assignmentsCtx = document.getElementById('assignmentsChart').getContext('2d');
@@ -462,5 +461,6 @@
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
 <script src="{% static 'js/manpower.js' %}"></script>
+{% endblock %}
 {% endblock %}
 {% endblock %}
