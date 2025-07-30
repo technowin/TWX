@@ -27,7 +27,7 @@ from MachinePlan.models import MachinePlanning, Routing
 
 class EmployeeListView(LoginRequiredMixin, ListView):
     model = Employee
-    template_name = 'manpower/employee_list.html'
+    template_name = 'Manpower/employee_list.html'
     context_object_name = 'employees'
     paginate_by = 20
     
@@ -44,7 +44,7 @@ class EmployeeListView(LoginRequiredMixin, ListView):
 class EmployeeCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Employee
     form_class = EmployeeForm
-    template_name = 'manpower/employee_form.html'
+    template_name = 'Manpower/employee_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -77,7 +77,7 @@ def delete_employee(request, pk):
 
 class EmployeeDetailView(LoginRequiredMixin, DetailView):
     model = Employee
-    template_name = 'manpower/employee_detail.html'
+    template_name = 'Manpower/employee_detail.html'
     context_object_name = 'employee'
     
     def get_context_data(self, **kwargs):
@@ -93,14 +93,14 @@ class EmployeeDetailView(LoginRequiredMixin, DetailView):
 
 class SkillListView(LoginRequiredMixin, ListView):
     model = Skill
-    template_name = 'manpower/skill_list.html'
+    template_name = 'Manpower/skill_list.html'
     context_object_name = 'skills'
     paginate_by = 20
 
 class SkillCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Skill
     form_class = SkillForm
-    template_name = 'manpower/skill_form.html'
+    template_name = 'Manpower/skill_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -121,14 +121,14 @@ def delete_skill(request, pk):
 
 class ShiftListView(LoginRequiredMixin, ListView):
     model = Shift
-    template_name = 'manpower/shift_list.html'
+    template_name = 'Manpower/shift_list.html'
     context_object_name = 'shifts'
     paginate_by = 20
 
 class ShiftCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Shift
     form_class = ShiftForm
-    template_name = 'manpower/shift_form.html'
+    template_name = 'Manpower/shift_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -149,7 +149,7 @@ def delete_shift(request, pk):
 
 class LaborRequirementListView(LoginRequiredMixin, ListView):
     model = LaborRequirement
-    template_name = 'manpower/labor_requirement_list.html'
+    template_name = 'Manpower/labor_requirement_list.html'
     context_object_name = 'requirements'
     paginate_by = 20
     
@@ -176,7 +176,7 @@ class LaborRequirementListView(LoginRequiredMixin, ListView):
 class LaborRequirementCreateView(LoginRequiredMixin, CreateView):
     model = LaborRequirement
     form_class = LaborRequirementForm
-    template_name = 'manpower/labor_requirement_form.html'
+    template_name = 'Manpower/labor_requirement_form.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -189,7 +189,7 @@ class LaborRequirementCreateView(LoginRequiredMixin, CreateView):
 class LaborRequirementUpdateView(LoginRequiredMixin, UpdateView):
     model = LaborRequirement
     form_class = LaborRequirementForm
-    template_name = 'manpower/labor_requirement_form.html'
+    template_name = 'Manpower/labor_requirement_form.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -209,7 +209,7 @@ def delete_labor_requirement(request, pk):
 
 class LaborAssignmentListView(LoginRequiredMixin, ListView):
     model = LaborAssignment
-    template_name = 'manpower/labor_assignment_list.html'
+    template_name = 'Manpower/labor_assignment_list.html'
     context_object_name = 'assignments'
     paginate_by = 20
     
@@ -230,7 +230,7 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
 class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = LaborAssignment
     form_class = LaborAssignmentForm
-    template_name = 'manpower/labor_assignment_form.html'
+    template_name = 'Manpower/labor_assignment_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -254,7 +254,7 @@ def delete_labor_assignment(request, pk):
 
 class LeaveRequestListView(LoginRequiredMixin, ListView):
     model = LeaveRequest
-    template_name = 'manpower/leave_request_list.html'
+    template_name = 'Manpower/leave_request_list.html'
     context_object_name = 'leave_requests'
     paginate_by = 20
     
@@ -283,7 +283,7 @@ class LeaveRequestListView(LoginRequiredMixin, ListView):
 class LeaveRequestCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = LeaveRequest
     form_class = LeaveRequestForm
-    template_name = 'manpower/leave_request_form.html'
+    template_name = 'Manpower/leave_request_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -346,7 +346,7 @@ def reject_leave_request(request, pk):
 
 class LeaveRequestListView(LoginRequiredMixin, ListView):
     model = LeaveRequest
-    template_name = 'manpower/leave_request_list.html'
+    template_name = 'Manpower/leave_request_list.html'
     context_object_name = 'leave_requests'
     paginate_by = 20
     
@@ -375,7 +375,7 @@ class LeaveRequestListView(LoginRequiredMixin, ListView):
 class LeaveRequestCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = LeaveRequest
     form_class = LeaveRequestForm
-    template_name = 'manpower/leave_request_form.html'
+    template_name = 'Manpower/leave_request_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -439,7 +439,7 @@ def reject_leave_request(request, pk):
 
 class AttendanceListView(LoginRequiredMixin, ListView):
     model = Attendance
-    template_name = 'manpower/attendance_list.html'
+    template_name = 'Manpower/attendance_list.html'
     context_object_name = 'attendances'
     paginate_by = 20
     
@@ -466,7 +466,7 @@ class AttendanceListView(LoginRequiredMixin, ListView):
 class AttendanceCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Attendance
     form_class = AttendanceForm
-    template_name = 'manpower/attendance_form.html'
+    template_name = 'Manpower/attendance_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -501,7 +501,7 @@ def delete_attendance(request, pk):
 class EmployeeAvailabilityCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = EmployeeAvailability
     form_class = EmployeeAvailabilityForm
-    template_name = 'manpower/employee_availability_form.html'
+    template_name = 'Manpower/employee_availability_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -546,7 +546,7 @@ def delete_employee_availability(request, pk):
 class EmployeeSkillCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = EmployeeSkill
     form_class = EmployeeSkillForm
-    template_name = 'manpower/employee_skill_form.html'
+    template_name = 'Manpower/employee_skill_form.html'
     
     def get_object(self, queryset=None):
         try:
@@ -668,7 +668,7 @@ def manpower_dashboard(request):
         'active_routings': active_routings,
     }
     
-    return render(request, 'manpower/dashboard.html', context)
+    return render(request, 'Manpower/dashboard.html', context)
 
 def daily_assignments(request, date):
     assignments = LaborAssignment.objects.filter(date=date).select_related(
@@ -679,7 +679,7 @@ def daily_assignments(request, date):
         'date': date,
         'assignments': assignments,
     }
-    return render(request, 'manpower/daily_assignments.html', context)
+    return render(request, 'Manpower/daily_assignments.html', context)
 
 def skill_gaps_report(request):
     skill_gaps = LaborRequirement.objects.filter(
@@ -693,7 +693,7 @@ def skill_gaps_report(request):
         'skill_gaps': skill_gaps,
     }
     
-    return render(request, 'manpower/skill_gaps.html', context)
+    return render(request, 'Manpower/skill_gaps.html', context)
 
 def routing_assignments(request, routing_id):
     routing = get_object_or_404(Routing, pk=routing_id)
@@ -723,4 +723,4 @@ def routing_assignments(request, routing_id):
         'coverage_percentage': (total_assigned_hours / total_required_hours * 100) if total_required_hours else 0,
     }
     
-    return render(request, 'manpower/routing_assignments.html', context)
+    return render(request, 'Manpower/routing_assignments.html', context)
