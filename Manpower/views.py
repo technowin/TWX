@@ -65,7 +65,6 @@ class EmployeeCreateUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('manpower:employee_list')
 
-@require_POST
 @login_required
 def delete_employee(request, pk):
     employee = get_object_or_404(Employee, pk=pk)

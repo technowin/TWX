@@ -1218,7 +1218,7 @@ def form_master(request):
 
                    
                 if workflow_YN == '1E':
-                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
+                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,"form_ids":form_ids,
                             "actual_step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data,"wfSelected_id":wfdetailsID,"wfDetailsTable_id":wfDetailsTable_id,})
                 else:
                     return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data,"wfDetailsTable_id":wfDetailsTable_id,})
@@ -2161,7 +2161,7 @@ def common_form_edit(request):
     step_id = request.POST.get("step_id")
     wfSelected_id = request.POST.get("wfSelected_id")
     actual_step_id = request.POST.get("actual_step_id")
-    module = request.POST.get("module")  
+    module = wfSelected_id
     wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
 
     try:
