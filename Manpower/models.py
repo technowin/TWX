@@ -1,7 +1,7 @@
 # models.py
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from MachinePlan.models import WorkCenter, Routing, MachineSchedule
+from MachinePlan.models import MachinePlanning, WorkCenter, Routing
 
 class Employee(models.Model):
     employee_code = models.CharField(max_length=10, unique=True, verbose_name="Employee ID")
@@ -96,7 +96,7 @@ class LaborRequirement(models.Model):
         return f"{self.routing} requires {self.employees_needed} {self.skill} (min level {self.min_proficiency})"
 
 class LaborAssignment(models.Model):
-    schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='labor_assignments')
+    schedule = models.ForeignKey(MachinePlanning, on_delete=models.CASCADE, related_name='labor_assignments')
     employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name="Assigned Employee")
     shift = models.ForeignKey(Shift, on_delete=models.PROTECT, verbose_name="Assigned Shift")
     date = models.DateField(verbose_name="Assignment Date")

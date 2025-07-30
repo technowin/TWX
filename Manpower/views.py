@@ -1,5 +1,5 @@
 # views.py
-from datetime import timezone
+from datetime import date, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.urls import reverse_lazy
@@ -9,7 +9,9 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db import models
+from django.db.models import Count, Sum, Case, When, IntegerField,F
 
+from django.utils import timezone
 
 
 from .models import (
@@ -21,7 +23,7 @@ from .forms import (
     LaborRequirementForm, LaborAssignmentForm, EmployeeAvailabilityForm,
     AttendanceForm, LeaveRequestForm
 )
-from MachinePlan.models import Routing, MachineSchedule
+from MachinePlan.models import MachinePlanning, Routing
 
 class EmployeeListView(LoginRequiredMixin, ListView):
     model = Employee
@@ -152,52 +154,58 @@ class LaborRequirementListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        routing_id = self.kwargs.get('routing_id')
+        queryset = super().get_queryset().select_related('skill', 'routing')
+        
+        # Add filters if needed
+        skill_id = self.request.GET.get('skill_id')
+        routing_id = self.request.GET.get('routing_id')
+        
+        if skill_id:
+            queryset = queryset.filter(skill_id=skill_id)
         if routing_id:
-            return self.model.objects.filter(routing_id=routing_id).select_related('skill')
-        return self.model.objects.none()
+            queryset = queryset.filter(routing_id=routing_id)
+            
+        return queryset.order_by('skill__skill_name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['routing'] = get_object_or_404(Routing, pk=self.kwargs.get('routing_id'))
+        context['skills'] = Skill.objects.all().order_by('skill_name')
+        context['routings'] = Routing.objects.all().order_by('id')
         return context
 
-class LaborRequirementCreateUpdateView(LoginRequiredMixin, UpdateView):
+class LaborRequirementCreateView(LoginRequiredMixin, CreateView):
     model = LaborRequirement
     form_class = LaborRequirementForm
     template_name = 'manpower/labor_requirement_form.html'
     
-    def get_object(self, queryset=None):
-        try:
-            return super().get_object(queryset)
-        except AttributeError:
-            return None
-    
-    def get_initial(self):
-        initial = super().get_initial()
-        routing_id = self.kwargs.get('routing_id')
-        if routing_id:
-            initial['routing'] = get_object_or_404(Routing, pk=routing_id)
-        return initial
-    
-    def form_valid(self, form):
-        routing_id = self.kwargs.get('routing_id')
-        if routing_id and not form.instance.pk:
-            form.instance.routing = get_object_or_404(Routing, pk=routing_id)
-        messages.success(self.request, "Labor requirement saved successfully!")
-        return super().form_valid(form)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = "Add New Labor Requirement"
+        return context
     
     def get_success_url(self):
-        return reverse_lazy('manpower:labor_requirement_list', kwargs={'routing_id': self.object.routing_id})
+        return reverse_lazy('manpower:labor_requirement_list')
+
+class LaborRequirementUpdateView(LoginRequiredMixin, UpdateView):
+    model = LaborRequirement
+    form_class = LaborRequirementForm
+    template_name = 'manpower/labor_requirement_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = "Edit Labor Requirement"
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('manpower:labor_requirement_list')
 
 @require_POST
 @login_required
 def delete_labor_requirement(request, pk):
     requirement = get_object_or_404(LaborRequirement, pk=pk)
-    routing_id = requirement.routing_id
     requirement.delete()
     messages.success(request, "Labor requirement has been deleted.")
-    return JsonResponse({'success': True, 'redirect_url': reverse_lazy('manpower:labor_requirement_list', kwargs={'routing_id': routing_id})})
+    return JsonResponse({'success': True})
 
 class LaborAssignmentListView(LoginRequiredMixin, ListView):
     model = LaborAssignment
@@ -216,7 +224,7 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         schedule_id = self.request.GET.get('schedule_id')
         if schedule_id:
-            context['schedule'] = get_object_or_404(MachineSchedule, pk=schedule_id)
+            context['schedule'] = get_object_or_404(MachinePlanning, pk=schedule_id)
         return context
 
 class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
@@ -582,3 +590,137 @@ def delete_employee_skill(request, pk):
         'success': True,
         'redirect_url': reverse_lazy('manpower:employee_detail', kwargs={'pk': employee_pk})
     })
+
+
+def manpower_dashboard(request):
+    # Calculate date ranges
+    today = timezone.now().date()
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+    
+    # Employee statistics
+    total_employees = Employee.objects.filter(is_active=True).count()
+    available_today = EmployeeAvailability.objects.filter(
+        date=today, 
+        is_available=True
+    ).count()
+    on_leave_today = LeaveRequest.objects.filter(
+        start_date__lte=today,
+        end_date__gte=today,
+        status='approved'
+    ).count()
+    
+    # Skill gaps - now based on Routing's labor requirements
+    skill_gaps = LaborRequirement.objects.filter(
+        routing__production_order__due_date__gte=today
+    ).values('skill__skill_name').annotate(
+        total_needed=Sum('employees_needed'),
+        assigned=Count('routing', distinct=True)
+    ).filter(total_needed__gt=F('assigned'))
+    
+    # Current assignments - now properly linked through Routing
+    today_assignments = LaborAssignment.objects.filter(
+        date=today,
+        schedule__routing__isnull=False
+    ).select_related(
+        'employee', 'shift', 'schedule', 'schedule__routing'
+    )[:5]  # Limit to 5 for the dashboard
+    
+    # Shift distribution - now considering Routing connections
+    shift_distribution = LaborAssignment.objects.filter(
+        date__range=[start_of_week, end_of_week],
+        schedule__routing__isnull=False
+    ).values('shift__shift_name').annotate(
+        total=Count('id')
+    ).order_by('shift__start_time')
+    
+    # Skill distribution
+    skill_distribution = EmployeeSkill.objects.values(
+        'skill__skill_name'
+    ).annotate(
+        total=Count('id'),
+        avg_proficiency=Sum('proficiency') / Count('id')
+    ).order_by('-total')[:10]
+    
+    # Attendance status
+    attendance_status = Attendance.objects.filter(
+        date=today
+    ).values('status').annotate(
+        count=Count('id')
+    )
+    
+    # Routing-based statistics
+    active_routings = Routing.objects.distinct().count()
+    
+    context = {
+        'today': today,
+        'start_of_week': start_of_week,
+        'end_of_week': end_of_week,
+        'total_employees': total_employees,
+        'available_today': available_today,
+        'on_leave_today': on_leave_today,
+        'unavailable_today': total_employees - available_today - on_leave_today,
+        'skill_gaps': skill_gaps,
+        'today_assignments': today_assignments,
+        'shift_distribution': shift_distribution,
+        'skill_distribution': skill_distribution,
+        'attendance_status': attendance_status,
+        'active_routings': active_routings,
+    }
+    
+    return render(request, 'manpower/dashboard.html', context)
+
+def daily_assignments(request, date):
+    assignments = LaborAssignment.objects.filter(date=date).select_related(
+        'employee', 'shift', 'schedule'
+    )
+    
+    context = {
+        'date': date,
+        'assignments': assignments,
+    }
+    return render(request, 'manpower/daily_assignments.html', context)
+
+def skill_gaps_report(request):
+    skill_gaps = LaborRequirement.objects.filter(
+        routing__production_orders__due_date__gte=timezone.now().date()
+    ).values('skill__skill_name', 'skill__skill_code').annotate(
+        total_needed=Sum('employees_needed'),
+        assigned=Count('routing__labor_assignments__employee', distinct=True)
+    )
+    
+    context = {
+        'skill_gaps': skill_gaps,
+    }
+    
+    return render(request, 'manpower/skill_gaps.html', context)
+
+def routing_assignments(request, routing_id):
+    routing = get_object_or_404(Routing, pk=routing_id)
+    assignments = LaborAssignment.objects.filter(
+        schedule__routing=routing
+    ).select_related(
+        'employee', 'shift', 'schedule'
+    )
+    
+    # Calculate total required labor hours
+    labor_requirements = LaborRequirement.objects.filter(routing=routing)
+    total_required_hours = sum(
+        req.employees_needed * req.min_proficiency * 0.2  # Example calculation
+        for req in labor_requirements
+    )
+    
+    # Calculate actual assigned hours
+    total_assigned_hours = sum(
+        float(assignment.hours_allocated)
+        for assignment in assignments
+    )
+    
+    context = {
+        'routing': routing,
+        'assignments': assignments,
+        'labor_requirements': labor_requirements,
+        'coverage_percentage': (total_assigned_hours / total_required_hours * 100) if total_required_hours else 0,
+    }
+    
+    return render(request, 'manpower/routing_assignments.html', context)

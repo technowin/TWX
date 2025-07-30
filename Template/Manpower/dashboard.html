@@ -1,0 +1,466 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-people-fill me-2"></i>Manpower Planning
+            </a>
+            <div class="d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+                    <label class="form-check-label text-white" for="darkModeSwitch">Dark Mode</label>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid p-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2><i class="bi bi-speedometer2 me-2"></i>Manpower Dashboard</h2>
+                    <div>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                            <input type="date" class="form-control" id="datePicker" value="{{ today|date:'Y-m-d' }}">
+                            <button class="btn btn-primary" type="button" id="datePickerBtn">Go</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-primary h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Total Employees</h6>
+                                <h2 class="mb-0">{{ total_employees }}</h2>
+                            </div>
+                            <i class="bi bi-people-fill fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-secondary h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Active Routings</h6>
+                                <h2 class="mb-0">{{ active_routings }}</h2>
+                            </div>
+                            <i class="bi bi-diagram-3 fs-1"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-light text-secondary">In production</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-success h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Available Today</h6>
+                                <h2 class="mb-0">{{ available_today }}</h2>
+                            </div>
+                            <i class="bi bi-check-circle-fill fs-1"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-light text-success">
+                                {{ available_today|floatformat:0 }}% availability
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card text-white bg-danger h-100 card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Unassigned Skills</h6>
+                                <h2 class="mb-0">{{ skill_gaps.count }}</h2>
+                            </div>
+                            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-light text-danger">Critical gaps</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Row -->
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-8 mb-4">
+                <!-- Employee Assignments Chart -->
+                <div class="card mb-4 card-hover">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-calendar-check me-2"></i>Weekly Assignments by Shift
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="assignmentsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Distribution -->
+                <div class="card mb-4 card-hover">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-award me-2"></i>Skill Distribution
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="chart-container" style="height: 250px;">
+                                    <canvas id="skillsChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Top Skill Gaps</h5>
+                                {% for gap in skill_gaps|slice:":3" %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>{{ gap.skill__skill_name }}</span>
+                                        <span>{{ gap.total_needed }} needed</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-danger" role="progressbar" 
+                                             style="width: {% widthratio gap.total_needed 10 100 %}%"></div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% comment %} <a href="{% url 'skill_gaps_report' %}" class="btn btn-sm btn-outline-success">View All Skill Gaps</a> {% endcomment %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-4 mb-4">
+                <!-- Today's Availability -->
+                <div class="card mb-4 card-hover">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-person-check me-2"></i>Today's Availability
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Employees</th>
+                                        <th>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span class="availability-badge available"></span> Available</td>
+                                        <td>{{ available_today }}</td>
+                                        <td>{{ available_today|floatformat:0 }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="availability-badge on-leave"></span> On Leave</td>
+                                        <td>{{ on_leave_today }}</td>
+                                        <td>{{ on_leave_today|floatformat:0 }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="availability-badge unavailable"></span> Unavailable</td>
+                                        <td>{{ unavailable_today }}</td>
+                                        <td>{{ unavailable_today|floatformat:0 }}%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Assignments -->
+                <div class="card mb-4 card-hover">
+                    <div class="card-header bg-warning text-white">
+                        <i class="bi bi-list-task me-2"></i>Today's Assignments
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Routing</th>
+                                    <th>Shift</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in today_assignments %}
+                                <tr>
+                                    <td>{{ assignment.employee.employee_name }}</td>
+                                    <td>
+                                        {% if assignment.schedule.routing %}
+                                            {{ assignment.schedule.routing.component }} - {{ assignment.schedule.routing.operation }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ assignment.shift.shift_code }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if assignment.status == 'confirmed' %}bg-success
+                                            {% elif assignment.status == 'planned' %}bg-primary
+                                            {% elif assignment.status == 'absent' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ assignment.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="card-footer text-center">
+                            {% comment %} <a href="{% url 'daily_assignments' date=today %}" class="btn btn-sm btn-outline-warning">
+                                View All Assignments
+                            </a> {% endcomment %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Status -->
+                <div class="card mb-4 card-hover">
+                    <div class="card-header bg-danger text-white">
+                        <i class="bi bi-clock-history me-2"></i>Attendance Status
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Dark mode toggle
+    const darkModeSwitch = document.getElementById('darkModeSwitch');
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+        darkModeSwitch.checked = true;
+    }
+    
+    darkModeSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('darkMode', 'enabled');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('darkMode', 'disabled');
+        }
+    });
+
+    // Date picker
+    document.getElementById('datePickerBtn').addEventListener('click', function() {
+        const selectedDate = document.getElementById('datePicker').value;
+        window.location.href = `{% url 'manpower_dashboard' %}?date=${selectedDate}`;
+    });
+
+    // Assignments Chart
+    const assignmentsCtx = document.getElementById('assignmentsChart').getContext('2d');
+    const assignmentsChart = new Chart(assignmentsCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for shift in shift_distribution %}
+                    '{{ shift.shift__shift_name }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Employees Assigned',
+                data: [
+                    {% for shift in shift_distribution %}
+                        {{ shift.total }},
+                    {% endfor %}
+                ],
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Employees'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Shift'
+                    }
+                }
+            }
+        }
+    });
+
+    // Skills Chart
+    const skillsCtx = document.getElementById('skillsChart').getContext('2d');
+    const skillsChart = new Chart(skillsCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for skill in skill_distribution %}
+                    '{{ skill.skill__skill_name }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for skill in skill_distribution %}
+                        {{ skill.total }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                    '#5a5c69', '#858796', '#3a3b45', '#f8f9fc', '#d1d3e2'
+                ],
+                hoverBackgroundColor: [
+                    '#2e59d9', '#17a673', '#2c9faf', '#dda20a', '#be2617',
+                    '#3e3f4d', '#6b6d7d', '#2a2b33', '#d9dade', '#b9bbce'
+                ],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.raw} employees`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'right',
+                }
+            },
+            cutout: '70%',
+        },
+    });
+
+    // Attendance Chart
+    const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+    const attendanceChart = new Chart(attendanceCtx, {
+        type: 'pie',
+        data: {
+            labels: [
+                {% for status in attendance_status %}
+                    '{{ status.status|title }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for status in attendance_status %}
+                        {{ status.count }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#1cc88a', '#e74a3b', '#f6c23e', '#36b9cc', '#858796'
+                ],
+                hoverBackgroundColor: [
+                    '#17a673', '#be2617', '#dda20a', '#2c9faf', '#6b6d7d'
+                ],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.raw} employees`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                }
+            },
+        },
+    });
+</script>
+
+{% block extra_javascript %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/manpower.js' %}"></script>
+{% endblock %}
+{% endblock %}
