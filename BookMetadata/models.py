@@ -105,9 +105,9 @@ class BookMetadata(models.Model):
         null=True,
         verbose_name='Pages'
     )
-    created_at = models.DateTimeField(blank=True,null=True)
-    updated_at = models.DateTimeField(blank=True,null=True)
-    is_auto_generated = models.BooleanField(blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_auto_generated = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title or "Untitled Book"

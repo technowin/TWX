@@ -69,8 +69,8 @@ class BookUploadView(FormView):
             metadata = extractor.extract_from_pdf(pdf_file, pages_to_process)
             
             # Save the original PDF
-            pdf_file.seek(0)
-            pdf_content = ContentFile(pdf_file.read())
+            # pdf_file.seek(0)
+            # pdf_content = ContentFile(pdf_file.read())
             
             book = BookMetadata(
                 is_auto_generated=True,
