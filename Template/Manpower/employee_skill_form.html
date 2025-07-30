@@ -25,13 +25,11 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
-
-
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">{{ title }}</h1>
-    <a href="{% url 'manpower:labor_requirement_list' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="fas fa-arrow-left"></i> Back to Requirements
+    <a href="{% url 'manpower:employee_detail' employee.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Employee
     </a>
 </div>
 
@@ -48,11 +46,11 @@
             
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="{{ form.routing.id_for_label }}" class="form-label">{{ form.routing.label }}</label>
-                    {{ form.routing }}
-                    {% if form.routing.errors %}
+                    <label for="{{ form.employee.id_for_label }}" class="form-label">{{ form.employee.label }}</label>
+                    {{ form.employee }}
+                    {% if form.employee.errors %}
                     <div class="invalid-feedback d-block">
-                        {{ form.routing.errors }}
+                        {{ form.employee.errors }}
                     </div>
                     {% endif %}
                 </div>
@@ -69,43 +67,78 @@
             
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="{{ form.employees_needed.id_for_label }}" class="form-label">{{ form.employees_needed.label }}</label>
-                    {{ form.employees_needed }}
-                    {% if form.employees_needed.errors %}
+                    <label for="{{ form.proficiency.id_for_label }}" class="form-label">{{ form.proficiency.label }}</label>
+                    {{ form.proficiency }}
+                    {% if form.proficiency.errors %}
                     <div class="invalid-feedback d-block">
-                        {{ form.employees_needed.errors }}
+                        {{ form.proficiency.errors }}
                     </div>
                     {% endif %}
+                    <small class="form-text text-muted">
+                        Proficiency level (1-5): 
+                        <span id="proficiency-description"></span>
+                    </small>
                 </div>
                 <div class="col-md-6">
-                    <label for="{{ form.min_proficiency.id_for_label }}" class="form-label">{{ form.min_proficiency.label }}</label>
-                    {{ form.min_proficiency }}
-                    {% if form.min_proficiency.errors %}
+                    <label for="{{ form.certification_date.id_for_label }}" class="form-label">{{ form.certification_date.label }}</label>
+                    {{ form.certification_date }}
+                    {% if form.certification_date.errors %}
                     <div class="invalid-feedback d-block">
-                        {{ form.min_proficiency.errors }}
+                        {{ form.certification_date.errors }}
                     </div>
                     {% endif %}
                 </div>
             </div>
             
             <div class="mb-3">
-                <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
-                {{ form.notes }}
-                {% if form.notes.errors %}
+                <label for="{{ form.certified_by.id_for_label }}" class="form-label">{{ form.certified_by.label }}</label>
+                {{ form.certified_by }}
+                {% if form.certified_by.errors %}
                 <div class="invalid-feedback d-block">
-                    {{ form.notes.errors }}
+                    {{ form.certified_by.errors }}
                 </div>
                 {% endif %}
             </div>
             
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a href="{% url 'manpower:labor_requirement_list'  %}" class="btn btn-secondary me-md-2">Cancel</a>
-                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{% url 'manpower:employee_detail' employee.pk %}" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Skill</button>
             </div>
         </form>
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Proficiency level descriptions
+    const proficiencyDescriptions = {
+        1: 'Basic Knowledge (Theoretical understanding only)',
+        2: 'Novice (Can perform with supervision)',
+        3: 'Competent (Can perform independently)',
+        4: 'Proficient (Can train others)',
+        5: 'Expert (Mastery of the skill)'
+    };
+    
+    const proficiencyField = document.getElementById('id_proficiency');
+    const descriptionElement = document.getElementById('proficiency-description');
+    
+    function updateProficiencyDescription() {
+        const level = proficiencyField.value;
+        descriptionElement.textContent = proficiencyDescriptions[level] || '';
+    }
+    
+    if (proficiencyField && descriptionElement) {
+        proficiencyField.addEventListener('change', updateProficiencyDescription);
+        updateProficiencyDescription(); // Initialize on page load
+    }
+    
+    // Initialize date picker
+    const certificationDate = document.getElementById('id_certification_date');
+    if (certificationDate) {
+        certificationDate.type = 'date';
+    }
+});
+</script>
 {% block extra_javascript %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

@@ -27,14 +27,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Leave Requests</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'manpower:leave_request_create' %}" class="btn btn-sm btn-outline-primary">
+
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/manpower/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/manpower/leave-requests/">Leave Request List</a></li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="col-auto mt-2">
+       <a href="{% url 'manpower:leave_request_create' %}" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-plus"></i> New Request
         </a>
     </div>
 </div>
+
 
 <div class="card mb-4">
     <div class="card-body">
@@ -274,6 +284,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+
 
 {% block extra_javascript %}
 
@@ -297,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/manpower.js' %}"></script>
 {% endblock %}
 
 {% endblock %}

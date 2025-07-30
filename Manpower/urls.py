@@ -30,9 +30,9 @@ urlpatterns = [
     path('shifts/<int:pk>/delete/', views.delete_shift, name='shift_delete'),
     
     # Labor Requirement URLs
-    path('routing/<int:routing_id>/labor-requirements/', views.LaborRequirementListView.as_view(), name='labor_requirement_list'),
-    path('routing/<int:routing_id>/labor-requirements/add/', views.LaborRequirementCreateUpdateView.as_view(), name='labor_requirement_create'),
-    path('labor-requirements/<int:pk>/edit/', views.LaborRequirementCreateUpdateView.as_view(), name='labor_requirement_edit'),
+    path('labor-requirements/', views.LaborRequirementListView.as_view(), name='labor_requirement_list'),
+    path('labor-requirements/add/', views.LaborRequirementCreateView.as_view(), name='labor_requirement_create'),
+    path('labor-requirements/<int:pk>/edit/', views.LaborRequirementUpdateView.as_view(), name='labor_requirement_edit'),
     path('labor-requirements/<int:pk>/delete/', views.delete_labor_requirement, name='labor_requirement_delete'),
     
     # Labor Assignment URLs
@@ -59,4 +59,9 @@ urlpatterns = [
     path('leave-requests/<int:pk>/delete/', views.delete_leave_request, name='leave_request_delete'),
     path('leave-requests/<int:pk>/approve/', views.approve_leave_request, name='leave_request_approve'),
     path('leave-requests/<int:pk>/reject/', views.reject_leave_request, name='leave_request_reject'),
+
+    path('dashboard/', views.manpower_dashboard, name='manpower_dashboard'),
+    path('daily-assignments/<str:date>/', views.daily_assignments, name='daily_assignments'),
+    path('skill-gaps/', views.skill_gaps_report, name='skill_gaps_report'),
+    path('routing-assignments/<int:routing_id>/', views.routing_assignments, name='routing_assignments'),
 ]

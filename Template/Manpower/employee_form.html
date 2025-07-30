@@ -106,11 +106,18 @@
                 </div>
             </div>
             
-            <div class="mb-3 form-check">
+            {% comment %} <div class="form-check form-switch">
                 {{ form.is_active }}
-                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
-            </div>
-            
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    {{ form.is_active.label }}
+                    {% if form.instance.pk %}
+                        <span class="badge ms-2 {% if form.instance.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if form.instance.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    {% endif %}
+                    </label>
+                </div>
+            </div> {% endcomment %}
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <a href="{% url 'manpower:employee_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
                 <button type="submit" class="btn btn-primary">Save</button>
@@ -118,6 +125,29 @@
         </form>
     </div>
 </div>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
 
 {% block extra_javascript %}
 
@@ -141,6 +171,7 @@
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/manpower.js' %}"></script>
 {% endblock %}
 {% endblock %}
 

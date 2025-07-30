@@ -1218,7 +1218,7 @@ def form_master(request):
 
                    
                 if workflow_YN == '1E':
-                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
+                    return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,"form_ids":form_ids,
                             "actual_step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,"forms_data":forms_data,"wfSelected_id":wfdetailsID,"wfDetailsTable_id":wfDetailsTable_id,})
                 else:
                     return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data,"forms_data":forms_data,"wfDetailsTable_id":wfDetailsTable_id,})
@@ -1254,6 +1254,8 @@ def common_form_post(request):
     user = request.session.get('user_id', '')
     user_name = request.session.get('username', '')
     entity = request.POST.get('entity')
+    
+    
 
     try:
         created_by = user
@@ -1281,6 +1283,28 @@ def common_form_post(request):
         step_id = request.POST.get('step_id', '')
         action_id = request.POST.get("action_id")
         actual_step_id = request.POST.get("actual_step_id")
+        
+        stepIdDone_Wd = int(actual_step_id) - 1
+        sent_back_row = history_workflow_details.objects.filter(
+        workflow_id=wfSelected_id,
+        step_id=stepIdDone_Wd,
+        sent_back=1
+        ).order_by('-id').first()  # Assuming higher ID means later
+
+        exists = False
+
+        if sent_back_row:
+            req_id = sent_back_row.req_id  # get the req_id of that row
+            current_id = sent_back_row.id  # or use created_at if preferred
+
+            # Step 2: Check if any later rows exist for the same req_id
+            has_later_rows = history_workflow_details.objects.filter(
+                req_id=req_id,
+                id__gt=current_id  # check if any row has greater ID
+            ).exists()
+
+            if not has_later_rows:
+                exists = True  # only if no newer rows exist
 
         all_form_data_ids = []
         primary_value = request.POST.get("primray_key", "").strip()
@@ -1371,6 +1395,8 @@ def common_form_post(request):
 
         # === Start Workflow Logic ===
         if workflow_YN == '1' and all_form_data_ids:
+            
+            
             if wfdetailsid and wfdetailsid != 'undefined':
                 wfdetailsid = dec(wfdetailsid)
             else:
@@ -1379,8 +1405,22 @@ def common_form_post(request):
             matrix_entry = workflow_matrix.objects.filter(id=step_id).first() if step_id else None
             status_from_matrix = matrix_entry.status if matrix_entry else ''
 
-            
-        if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+        if exists:
+            workflow_detail = workflow_details.objects.get(id=wfdetailsid)
+            # workflow_detail.workflow_id = wfSelected_id
+            # workflow_detail.form_data_id = form_DataID
+            # workflow_detail.role_id = role_idC
+            # workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
+            # workflow_detail.increment_id += 1
+            # workflow_detail.step_id = actual_step_id
+            # workflow_detail.module = module
+            # workflow_detail.status = status_from_matrix
+            # workflow_detail.user_id = user
+            workflow_detail.updated_by = user
+            workflow_detail.updated_at = now()
+            # workflow_detail.primary_key = primary_value
+            workflow_detail.save()    
+        elif wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
             workflow_detail = workflow_details.objects.get(id=wfdetailsid)
             workflow_detail.workflow_id = wfSelected_id
             workflow_detail.form_data_id = form_DataID
@@ -2161,8 +2201,30 @@ def common_form_edit(request):
     step_id = request.POST.get("step_id")
     wfSelected_id = request.POST.get("wfSelected_id")
     actual_step_id = request.POST.get("actual_step_id")
-    module = request.POST.get("module")  
+    module = wfSelected_id
     wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
+    
+    StepIdDone = int(actual_step_id) - 1
+    sent_back_row = history_workflow_details.objects.filter(
+        workflow_id=wfSelected_id,
+        step_id=StepIdDone,
+        sent_back=1
+    ).order_by('-id').first()  # Assuming higher ID means later
+
+    exists = False
+
+    if sent_back_row:
+        req_id = sent_back_row.req_id  # get the req_id of that row
+        current_id = sent_back_row.id  # or use created_at if preferred
+
+        # Step 2: Check if any later rows exist for the same req_id
+        has_later_rows = history_workflow_details.objects.filter(
+            req_id=req_id,
+            id__gt=current_id  # check if any row has greater ID
+        ).exists()
+
+        if not has_later_rows:
+            exists = True  # only if no newer rows exist
 
     try:
         if request.method != "POST":
@@ -2264,22 +2326,36 @@ def common_form_edit(request):
 
         # Workflow handling
         if workflow_YN == '1E':
-            wfdetailsid = request.POST.get('wfdetailsid', '')
-            step_id = request.POST.get('step_id', '')
+            # wfdetailsid = request.POST.get('wfdetailsid', '')
+            wfdetailsid = request.POST.get('wfDetailsTable_id', '')
+            step_id = request.POST.get('actual_step_id', '')
             role_idC = request.POST.get('role_id', '')
             
-            if wfdetailsid and wfdetailsid != 'undefined':
-                wfdetailsid = dec(wfdetailsid)
-            else:
-                wfdetailsid = None
+            # if wfdetailsid and wfdetailsid != 'undefined':
+            #     wfdetailsid = dec(wfdetailsid)
+            # else:
+            #     wfdetailsid = None
 
             status_from_matrix = ''
             if actual_step_id:
                 matrix_entry = workflow_matrix.objects.filter(id=wfDetailsTable_id).first()
                 if matrix_entry:
                     status_from_matrix = matrix_entry.status
-
-            if wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
+            if exists:
+                # Update existing workflow detail
+                workflow_detail = workflow_details.objects.get(id=wfDetailsTable_id)
+                # workflow_detail.form_data_id = form_data_id
+                # workflow_detail.role_id = role_idC
+                # workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
+                # workflow_detail.increment_id += 1
+                # workflow_detail.step_id = actual_step_id
+                # workflow_detail.status = status_from_matrix
+                # workflow_detail.user_id = user
+                # workflow_detail.updated_by = user
+                # workflow_detail.workflow_id = wfSelected_id
+                workflow_detail.updated_at = now()
+                workflow_detail.save()
+            elif wfdetailsid and workflow_details.objects.filter(id=wfDetailsTable_id).exists():
                 # Update existing workflow detail
                 workflow_detail = workflow_details.objects.get(id=wfDetailsTable_id)
                 workflow_detail.form_data_id = form_data_id
