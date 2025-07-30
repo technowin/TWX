@@ -53,42 +53,29 @@ class GeminiMetadataExtractor:
                 fmt='jpeg',
                 thread_count=3
             )
-            extracted_data = []
-
+    
+            # Convert all images to bytes and open as PIL images
+            image_list = []
             for image in images:
                 img_byte_arr = io.BytesIO()
                 image.save(img_byte_arr, format='JPEG')
                 img_bytes = img_byte_arr.getvalue()
-
-                response = self.model.generate_content(
-                    [self.prompt, Image.open(io.BytesIO(img_bytes))],
-                    generation_config={"temperature": 0.1}
-                )
-
-                try:
-                    json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
-                    data = json.loads(json_str)
-                    extracted_data.append(data)
-                except (AttributeError, json.JSONDecodeError):
-                    print("Error parsing response, skipping page.")
-                    continue
-
-            return self._combine_results(extracted_data)
-
+                image_list.append(Image.open(io.BytesIO(img_bytes)))
+    
+            # Single request with all images
+            response = self.model.generate_content(
+                [self.prompt] + image_list,
+                generation_config={"temperature": 0.1}
+            )
+    
+            # Extract JSON from response
+            try:
+                json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
+                data = json.loads(json_str)
+                return data
+            except (AttributeError, json.JSONDecodeError):
+                raise Exception("Error parsing JSON from Gemini response.")
+    
         except Exception as e:
             raise Exception(f"PDF processing error: {str(e)}")
 
-    def _combine_results(self, extracted_data):
-        if not extracted_data:
-            return {k: None for k in [
-                "language", "isbn_no", "title", "author", "edition",
-                "publisher_name", "publisher_place", "year_of_publication",
-                "accession_no", "class_no", "book_no", "pagination"
-            ]}
-
-        final = extracted_data[0]
-        for entry in extracted_data[1:]:
-            for key, value in entry.items():
-                if not final.get(key) and value:
-                    final[key] = value
-        return final
