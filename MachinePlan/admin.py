@@ -6,15 +6,7 @@ class MachineCapabilityInline(admin.TabularInline):
     model = MachineCapability
     extra = 1
 
-class MachineScheduleInline(admin.TabularInline):
-    model = MachineSchedule
-    extra = 1
-    readonly_fields = ['created_by', 'created_at']
-    
-    def save_model(self, request, obj, form, change):
-        if not obj.pk:
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
+
 
 class MaintenanceScheduleInline(admin.TabularInline):
     model = MaintenanceSchedule
@@ -31,7 +23,7 @@ class MachineAdmin(admin.ModelAdmin):
     list_display = ['machine_id', 'name', 'machine_type', 'status', 'capacity']
     list_filter = ['status', 'machine_type']
     search_fields = ['machine_id', 'name', 'model_number', 'serial_number']
-    inlines = [MachineCapabilityInline, MachineScheduleInline, MaintenanceScheduleInline]
+    inlines = [MachineCapabilityInline, MaintenanceScheduleInline]
     
     def save_model(self, request, obj, form, change):
         if not obj.pk:
@@ -49,17 +41,7 @@ class MachineCapabilityAdmin(admin.ModelAdmin):
     list_filter = ['machine']
     search_fields = ['machine__name', 'component__part_number']
 
-@admin.register(MachineSchedule)
-class MachineScheduleAdmin(admin.ModelAdmin):
-    list_display = ['machine', 'component', 'start_time', 'end_time', 'status']
-    list_filter = ['status', 'machine']
-    search_fields = ['machine__name', 'component__part_number']
-    readonly_fields = ['created_by', 'created_at']
-    
-    def save_model(self, request, obj, form, change):
-        if not obj.pk:
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
+
 
 @admin.register(MaintenanceSchedule)
 class MaintenanceScheduleAdmin(admin.ModelAdmin):

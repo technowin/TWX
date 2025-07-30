@@ -10,7 +10,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from BOM.models import Component
-from .models import Machine, MachineType, MachineCapability, MachineSchedule, MaintenanceSchedule
+from .models import *
 from  .forms import *
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Q
@@ -176,56 +176,8 @@ class MachineCapabilityDeleteView(DeleteView):
     template_name = 'MachinePlan/machine_capability_confirm_delete.html'
     success_url = reverse_lazy('mcp:machine_capability_list')
 
-class MachineScheduleListView(ListView):
-    model = MachineSchedule
-    template_name = 'MachinePlan/machine_schedule_list.html'
-    context_object_name = 'schedules'
-    paginate_by = 20
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
-        status = self.request.GET.get('status')
-        machine_id = self.request.GET.get('machine')
-        
-        if date_from:
-            queryset = queryset.filter(start_time__gte=date_from)
-        if date_to:
-            queryset = queryset.filter(end_time__lte=date_to)
-        if status:
-            queryset = queryset.filter(status=status)
-        if machine_id:
-            queryset = queryset.filter(machine_id=machine_id)
-            
-        return queryset.select_related('machine', 'component').order_by('start_time')
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['machines'] = Machine.objects.filter(status='OP')
-        context['status_choices'] = MachineSchedule.STATUS_CHOICES
-        return context
-
-class MachineScheduleCreateView( CreateView):
-    model = MachineSchedule
-    form_class = MachineScheduleForm
-    template_name = 'MachinePlan/machine_schedule_form.html'
-    success_url = reverse_lazy('mcp:machine_schedule_list')
-
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
-
-class MachineScheduleUpdateView( UpdateView):
-    model = MachineSchedule
-    form_class = MachineScheduleForm
-    template_name = 'MachinePlan/machine_schedule_form.html'
-    success_url = reverse_lazy('mcp:machine_schedule_list')
-
-class MachineScheduleDeleteView( DeleteView):
-    model = MachineSchedule
-    template_name = 'MachinePlan/machine_schedule_confirm_delete.html'
-    success_url = reverse_lazy('mcp:machine_schedule_list')
 
 class MaintenanceScheduleListView( ListView):
     model = MaintenanceSchedule
@@ -277,25 +229,7 @@ class MaintenanceScheduleDeleteView( DeleteView):
     template_name = 'MachinePlan/maintenance_schedule_confirm_delete.html'
     success_url = reverse_lazy('mcp:maintenance_schedule_list')
 
-class MachineCalendarView( ListView):
-    model = MachineSchedule
-    template_name = 'MachinePlan/machine_calendar.html'
-    context_object_name = 'schedules'
 
-    def get_queryset(self):
-        date_from = self.request.GET.get('date_from', timezone.now().date())
-        date_to = self.request.GET.get('date_to', timezone.now().date() + timezone.timedelta(days=7))
-        
-        return MachineSchedule.objects.filter(
-            start_time__date__gte=date_from,
-            end_time__date__lte=date_to
-        ).select_related('machine', 'component').order_by('start_time')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['machines'] = Machine.objects.filter(status='OP')
-        return context
-    
 
 class RoutingListView(ListView):
     model = Routing
@@ -528,7 +462,7 @@ def dashboard(request):
     # Production schedules for today and tomorrow
     today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
-    production_schedules = MachineSchedule.objects.filter(
+    production_schedules = MachinePlanning.objects.filter(
         start_time__gte=today_start,
         end_time__lte=today_end
     ).order_by('start_time')

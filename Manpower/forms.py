@@ -1,7 +1,8 @@
 # forms.py
 from django import forms
 
-from MachinePlan.models import MachineSchedule
+import MachinePlan
+from MachinePlan.models import Routing
 from .models import (
     Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
     LaborAssignment, EmployeeAvailability, Attendance, LeaveRequest
@@ -73,12 +74,18 @@ class LaborRequirementForm(forms.ModelForm):
     class Meta:
         model = LaborRequirement
         fields = '__all__'
-        exclude = ['routing']
-    
+        widgets = {
+            'routing': forms.Select(attrs={'class': 'form-select'}),
+            'skill': forms.Select(attrs={'class': 'form-select'}),
+            'employees_needed': forms.NumberInput(attrs={'class': 'form-control'}),
+            'min_proficiency': forms.NumberInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.update({'class': 'form-control'})
+        self.fields['routing'].queryset = Routing.objects.all().order_by('component')
+        self.fields['skill'].queryset = Skill.objects.all().order_by('skill_name')
 
 class LaborAssignmentForm(forms.ModelForm):
     class Meta:
@@ -97,11 +104,11 @@ class LaborAssignmentForm(forms.ModelForm):
         if 'schedule' in self.data:
             try:
                 schedule_id = int(self.data.get('schedule'))
-                schedule = MachineSchedule.objects.get(id=schedule_id)
+                schedule = MachinePlan.objects.get(id=schedule_id)
                 self.fields['employee'].queryset = Employee.objects.filter(
                     work_center=schedule.WorkCenter
                 )
-            except (ValueError, MachineSchedule.DoesNotExist):
+            except (ValueError, MachinePlan.DoesNotExist):
                 pass
         elif self.instance.pk:
             self.fields['employee'].queryset = Employee.objects.filter(

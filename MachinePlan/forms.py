@@ -92,40 +92,6 @@ class MachineCapabilityForm(BootstrapFormMixin, forms.ModelForm):
         self.fields['machine'].queryset = Machine.objects.filter(status='OP')
         self.fields['component'].queryset = BOMHeader.objects.all()
 
-class MachineScheduleForm(BootstrapFormMixin, forms.ModelForm):
-    class Meta:
-        model = MachineSchedule
-        fields = [
-            'machine', 'component', 'quantity', 
-            'start_time', 'end_time', 'status', 'notes'
-        ]
-        widgets = {
-            'machine': forms.Select(attrs={'class': 'form-select'}),
-            'component': forms.Select(attrs={'class': 'form-select'}),
-            'quantity': forms.NumberInput(attrs={
-                'placeholder': 'Enter quantity',
-                'min': '1'
-            }),
-            'start_time': forms.DateTimeInput(attrs={
-                'type': 'datetime-local',
-                'class': 'form-control datetimepicker'
-            }),
-            'end_time': forms.DateTimeInput(attrs={
-                'type': 'datetime-local',
-                'class': 'form-control datetimepicker'
-            }),
-            'status': forms.Select(attrs={'class': 'form-select'}),
-            'notes': forms.Textarea(attrs={
-                'rows': 3,
-                'placeholder': 'Enter any additional notes'
-            }),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['machine'].queryset = Machine.objects.filter(status='OP')
-        self.fields['component'].queryset = BOMHeader.objects.all()
-
 class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = MaintenanceSchedule

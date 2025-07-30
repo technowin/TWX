@@ -85,52 +85,7 @@ class MachineCapability(models.Model):
     def __str__(self):
         return f"{self.machine} can produce {self.component}"
 
-class MachineSchedule(models.Model):
-    """Scheduled operations for machines"""
-    STATUS_CHOICES = [
-        ('PL', 'Planned'),
-        ('IP', 'In Progress'),
-        ('CO', 'Completed'),
-        ('CA', 'Cancelled'),
-    ]
-    
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='schedules')
-    component = models.ForeignKey(BOMHeader, on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField()
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='PL')
-    actual_start_time = models.DateTimeField(null=True, blank=True)
-    actual_end_time = models.DateTimeField(null=True, blank=True)
-    notes = models.TextField(blank=True)
-    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name = "Machine Schedule"
-        verbose_name_plural = "Machine Schedules"
-        ordering = ['start_time']
-        indexes = [
-            models.Index(fields=['start_time', 'end_time']),
-            models.Index(fields=['status']),
-        ]
-
-    def __str__(self):
-        return f"{self.machine} scheduled for {self.component} from {self.start_time} to {self.end_time}"
-
-    def save(self, *args, **kwargs):
-        # Calculate end_time based on component's processing time if not set
-        if not self.end_time and self.start_time and self.component:
-            capability = MachineCapability.objects.filter(
-                machine=self.machine,
-                component=self.component
-            ).first()
-            if capability:
-                processing_time = capability.processing_time
-                total_time = processing_time * self.quantity
-                self.end_time = self.start_time + total_time
-        super().save(*args, **kwargs)
 
 class MaintenanceSchedule(models.Model):
     """Preventive maintenance schedules for machines"""
@@ -174,6 +129,7 @@ class WorkCenter(models.Model):
 class Routing(models.Model):
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
+    production_order = models.ForeignKey('MachinePlan.ProductionOrder', on_delete=models.CASCADE,null=True,blank=True)
     sequence = models.PositiveIntegerField()
     work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)
     setup_time = models.PositiveIntegerField(help_text="Setup time in minutes")
@@ -186,7 +142,7 @@ class Routing(models.Model):
         verbose_name = "BOM Routing"
     
     def __str__(self):
-        return f"{self.component} - Op {self.sequence}: {self.operation}"
+        return f"{self.component} - {self.operation}"
     
     def get_absolute_url(self):
         return reverse('routing_list')
@@ -211,6 +167,7 @@ class MachinePlanning(models.Model):
     production_order = models.ForeignKey('MachinePlan.ProductionOrder', on_delete=models.CASCADE)
     component = models.ForeignKey(BOMHeader, on_delete=models.PROTECT, verbose_name="BOM Component")
     operation = models.ForeignKey(Operation, on_delete=models.PROTECT)
+    routing = models.ForeignKey(Routing, on_delete=models.PROTECT,null=True,blank=True)
     machine = models.ForeignKey('Machine', on_delete=models.PROTECT)
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()

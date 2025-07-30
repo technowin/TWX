@@ -28,12 +28,34 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">{{ title }}</h1>
-    <a href="{% url 'manpower:attendance_list' %}" class="btn btn-sm btn-outline-secondary">
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><href="/manpower/dashboard/">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="#">Attendance List</a></li>
+                <li class="breadcrumb-item"><a href="#">{% if object %}Edit{% else %}Attendance{% endif %}</a></li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-auto mt-2">
+     <a href="{% url 'manpower:attendance_list' %}" class="btn btn-sm btn-outline-secondary">
         <i class="fas fa-arrow-left"></i> Back to List
     </a>
+    </div>
+
 </div>
+
+
+<div class="row mb-4">
+    <div class="col">
+        <h5>
+            <i class="bi bi-list-ul"></i> {% if object %}Edit Attendance {{ object.employee_name }}{% else %} Create Attendance{% endif %}
+        </h5>
+    </div>
+    
+</div>
+
 
 <div class="card">
     <div class="card-body">
