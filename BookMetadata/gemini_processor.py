@@ -1,119 +1,94 @@
-import os
+import io
 import json
 import re
-import google.generativeai as genai
-from django.conf import settings
-from pdf2image import convert_from_bytes
 from PIL import Image
-import io
+from pdf2image import convert_from_bytes
+import google.generativeai as genai
 
 class GeminiMetadataExtractor:
     def __init__(self):
-        Image.MAX_IMAGE_PIXELS = None  # Disable the check completely (not recommended)
-        # OR set a higher limit
-        Image.MAX_IMAGE_PIXELS = 200000000 
-    
+        Image.MAX_IMAGE_PIXELS = 200000000  # Allow large images
         api_key = "AIzaSyAJWKnoo45JeoQxcwD5R8RUatPUZmVhEMU"
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash') #gemini-2.0-flash
-        
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         self.prompt = """
-                    You are an intelligent document parser. I will provide you with scanned PDF pages of a book that contain both printed and handwritten text.
+            You are a highly intelligent document and image parser with web-assisted reasoning.
 
-                    Your task is to extract the following metadata from anywhere in the pages (regardless of order, handwriting, or print). The result should be returned in English only and structured as JSON.
+            I will provide you with scanned PDF pages of a book, consisting of both printed and handwritten content. Your job is to extract **accurate metadata** from these pages. The metadata could be located anywhere — in headers, footers, stamps, typed paragraphs, handwritten margins, or titles — and may appear in different formats.
 
-                    Required fields:
-                    - Language 
-                    - ISBN No
-                    - Title
-                    - Author
-                    - Edition
-                    - Publisher Name
-                    - Publisher Place
-                    - Year of Publication
-                    - Accession No
-                    - Class No
-                    - Book No
-                    - Pagination – Extract the total number of pages, which may appear in printed or handwritten form (sometimes written in pencil). It typically starts with a prefix like "Pg" followed by a number (e.g., "Pg 135", "Pg: 135", or "Pg 135"). This information may appear anywhere in the document.
+            If **any metadata field** is **unclear or missing** from the images, you must **use your trained knowledge and Google resources** to infer it as accurately as possible (e.g., title, author, publisher, etc.).
 
-                    Please return the result strictly in the following JSON format:
+            Required output format (JSON):
+            {
+              "language": "",
+              "isbn_no": "",
+              "title": "",
+              "author": "",
+              "edition": "",
+              "publisher_name": "",
+              "publisher_place": "",
+              "year_of_publication": "",
+              "accession_no": "",
+              "class_no": "",
+              "book_no": "",
+              "pagination": ""
+            }
 
-                    {
-                      "language": "",
-                      "isbn_no": "",
-                      "title": "",
-                      "author": "",
-                      "edition": "",
-                      "publisher_name": "",
-                      "publisher_place": "",
-                      "year_of_publication": "",
-                      "accession_no": "",
-                      "class_no": "",
-                      "book_no": "",
-                      "pagination": ""
-                    }
-                    """
+            Important Notes:
+            - "Pagination" may appear handwritten, such as: Pg 123, Pg:123, or Pg 123.
+            - Use OCR capabilities for handwritten text and analyze all visible marks.
+            - If you are unable to find a field from the document, intelligently infer it using your internet-based knowledge of known books.
+            - Output should always be in English and in strict JSON format only (no extra text).
+            """
+
 
     def extract_from_pdf(self, pdf_file, pages_to_process=3):
         try:
             pdf_file.seek(0)
-
-            # images = convert_from_bytes(pdf_file.read())
             images = convert_from_bytes(
                 pdf_file.read(),
-                dpi=200,  # Optimal balance between quality and size
+                dpi=200,
                 first_page=1,
                 last_page=pages_to_process,
                 fmt='jpeg',
-                thread_count=4  # Use multiple threads for faster processing
+                thread_count=3
             )
-            processed_pages = min(pages_to_process, len(images))
             extracted_data = []
-            
-            for i in range(processed_pages):
+
+            for image in images:
                 img_byte_arr = io.BytesIO()
-                images[i].save(img_byte_arr, format='JPEG')
-                img_byte_arr = img_byte_arr.getvalue()
-                
+                image.save(img_byte_arr, format='JPEG')
+                img_bytes = img_byte_arr.getvalue()
+
                 response = self.model.generate_content(
-                    [self.prompt, Image.open(io.BytesIO(img_byte_arr))],
+                    [self.prompt, Image.open(io.BytesIO(img_bytes))],
                     generation_config={"temperature": 0.1}
                 )
-                
+
                 try:
                     json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
                     data = json.loads(json_str)
                     extracted_data.append(data)
                 except (AttributeError, json.JSONDecodeError):
+                    print("Error parsing response, skipping page.")
                     continue
-            
+
             return self._combine_results(extracted_data)
-        
+
         except Exception as e:
             raise Exception(f"PDF processing error: {str(e)}")
 
     def _combine_results(self, extracted_data):
         if not extracted_data:
-            return {
-                "language": None,
-                "isbn_no": None,
-                "title": None,
-                "author": None,
-                "edition": None,
-                "publisher_name": None,
-                "publisher_place": None,
-                "year_of_publication": None,
-                "accession_no": None,
-                "class_no": None,
-                "book_no": None,
-                "pagination": None
-            }
-        
-        final_data = extracted_data[0]
-        
-        for data in extracted_data[1:]:
-            for key, value in data.items():
-                if key in final_data and not final_data[key] and value:
-                    final_data[key] = value
-        
-        return final_data
+            return {k: None for k in [
+                "language", "isbn_no", "title", "author", "edition",
+                "publisher_name", "publisher_place", "year_of_publication",
+                "accession_no", "class_no", "book_no", "pagination"
+            ]}
+
+        final = extracted_data[0]
+        for entry in extracted_data[1:]:
+            for key, value in entry.items():
+                if not final.get(key) and value:
+                    final[key] = value
+        return final
