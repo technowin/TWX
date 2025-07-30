@@ -150,6 +150,7 @@ LOCAL_APPS = [
     'BOM',
     'MaterialPlan',
     'MachinePlan',
+    'BookMetadata',
     'Manpower'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

@@ -1,0 +1,197 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Book Metadata{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+ <style>
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .action-btn {
+            min-width: 80px;
+        }
+        .json-view {
+            background-color: var(--bs-light-bg-subtle);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .upload-container {
+            max-width: 600px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header ">
+        <h4 class="mb-0">
+            <i class="bi bi-journal-text"></i>
+            {% if form.instance.pk %}Edit{% else %}Add{% endif %} Book Metadata
+        </h4>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.title.id_for_label }}" class="form-label">Title*</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.title.errors|join:", " }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.author.id_for_label }}" class="form-label">Author</label>
+                    {{ form.author }}
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.language.id_for_label }}" class="form-label">Language</label>
+                    {{ form.language }}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.isbn_no.id_for_label }}" class="form-label">ISBN</label>
+                    {{ form.isbn_no }}
+                </div>
+                <div class="col-md-4">
+                    <label for="{{ form.edition.id_for_label }}" class="form-label">Edition</label>
+                    {{ form.edition }}
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.publisher_name.id_for_label }}" class="form-label">Publisher</label>
+                    {{ form.publisher_name }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.publisher_place.id_for_label }}" class="form-label">Location</label>
+                    {{ form.publisher_place }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.year_of_publication.id_for_label }}" class="form-label">Year</label>
+                    {{ form.year_of_publication }}
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label for="{{ form.accession_no.id_for_label }}" class="form-label">Accession No.</label>
+                    {{ form.accession_no }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.class_no.id_for_label }}" class="form-label">Class No.</label>
+                    {{ form.class_no }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.book_no.id_for_label }}" class="form-label">Book No.</label>
+                    {{ form.book_no }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.pagination.id_for_label }}" class="form-label">Pages</label>
+                    {{ form.pagination }}
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'book_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/mtp.js' %}"></script>
+
+{% endblock %}
