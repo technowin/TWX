@@ -1283,29 +1283,37 @@ def common_form_post(request):
         step_id = request.POST.get('step_id', '')
         action_id = request.POST.get("action_id")
         actual_step_id = request.POST.get("actual_step_id")
+        wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
         
         stepIdDone_Wd = int(actual_step_id) - 1
         
-        sent_back_row = history_workflow_details.objects.filter(
-        workflow_id=wfSelected_id,
-        step_id=stepIdDone_Wd,
-        sent_back=1
-        ).order_by('-id').first()  # Assuming higher ID means later
+        exists = False  # default
 
-        exists = False
+        if wfDetailsTable_id:
+        # 🔍 Step 1: Get the req_id from workflow_details table for the given wfDetailsTable_id
+        
+            wf_detail_obj = workflow_details.objects.get(id=wfDetailsTable_id)
+            req_id = wf_detail_obj.req_id  # ✅ got req_id based on wfDetailsTable_id
 
-        if sent_back_row:
-            req_id = sent_back_row.req_id  # get the req_id of that row
-            current_id = sent_back_row.id  # or use created_at if preferred
+            # 🔍 Step 2: Get the last sent_back row for this workflow and previous step
+            sent_back_row = history_workflow_details.objects.filter(
+                workflow_id=wfSelected_id,
+                step_id=stepIdDone_Wd,
+                sent_back=1,
+                req_id=req_id
+            ).order_by('-id').first()
 
-            # Step 2: Check if any later rows exist for the same req_id
-            has_later_rows = history_workflow_details.objects.filter(
-                req_id=req_id,
-                id__gt=current_id  # check if any row has greater ID
-            ).exists()
+            if sent_back_row:
+                current_id = sent_back_row.id
 
-            if not has_later_rows:
-                exists = True  # only if no newer rows exist
+                # 🔍 Step 3: Check if any newer rows for this req_id exist
+                has_later_rows = history_workflow_details.objects.filter(
+                    req_id=req_id,
+                    id__gt=current_id
+                ).exists()
+
+                if not has_later_rows:
+                    exists = True
 
         all_form_data_ids = []
         primary_value = request.POST.get("primray_key", "").strip()
@@ -2206,26 +2214,33 @@ def common_form_edit(request):
     wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
     
     StepIdDone = int(actual_step_id) - 1
-    sent_back_row = history_workflow_details.objects.filter(
-        workflow_id=wfSelected_id,
-        step_id=StepIdDone,
-        sent_back=1
-    ).order_by('-id').first()  # Assuming higher ID means later
+    exists = False  # default
 
-    exists = False
+    if wfDetailsTable_id:
+        # 🔍 Step 1: Get the req_id from workflow_details table for the given wfDetailsTable_id
+        
+            wf_detail_obj = workflow_details.objects.get(id=wfDetailsTable_id)
+            req_id = wf_detail_obj.req_id  # ✅ got req_id based on wfDetailsTable_id
 
-    if sent_back_row:
-        req_id = sent_back_row.req_id  # get the req_id of that row
-        current_id = sent_back_row.id  # or use created_at if preferred
+            # 🔍 Step 2: Get the last sent_back row for this workflow and previous step
+            sent_back_row = history_workflow_details.objects.filter(
+                workflow_id=wfSelected_id,
+                step_id=StepIdDone,
+                sent_back=1,
+                req_id=req_id
+            ).order_by('-id').first()
 
-        # Step 2: Check if any later rows exist for the same req_id
-        has_later_rows = history_workflow_details.objects.filter(
-            req_id=req_id,
-            id__gt=current_id  # check if any row has greater ID
-        ).exists()
+            if sent_back_row:
+                current_id = sent_back_row.id
 
-        if not has_later_rows:
-            exists = True  # only if no newer rows exist
+                # 🔍 Step 3: Check if any newer rows for this req_id exist
+                has_later_rows = history_workflow_details.objects.filter(
+                    req_id=req_id,
+                    id__gt=current_id
+                ).exists()
+
+                if not has_later_rows:
+                    exists = True
 
     try:
         if request.method != "POST":
