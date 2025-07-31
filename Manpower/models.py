@@ -124,7 +124,6 @@ class LaborAssignment(models.Model):
         verbose_name = "Labor Assignment"
         verbose_name_plural = "Labor Assignments"
         ordering = ['date', 'shift__start_time']
-        unique_together = ('employee', 'date', 'shift')
     
     def __str__(self):
         return f"{self.employee} assigned to {self.schedule} on {self.date}"
