@@ -24,7 +24,7 @@ from .forms import (
     AttendanceForm, LeaveRequestForm
 )
 from MachinePlan.models import MachinePlanning, Routing
-
+    
 class EmployeeListView(LoginRequiredMixin, ListView):
     model = Employee
     template_name = 'Manpower/employee_list.html'
@@ -33,13 +33,43 @@ class EmployeeListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        search_query = self.request.GET.get('search')
-        if search_query:
-            queryset = queryset.filter(
-                models.Q(employee_code__icontains=search_query) |
-                models.Q(employee_name__icontains=search_query)
-            )
+        
+        # Get filter parameters from request
+        code_filter = self.request.GET.get('code')
+        name_filter = self.request.GET.get('name')
+        work_center_filter = self.request.GET.get('work_center')
+        
+        # Apply filters if they exist
+        if code_filter:
+            queryset = queryset.filter(employee_code=code_filter)
+        if name_filter:
+            queryset = queryset.filter(employee_name=name_filter)
+        if work_center_filter:
+            queryset = queryset.filter(work_center__name=work_center_filter)
+            
         return queryset.filter(is_active=True)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
+        
+        # Get unique values for dropdowns
+        context['unique_codes'] = Employee.objects.filter(is_active=True)\
+            .order_by('employee_code')\
+            .values_list('employee_code', flat=True)\
+            .distinct()
+            
+        context['unique_names'] = Employee.objects.filter(is_active=True)\
+            .order_by('employee_name')\
+            .values_list('employee_name', flat=True)\
+            .distinct()
+            
+        context['unique_work_centers'] = Employee.objects.filter(is_active=True)\
+            .order_by('work_center__name')\
+            .values_list('work_center__name', flat=True)\
+            .distinct()
+            
+        return context
 
 class EmployeeCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Employee
@@ -97,6 +127,37 @@ class SkillListView(LoginRequiredMixin, ListView):
     context_object_name = 'skills'
     paginate_by = 20
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Get filter parameters from request
+        code_filter = self.request.GET.get('code')
+        name_filter = self.request.GET.get('name')
+        
+        # Apply filters if they exist
+        if code_filter:
+            queryset = queryset.filter(skill_code__icontains=code_filter)
+        if name_filter:
+            queryset = queryset.filter(skill_name__icontains=name_filter)
+            
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get unique values for dropdowns
+        context['unique_codes'] = Skill.objects.all()\
+            .order_by('skill_code')\
+            .values_list('skill_code', flat=True)\
+            .distinct()
+            
+        context['unique_names'] = Skill.objects.all()\
+            .order_by('skill_name')\
+            .values_list('skill_name', flat=True)\
+            .distinct()
+            
+        return context
+
 class SkillCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Skill
     form_class = SkillForm
@@ -124,6 +185,37 @@ class ShiftListView(LoginRequiredMixin, ListView):
     template_name = 'Manpower/shift_list.html'
     context_object_name = 'shifts'
     paginate_by = 20
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Get filter parameters from request
+        name_filter = self.request.GET.get('name')
+        time_filter = self.request.GET.get('time')
+        
+        # Apply filters if they exist
+        if name_filter:
+            queryset = queryset.filter(shift_name__icontains=name_filter)
+        if time_filter:
+            if time_filter == 'morning':
+                queryset = queryset.filter(start_time__hour__lt=12)
+            elif time_filter == 'afternoon':
+                queryset = queryset.filter(start_time__hour__gte=12, start_time__hour__lt=17)
+            elif time_filter == 'evening':
+                queryset = queryset.filter(start_time__hour__gte=17)
+            
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get unique values for dropdowns
+        context['unique_names'] = Shift.objects.all()\
+            .order_by('shift_name')\
+            .values_list('shift_name', flat=True)\
+            .distinct()
+            
+        return context
 
 class ShiftCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = Shift
@@ -206,7 +298,6 @@ def delete_labor_requirement(request, pk):
     requirement.delete()
     messages.success(request, "Labor requirement has been deleted.")
     return JsonResponse({'success': True})
-
 class LaborAssignmentListView(LoginRequiredMixin, ListView):
     model = LaborAssignment
     template_name = 'Manpower/labor_assignment_list.html'
@@ -215,18 +306,48 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset().select_related('employee', 'shift', 'schedule')
+        
+        # Get filter parameters
+        employee_filter = self.request.GET.get('employee')
+        date_filter = self.request.GET.get('date')
+        status_filter = self.request.GET.get('status')
         schedule_id = self.request.GET.get('schedule_id')
+        
+        # Apply filters
+        if employee_filter:
+            queryset = queryset.filter(employee__employee_name__icontains=employee_filter)
+        if date_filter:
+            queryset = queryset.filter(date=date_filter)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
         if schedule_id:
             queryset = queryset.filter(schedule_id=schedule_id)
-        return queryset
+            
+        return queryset.order_by('-date')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Get unique values for filters
+        context['unique_employees'] = Employee.objects.filter(is_active=True)\
+            .order_by('employee_name')\
+            .values_list('employee_name', flat=True)\
+            .distinct()
+            
+        context['unique_dates'] = LaborAssignment.objects.all()\
+            .order_by('-date')\
+            .values_list('date', flat=True)\
+            .distinct()
+            
+        context['status_choices'] = LaborAssignment._meta.get_field('status').choices
+        
+        # Add schedule context if exists
         schedule_id = self.request.GET.get('schedule_id')
         if schedule_id:
             context['schedule'] = get_object_or_404(MachinePlanning, pk=schedule_id)
+            
         return context
-
+    
 class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = LaborAssignment
     form_class = LaborAssignmentForm
