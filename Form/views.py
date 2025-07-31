@@ -1286,7 +1286,8 @@ def common_form_post(request):
         wfDetailsTable_id = request.POST.get("wfDetailsTable_id")
         
         stepIdDone_Wd = int(actual_step_id) - 1
-        
+        if wfDetailsTable_id == 'None':
+            wfDetailsTable_id = None
         exists = False  # default
 
         if wfDetailsTable_id:
@@ -2215,7 +2216,8 @@ def common_form_edit(request):
     
     StepIdDone = int(actual_step_id) - 1
     exists = False  # default
-
+    if wfDetailsTable_id == 'None':
+            wfDetailsTable_id = None
     if wfDetailsTable_id:
         # 🔍 Step 1: Get the req_id from workflow_details table for the given wfDetailsTable_id
         
@@ -2590,7 +2592,8 @@ def common_form_action(request):
     #     sent_back=1
     #     ).exists()
     exists = False  # default
-
+    if wfDetailsTable_id == 'None':
+            wfDetailsTable_id = None
     if wfDetailsTable_id:
         # 🔍 Step 1: Get the req_id from workflow_details table for the given wfDetailsTable_id
         
