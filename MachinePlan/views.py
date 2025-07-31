@@ -463,9 +463,9 @@ def dashboard(request):
     today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
     production_schedules = MachinePlanning.objects.filter(
-        start_time__gte=today_start,
-        end_time__lte=today_end
-    ).order_by('start_time')
+        scheduled_start__gte=today_start,
+        scheduled_end__lte=today_end
+    ).order_by('scheduled_start')
     
     # Machine utilization data (simplified)
     machine_types = MachineType.objects.annotate(
