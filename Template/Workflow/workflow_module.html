@@ -24,6 +24,203 @@
 {% block content %}
 
 
+<style>
+  .bg-dark { background-color: #343A40 !important; }
+
+  #chat-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 100%;
+    background-color: #fff; /* default light mode */
+    color: #000;
+  }
+
+  /* chatbot.css */
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+  }
+
+  #chat-container {
+    width: 400px;
+    max-width: 95%;
+    height: 500px;  /* ✅ Fixed height */
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+
+  #chat-header {
+    background-color: #6973E3;
+    color: white;
+    padding: 16px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  #chat-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;  /* ✅ Scroll inside chat */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 100%;
+  }
+
+  .chat-message {
+    {% comment %} padding: 10px 14px; {% endcomment %}
+    padding: 10px 6px;
+    border-radius: 18px;
+    max-width: 75%;
+    word-wrap: break-word;
+    line-height: 1.4;
+  }
+
+  .user {
+    align-self: flex-end;
+    background-color: #6973E3;
+    color: white;
+    border-bottom-right-radius: 0;
+  }
+
+  .bot {
+    align-self: flex-start;
+    background-color: #e5e7eb;
+    color: #111827;
+    border-bottom-left-radius: 0;
+  }
+
+  #chat-footer {
+    display: flex;
+    padding: 12px;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+  }
+
+  #chat-footer input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    margin-right: 10px;
+    font-size: 1rem;
+  }
+
+  #chat-footer button {
+    background-color: #6973E3;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s ease;
+  }
+
+  #chat-footer button:hover {
+    background-color: #6973E3;
+  }
+
+  #language-select {
+    margin: 8px auto;
+    text-align: center;
+    padding: 0 16px;
+  }
+
+  #language-select select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 1rem;
+  }
+
+  /* Floating Chat Icon */
+  #chatbot-launcher {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background-color: #6973E3;
+    color: white;
+    font-size: 28px;
+    padding: 12px 14px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Chatbox Wrapper */
+  #chatbot-wrapper {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    width: 400px;
+    max-width: 90%;
+    transition: transform 0.3s ease-in-out;
+    z-index: 9998;
+  }
+
+  /* Close Button inside Header */
+  #close-chat {
+    float: right;
+    cursor: pointer;
+    font-size: 18px;
+    color: white;
+  }
+
+  /* Hidden by default */
+  .hidden {
+    display: none;
+  }
+
+  .lang-btn {
+    margin: 5px;
+    padding: 8px 16px;
+    background-color: #6973E3;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  .lang-btn:hover {
+    background-color: #6973E3;
+  }
+
+  .spinner {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #6973E3;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+</style>
+
 
 <body>
 
@@ -47,6 +244,38 @@
     </form>
   </div>
 
+   <div id="chatbot-launcher" onclick="toggleChatbot()">
+    💬
+  </div>
+
+  <!-- Full Chat UI (hidden by default) -->
+    <div id="chatbot-wrapper" class="hidden">
+      <div id="chat-container">
+        <div id="chat-header">
+          Technowin Assistant 🤖
+          <span id="close-chat" onclick="toggleChatbot()">✖</span>
+        </div>
+
+        <div id="chat-body">
+          <div class="chat-message bot">
+            Welcome to <strong>Technowin IT Infra Pvt. Ltd.</strong> 👋<br>
+            In which language would you like to proceed?
+          </div>
+          <div class="chat-message bot">
+            <button class="lang-btn" onclick="selectLanguage('en')">English</button>
+            <button class="lang-btn" onclick="selectLanguage('hi')">हिंदी</button>
+            <button class="lang-btn" onclick="selectLanguage('mr')">मराठी</button>
+          </div>
+        </div>
+
+        <div id="chat-footer">
+          <input type="text" id="user-input" placeholder="Type your message here...">
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+
 </body>
 
 
@@ -54,5 +283,90 @@
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+
+<script>
+  let selectedLang = '';
+
+  function selectLanguage(lang) {
+    selectedLang = lang;
+
+    const langName = { en: 'English', hi: 'हिंदी', mr: 'मराठी' }[lang];
+
+    $('#chat-body').append(`
+      <div class="chat-message user">Selected: ${langName}</div>
+      <div class="chat-message bot">Great! You can now ask your questions in ${langName}.</div>
+    `);
+
+    // Enable message input
+    $('#user-input').prop('disabled', false).focus();
+  }
+
+  function sendMessage() {
+    const userInput = $('#user-input').val().trim();
+
+    if (!selectedLang) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Please select a language!',
+        text: 'You need to choose a language before chatting.',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    if (!userInput) return;
+
+    // Append user message
+    $('#chat-body').append(`<div class="chat-message user">${userInput}</div>`);
+    $('#user-input').val('');
+
+    // 🔄 Create a dynamic loader element
+    const loaderId = `loader-${Date.now()}`;
+    $('#chat-body').append(`
+      <div class="chat-message bot" id="${loaderId}">
+        <span class="spinner"></span> Typing...
+      </div>
+    `);
+    $('#chat-body').scrollTop($('#chat-body')[0].scrollHeight);
+
+    // Prepare CSRF and form data
+    const csrftoken = $('input[name="csrfmiddlewaretoken"]').val();
+    const formData = new FormData();
+    formData.append('question', userInput);
+    formData.append('lang', selectedLang);
+
+    // AJAX request
+    $.ajax({
+      type: 'POST',
+      url: "{% url 'get_faq_answer' %}",
+      data: formData,
+      processData: false,
+      contentType: false,
+      headers: {
+        'X-CSRFToken': csrftoken,
+      },
+      success: function (response) {
+        // ✅ Remove loader
+        $(`#${loaderId}`).remove();
+
+        // ✅ Append bot response
+        $('#chat-body').append(`<div class="chat-message bot">${response.answer}</div>`);
+        $('#chat-body').scrollTop($('#chat-body')[0].scrollHeight);
+      }, 
+      error: function (xhr, status, error) {
+        $(`#${loaderId}`).remove();
+        $('#chat-body').append(`<div class="chat-message bot">❌ Error: ${xhr.status} - ${xhr.statusText}</div>`);
+        $('#chat-body').scrollTop($('#chat-body')[0].scrollHeight);
+      }
+    });
+  }
+
+
+
+  function toggleChatbot() {
+    $('#chatbot-wrapper').toggleClass('hidden');
+  }
+</script>
 
 {% endblock %}

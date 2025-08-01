@@ -10,7 +10,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.db.models import Count, Sum, Case, When, IntegerField,F
-
 from django.utils import timezone
 
 
@@ -47,27 +46,16 @@ class EmployeeListView(LoginRequiredMixin, ListView):
         if work_center_filter:
             queryset = queryset.filter(work_center__name=work_center_filter)
             
-        return queryset.filter(is_active=True)
+        return queryset  # Removed the is_active filter
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         queryset = self.get_queryset()
         
         # Get unique values for dropdowns
-        context['unique_codes'] = Employee.objects.filter(is_active=True)\
-            .order_by('employee_code')\
-            .values_list('employee_code', flat=True)\
-            .distinct()
-            
-        context['unique_names'] = Employee.objects.filter(is_active=True)\
-            .order_by('employee_name')\
-            .values_list('employee_name', flat=True)\
-            .distinct()
-            
-        context['unique_work_centers'] = Employee.objects.filter(is_active=True)\
-            .order_by('work_center__name')\
-            .values_list('work_center__name', flat=True)\
-            .distinct()
+        context['unique_codes'] = Employee.objects.all().order_by('employee_code').values_list('employee_code', flat=True).distinct()    
+        context['unique_names'] = Employee.objects.all().order_by('employee_name').values_list('employee_name', flat=True).distinct()    
+        context['unique_work_centers'] = Employee.objects.all().order_by('work_center__name').values_list('work_center__name', flat=True).distinct()
             
         return context
 
@@ -100,7 +88,6 @@ class EmployeeCreateUpdateView(LoginRequiredMixin, UpdateView):
 @login_required
 def delete_employee(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
-    employee.is_active = False
     employee.save()
     messages.success(request, f"Employee {employee.employee_name} has been deactivated.")
     return JsonResponse({'success': True})
@@ -720,7 +707,7 @@ def manpower_dashboard(request):
     end_of_week = start_of_week + timedelta(days=6)
     
     # Employee statistics
-    total_employees = Employee.objects.filter(is_active=True).count()
+    total_employees = Employee.objects.all().count()
     available_today = EmployeeAvailability.objects.filter(
         date=today, 
         is_available=True
