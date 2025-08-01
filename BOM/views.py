@@ -976,3 +976,204 @@ class ComponentAPIView(View):
             return JsonResponse(data)
         except Component.DoesNotExist:
             return JsonResponse({'error': 'Component not found'}, status=404)
+        
+
+# views.py
+from django.shortcuts import render
+from django.db.models import Count, Sum, Q, F, Min
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
+from .models import BOMHeader, Component, Inventory, BOMItem, ComponentSupplier
+
+@login_required
+def bom_dashboard(request):
+    # BOM Statistics
+    bom_stats = {
+        'total': BOMHeader.objects.count(),
+        'active': BOMHeader.objects.filter(status='Active').count(),
+        'draft': BOMHeader.objects.filter(status='Draft').count(),
+        'pending': BOMHeader.objects.filter(status='Pending Approval').count(),
+        'obsolete': BOMHeader.objects.filter(status='Obsolete').count(),  # Direct query
+    }
+    
+    # Component Statistics
+    component_stats = {
+        'total': Component.objects.count(),
+        'by_category': Component.objects.values('category').annotate(count=Count('id')).order_by('-count'),
+        'by_purchase_type': Component.objects.values('purchase_type').annotate(count=Count('id')).order_by('-count'),
+    }
+    
+    # Inventory Statistics
+    inventory_stats = {
+        'low_stock': Inventory.objects.filter(
+            quantity_on_hand__lt=F('min_stock_level')
+        ).count(),
+        'total_items': Inventory.objects.aggregate(
+            total=Sum('quantity_on_hand')
+        )['total'] or 0,
+        'allocated': Inventory.objects.aggregate(
+            total=Sum('quantity_allocated')
+        )['total'] or 0,
+    }
+    
+    # Get approved supplier costs for components
+    approved_suppliers = ComponentSupplier.objects.filter(is_approved=True)
+    
+    # Calculate top cost BOMs with error handling
+    top_cost_boms = []
+    for bom in BOMHeader.objects.all().prefetch_related('items__component'):
+        total_cost = 0
+        for item in bom.items.all():
+            try:
+                # Find the lowest cost approved supplier for this component
+                supplier_info = approved_suppliers.filter(
+                    component=item.component
+                ).order_by('cost').first()
+                
+                if supplier_info:
+                    total_cost += float(item.quantity) * float(supplier_info.cost)
+            except (ObjectDoesNotExist, AttributeError):
+                # Skip if component doesn't exist or other error occurs
+                continue
+        
+        top_cost_boms.append({
+            'bom': bom,
+            'total_cost': round(total_cost, 2)  # Round to 2 decimal places
+        })
+    
+    # Sort by total cost and get top 5
+    top_cost_boms = sorted(top_cost_boms, key=lambda x: x['total_cost'], reverse=True)[:5]
+    
+    # Recent BOMs
+    recent_boms = BOMHeader.objects.order_by('-last_modified')[:5]
+    
+    # Recent Components
+    recent_components = Component.objects.order_by('-last_modified')[:5]
+    
+    context = {
+        'bom_stats': bom_stats,
+        'component_stats': component_stats,
+        'inventory_stats': inventory_stats,
+        'top_cost_boms': top_cost_boms,
+        'recent_boms': recent_boms,
+        'recent_components': recent_components,
+    }
+    
+    return render(request, 'BOM/dashboard2.html', context)
+
+
+# views.py
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q, F, Sum
+from .models import Inventory, BOMHeader, ApprovalRequest
+
+@login_required
+def inventory_low_stock(request):
+    # Get inventory items where quantity is below minimum stock level
+    low_stock_items = Inventory.objects.filter(
+        quantity_on_hand__lt=F('min_stock_level')
+    ).select_related('component', 'location').order_by('quantity_on_hand')
+    
+    # Calculate total value at risk
+    total_value_at_risk = 0
+    for item in low_stock_items:
+        item.deficit = item.min_stock_level - item.quantity_on_hand
+        # Get lowest cost from approved suppliers
+        supplier_info = item.component.suppliers.filter(is_approved=True).order_by('cost').first()
+        if supplier_info:
+            deficit = item.min_stock_level - item.quantity_on_hand
+            total_value_at_risk += deficit * supplier_info.cost
+    
+    context = {
+        'low_stock_items': low_stock_items,
+        'total_value_at_risk': round(total_value_at_risk, 2),
+    }
+    return render(request, 'BOM/inventory_low_stock.html', context)
+
+@login_required
+def inventory_report(request):
+    # Comprehensive inventory report
+    inventory_items = Inventory.objects.select_related(
+        'component', 'location'
+    ).order_by('component__part_number')
+    
+    # Aggregate data for summary
+    summary = {
+        'total_items': inventory_items.count(),
+        'total_quantity': inventory_items.aggregate(Sum('quantity_on_hand'))['quantity_on_hand__sum'] or 0,
+        'low_stock_count': inventory_items.filter(quantity_on_hand__lt=F('min_stock_level')).count(),
+        'total_value': 0,  # Will be calculated below
+    }
+    
+    # Calculate total inventory value
+    total_value = 0
+    for item in inventory_items:
+        supplier_info = item.component.suppliers.filter(is_approved=True).order_by('cost').first()
+        if supplier_info:
+            total_value += item.quantity_on_hand * supplier_info.cost
+    summary['total_value'] = round(total_value, 2)
+    
+    context = {
+        'inventory_items': inventory_items,
+        'summary': summary,
+    }
+    return render(request, 'BOM/inventory_report.html', context)
+
+@login_required
+def bom_approvals(request):
+    # Get pending approval requests
+    pending_approvals = ApprovalRequest.objects.filter(
+        approved_by__isnull=True,
+        rejected_by__isnull=True
+    ).select_related('bom', 'requested_by').order_by('-requested_date')
+    
+    # Get approval history (last 10 approved/rejected)
+    approval_history = ApprovalRequest.objects.exclude(
+        Q(approved_by__isnull=True) & Q(rejected_by__isnull=True)
+    ).select_related('bom', 'requested_by', 'approved_by', 'rejected_by'
+    ).order_by('-requested_date')[:10]
+    
+    context = {
+        'pending_approvals': pending_approvals,
+        'approval_history': approval_history,
+    }
+    return render(request, 'BOM/bom_approvals.html', context)
+
+@login_required
+def approve_bom(request, approval_id):
+    approval = get_object_or_404(ApprovalRequest, id=approval_id)
+    if request.method == 'POST':
+        approval.approved_by = request.user
+        approval.approved_date = timezone.now()
+        approval.comments = request.POST.get('comments', '')
+        approval.save()
+        
+        # Update BOM status
+        bom = approval.bom
+        bom.status = 'Approved'
+        bom.save()
+        
+        messages.success(request, f'BOM {bom.name} has been approved.')
+        return redirect('bom_approvals')
+    
+    return redirect('bom_approvals')
+
+@login_required
+def reject_bom(request, approval_id):
+    approval = get_object_or_404(ApprovalRequest, id=approval_id)
+    if request.method == 'POST':
+        approval.rejected_by = request.user
+        approval.rejected_date = timezone.now()
+        approval.rejection_reason = request.POST.get('rejection_reason', '')
+        approval.save()
+        
+        # Update BOM status
+        bom = approval.bom
+        bom.status = 'Draft'
+        bom.save()
+        
+        messages.error(request, f'BOM {bom.name} has been rejected.')
+        return redirect('bom_approvals')
+    
+    return redirect('bom_approvals')

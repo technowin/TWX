@@ -64,6 +64,13 @@ urlpatterns = [
 
     # Dashboard
     path('bom/dashboard',DashboardView.as_view(), name='dashboard'),
+    path('bom/dashboard2/', bom_dashboard, name='bom_dashboard'),
+
+    path('inventory/low-stock/', inventory_low_stock, name='inventory_low_stock'),
+    path('inventory/report/', inventory_report, name='inventory_report'),
+    path('bom/approvals/', bom_approvals, name='bom_approvals'),
+    path('bom/approve/<int:approval_id>/', approve_bom, name='approve_bom'),
+    path('bom/reject/<int:approval_id>/', reject_bom, name='reject_bom'),
     
     # BOM Management
     path('boms/',BOMListView.as_view(), name='bom_list'),
@@ -147,6 +154,7 @@ urlpatterns = [
     path('<int:pk>/', BookDetailView.as_view(), name='book_detail'),
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
+    
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
