@@ -450,7 +450,7 @@
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    {% block content %}
+                    
                     
                      {% comment %} <div id="chatbot-launcher" onclick="toggleChatbot()">
     💬
@@ -483,7 +483,7 @@
                     </div>
                     </div> {% endcomment %}
 
-                    {% endblock %}
+                   
                 </div>
                 <!-- /.container-fluid -->
 
@@ -607,9 +607,9 @@
     }
     </script>
 
-    <script>
+    {% comment %} <script>
         function toggleChatbot() {
             $('#chatbot-wrapper').toggleClass('hidden');
         }
-    </script>
+    </script> {% endcomment %}
 </html>
