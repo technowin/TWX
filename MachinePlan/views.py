@@ -112,9 +112,9 @@ class MachineDetailView( DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['capabilities'] = self.object.capabilities.all()
-        context['schedules'] = self.object.schedules.filter(
-            start_time__gte=timezone.now()
-        ).order_by('start_time')[:10]
+        # context['schedules'] = self.object.schedules.filter(
+        #     start_time__gte=timezone.now()
+        # ).order_by('start_time')[:10]
         context['maintenance_schedules'] = self.object.maintenance_schedules.filter(
             scheduled_date__gte=timezone.now().date(),
             completed=False
