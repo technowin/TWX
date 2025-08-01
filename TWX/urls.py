@@ -30,7 +30,7 @@ from Workflow.views import *
 from BOM.views import *
 from MaterialPlan.views import *
 from BookMetadata.views import *
-from ChatBot.views import *
+# from ChatBot.views import *
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
@@ -267,7 +267,7 @@ urlpatterns = [
     path('mcp/', include('MachinePlan.urls', namespace='mcp')),
     path('manpower/', include('Manpower.urls', namespace='manpower')),
 
-    path('get_faq_answer', get_faq_answer, name='get_faq_answer'),
+    # path('get_faq_answer', get_faq_answer, name='get_faq_answer'),
 
 
     # chatbot
