@@ -71,7 +71,7 @@ urlpatterns = [
     path('bom/approvals/', bom_approvals, name='bom_approvals'),
     path('bom/approve/<int:approval_id>/', approve_bom, name='approve_bom'),
     path('bom/reject/<int:approval_id>/', reject_bom, name='reject_bom'),
-    
+
     # BOM Management
     path('boms/',BOMListView.as_view(), name='bom_list'),
     path('boms/new/',BOMCreateView.as_view(), name='bom_create'),
@@ -120,6 +120,9 @@ urlpatterns = [
 
     # Dashboard and list views
     path('mtp/dashboard',MaterialPlanDashboardView.as_view(), name='dashboard'),
+    path('mtp/dashboard2/', mtp_dashboard, name='mtp_dashboard'),
+    path('mtp/dashboard3/', mtp_dashboar3, name='mtp_dashboard3'),
+
     path('plans/',MaterialPlanListView.as_view(), name='plan_list'),
     
     # Material Plan CRUD
@@ -143,7 +146,8 @@ urlpatterns = [
     # Shortage alerts
     path('alerts/<int:alert_id>/resolve/',
          MaterialShortageResolutionView.as_view(), name='shortage_resolve'),
-    
+    path('shortages/', shortage_list, name='shortage_list'),
+    path('shortages/<int:pk>/', shortage_detail, name='shortage_detail'),
     # Production Orders
     path('production-orders/create/',ProductionOrderCreateView.as_view(), name='production_order_create'),
     path('production-orders/<int:pk>/',ProductionOrderDetailView.as_view(), name='production_order_detail'),

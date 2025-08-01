@@ -1,0 +1,717 @@
+<!-- material_planning/templates/material_planning/dashboard.html -->
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css" rel="stylesheet">
+<style>
+    .card-counter {
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        margin: 5px;
+        padding: 20px 10px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .card-counter:hover {
+        box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.2);
+        transform: translateY(-3px);
+    }
+    
+    .card-counter.primary {
+        background-color: #007bff;
+        color: #FFF;
+    }
+    
+    .card-counter.danger {
+        background-color: #ef5350;
+        color: #FFF;
+    }
+    
+    .card-counter.warning {
+        background-color: #ff9800;
+        color: #FFF;
+    }
+    
+    .card-counter.success {
+        background-color: #66bb6a;
+        color: #FFF;
+    }
+    
+    .card-counter.info {
+        background-color: #26c6da;
+        color: #FFF;
+    }
+    
+    .card-counter i {
+        font-size: 2.5rem;
+        opacity: 0.3;
+    }
+    
+    .card-counter .count-numbers {
+        font-size: 1.8rem;
+        display: block;
+    }
+    
+    .card-counter .count-name {
+        font-style: italic;
+        opacity: 0.8;
+        display: block;
+        font-size: 1rem;
+    }
+    
+    .shortage-item {
+        border-left: 4px solid #ef5350;
+        transition: all 0.3s ease;
+    }
+    
+    .shortage-item:hover {
+        background-color: rgba(239, 83, 80, 0.1);
+    }
+    
+    .requirement-item {
+        border-left: 4px solid #26c6da;
+    }
+    
+    .requirement-item:hover {
+        background-color: rgba(38, 198, 218, 0.1);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .inventory-health-bar {
+        height: 25px;
+        border-radius: 3px;
+        background-color: #e0e0e0;
+        overflow: hidden;
+    }
+    
+    .inventory-health-progress {
+        height: 100%;
+        background-color: #66bb6a;
+        transition: width 0.6s ease;
+    }
+    
+    .inventory-health-danger {
+        background-color: #ef5350;
+    }
+    
+    .inventory-health-warning {
+        background-color: #ff9800;
+    }
+    
+    [data-bs-theme="dark"] .inventory-health-bar {
+        background-color: #424242;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Material Planning Dashboard</h1>
+        <div class="btn-group" role="group">
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> Print
+            </button>
+            <a href="{% url 'plan_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> New Plan
+            </a>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card-counter primary">
+                <i class="fas fa-clipboard-list float-end"></i>
+                <span class="count-numbers">{{ total_plans }}</span>
+                <span class="count-name">Total Plans</span>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-counter info">
+                <i class="fas fa-tasks float-end"></i>
+                <span class="count-numbers">{{ active_plans }}</span>
+                <span class="count-name">Active Plans</span>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-counter warning">
+                <i class="fas fa-exclamation-triangle float-end"></i>
+                <span class="count-numbers">{{ pending_requisitions }}</span>
+                <span class="count-name">Pending Requisitions</span>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-counter danger">
+                <i class="fas fa-times-circle float-end"></i>
+                <span class="count-numbers">{{ open_shortages }}</span>
+                <span class="count-name">Open Shortages</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Material Status Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Material Status Distribution</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                                id="materialStatusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            This Month
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="materialStatusDropdown">
+                            <li><a class="dropdown-item" href="#">This Week</a></li>
+                            <li><a class="dropdown-item" href="#">This Month</a></li>
+                            <li><a class="dropdown-item" href="#">This Quarter</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="materialStatusChart"></canvas>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Updated {% now "SHORT_DATETIME_FORMAT" %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Plan Status Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Plan Status Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="planStatusChart"></canvas>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Shows distribution of plans by status
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Critical Shortages -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0 text-white">Critical Shortage Alerts</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for shortage in critical_shortages %}
+                        <a href="{% url 'shortage_detail' shortage.id %}" 
+                           class="list-group-item list-group-item-action shortage-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ shortage.component.part_number }} - {{ shortage.component.description }}</h6>
+                                <small class="text-danger">{{ shortage.potential_delay_days }} day{% if shortage.potential_delay_days > 1 %}s{% endif %} delay</small>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small>Required: {{ shortage.required_quantity }} | Available: {{ shortage.available_quantity }}</small>
+                                <small>Due: {{ shortage.required_date|date:"M d" }}</small>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <div class="list-group-item">
+                            <div class="text-center text-muted py-3">No critical shortages at this time</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer small">
+                    <a href="{% url 'shortage_list' %}" class="text-danger">View all shortages</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upcoming Requirements -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0 text-white">Upcoming Material Requirements</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for req in upcoming_requirements %}
+                        <a href="{% url 'plan_detail' pk=req.plan.id %}" 
+                           class="list-group-item list-group-item-action requirement-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ req.component.part_number }} - {{ req.component.description }}</h6>
+                                <small class="text-info">{{ req.get_status_display }}</small>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small>Required: {{ req.quantity_required }} | Available: {{ req.quantity_available }}</small>
+                                <small>Due: {{ req.required_date|date:"M d" }}</small>
+                            </div>
+                            <small class="text-muted">For: {{ req.plan.name }}</small>
+                        </a>
+                        {% empty %}
+                        <div class="list-group-item">
+                            <div class="text-center text-muted py-3">No upcoming requirements in next 30 days</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer small">
+                    <a href="{% url 'plan_list' %}" class="text-info">View all material plans</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Inventory Health -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Inventory Health</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Location</th>
+                                    <th>On Hand</th>
+                                    <th>Min Level</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory_health %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'component_detail' pk=item.component.id %}">
+                                            {{ item.component.part_number }}
+                                        </a>
+                                    </td>
+                                    <td>{{ item.location.name }}</td>
+                                    <td>{{ item.quantity_on_hand }}</td>
+                                    <td>{{ item.min_stock_level }}</td>
+                                    <td>
+                                        {% if item.quantity_on_hand < item.min_stock_level %}
+                                            <span class="badge bg-danger">Critical</span>
+                                        {% elif item.quantity_on_hand < item.min_stock_level|add:item.min_stock_level|multiply:0.5 %}
+                                            <span class="badge bg-warning">Low</span>
+                                        {% else %}
+                                            <span class="badge bg-success">OK</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">No inventory issues detected</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer small">
+                    <a href="{% url 'inventory_report' %}">View full inventory</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cost Analysis -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Procurement Cost Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="costAnalysisChart"></canvas>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Shows approved and ordered requisitions by component category
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Procurement Timeline -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Material Requirements Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Shows material requirements and their due dates for the next 30 days
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script>
+    // Material Status Chart
+    const materialStatusCtx = document.getElementById('materialStatusChart').getContext('2d');
+    const materialStatusChart = new Chart(materialStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for status in material_status %}
+                    '{{ status.status|title }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for status in material_status %}
+                        {{ status.count }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#66bb6a', '#42a5f5', '#ffa726', '#ef5350', '#26c6da'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.raw + ' items';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Plan Status Chart
+    const planStatusCtx = document.getElementById('planStatusChart').getContext('2d');
+    const planStatusChart = new Chart(planStatusCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for status in plan_status %}
+                    '{{ status.status|title }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Number of Plans',
+                data: [
+                    {% for status in plan_status %}
+                        {{ status.count }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#007bff',
+                borderWidth: 1
+            }, {
+                label: 'Total Quantity',
+                data: [
+                    {% for status in plan_status %}
+                        {{ status.total_quantity|default:0 }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#26c6da',
+                borderWidth: 1,
+                type: 'line',
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Plans'
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    title: {
+                        display: true,
+                        text: 'Total Quantity'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.datasetIndex === 0) {
+                                label += context.raw + ' plans';
+                            } else {
+                                label += context.raw + ' units';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Cost Analysis Chart
+    const costAnalysisCtx = document.getElementById('costAnalysisChart').getContext('2d');
+    const costAnalysisChart = new Chart(costAnalysisCtx, {
+        type: 'pie',
+        data: {
+            labels: [
+                {% for cost in cost_analysis %}
+                    '{{ cost.component__category|default:"Uncategorized" }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for cost in cost_analysis %}
+                        {{ cost.total_cost|default:0 }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#007bff', '#66bb6a', '#ffa726', '#ef5350', '#26c6da', 
+                    '#5c6bc0', '#26a69a', '#7e57c2', '#78909c', '#8d6e63'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += '$' + context.raw.toFixed(2);
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Timeline Chart
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    
+    // Prepare timeline data
+    const timelineLabels = [
+        {% for req in upcoming_requirements %}
+            '{{ req.component.part_number }} - {{ req.plan.name|truncatechars:20 }}',
+        {% endfor %}
+    ];
+    
+    const timelineDates = [
+        {% for req in upcoming_requirements %}
+            new Date('{{ req.required_date|date:"Y-m-d" }}'),
+        {% endfor %}
+    ];
+    
+    const now = new Date();
+    const minDate = new Date(Math.min.apply(null, timelineDates));
+    const maxDate = new Date(Math.max.apply(null, timelineDates));
+    
+    // Adjust date range to ensure visibility
+    minDate.setDate(minDate.getDate() - 2);
+    maxDate.setDate(maxDate.getDate() + 2);
+    
+    const timelineChart = new Chart(timelineCtx, {
+        type: 'bar',
+        data: {
+            labels: timelineLabels,
+            datasets: [{
+                label: 'Days Until Due',
+                data: timelineDates.map(date => {
+                    const diffTime = date - now;
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }),
+                backgroundColor: function(context) {
+                    const value = context.raw;
+                    if (value <= 0) return '#ef5350'; // Past due - red
+                    if (value <= 3) return '#ffa726'; // Due in 3 days - orange
+                    if (value <= 7) return '#42a5f5'; // Due in a week - blue
+                    return '#66bb6a'; // More than a week - green
+                },
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    min: Math.floor((minDate - now) / (1000 * 60 * 60 * 24)),
+                    max: Math.ceil((maxDate - now) / (1000 * 60 * 60 * 24)),
+                    title: {
+                        display: true,
+                        text: 'Days Until Due Date'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const days = context.raw;
+                            const date = timelineDates[context.dataIndex];
+                            return [
+                                'Due: ' + date.toLocaleDateString(),
+                                days <= 0 ? 'Past due by ' + (-days) + ' day(s)' : 
+                                'Due in ' + days + ' day(s)'
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Handle theme change for charts
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeToggle = document.querySelector('[data-bs-theme-toggle]');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function() {
+                setTimeout(() => {
+                    materialStatusChart.update();
+                    planStatusChart.update();
+                    costAnalysisChart.update();
+                    timelineChart.update();
+                }, 100);
+            });
+        }
+    });
+</script>
+
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/mtp.js' %}"></script>
+
+{% endblock %}

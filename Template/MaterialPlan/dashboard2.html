@@ -1,0 +1,695 @@
+<!-- material_planning/templates/material_planning/dashboard.html -->
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<link href="{% static 'vendor/chart.js/chart.min.css' %}" rel="stylesheet">
+<style>
+    .card-hover:hover {
+        transform: translateY(-5px);
+        transition: transform 0.3s ease;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .progress-thin {
+        height: 6px;
+    }
+    .alert-indicator {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .critical {
+        background-color: #dc3545;
+        animation: pulse 2s infinite;
+    }
+    .warning {
+        background-color: #ffc107;
+    }
+    .info {
+        background-color: #17a2b8;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .coverage-badge {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0 text-gray-800"> Dashboard</h2>
+       
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 card-hover">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Active Material Plans</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_active_plans }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2 card-hover">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Open Shortage Alerts</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_shortage_alerts }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 card-hover">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Fulfilled Requisitions</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% for req in requisition_status %}
+                                    {% if req.status == 'received' %}{{ req.count }}{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2 card-hover">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Avg. Material Coverage</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if inventory_coverage %}
+                                    {{ inventory_coverage.0.coverage|floatformat:1 }}%
+                                {% else %}
+                                    100%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Material Coverage by Category -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4 card-hover">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Material Coverage by Category</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="coverageByCategoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Procurement Status -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4 card-hover">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Procurement Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="procurementStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time-based Requirements -->
+    <div class="row mb-4">
+        <div class="col-xl-12">
+            <div class="card shadow mb-4 card-hover">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Time-based Material Requirements</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="timeBasedRequirementsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts and Production Readiness -->
+    <div class="row">
+        <!-- Critical Components -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4 card-hover">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-danger">Critical Components</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Required</th>
+                                    <th>Available</th>
+                                    <th>Coverage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for component in critical_components %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ component.component.part_number }}</strong><br>
+                                        <small class="text-muted">{{ component.component.description|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>{{ component.quantity_required }}</td>
+                                    <td>{{ component.quantity_available }}</td>
+                                    <td>
+                                        <div class="progress progress-thin mb-2">
+                                            <div class="progress-bar bg-{% if component.coverage_ratio < 30 %}danger{% elif component.coverage_ratio < 70 %}warning{% else %}success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ component.coverage_ratio }}%"
+                                                 aria-valuenow="{{ component.coverage_ratio }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span>{{ component.coverage_ratio|floatformat:1 }}%</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No critical components found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shortage Alerts -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4 card-hover">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-warning">Material Shortage Alerts</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Alert</th>
+                                    <th>Required By</th>
+                                    <th>Potential Delay</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in shortage_alerts %}
+                                <tr>
+                                    <td>
+                                        <span class="alert-indicator {% if alert.potential_delay_days > 7 %}critical{% else %}warning{% endif %}"></span>
+                                        <strong>{{ alert.component.part_number }}</strong><br>
+                                        <small class="text-muted">Plan: {{ alert.plan.name }}</small>
+                                    </td>
+                                    <td>{{ alert.required_date|date:"M d" }}</td>
+                                    <td>{{ alert.potential_delay_days }} days</td>
+                                    <td>
+                                        <span class="badge bg-{% if alert.status == 'open' %}danger{% elif alert.status == 'acknowledged' %}warning{% else %}success{% endif %}">
+                                            {{ alert.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No active shortage alerts</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Orders Readiness -->
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card shadow mb-4 card-hover">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Production Orders Material Readiness</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Product</th>
+                                    <th>Start Date</th>
+                                    <th>Quantity</th>
+                                    <th>Material Readiness</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in production_orders %}
+                                <tr>
+                                    <td><strong>{{ order.order_number }}</strong></td>
+                                    <td>{{ order.bom.name }}</td>
+                                    <td>{{ order.start_date|date:"M d" }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>
+                                        <div class="progress progress-thin mb-2">
+                                            <div class="progress-bar bg-{% if order.material_readiness < 50 %}danger{% elif order.material_readiness < 90 %}warning{% else %}success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ order.material_readiness }}%"
+                                                 aria-valuenow="{{ order.material_readiness }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span>{{ order.material_readiness|floatformat:1 }}%</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'planned' %}info{% elif order.status == 'scheduled' %}primary{% elif order.status == 'in_progress' %}warning{% else %}success{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No production orders found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Dark mode toggle
+   
+
+    // Initialize charts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Material Coverage by Category Chart
+        const coverageCtx = document.getElementById('coverageByCategoryChart').getContext('2d');
+        const coverageChart = new Chart(coverageCtx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    {% for item in inventory_coverage %}
+                        "{{ item.component__category|default:'Uncategorized' }}",
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Coverage %',
+                    data: [
+                        {% for item in inventory_coverage %}
+                            {{ item.coverage|floatformat:1 }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(153, 102, 255, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Coverage Percentage'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Procurement Status Chart
+        const procurementCtx = document.getElementById('procurementStatusChart').getContext('2d');
+        const procurementChart = new Chart(procurementCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    {% for req in requisition_status %}
+                        "{{ req.status|title }}",
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [
+                        {% for req in requisition_status %}
+                            {{ req.count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',    // Draft
+                        'rgba(54, 162, 235, 0.7)',    // Submitted
+                        'rgba(75, 192, 192, 0.7)',    // Approved
+                        'rgba(255, 205, 86, 0.7)',    // Ordered
+                        'rgba(153, 102, 255, 0.7)',   // Received
+                        'rgba(201, 203, 207, 0.7)'    // Cancelled
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 205, 86, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(201, 203, 207, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const req = {
+                                    {% for req in requisition_status %}
+                                        {{ forloop.counter0 }}: {
+                                            quantity: {{ req.total_quantity|default:0 }},
+                                            cost: {{ req.total_cost|default:0|floatformat:2 }}
+                                        },
+                                    {% endfor %}
+                                }[index];
+                                
+                                return [
+                                    `Quantity: ${req.quantity}`,
+                                    `Total Cost: $${req.cost}`
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Time-based Requirements Chart
+        const timeBasedCtx = document.getElementById('timeBasedRequirementsChart').getContext('2d');
+        const timeBasedChart = new Chart(timeBasedCtx, {
+            type: 'line',
+            data: {
+                labels: [
+                    {% for item in time_based_requirements %}
+                        "{{ item.range }}",
+                    {% endfor %}
+                ],
+                datasets: [
+                    {
+                        label: 'Required Quantity',
+                        data: [
+                            {% for item in time_based_requirements %}
+                                {{ item.required }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Available Quantity',
+                        data: [
+                            {% for item in time_based_requirements %}
+                                {{ item.available }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Components Count',
+                        data: [
+                            {% for item in time_based_requirements %}
+                                {{ item.components }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Quantity'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Components'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const item = {
+                                    {% for item in time_based_requirements %}
+                                        {{ forloop.counter0 }}: {
+                                            range: "{{ item.range }}",
+                                            required: {{ item.required }},
+                                            available: {{ item.available }},
+                                            components: {{ item.components }}
+                                        },
+                                    {% endfor %}
+                                }[index];
+                                
+                                if (context.datasetIndex === 0 || context.datasetIndex === 1) {
+                                    const coverage = (item.available / item.required * 100).toFixed(1);
+                                    return `Coverage: ${coverage}%`;
+                                }
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Function to update charts for dark/light theme
+        function updateChartsForTheme(isDark) {
+            const textColor = isDark ? '#fff' : '#666';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            
+            // Update all charts
+            [coverageChart, procurementChart, timeBasedChart].forEach(chart => {
+                chart.options.scales.x.grid.color = gridColor;
+                chart.options.scales.y.grid.color = gridColor;
+                if (chart.options.scales.y1) {
+                    chart.options.scales.y1.grid.color = gridColor;
+                }
+                
+                chart.options.scales.x.ticks.color = textColor;
+                chart.options.scales.y.ticks.color = textColor;
+                if (chart.options.scales.y1) {
+                    chart.options.scales.y1.ticks.color = textColor;
+                }
+                
+                chart.update();
+            });
+        }
+    });
+</script>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/mtp.js' %}"></script>
+
+{% endblock %}

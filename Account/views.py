@@ -68,10 +68,10 @@ def Login(request):
             
             # if user.role_id in [2,3]:
             #     return redirect('/index')
-            # if remember_me == 'on':
-            #     request.session.set_expiry(1209600)  # 2 weeks
-            # else:
-            #     request.session.set_expiry(0)  # Browser close
+            if remember_me == 'on':
+                request.session.set_expiry(1209600)  # 2 weeks
+            else:
+                request.session.set_expiry(0)  # Browser close
             return redirect('workflow_module') 
         else:
             messages.error(request, 'Invalid Credentials')
