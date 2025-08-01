@@ -172,7 +172,7 @@ MIDDLEWARE = [
     'django_auto_logout.middleware.auto_logout',
     'corsheaders.middleware.CorsMiddleware',
     'axes.middleware.AxesMiddleware',
-    'TWX.middleware.AutoLogoutMiddleware',
+    # 'TWX.middleware.AutoLogoutMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
     'http://15.207.169.98',
