@@ -316,15 +316,9 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         
         # Get unique values for filters
-        context['unique_employees'] = Employee.objects.filter(is_active=True)\
-            .order_by('employee_name')\
-            .values_list('employee_name', flat=True)\
-            .distinct()
+        context['unique_employees'] = Employee.objects.order_by('employee_name').values_list('employee_name', flat=True).distinct()
             
-        context['unique_dates'] = LaborAssignment.objects.all()\
-            .order_by('-date')\
-            .values_list('date', flat=True)\
-            .distinct()
+        context['unique_dates'] = LaborAssignment.objects.all().order_by('-date').values_list('date', flat=True).distinct()
             
         context['status_choices'] = LaborAssignment._meta.get_field('status').choices
         
@@ -383,7 +377,7 @@ class LeaveRequestListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['employees'] = Employee.objects.filter(is_active=True)
+        context['employees'] = Employee.objects.all()
         context['status_choices'] = LeaveRequest.STATUS_CHOICES
         context['leave_types'] = LeaveRequest.LEAVE_TYPES
         return context
@@ -475,7 +469,7 @@ class LeaveRequestListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['employees'] = Employee.objects.filter(is_active=True)
+        context['employees'] = Employee.objects.all()
         context['status_choices'] = LeaveRequest.STATUS_CHOICES
         context['leave_types'] = LeaveRequest.LEAVE_TYPES
         return context
@@ -568,7 +562,7 @@ class AttendanceListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['employees'] = Employee.objects.filter(is_active=True)
+        context['employees'] = Employee.objects.all()
         return context
 
 class AttendanceCreateUpdateView(LoginRequiredMixin, UpdateView):
