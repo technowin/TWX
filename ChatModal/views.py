@@ -21,6 +21,7 @@ import os
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.core.validators import RegexValidator
+from django.shortcuts import get_object_or_404, redirect, render
 
 # Initialize Gemini (replace with your actual API key)
 # genai.configure(api_key='AIzaSyCEDlkdLcCrhy2tRgXTd22-67SB_Dmdcaw')
@@ -244,10 +245,29 @@ class ChatBotView(View):
         """Handle user input with proper flow control"""
         input_text = request.POST.get('input_text', '').strip()
 
+        # language_name = get_object_or_404(Language, code= language).name 
+
         
         # 1. First handle contact collection if not completed
+        if input_text.lower() == "any other query":
+            request.session['awaiting_query'] = True
+            return JsonResponse({
+                'response': "Please write your query:",
+                'awaiting_query': True,
+                'selected_language': request.session.get('language', 'en')
+            })
+        
+        # Handle contact collection if not completed
         if not request.session.get('collected_contact'):
             return self._handle_contact_collection(request, input_text)
+        
+        # Handle query input if awaiting
+        if request.session.get('awaiting_query'):
+            request.session.pop('awaiting_query', None)
+            if self._is_complex_query(input_text):
+                return self._handle_human_support(request, input_text)
+            else:
+                return self._handle_ai_response_user(input_text)
         
         # 2. Handle language selection if not set (shouldn't normally happen after contact collection)
         if 'selected_language' not in request.POST and 'language' not in request.session:
@@ -378,105 +398,7 @@ class ChatBotView(View):
         
         return None
     
-    # def _handle_menu_selection(self, menu_option, language):
-    #     """Process menu selection"""
-    #     # Store current menu parent in session
-    #     self.request.session['current_menu_parent'] = menu_option.id
-        
-    #     if menu_option.response_type == 'response':
-    #         try:
-    #             response = BotResponse.objects.get(
-    #                 menu_option=menu_option
-    #             )
-    #             translated_response = self._translate_text(
-    #                 response.response_text,
-    #                 language.code
-    #             )
 
-    #             self._log_chat(
-    #                 self.request,
-    #                 menu_option.menu_text,
-    #                 translated_response,
-    #                 menu_option
-    #             )
-                
-    #             # Check if this menu has children (submenus)
-    #             has_children = menu_option.children.filter(is_active=True).exists()
-                
-    #             return JsonResponse({
-    #                 'response': translated_response,
-    #                 'media_url': response.media_url,
-    #                 'menu_options': self._get_menu_options(language, menu_option) if has_children else None,
-    #                 'selected_language': language.code,
-    #                 'is_submenu': has_children  # Flag to indicate if we're showing submenu
-    #             })
-    #         except BotResponse.DoesNotExist:
-    #             return self._get_main_menu(language)
-    #     else:
-
-    #         self._log_chat(
-    #             self.request,
-    #             menu_option.menu_text,
-    #             "Please choose from the options below:",
-    #             menu_option
-    #         )
-    #         # Handle submenus
-    #         return JsonResponse({
-    #             'response': self._translate_text(
-    #                 "Please choose from the options below:",
-    #                 language.code
-    #             ),
-    #             'menu_options': self._get_menu_options(language, menu_option),
-    #             'selected_language': language.code,
-    #             'is_submenu': True
-    #         })
-
-    def _handle_menu_selection(self, menu_option, language):
-        """Process menu selection - checks for submenus or direct responses"""
-        # Store current menu parent in session
-        self.request.session['current_menu_parent'] = menu_option.id
-        
-        # First check if this menu has active submenus
-        has_children = menu_option.children.filter(is_active=True).exists()
-        
-        if has_children:
-            # If has submenus, show them
-            return JsonResponse({
-                'response': self._translate_text(
-                    "Please choose from the options below:",
-                    language.code
-                ),
-                'menu_options': self._get_menu_options(language, menu_option),
-                'selected_language': language.code,
-                'is_submenu': True
-            })
-        else:
-            # If no submenus, check BotResponse table
-            try:
-                response = BotResponse.objects.get(menu_option=menu_option)
-                translated_response = self._translate_text(
-                    response.response_text,
-                    language.code
-                )
-                
-                # Log this interaction
-                self._log_chat(
-                    self.request,
-                    menu_option.menu_text,
-                    translated_response,
-                    menu_option
-                )
-                
-                return JsonResponse({
-                    'response': translated_response,
-                    'media_url': response.media_url,
-                    'selected_language': language.code,
-                    'show_back_button': True  # Add back button after response
-                })
-                
-            except BotResponse.DoesNotExist:
-                # If no response found either, go back to main menu
-                return self._get_main_menu(language)
         
     def _handle_contact_collection(self, request, input_text):
         """Handle phone and email collection flow"""
@@ -552,15 +474,260 @@ class ChatBotView(View):
                     'response': "We encountered an error. Please start again.",
                     'reset_contact': True
                 })
+     
+
+    def _handle_menu_selection(self, menu_option, language):
+        """Process menu selection with 'Any Other Query' option in every response"""
+        # First check if this is the "Any Other Query" selection
+        if menu_option.menu_text.lower() == "any other query":
+            self.request.session['awaiting_query'] = True
+            return JsonResponse({
+                'response': self._translate_text("Please write your query:", language.code),
+                'awaiting_query': True,
+                'selected_language': language.code
+            })
+        
+        # Store current menu parent in session
+        self.request.session['current_menu_parent'] = menu_option.id
+        
+        # Check if this menu has active submenus
+        has_children = menu_option.children.filter(is_active=True).exists()
+        
+        if has_children:
+            # Get submenu options
+            menu_options = self._get_menu_options(language, menu_option)
             
-    def _log_chat(self, request, user_input, bot_response, menu_option=None):
+            # Add "Any Other Query" option to submenus
+            menu_options.append({
+                'option_number': len(menu_options) + 1,
+                'menu_text': "Any Other Query",
+                'original_id': None,
+                'has_children': False
+            })
+            
+            response_text = self._translate_text(
+                f"{menu_option.menu_text} - Please choose from the options below:",
+                language.code
+            )
+            
+            self._log_chat(
+                request=self.request,
+                user_input=menu_option.menu_text,
+                bot_response=response_text,
+                menu_option=menu_option
+            )
+            
+            return JsonResponse({
+                'response': response_text,
+                'menu_options': menu_options,
+                'selected_language': language.code,
+                'is_submenu': True
+            })
+        else:
+            try:
+                response = BotResponse.objects.get(menu_option=menu_option)
+                translated_response = self._translate_text(
+                    response.response_text,
+                    language.code
+                )
+                
+                self._log_chat(
+                    request=self.request,
+                    user_input=menu_option.menu_text,
+                    bot_response=translated_response,
+                    menu_option=menu_option
+                )
+                
+                return JsonResponse({
+                    'response': translated_response,
+                    'media_url': response.media_url,
+                    'selected_language': language.code,
+                    'show_back_button': True,
+                    'show_other_query': True  # Flag to show "Any Other Query" option
+                })
+                
+            except BotResponse.DoesNotExist:
+                # Fallback to AI response
+                return self._handle_ai_response(menu_option, language)
+
+    def _log_chat(self, request, user_input, bot_response, menu_option=None, is_ai_response=False):
         """Log chat interaction to database"""
         if 'chat_session_id' in request.session:
             ChatLog.objects.create(
                 session_id=request.session['chat_session_id'],
                 user_input=user_input,
                 bot_response=bot_response,
-                menu_option=menu_option
+                menu_option=menu_option,
+                is_ai_response=is_ai_response
             )
 
+    def _update_last_chat_log(self, request, bot_response):
+        """Update the most recent chat log entry with the bot's response"""
+        if 'chat_session_id' in request.session:
+            last_log = ChatLog.objects.filter(
+                session_id=request.session['chat_session_id']
+            ).order_by('-timestamp').first()
+            
+            if last_log:
+                last_log.bot_response = bot_response
+                last_log.save()
+
+
+    def _handle_ai_response(self, menu_option, language):
+        """Generate AI response using chat history"""
+        chat_history = ChatLog.objects.filter(
+            session_id=self.request.session['chat_session_id']
+        ).order_by('timestamp')
+        
+        context = "\n".join(
+            f"User: {log.user_input}\nBot: {log.bot_response}" 
+            for log in chat_history
+        )
+        
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        prompt = f"""
+        You are a professional AI assistant for a manufacturing company.
+        Context from current conversation:
+        {context}
+        
+        New user query: {menu_option.menu_text}
+        
+        Please provide a helpful, accurate response in {language.code} language.
+        Important: 
+        - Keep technical terms in English if needed
+        - Be concise but informative
+        - Only return the response text, no explanations
+        """
+        
+        try:
+            response = model.generate_content(prompt)
+            ai_response = response.text.strip()
+            translated_response = self._translate_text(ai_response, language.code)
+            
+            self._log_chat(
+                request=self.request,
+                user_input=menu_option.menu_text,
+                bot_response=translated_response,
+                menu_option=menu_option,
+                is_ai_response=True
+            )
+            
+            return JsonResponse({
+                'response': translated_response,
+                'selected_language': language.code,
+                'show_back_button': True,
+                'show_other_query': True
+            })
+            
+        except Exception as e:
+            print(f"AI Error: {str(e)}")
+            return self._get_main_menu(language)
+
+
+    def _handle_ai_response_user(self, input_text):
+        """Generate AI response using chat history with only input_text"""
+        try:
+            # Get chat history for context
+            Language= "English"
+            chat_history = ChatLog.objects.filter(
+                session_id=self.request.session['chat_session_id']
+            ).order_by('timestamp')
+            
+            # Prepare context
+            context = "\n".join(
+                f"User: {log.user_input}\nBot: {log.bot_response}" 
+                for log in chat_history
+            )
+            
+            # Generate prompt
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            prompt = f"""
+            You are a professional AI assistant for a manufacturing company.
+            Context from current conversation:
+            {context}
+            
+            New user query: {input_text}
+            
+            Please provide a helpful, accurate response in {Language} language.
+            Important: 
+            - Keep technical terms in English if needed
+            - Be concise but informative
+            - Only return the response text, no explanations
+            """
+            
+            # Get AI response
+            response = model.generate_content(prompt)
+            ai_response = response.text.strip()
+            translated_response = self._translate_text(ai_response, Language)
+            
+            # Log the interaction
+            self._log_chat(
+                request=self.request,
+                user_input=input_text,  # Using input_text instead of menu_option.menu_text
+                bot_response=translated_response,
+                menu_option=None,  # No menu option for free-form queries
+                is_ai_response=True
+            )
+            
+            return JsonResponse({
+                'response': translated_response,
+                'show_back_button': True,
+                'show_other_query': True
+            })
+            
+        except Exception as e:
+            print(f"AI Error: {str(e)}")
+            return JsonResponse({
+                'response': self._translate_text(
+                    "Sorry, I encountered an error. Please try again.",
+                ),
+                'show_back_button': True
+            })
+
     
+    
+    def _handle_human_support(self, request, query_text):
+        """Process complex queries that need human support"""
+        language = Language.objects.get(
+            code=request.session.get('language', 'en')
+        )
+        
+        # Log the query
+        self._log_chat(
+            request,
+            query_text,
+            "Your  query has been recorded. Our team will contact you soon.",
+            None
+        )
+        
+        return JsonResponse({
+            'response': self._translate_text(
+                "Thank you for your query. Our team will contact you soon.",
+                language.code
+            ),
+            'selected_language': language.code,
+            'show_back_button': True
+        })
+    
+    def _is_complex_query(self, query_text):
+        """
+        Determine if a query is too complex for AI to handle.
+        Returns True for complex queries that should go to human support.
+        """
+        # Define indicators of complex queries
+        complex_indicators = [
+            'custom solution', 'enterprise', 'integration',
+            'consultation', 'specific requirement', 'detailed',
+            'complex', 'project', 'proposal', 'business need',
+            'urgent', 'custom development', 'tailored'
+        ]
+        
+        # Check query length (more than 30 words is complex)
+        if len(query_text.split()) > 30:
+            return True 
+        
+        # Check for complex indicators
+        query_lower = query_text.lower()
+        return any(
+            indicator in query_lower for indicator in complex_indicators
+        )

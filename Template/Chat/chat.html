@@ -216,7 +216,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+   <script>
     let currentLanguage = null;
     let currentMenuParent = null;
     let isCollectingContact = false;
@@ -230,7 +230,9 @@
         showLanguageSelection();
         
         // Set up event listeners
-        sendButton.addEventListener('click', sendMessage);
+        sendButton.addEventListener('click', function() {
+            sendMessage();
+        });
         userInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') sendMessage();
         });
@@ -287,6 +289,11 @@
     }
 
     function sendMessage(message = null) {
+        // Handle case where event object might be passed
+        if (message && typeof message === 'object' && 'preventDefault' in message) {
+            return; // Ignore direct event objects
+        }
+        
         const input = document.getElementById('user-input');
         const messageText = message || input.value.trim();
         
@@ -332,45 +339,65 @@
                 // Handle contact collection state
                 if (data.collecting_contact) {
                     isCollectingContact = true;
-                }// In your response handler:
-                if (data.show_back_button) {
-                    let menuHtml = '<div class="menu-options mt-3">';
-                    menuHtml += `
-                        <div class="menu-option back-option" onclick="goBackToParentMenu()">
-                            <span class="menu-option-number">←</span>
-                            Back
-                        </div>
-                    `;
-                    menuHtml += '</div>';
-                    
-                    const botMessages = document.querySelectorAll('.bot-message');
-                    if (botMessages.length > 0) {
-                        botMessages[botMessages.length - 1].innerHTML += menuHtml;
-                    }
-                }
-                else if (data.show_menu) {
+                } else if (data.show_menu) {
                     isCollectingContact = false;
                 }
 
                 // Add bot response
                 addMessage(data.response, 'bot-message');
-                
+
                 // Handle reset case
                 if (data.reset_contact) {
                     resetChatState();
                     return;
                 }
-                
+
                 // Render menu options if available
                 if (data.menu_options?.length > 0 && !isCollectingContact) {
                     renderMenuOptions(data.menu_options, data.is_submenu);
                 }
+
+                // Handle back button and other query options
+                let additionalOptionsHtml = '';
                 
+                if (data.show_back_button) {
+                    additionalOptionsHtml += `
+                        <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
+                            <span class="menu-option-number">←</span>
+                            Back
+                        </div>
+                    `;
+                }
+
+                if (data.show_other_query) {
+                    const optionNumber = data.menu_options ? data.menu_options.length + 1 : 1;
+                    additionalOptionsHtml += `
+                        <div class="menu-option" onclick="handleOtherQueryClick(event)">
+                            <span class="menu-option-number">${optionNumber}.</span>
+                            Any Other Query
+                        </div>
+                    `;
+                }
+
+                if (additionalOptionsHtml) {
+                    const fullOptionsHtml = `<div class="menu-options mt-3">${additionalOptionsHtml}</div>`;
+                    const botMessages = document.querySelectorAll('.bot-message');
+                    if (botMessages.length > 0) {
+                        botMessages[botMessages.length - 1].innerHTML += fullOptionsHtml;
+                    }
+                }
+
+                if (data.awaiting_query) {
+                    document.getElementById('user-input').placeholder = "Type your query here...";
+                    document.getElementById('user-input').focus();
+                }
+
                 // Update current language if changed
                 if (data.selected_language) {
                     currentLanguage = data.selected_language;
                 }
             }
+            
             scrollToBottom();
         })
         .catch(error => {
@@ -386,7 +413,7 @@
         
         options.forEach(option => {
             menuHtml += `
-                <div class="menu-option" onclick="selectMenuOption('${option.option_number}', ${option.has_children})">
+                <div class="menu-option" data-option-number="${option.option_number}" data-has-children="${option.has_children}" onclick="handleMenuOptionClick(event)">
                     <span class="menu-option-number">${option.option_number}.</span>
                     ${option.menu_text}
                 </div>
@@ -395,7 +422,7 @@
         
         if (isSubmenu) {
             menuHtml += `
-                <div class="menu-option back-option" onclick="goBackToParentMenu()">
+                <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
                     <span class="menu-option-number">←</span>
                     Back
                 </div>
@@ -410,20 +437,35 @@
         }
     }
 
-    function selectMenuOption(optionNumber, hasChildren) {
+    function handleMenuOptionClick(event) {
+        event.preventDefault();
+        const optionNumber = event.currentTarget.getAttribute('data-option-number');
+        const hasChildren = event.currentTarget.getAttribute('data-has-children') === 'true';
+        
         if (hasChildren) {
             currentMenuParent = optionNumber;
         }
         sendMessage(optionNumber);
     }
 
-    function goBackToParentMenu() {
+    function goBackToParentMenu(event) {
+        event.preventDefault();
         sendMessage('menu');
     }
 
+    function handleOtherQueryClick(event) {
+        event.preventDefault();
+        sendMessage("Any Other Query");
+    }
+
     function addMessage(text, className) {
+        // Sanitize text to prevent XSS
+        const div = document.createElement('div');
+        div.textContent = text;
+        const sanitizedText = div.innerHTML;
+        
         document.getElementById('chat-messages').innerHTML += `
-            <div class="message ${className}">${text}</div>
+            <div class="message ${className}">${sanitizedText}</div>
         `;
         scrollToBottom();
     }

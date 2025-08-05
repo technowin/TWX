@@ -169,6 +169,7 @@ class ChatLog(models.Model):
     bot_response = models.TextField()
     menu_option = models.ForeignKey('MenuOption', null=True, blank=True, on_delete=models.SET_NULL)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_ai_response = models.BooleanField(default=False)
     
     class Meta:
         ordering = ['timestamp']
