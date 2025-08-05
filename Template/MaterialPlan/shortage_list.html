@@ -1,0 +1,188 @@
+<!-- material_planning/templates/material_planning/shortage_list.html -->
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}Material Shortages{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Material Shortage Alerts</h1>
+        <div class="btn-group" role="group">
+            <a href="?view=list" class="btn btn-sm btn-outline-secondary {% if view_mode == 'list' %}active{% endif %}">
+                <i class="fas fa-list me-1"></i> List View
+            </a>
+            <a href="?view=summary" class="btn btn-sm btn-outline-secondary {% if view_mode == 'summary' %}active{% endif %}">
+                <i class="fas fa-table me-1"></i> Summary View
+            </a>
+            <a href="/mtp/dashboard3" class="btn btn-sm btn-primary">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if view_mode == 'list' %}
+    <!-- List View -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0 text-white">All Open Shortages</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for shortage in shortages %}
+                <a href="{% url 'shortage_detail' shortage.id %}" 
+                   class="list-group-item list-group-item-action shortage-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ shortage.component.part_number }} - {{ shortage.component.description }}</h6>
+                        <small class="text-danger">{{ shortage.potential_delay_days }} day{% if shortage.potential_delay_days > 1 %}s{% endif %} delay</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small>Required: {{ shortage.required_quantity }} | Available: {{ shortage.available_quantity }}</small>
+                        <small>Due: {{ shortage.required_date|date:"M d, Y" }}</small>
+                    </div>
+                    <small class="text-muted">Plan: {{ shortage.plan.name }}</small>
+                </a>
+                {% empty %}
+                <div class="list-group-item">
+                    <div class="text-center text-muted py-3">No open shortages at this time</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Summary View -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0 text-white">Shortage Summary by Component</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Component</th>
+                            <th>Category</th>
+                            <th>Total Required</th>
+                            <th>Total Available</th>
+                            <th>Shortage</th>
+                            <th>Open Alerts</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in component_shortages %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.component__part_number }}</strong>
+                                <div class="small text-muted">{{ item.component__description|truncatechars:50 }}</div>
+                            </td>
+                            <td>{{ item.component__category|default:"-" }}</td>
+                            <td>{{ item.total_required }}</td>
+                            <td>{{ item.total_available }}</td>
+                            <td class="text-danger">{{ item.total_required|subtract:item.total_available }}</td>
+                            <td>{{ item.shortage_count }}</td>
+                            <td>
+                                <a href="{% url 'component_detail' item.component__id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-search"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-3">No shortage data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/mtp.js' %}"></script>
+
+{% endblock %}

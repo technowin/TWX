@@ -157,3 +157,9 @@ def calculate_value(quantity, cost):
         return float(quantity) * float(cost)
     except (TypeError, ValueError):
         return 0
+    
+
+@register.filter
+def multiply(value, arg):
+    """Multiply the value by the arg"""
+    return float(value) * float(arg)
