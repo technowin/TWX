@@ -31,6 +31,7 @@ from Workflow.views import *
 from BOM.views import *
 from MaterialPlan.views import *
 from BookMetadata.views import *
+from Checklist.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
@@ -161,6 +162,9 @@ urlpatterns = [
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
     
+    # Chat Modal
+    path('compliance-checklist/', compliance_checklist, name='compliance_checklist'),
+
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
