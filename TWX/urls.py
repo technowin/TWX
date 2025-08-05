@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from Account.views import *
+from ChatModal.views import *
 from Dashboard.views import *
 from Masters.views import *
 from Form.views import *
@@ -273,6 +274,8 @@ urlpatterns = [
     # chatbot
     # path('chatbot_view/', chatbot_view, name='chatbot_home'),
     # path('chat/', ChatBotView.as_view(), name='chatbot'),
+
+    path('chat/', ChatBotView.as_view(), name='chatbot'),
 
 
     # Media files

@@ -1,0 +1,566 @@
+# views.py
+import hashlib
+from django.core.cache import cache
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views import View
+from django.utils import translation
+from requests import request
+from .models import *
+import uuid
+import re
+from django.shortcuts import render
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
+import json
+import google.generativeai as genai
+from ChatModal.models import *
+import os
+# from googletrans import Translator  
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.core.validators import RegexValidator
+
+# Initialize Gemini (replace with your actual API key)
+# genai.configure(api_key='AIzaSyCEDlkdLcCrhy2tRgXTd22-67SB_Dmdcaw')
+
+genai.configure(api_key='AIzaSyDYWMDZ25wRJtmAkjMLUH_7Oazrdpocrdc')
+# genai.configure(api_key='AIzaSyD3QsIBPODMpfVI7Xd57iLGbGW4uPTfuoc')
+
+# translator = Translator()
+
+# @csrf_exempt
+# def get_faq_answer(request):
+#     try:
+#         if request.method != 'POST':
+#             return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
+
+#         user_question = request.POST.get('question', '').strip()
+#         lang = request.POST.get('lang', 'en')  # 'en', 'hi', 'mr'
+
+#         if not user_question:
+#             return JsonResponse({'answer': "❗ Please enter a message."})
+
+#         # Detect small talk
+#         small_talk_triggers = ['hi', 'hello', 'hey', 'thanks', 'thank you', 'ok', 'okay', 'bye']
+#         if user_question.lower() in small_talk_triggers:
+#             small_talk_responses = {
+#                 'hi': "👋 Hello! How can I assist you today?",
+#                 'hello': "👋 Hi there! What can I help you with?",
+#                 'hey': "Hey! Need help with anything?",
+#                 'thanks': "You're welcome! 😊",
+#                 'thank you': "You're very welcome! 👍",
+#                 'ok': "Got it! ✅",
+#                 'okay': "Alright! Let me know if you have a question.",
+#                 'bye': "Goodbye! 👋 Have a great day!"
+#             }
+#             return JsonResponse({'answer': small_talk_responses.get(user_question.lower())})
+
+#         # Translate question to English if needed
+#         if lang != 'en':
+#             user_question_translated = translator.translate(user_question, dest='en').text
+#         else:
+#             user_question_translated = user_question
+
+#         # Check for company-related queries
+#         company_keywords = ['company', 'your name', 'business', 'organization']
+#         if any(kw in user_question_translated.lower() for kw in company_keywords):
+#             company_response = (
+#                 "🏢 Our company name is <strong>Technowin IT Infra Pvt. Ltd.</strong><br>"
+#                 "🌐 Visit: <a href='https://technowinitinfra.com' target='_blank'>technowinitinfra.com</a><br>"
+#                 "📞 Contact: +91-9999999999"
+#             )
+#             # Translate back if needed
+#             if lang != 'en':
+#                 company_response = translator.translate(company_response, dest=lang).text
+#             return JsonResponse({'answer': company_response})
+
+#         # Get FAQs from DB
+#         faqs = Faq.objects.all()
+#         if not faqs:
+#             return JsonResponse({'answer': "📭 No FAQs available at the moment."})
+
+#         # Build FAQ context
+#         faq_text = "\n".join([f"Q: {faq.question_en}\nA: {faq.answer_en}" for faq in faqs])
+
+#         # Construct prompt
+#         prompt = f"""
+# You are a helpful assistant for Technowin IT Infra Pvt. Ltd.
+# Based on the FAQ list below, respond to the user's question.
+# If nothing matches well, say: "I couldn’t find a relevant answer. Please contact our team at 📞 +91-9999999999."
+
+# ### FAQ List:
+# {faq_text}
+
+# ### User Question:
+# {user_question_translated}
+
+# ### Answer:
+# """
+
+#         # Use Gemini
+#         model = genai.GenerativeModel('gemini-2.5-flash')
+#         response = model.generate_content(prompt)
+#         answer = response.text.strip()
+
+#         if not answer or "no relevant answer" in answer.lower():
+#             fallback = (
+#                 "Hello. Please contact our team at 📞 "
+#                 "<strong>+91-9999999999</strong>"
+#             )
+#             # Translate fallback if needed
+#             if lang != 'en':
+#                 fallback = translator.translate(fallback, dest=lang).text
+#             return JsonResponse({'answer': fallback})
+
+#         # Translate Gemini answer back if needed
+#         if lang != 'en':
+#             answer = translator.translate(answer, dest=lang).text
+
+#         return JsonResponse({'answer': answer})
+
+#     except Exception as e:
+#         return JsonResponse({
+#             'answer': (
+#                 "⚠️ Something went wrong while checking your question. Contact support at 📞 "
+#                 "<strong>+91-9999999999</strong>"
+#             ),
+#             'error': str(e)
+#               })
+    
+        
+
+class ChatBotView(View):
+    """Chatbot view with dynamic menu system"""
+
+    def check_rate_limit(request, limit=50, period=60):
+        """Check if user has exceeded rate limit"""
+        ip = request.META.get('REMOTE_ADDR')
+        key = f"rate_limit_{ip}"
+        count = cache.get(key, 0)
+        
+        if count >= limit:
+            return True  # Over limit
+        
+        cache.set(key, count+1, period)
+        return False  # Under limit
+    
+    def get(self, request, *args, **kwargs):
+    # Clear menu navigation session on fresh page load (not AJAX)
+        if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if 'current_menu_parent' in request.session:
+                del request.session['current_menu_parent']
+        
+        languages = list(Language.objects.filter(is_active=True).values('code', 'name'))
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'languages': languages})
+        return render(request, 'Chat/chat.html', {
+            'languages_json': json.dumps(languages),
+            'languages': languages,
+        })
+    
+    def _translate_text(self, text, target_language):
+        """Universal translation function for all supported languages"""
+        if target_language == 'en':
+            return text
+            
+        # Language mapping with script requirements
+        LANGUAGE_SCRIPTS = {
+            'hi': ('Hindi', 'Devanagari'),
+            'mr': ('Marathi', 'Devanagari'),
+            'gu': ('Gujarati', 'Gujarati'),
+            'ur': ('Urdu', 'Nastaliq'),
+            'bn': ('Bengali', 'Bengali'),
+            'ta': ('Tamil', 'Tamil'),
+            'te': ('Telugu', 'Telugu'),
+            'kn': ('Kannada', 'Kannada'),
+            'ml': ('Malayalam', 'Malayalam'),
+            'pa': ('Punjabi', 'Gurmukhi'),
+        }
+        
+        # Get language details
+        language_name, script = LANGUAGE_SCRIPTS.get(target_language, (target_language, None))
+        
+        cache_key = f"trans_{target_language}_{hashlib.md5(text.encode()).hexdigest()}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+            
+        try:
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            prompt = f"""
+            Translate this manufacturing menu item to {language_name}.
+            Important Instructions:
+            1. Keep technical terms in English if no translation exists
+            2. Return ONLY the translated text
+            3. Use {script} script if specified
+            4. For Urdu, use proper Nastaliq script
+            5. Never add explanations or notes
+            
+            Text to translate: "{text}"
+            """
+            
+            response = model.generate_content(prompt)
+            translated = response.text.strip('"\'').strip()
+            
+            # Remove common response prefixes
+            for prefix in ["Translation:", "Translated text:", "Here's the translation:"]:
+                if translated.startswith(prefix):
+                    translated = translated[len(prefix):].strip()
+            
+            # Validate script if we have a known script requirement
+            if script and not self._validate_script(translated, target_language):
+                raise ValueError(f"Translation doesn't appear to be in {script} script")
+                
+            cache.set(cache_key, translated, 60*60*24)  # Cache for 24 hours
+            return translated
+            
+        except Exception as e:
+            print(f"Translation error for {language_name}: {e}")
+            return text  # Fallback to original text
+
+    def _validate_script(self, text, language_code):
+        """Validate the script matches the expected language script"""
+        SCRIPT_RANGES = {
+            'hi': r'[\u0900-\u097F]',  # Devanagari (Hindi, Marathi)
+            'mr': r'[\u0900-\u097F]',
+            'gu': r'[\u0A80-\u0AFF]',  # Gujarati
+            'ur': r'[\u0600-\u06FF]',  # Arabic/Nastaliq (basic range for Urdu)
+            'bn': r'[\u0980-\u09FF]',  # Bengali
+            'ta': r'[\u0B80-\u0BFF]',  # Tamil
+            'te': r'[\u0C00-\u0C7F]',  # Telugu
+            'kn': r'[\u0C80-\u0CFF]',  # Kannada
+            'ml': r'[\u0D00-\u0D7F]',  # Malayalam
+            'pa': r'[\u0A00-\u0A7F]',  # Gurmukhi (Punjabi)
+        }
+        
+        if language_code not in SCRIPT_RANGES:
+            return True  # No validation for unknown languages
+        
+        return bool(re.search(SCRIPT_RANGES[language_code], text))
+        
+    def post(self, request):
+        """Handle user input with proper flow control"""
+        input_text = request.POST.get('input_text', '').strip()
+
+        
+        # 1. First handle contact collection if not completed
+        if not request.session.get('collected_contact'):
+            return self._handle_contact_collection(request, input_text)
+        
+        # 2. Handle language selection if not set (shouldn't normally happen after contact collection)
+        if 'selected_language' not in request.POST and 'language' not in request.session:
+            return self._handle_language_selection(input_text)
+        
+        # Get selected language (from session if not in POST)
+        try:
+            language_code = request.POST.get('selected_language') or request.session.get('language')
+            language = Language.objects.get(
+                Q(code=language_code),
+                is_active=True
+            )
+            translation.activate(language.code)
+            request.session['language'] = language.code  # Ensure language is stored in session
+        except Language.DoesNotExist:
+            return JsonResponse({
+                'error': 'Invalid language selected'
+            }, status=400)
+        
+        # 3. Handle normal chat flow after contact collection
+        # Menu commands
+        if input_text.lower() in ['menu', 'main menu', 'home']:
+            request.session['current_menu_parent'] = None  # Reset to main menu
+            return self._get_main_menu(language)
+        
+        # Check if input matches any menu option
+        menu_option = self._find_matching_menu_option(input_text, language)
+        if menu_option:
+            return self._handle_menu_selection(menu_option, language)
+        
+        # Default response
+        return JsonResponse({
+            'response': self._translate_text(
+                "Sorry, I didn't understand. Please select from the menu options.",
+                language.code
+            ),
+            'menu_options': self._get_menu_options(language, request.session.get('current_menu_parent'))
+        })
+    
+    def _handle_language_selection(self, input_text):
+        """Process language selection"""
+        try:
+            if input_text.isdigit():
+                language = Language.objects.filter(is_active=True).order_by('id')[int(input_text)-1]
+            else:
+                language = Language.objects.get(
+                    Q(name__iexact=input_text) | Q(code__iexact=input_text),
+                    is_active=True
+                )
+            
+            welcome_msg = self._translate_text(
+                "Welcome! How can I assist you today?",
+                language.code
+            )
+            
+            return JsonResponse({
+                'response': welcome_msg,
+                'menu_options': self._get_main_menu_options(language),
+                'selected_language': language.code
+            })
+        
+        except (IndexError, Language.DoesNotExist):
+            languages = Language.objects.filter(is_active=True)
+            options = "\n".join(
+                f"{i+1}. {lang.name}" 
+                for i, lang in enumerate(languages)
+            )
+            prompt_msg = "Please select a valid language:\n" + options
+            
+            return JsonResponse({
+                'response': prompt_msg
+            })
+    
+    def _get_main_menu(self, language):
+        """Return the main menu in selected language"""
+        return JsonResponse({
+            'response': self._translate_text(
+                "Please choose from the options below:",
+                language.code
+            ),
+            'menu_options': self._get_menu_options(language, parent=None)  # Get root menu
+        })
+    
+    def _get_menu_options(self, language, parent=None):
+        """
+        Get menu options based on parent
+        If parent is None, returns main menu options
+        """
+        menu_options = MenuOption.objects.filter(
+            parent=parent,
+            is_active=True
+        ).order_by('order')
+        
+        return [
+            {
+                'option_number': opt.option_number,
+                'menu_text': self._translate_text(opt.menu_text, language.code),
+                'original_id': opt.id,
+                'has_children': opt.children.filter(is_active=True).exists()
+            }
+            for opt in menu_options
+        ]
+    
+    def _find_matching_menu_option(self, input_text, language):
+        """Find matching menu option"""
+        # Get current parent from session or None for main menu
+        current_parent_id = self.request.session.get('current_menu_parent')
+        
+        if input_text.isdigit():
+            try:
+                return MenuOption.objects.get(
+                    option_number=input_text,
+                    parent_id=current_parent_id,
+                    is_active=True
+                )
+            except MenuOption.DoesNotExist:
+                pass
+        
+        # Search in current menu level
+        menu_options = MenuOption.objects.filter(
+            parent_id=current_parent_id,
+            is_active=True
+        )
+        
+        for option in menu_options:
+            if input_text.lower() in option.menu_text.lower():
+                return option
+        
+        return None
+    
+    # def _handle_menu_selection(self, menu_option, language):
+    #     """Process menu selection"""
+    #     # Store current menu parent in session
+    #     self.request.session['current_menu_parent'] = menu_option.id
+        
+    #     if menu_option.response_type == 'response':
+    #         try:
+    #             response = BotResponse.objects.get(
+    #                 menu_option=menu_option
+    #             )
+    #             translated_response = self._translate_text(
+    #                 response.response_text,
+    #                 language.code
+    #             )
+
+    #             self._log_chat(
+    #                 self.request,
+    #                 menu_option.menu_text,
+    #                 translated_response,
+    #                 menu_option
+    #             )
+                
+    #             # Check if this menu has children (submenus)
+    #             has_children = menu_option.children.filter(is_active=True).exists()
+                
+    #             return JsonResponse({
+    #                 'response': translated_response,
+    #                 'media_url': response.media_url,
+    #                 'menu_options': self._get_menu_options(language, menu_option) if has_children else None,
+    #                 'selected_language': language.code,
+    #                 'is_submenu': has_children  # Flag to indicate if we're showing submenu
+    #             })
+    #         except BotResponse.DoesNotExist:
+    #             return self._get_main_menu(language)
+    #     else:
+
+    #         self._log_chat(
+    #             self.request,
+    #             menu_option.menu_text,
+    #             "Please choose from the options below:",
+    #             menu_option
+    #         )
+    #         # Handle submenus
+    #         return JsonResponse({
+    #             'response': self._translate_text(
+    #                 "Please choose from the options below:",
+    #                 language.code
+    #             ),
+    #             'menu_options': self._get_menu_options(language, menu_option),
+    #             'selected_language': language.code,
+    #             'is_submenu': True
+    #         })
+
+    def _handle_menu_selection(self, menu_option, language):
+        """Process menu selection - checks for submenus or direct responses"""
+        # Store current menu parent in session
+        self.request.session['current_menu_parent'] = menu_option.id
+        
+        # First check if this menu has active submenus
+        has_children = menu_option.children.filter(is_active=True).exists()
+        
+        if has_children:
+            # If has submenus, show them
+            return JsonResponse({
+                'response': self._translate_text(
+                    "Please choose from the options below:",
+                    language.code
+                ),
+                'menu_options': self._get_menu_options(language, menu_option),
+                'selected_language': language.code,
+                'is_submenu': True
+            })
+        else:
+            # If no submenus, check BotResponse table
+            try:
+                response = BotResponse.objects.get(menu_option=menu_option)
+                translated_response = self._translate_text(
+                    response.response_text,
+                    language.code
+                )
+                
+                # Log this interaction
+                self._log_chat(
+                    self.request,
+                    menu_option.menu_text,
+                    translated_response,
+                    menu_option
+                )
+                
+                return JsonResponse({
+                    'response': translated_response,
+                    'media_url': response.media_url,
+                    'selected_language': language.code,
+                    'show_back_button': True  # Add back button after response
+                })
+                
+            except BotResponse.DoesNotExist:
+                # If no response found either, go back to main menu
+                return self._get_main_menu(language)
+        
+    def _handle_contact_collection(self, request, input_text):
+        """Handle phone and email collection flow"""
+        session = request.session
+        
+        # Clean the input - remove all non-digit characters
+        cleaned_input = re.sub(r'\D', '', input_text) if input_text else ''
+        
+        # PHONE NUMBER COLLECTION
+        if 'awaiting_phone' not in session and 'phone' not in session:
+            session['awaiting_phone'] = True
+            return JsonResponse({
+                'response': "Please enter your 10-digit Indian phone number:",
+                'collecting_contact': True,
+                'awaiting_input': 'phone'
+            })
+        
+        if 'awaiting_phone' in session and 'phone' not in session:
+            # Validate Indian phone number
+            if not re.match(r'^[6-9]\d{9}$', cleaned_input):
+                return JsonResponse({
+                    'response': "Please enter a valid 10-digit Indian phone number (should start with 6-9):",
+                    'collecting_contact': True,
+                    'awaiting_input': 'phone'
+                })
+            
+            session['phone'] = cleaned_input
+            session.pop('awaiting_phone', None)
+            session['awaiting_email'] = True
+            return JsonResponse({
+                'response': "Thank you. Now please enter your email address:",
+                'collecting_contact': True,
+                'awaiting_input': 'email'
+            })
+        
+        # EMAIL COLLECTION
+        if 'awaiting_email' in session and 'email' not in session:
+            if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', input_text):
+                return JsonResponse({
+                    'response': "Please enter a valid email address (e.g. example@gmail.com):",
+                    'collecting_contact': True,
+                    'awaiting_input': 'email'
+                })
+            
+            try:
+                # Get language from session (set during language selection)
+                language = Language.objects.get(
+                    code=session.get('language', 'en'),
+                    is_active=True
+                )
+                
+                chat_session = ChatSession.objects.create(
+                    phone_number=session['phone'],
+                    email=input_text,
+                    language=language.code
+                )
+                
+                # Clear collection flags and set completion flag
+                session.pop('awaiting_email', None)
+                session['collected_contact'] = True
+                session['chat_session_id'] = chat_session.id
+                
+                return JsonResponse({
+                    'response': "Thank you! How can I assist you today?",
+                    'show_menu': True,
+                    'menu_options': self._get_menu_options(language, None),  # Main menu
+                    'selected_language': language.code
+                })
+                
+            except Exception as e:
+                print(f"Error saving contact: {str(e)}")
+                return JsonResponse({
+                    'response': "We encountered an error. Please start again.",
+                    'reset_contact': True
+                })
+            
+    def _log_chat(self, request, user_input, bot_response, menu_option=None):
+        """Log chat interaction to database"""
+        if 'chat_session_id' in request.session:
+            ChatLog.objects.create(
+                session_id=request.session['chat_session_id'],
+                user_input=user_input,
+                bot_response=bot_response,
+                menu_option=menu_option
+            )
+
+    

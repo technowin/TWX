@@ -1,0 +1,437 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+   <style>
+        :root {
+            --chatbot-bg: #f8f9fa;
+            --chatbot-text: #212529;
+            --user-bubble: #0d6efd;
+            --bot-bubble: #e9ecef;
+            --header-bg: #727cf5;
+            --header-text: #ffffff;
+        }
+        
+        [data-bs-theme="dark"] {
+            --chatbot-bg: #212529;
+            --chatbot-text: #f8f9fa;
+            --user-bubble: #0d6efd;
+            --bot-bubble: #2c3034;
+            --header-bg: #0d6efd;
+            --header-text: #ffffff;
+        }
+        
+        .chat-container {
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background-color: var(--chatbot-bg);
+            color: var(--chatbot-text);
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+            background-color: var(--bot-bubble);
+            color: var(--chatbot-text);
+            border-bottom-left-radius: 5px;
+        }
+        
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .menu-option {
+            padding: 8px 15px;
+            border-radius: 5px;
+            background-color: var(--bot-bubble);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .menu-option:hover {
+            background-color: var(--user-bubble);
+            color: white;
+        }
+        
+        .menu-option-number {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .chat-input-container {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            background-color: var(--chatbot-bg);
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px;
+        }
+        
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--chatbot-text);
+            opacity: 0.4;
+            margin: 0 2px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+        
+        .media-attachment {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: var(--bot-bubble);
+            border-radius: 5px;
+        }
+        
+        .media-attachment a {
+            color: var(--user-bubble);
+            text-decoration: none;
+        }
+        
+        .media-attachment a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+    <div class="container py-5">
+        <div class="chat-container">
+            <div class="chat-header ">
+                <h1 class="h5 mb-0">ChatBot</h1>
+                <small>Manufacturing Assistant</small>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                <!-- Initial language selection will be inserted here by JavaScript -->
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="user-input" 
+                           placeholder="Type your message here..." 
+                           aria-label="Type your message">
+                    <button class="btn btn-primary" type="button" id="send-button">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    let currentLanguage = null;
+    let currentMenuParent = null;
+    let isCollectingContact = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        sessionStorage.clear();
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        
+        resetChatState();
+        showLanguageSelection();
+        
+        // Set up event listeners
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    });
+
+    function resetChatState() {
+        currentLanguage = null;
+        currentMenuParent = null;
+        isCollectingContact = false;
+        document.getElementById('chat-messages').innerHTML = '';
+        addMessage("Welcome to the chatbot! Please select a language.", 'bot-message');
+    }
+
+    function showLanguageSelection() {
+        const languagesFromTemplate = {{ languages_json|safe }};
+        if (languagesFromTemplate && languagesFromTemplate.length > 0) {
+            renderLanguageOptions(languagesFromTemplate);
+        } else {
+            fetch('/chat/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => renderLanguageOptions(data.languages))
+            .catch(error => console.error('Error fetching languages:', error));
+        }
+    }
+
+    function renderLanguageOptions(languages) {
+        let html = `
+            <div class="message bot-message">
+                <p>Please select your language:</p>
+                <div class="menu-options">
+        `;
+        
+        languages.forEach((lang, index) => {
+            html += `
+                <div class="menu-option" onclick="selectLanguage('${lang.code}')">
+                    <span class="menu-option-number">${index + 1}.</span>
+                    ${lang.name}
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+        document.getElementById('chat-messages').innerHTML = html;
+    }
+
+    function selectLanguage(langCode) {
+        currentLanguage = langCode;
+        sendMessage(langCode);
+    }
+
+    function sendMessage(message = null) {
+        const input = document.getElementById('user-input');
+        const messageText = message || input.value.trim();
+        
+        if (!messageText) return;
+        
+        if (!message) input.value = '';
+        
+        addMessage(messageText, 'user-message');
+        
+        const typingId = 'typing-' + Date.now();
+        document.getElementById('chat-messages').innerHTML += `
+            <div class="message bot-message" id="${typingId}">
+                <div class="typing-indicator">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            </div>
+        `;
+        scrollToBottom();
+        
+        const formData = new FormData();
+        formData.append('input_text', messageText);
+        if (currentLanguage) {
+            formData.append('selected_language', currentLanguage);
+        }
+        
+        fetch('/chat/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById(typingId)?.remove();
+            
+            if (data.error) {
+                addMessage(data.error, 'bot-message error-message');
+            } else {
+                // Handle contact collection state
+                if (data.collecting_contact) {
+                    isCollectingContact = true;
+                }// In your response handler:
+                if (data.show_back_button) {
+                    let menuHtml = '<div class="menu-options mt-3">';
+                    menuHtml += `
+                        <div class="menu-option back-option" onclick="goBackToParentMenu()">
+                            <span class="menu-option-number">←</span>
+                            Back
+                        </div>
+                    `;
+                    menuHtml += '</div>';
+                    
+                    const botMessages = document.querySelectorAll('.bot-message');
+                    if (botMessages.length > 0) {
+                        botMessages[botMessages.length - 1].innerHTML += menuHtml;
+                    }
+                }
+                else if (data.show_menu) {
+                    isCollectingContact = false;
+                }
+
+                // Add bot response
+                addMessage(data.response, 'bot-message');
+                
+                // Handle reset case
+                if (data.reset_contact) {
+                    resetChatState();
+                    return;
+                }
+                
+                // Render menu options if available
+                if (data.menu_options?.length > 0 && !isCollectingContact) {
+                    renderMenuOptions(data.menu_options, data.is_submenu);
+                }
+                
+                // Update current language if changed
+                if (data.selected_language) {
+                    currentLanguage = data.selected_language;
+                }
+            }
+            scrollToBottom();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById(typingId)?.remove();
+            addMessage("Sorry, something went wrong. Please try again.", 'bot-message error-message');
+            scrollToBottom();
+        });
+    }
+
+    function renderMenuOptions(options, isSubmenu = false) {
+        let menuHtml = '<div class="menu-options mt-3">';
+        
+        options.forEach(option => {
+            menuHtml += `
+                <div class="menu-option" onclick="selectMenuOption('${option.option_number}', ${option.has_children})">
+                    <span class="menu-option-number">${option.option_number}.</span>
+                    ${option.menu_text}
+                </div>
+            `;
+        });
+        
+        if (isSubmenu) {
+            menuHtml += `
+                <div class="menu-option back-option" onclick="goBackToParentMenu()">
+                    <span class="menu-option-number">←</span>
+                    Back
+                </div>
+            `;
+        }
+        
+        menuHtml += '</div>';
+        
+        const botMessages = document.querySelectorAll('.bot-message');
+        if (botMessages.length > 0) {
+            botMessages[botMessages.length - 1].innerHTML += menuHtml;
+        }
+    }
+
+    function selectMenuOption(optionNumber, hasChildren) {
+        if (hasChildren) {
+            currentMenuParent = optionNumber;
+        }
+        sendMessage(optionNumber);
+    }
+
+    function goBackToParentMenu() {
+        sendMessage('menu');
+    }
+
+    function addMessage(text, className) {
+        document.getElementById('chat-messages').innerHTML += `
+            <div class="message ${className}">${text}</div>
+        `;
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        const el = document.getElementById('chat-messages');
+        el.scrollTop = el.scrollHeight;
+    }
+</script>
+</body>
+{% endblock %}
