@@ -54,30 +54,93 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h5>Chat Transcript</h5>
-        </div>
-        <div class="card-body">
-            <div class="chat-container">
-                {% for log in session.logs.all %}
-                <div class="chat-message user-message mb-3">
-                    <div class="message-header">
-                        <strong>User</strong>
-                        <small class="text-muted">{{ log.timestamp|time }}</small>
-                    </div>
-                    <div class="message-content">{{ log.user_input }}</div>
-                </div>
-                <div class="chat-message bot-message mb-3">
-                    <div class="message-header">
-                        <strong>Bot</strong>
-                        <small class="text-muted">{{ log.timestamp|time }}</small>
-                    </div>
-                    <div class="message-content">{{ log.bot_response }}</div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+    <div class="card-header">
+        <h5>Chat Transcript</h5>
     </div>
+    <div class="card-body">
+    <div class="chat-container">
+        <!-- 1. Fixed initial bot message (always comes first) -->
+       
+
+        <!-- 2. Then loop through all messages in correct order -->
+       <!-- Initial welcome message and root menu -->
+<div class="chat-message bot-message mb-3">
+    <div class="message-header">
+        <strong>Bot</strong>
+        <small class="text-muted">Now</small>
+    </div>
+    <div class="message-content">{{ initial_bot_message }}</div>
+    
+    <div class="related-menu-options mt-3">
+        <h6>Menu Options:</h6>
+        <ul class="list-group">
+            {% for option in root_menu_options %}
+                <li class="list-group-item">
+                    <span class="badge bg-secondary me-2">{{ option.option_number }}</span>
+                    {{ option.menu_text }}
+                </li>
+            {% endfor %}
+            {% comment %} <li class="list-group-item">
+                <span class="badge bg-secondary me-2">
+                    {{ root_menu_options|length|add:"1" }}
+                </span>
+                Any Other Query
+            </li> {% endcomment %}
+        </ul>
+    </div>
+</div>
+
+<!-- Conversation flow -->
+{% for log_data in logs_with_menus %}
+    <!-- User input -->
+    {% if log_data.log.user_input %}
+        <div class="chat-message user-message mb-3">
+            <div class="message-header">
+                <strong>User</strong>
+                <small class="text-muted">{{ log_data.log.timestamp|time }}</small>
+            </div>
+            <div class="message-content">{{ log_data.log.user_input }}</div>
+        </div>
+    {% endif %}
+
+    <!-- Bot response -->
+    {% if log_data.log.bot_response %}
+        <div class="chat-message bot-message mb-3">
+            <div class="message-header">
+                <strong>Bot</strong>
+                <small class="text-muted">{{ log_data.log.timestamp|time }}</small>
+            </div>
+            <div class="message-content">{{ log_data.log.bot_response }}</div>
+            
+            <!-- Show menu options only if they're different from root menu -->
+            {% if log_data.related_menu_options and log_data.related_menu_options.first.parent %}
+                <div class="related-menu-options mt-3">
+                    <h6>Menu Options:</h6>
+                    <ul class="list-group">
+                        {% for option in log_data.related_menu_options %}
+                            <li class="list-group-item">
+                                <span class="badge bg-secondary me-2">{{ option.option_number }}</span>
+                                {{ option.menu_text }}
+                            </li>
+                        {% endfor %}
+                        <li class="list-group-item">
+                            <span class="badge bg-secondary me-2">
+                                {{ log_data.related_menu_options|length|add:"1" }}
+                            </span>
+                            Any Other Query
+                        </li>
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endfor %}
+
+        <!-- 3. Add this if you want to show the most recent bot response that might not be in logs_with_menus yet -->
+    </div>
+</div>
+</div>
+</div>
 </div>
 
 {% block extra_javascript %}
