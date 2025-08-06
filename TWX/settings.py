@@ -27,8 +27,8 @@ ALLOWED_HOSTS = ['13.232.86.95']
 # ALLOWED_HOSTS = ['127.0.0.1']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = False
-DEBUG = True   
+DEBUG = False
+# DEBUG = True   
 
 import mimetypes
 mimetypes.add_type("application/javascript", ".mjs")
