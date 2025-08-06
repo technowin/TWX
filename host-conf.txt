@@ -190,7 +190,7 @@ git config --global user.name "technowin"
 git config --global user.email "technowinitinfra@gmail.com"
 git remote add origin https://github.com/technowin/TWX.git
 
-python manage.py startapp BookMetadata
+python manage.py startapp Checklist
 
 #######  FOR GUNICORN TIMEOUT  ######
 
