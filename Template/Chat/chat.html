@@ -785,10 +785,8 @@
             if (e.key === 'Enter') sendMessage();
         });
 
-        // Set up input event listener for real-time conversion
-        userInput.addEventListener('input', function() {
-            updateInputLanguage();
-        });
+        // Initialize input placeholder
+        updateInputPlaceholder();
     });
 
     function resetChatState() {
@@ -839,19 +837,9 @@
 
     function selectLanguage(langCode, langName) {
         currentLanguage = langCode;
-        // Show the language name in chat but pass the code to the function
         addMessage(langName, 'user-message');
         sendMessage(langCode);
-    }
-
-    function updateInputLanguage() {
-        const input = document.getElementById('user-input');
-        if (!currentLanguage || currentLanguage === 'en' || isCollectingPhoneOrEmail) {
-            return; // No conversion needed for English or when collecting contact info
-        }
-        
-        // You could add real-time conversion here if needed
-        // For now, we'll handle conversion at send time
+        updateInputPlaceholder();
     }
 
     async function convertInputToSelectedLanguage(text) {
@@ -884,7 +872,7 @@
     async function sendMessage(message = null) {
         // Handle case where event object might be passed
         if (message && typeof message === 'object' && 'preventDefault' in message) {
-            return; // Ignore direct event objects
+            return;
         }
         
         const input = document.getElementById('user-input');
@@ -937,16 +925,17 @@
             formData.append('selected_language', currentLanguage);
         }
         
-        fetch('/chat/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            const response = await fetch('/chat/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
             document.getElementById(typingId)?.remove();
             
             if (data.error) {
@@ -975,6 +964,14 @@
                     renderMenuOptions(data.menu_options, data.is_submenu);
                 }
 
+                // Handle awaiting query state
+                if (data.awaiting_query) {
+                    const placeholderText = await convertTextToSelectedLanguage("Type your query here...");
+                    document.getElementById('user-input').placeholder = placeholderText;
+                    document.getElementById('user-input').focus();
+                    return;
+                }
+
                 // Handle back button and other query options
                 let additionalOptionsHtml = '';
                 
@@ -982,7 +979,7 @@
                     additionalOptionsHtml += `
                         <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
                             <span class="menu-option-number">←</span>
-                            Back
+                            ${await convertTextToSelectedLanguage("Back")}
                         </div>
                     `;
                 }
@@ -992,7 +989,7 @@
                     additionalOptionsHtml += `
                         <div class="menu-option" onclick="handleOtherQueryClick(event)">
                             <span class="menu-option-number">${optionNumber}.</span>
-                            Any Other Query
+                            ${await convertTextToSelectedLanguage("Any Other Query")}
                         </div>
                     `;
                 }
@@ -1005,25 +1002,19 @@
                     }
                 }
 
-                if (data.awaiting_query) {
-                    document.getElementById('user-input').placeholder = "Type your query here...";
-                    document.getElementById('user-input').focus();
-                }
-
                 // Update current language if changed
                 if (data.selected_language) {
                     currentLanguage = data.selected_language;
+                    updateInputPlaceholder();
                 }
             }
-            
-            scrollToBottom();
-        })
-        .catch(error => {
+        } catch (error) {
             console.error('Error:', error);
             document.getElementById(typingId)?.remove();
             addMessage("Sorry, something went wrong. Please try again.", 'bot-message error-message');
-            scrollToBottom();
-        });
+        }
+        
+        scrollToBottom();
     }
 
     function renderMenuOptions(options, isSubmenu = false) {
@@ -1066,33 +1057,29 @@
         const menuText = optionElement.getAttribute('data-menu-text');
         const hasChildren = optionElement.getAttribute('data-has-children') === 'true';
         
-        // Add the menu text to chat instead of the option number
         addMessage(menuText, 'user-message');
         
         if (hasChildren) {
             currentMenuParent = optionNumber;
         }
         
-        // Pass the option number to the backend
         sendMessage(optionNumber);
     }
 
     function goBackToParentMenu(event) {
         event.preventDefault();
-        // Add "Back" to chat
         addMessage("Back", 'user-message');
         sendMessage('menu');
     }
 
-    function handleOtherQueryClick(event) {
+    async function handleOtherQueryClick(event) {
         event.preventDefault();
-        // Add "Any Other Query" to chat
-        addMessage("Any Other Query", 'user-message');
+        const translatedText = await convertInputToSelectedLanguage("Any Other Query");
+        addMessage(translatedText, 'user-message');
         sendMessage("Any Other Query");
     }
 
     function addMessage(text, className) {
-        // Sanitize text to prevent XSS
         const div = document.createElement('div');
         div.textContent = text;
         const sanitizedText = div.innerHTML;
@@ -1103,12 +1090,34 @@
         scrollToBottom();
     }
 
+    async function updateInputPlaceholder() {
+        const input = document.getElementById('user-input');
+        if (!input) return;
+        
+        let placeholderText = "Type your message...";
+        
+        if (isCollectingPhoneOrEmail) {
+            placeholderText = "Enter your information...";
+        }
+        
+        if (currentLanguage && currentLanguage !== 'en') {
+            placeholderText = await convertInputToSelectedLanguage(placeholderText);
+        }
+        
+        input.placeholder = placeholderText;
+    }
+
+    async function convertTextToSelectedLanguage(text) {
+        return convertInputToSelectedLanguage(text);
+    }
+
     function scrollToBottom() {
         const el = document.getElementById('chat-messages');
-        el.scrollTop = el.scrollHeight;
+        if (el) {
+            el.scrollTop = el.scrollHeight;
+        }
     }
 </script>
-
 
 </body>
 {% endblock %}

@@ -34,105 +34,6 @@ genai.configure(api_key='AIzaSyDYWMDZ25wRJtmAkjMLUH_7Oazrdpocrdc')
 
 # translator = Translator()
 
-# @csrf_exempt
-# def get_faq_answer(request):
-#     try:
-#         if request.method != 'POST':
-#             return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
-
-#         user_question = request.POST.get('question', '').strip()
-#         lang = request.POST.get('lang', 'en')  # 'en', 'hi', 'mr'
-
-#         if not user_question:
-#             return JsonResponse({'answer': "❗ Please enter a message."})
-
-#         # Detect small talk
-#         small_talk_triggers = ['hi', 'hello', 'hey', 'thanks', 'thank you', 'ok', 'okay', 'bye']
-#         if user_question.lower() in small_talk_triggers:
-#             small_talk_responses = {
-#                 'hi': "👋 Hello! How can I assist you today?",
-#                 'hello': "👋 Hi there! What can I help you with?",
-#                 'hey': "Hey! Need help with anything?",
-#                 'thanks': "You're welcome! 😊",
-#                 'thank you': "You're very welcome! 👍",
-#                 'ok': "Got it! ✅",
-#                 'okay': "Alright! Let me know if you have a question.",
-#                 'bye': "Goodbye! 👋 Have a great day!"
-#             }
-#             return JsonResponse({'answer': small_talk_responses.get(user_question.lower())})
-
-#         # Translate question to English if needed
-#         if lang != 'en':
-#             user_question_translated = translator.translate(user_question, dest='en').text
-#         else:
-#             user_question_translated = user_question
-
-#         # Check for company-related queries
-#         company_keywords = ['company', 'your name', 'business', 'organization']
-#         if any(kw in user_question_translated.lower() for kw in company_keywords):
-#             company_response = (
-#                 "🏢 Our company name is <strong>Technowin IT Infra Pvt. Ltd.</strong><br>"
-#                 "🌐 Visit: <a href='https://technowinitinfra.com' target='_blank'>technowinitinfra.com</a><br>"
-#                 "📞 Contact: +91-9999999999"
-#             )
-#             # Translate back if needed
-#             if lang != 'en':
-#                 company_response = translator.translate(company_response, dest=lang).text
-#             return JsonResponse({'answer': company_response})
-
-#         # Get FAQs from DB
-#         faqs = Faq.objects.all()
-#         if not faqs:
-#             return JsonResponse({'answer': "📭 No FAQs available at the moment."})
-
-#         # Build FAQ context
-#         faq_text = "\n".join([f"Q: {faq.question_en}\nA: {faq.answer_en}" for faq in faqs])
-
-#         # Construct prompt
-#         prompt = f"""
-# You are a helpful assistant for Technowin IT Infra Pvt. Ltd.
-# Based on the FAQ list below, respond to the user's question.
-# If nothing matches well, say: "I couldn’t find a relevant answer. Please contact our team at 📞 +91-9999999999."
-
-# ### FAQ List:
-# {faq_text}
-
-# ### User Question:
-# {user_question_translated}
-
-# ### Answer:
-# """
-
-#         # Use Gemini
-#         model = genai.GenerativeModel('gemini-2.5-flash')
-#         response = model.generate_content(prompt)
-#         answer = response.text.strip()
-
-#         if not answer or "no relevant answer" in answer.lower():
-#             fallback = (
-#                 "Hello. Please contact our team at 📞 "
-#                 "<strong>+91-9999999999</strong>"
-#             )
-#             # Translate fallback if needed
-#             if lang != 'en':
-#                 fallback = translator.translate(fallback, dest=lang).text
-#             return JsonResponse({'answer': fallback})
-
-#         # Translate Gemini answer back if needed
-#         if lang != 'en':
-#             answer = translator.translate(answer, dest=lang).text
-
-#         return JsonResponse({'answer': answer})
-
-#     except Exception as e:
-#         return JsonResponse({
-#             'answer': (
-#                 "⚠️ Something went wrong while checking your question. Contact support at 📞 "
-#                 "<strong>+91-9999999999</strong>"
-#             ),
-#             'error': str(e)
-#               })
-    
         
 
 class ChatBotView(View):
@@ -255,6 +156,13 @@ class ChatBotView(View):
         # 1. First handle contact collection if not completed
         if input_text.lower() == "any other query":
             request.session['awaiting_query'] = True
+            response_text = self._translate_text("Please write your query:", language_code)
+            self._log_chat(
+                request=request,
+                user_input=input_text,
+                bot_response=response_text,
+                menu_option=None
+            )
             return JsonResponse({
                 'response': "Please write your query:",
                 'awaiting_query': True,
@@ -687,7 +595,7 @@ class ChatBotView(View):
             # Additional translation to ensure proper script if needed
             translated_response = self._translate_text(ai_response, language.code)
             
-            # Log the interaction
+            # Log the interaction (both user input and bot response)
             self._log_chat(
                 request=self.request,
                 user_input=input_text,
@@ -706,11 +614,22 @@ class ChatBotView(View):
         except Exception as e:
             print(f"AI Error: {str(e)}")
             language_code = self.request.session.get('language', 'en')
+            error_msg = self._translate_text(
+                "Sorry, I encountered an error. Please try again.",
+                language_code
+            )
+            
+            # Log the error
+            self._log_chat(
+                request=self.request,
+                user_input=input_text,
+                bot_response=error_msg,
+                menu_option=None,
+                is_ai_response=True
+            )
+            
             return JsonResponse({
-                'response': self._translate_text(
-                    "Sorry, I encountered an error. Please try again.",
-                    language_code
-                ),
+                'response': error_msg,
                 'show_back_button': True,
                 'selected_language': language_code
             })
@@ -818,52 +737,69 @@ def convert_input_view(request):
 
 @login_required
 def chat_session_list(request):
-    """View all chat sessions"""
+    """View all chat sessions with dropdown filters"""
     sessions = ChatSession.objects.all().prefetch_related('logs').order_by('-created_at')
-    return render(request, 'Chat/chat_session_list.html', {'sessions': sessions})
-
-# @login_required
-# def chat_session_detail(request, reqno):
-#     """View details of a specific chat session"""
-#     session = get_object_or_404(ChatSession.objects.prefetch_related('logs'), REQNO=reqno)
-#     return render(request, 'Chat/chat_session_detail.html', {'session': session})
+    
+    # Get filter parameters from request
+    language_filter = request.GET.get('language')
+    phone_filter = request.GET.get('phone')
+    email_filter = request.GET.get('email')
+    
+    # Apply filters
+    if language_filter:
+        sessions = sessions.filter(language=language_filter)
+    if phone_filter:
+        sessions = sessions.filter(phone_number=phone_filter)
+    if email_filter:
+        sessions = sessions.filter(email=email_filter)
+    
+    # Get distinct values for dropdowns
+    languages = Language.objects.filter(is_active=True)
+    phone_numbers = ChatSession.objects.values_list('phone_number', flat=True).distinct().order_by('phone_number')
+    emails = ChatSession.objects.values_list('email', flat=True).distinct().order_by('email')
+    
+    return render(request, 'Chat/chat_session_list.html', {
+        'sessions': sessions,
+        'languages': languages,
+        'phone_numbers': phone_numbers,
+        'emails': emails,
+        'selected_language': language_filter,
+        'selected_phone': phone_filter,
+        'selected_email': email_filter
+    })
 
 @login_required
 def chat_session_detail(request, reqno):
     """View details of a specific chat session with related menu options"""
     session = get_object_or_404(
-        ChatSession.objects.prefetch_related(
-            'logs',
-            'logs__menu_option',
-            'logs__menu_option__parent',
-            'logs__menu_option__parent__children',
-            'logs__menu_option__children'  # Prefetch children if needed
-        ), 
+        ChatSession.objects.prefetch_related('logs', 'logs__menu_option'),
         REQNO=reqno
     )
     
-    # Prepare logs with their related menu options
+    # Get root menu options (constant for all chats)
+    root_menu_options = MenuOption.objects.filter(parent__isnull=True).order_by('order')
+    
     logs_with_menus = []
-    for log in session.logs.all():
+    for log in session.logs.all().order_by('timestamp'):
         log_data = {
             'log': log,
             'related_menu_options': None
         }
+        
+        # Only show menu options if this was a menu selection
         if log.menu_option:
-            # Check if menu_option has a parent
             if log.menu_option.parent:
-                # Show siblings (same parent)
                 log_data['related_menu_options'] = log.menu_option.parent.children.all()
             else:
-                # Show root menus (parent_id is null)
-                log_data['related_menu_options'] = MenuOption.objects.filter(parent__isnull=True)
+                log_data['related_menu_options'] = root_menu_options
         
         logs_with_menus.append(log_data)
     
     return render(request, 'Chat/chat_session_detail.html', {
         'session': session,
         'logs_with_menus': logs_with_menus,
-        'initial_bot_message': "Welcome! How can I assist you today?"  # Fixed first bot prompt
+        'root_menu_options': root_menu_options,  # Pass constant root menu
+        'initial_bot_message': "Welcome! How can I assist you today?"
     })
 
 @login_required

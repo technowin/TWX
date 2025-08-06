@@ -171,3 +171,7 @@ def language_name(code):
         return get_language_info(code)['name_local']
     except:
         return code
+    
+@register.filter
+def increment(value):
+    return value + 1
