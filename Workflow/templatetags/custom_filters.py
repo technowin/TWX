@@ -171,3 +171,12 @@ def language_name(code):
         return get_language_info(code)['name_local']
     except:
         return code
+    
+from itertools import groupby
+from operator import attrgetter
+
+@register.filter
+def groupby_type(items):
+    # Filter out items with empty type first
+    filtered_items = [item for item in items if item.type]
+    return groupby(sorted(filtered_items, key=attrgetter('type')), key=attrgetter('type'))
