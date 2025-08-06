@@ -261,7 +261,7 @@ html[data-bs-theme=dark][data-topbar-color=dark] {
   --ct-danger-border-subtle: rgb(150, 55.2, 74.4);
   --ct-light-border-subtle: #6c757d;
   --ct-dark-border-subtle: #a1a9b1;
-  --ct-heading-color: #aab8c5;
+  --ct-heading-color: white;
   --ct-link-color: rgb(170.4, 176.4, 249);
   --ct-link-hover-color: rgb(183.09, 188.19, 249.9);
   --ct-link-color-rgb: 170, 176, 249;

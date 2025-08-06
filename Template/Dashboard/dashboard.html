@@ -1,0 +1,112 @@
+
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+
+{% block title %}{{ name }}{% endblock title %}
+
+{% block extra_css %}
+<link href="{% static 'css/vendor/dataTables.bootstrap5.min.css' %}" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+<style>
+  html, body {
+    margin: 50;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .content-page, .content, .container-fluid {
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100%;
+  }
+
+   #reportContainer {
+    position: fixed;
+    top: 60px;         /* height of top navbar */
+    left: 240px;       /* width of sidebar */
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    background-color: white;
+    z-index: 1;
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}{% endblock %}
+
+{% block content %}
+<div id="reportContainer"></div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.19.1/dist/powerbi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Debug: Log embed info to console
+    console.log("Embed Info:", {
+      reportId: "{{ embed_info.reportId }}",
+      embedUrl: "{{ embed_info.embedUrl }}",
+      token: "{{ embed_info.embedToken|slice:':20' }}..." // Show first 20 chars of token
+    });
+
+    // Check if SDK loaded properly
+    if (typeof powerbi === "undefined") {
+      console.error("Power BI SDK not loaded");
+      return;
+    }
+
+    // Get models from powerbi-client
+    const models = window['powerbi-client'].models;
+
+    // Configure embed settings
+    const config = {
+      type: "report",
+      id: "{{ embed_info.reportId }}",
+      embedUrl: "{{ embed_info.embedUrl }}",
+      accessToken: "{{ embed_info.embedToken }}",
+      tokenType: models.TokenType.Embed,
+      settings: {
+        panes: {
+          filters: { visible: false },
+          pageNavigation: { visible: true }
+        },
+        layoutType: models.LayoutType.Custom,
+        customLayout: {
+          displayOption: models.DisplayOption.FitToWidth
+        }
+      }
+    };
+
+    // Embed the report
+    const report = powerbi.embed(document.getElementById("reportContainer"), config);
+
+    // Add error handling
+    report.on("error", function(event) {
+      console.error("Power BI Error:", event.detail);
+      Swal.fire({
+        title: 'Power BI Error',
+        text: event.detail.message || 'Failed to load report',
+        icon: 'error'
+      });
+    });
+
+    // Success handler
+    report.on("loaded", function() {
+      console.log("Report loaded successfully");
+      report.setComponentTitle("{{ name }}");
+    });
+  });
+</script>
+{% endblock %}
+
+
+
+   
+
+

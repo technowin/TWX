@@ -1,0 +1,212 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load static %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}Bulk Upload Checklist Items{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg mt-3">
+    <div class="card-header ">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0"><i class="bi bi-upload me-2"></i> Bulk Upload Checklist Items</h3>
+            <a href="{% url 'checklist_list' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Checklist
+            </a>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="alert alert-info">
+                    <h5 class="alert-heading"><i class="bi bi-info-circle-fill"></i> Upload Instructions</h5>
+                    <hr>
+                    <ol>
+                        <li>Download our template file below to ensure proper formatting</li>
+                        <li>Fill in the checklist items following the column headers</li>
+                        <li>Save your file as Excel (.xlsx) format</li>
+                        <li>Upload using the form below</li>
+                    </ol>
+                    <a href="{% url 'download_checklist_template' %}" class="btn btn-primary mt-2">
+                        <i class="bi bi-download"></i> Download Excel Template
+                    </a>
+                </div>
+
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary bg-opacity-10">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-excel"></i> Excel Format Requirements</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Description</th>
+                                        <th>Required</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>type</strong></td>
+                                        <td>Compliance standard type</td>
+                                        <td><span class="badge bg-success">Yes</span></td>
+                                        <td>ISO 9001</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>task</strong></td>
+                                        <td>Short description of the task</td>
+                                        <td><span class="badge bg-success">Yes</span></td>
+                                        <td>Document Control</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>description</strong></td>
+                                        <td>Detailed description</td>
+                                        <td><span class="badge bg-success">Yes</span></td>
+                                        <td>Verify document version control</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>risk</strong></td>
+                                        <td>Risk level (High/Medium/Low/Critical)</td>
+                                        <td><span class="badge bg-success">Yes</span></td>
+                                        <td>High</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary bg-opacity-10">
+                            <h5 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Upload Excel File</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="excel_file" class="form-label">Select Excel File (.xlsx)</label>
+                                <input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+                                <div class="invalid-feedback">Please select a valid Excel file.</div>
+                                <small class="text-muted">Maximum file size: 5MB</small>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                                <button type="reset" class="btn btn-outline-secondary me-md-2">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-upload"></i> Upload & Process
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // File input validation
+    const fileInput = document.getElementById('excel_file');
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const fileName = file.name;
+            const fileExt = fileName.split('.').pop().toLowerCase();
+            
+            if (fileExt !== 'xlsx') {
+                alert('Please select an Excel file (.xlsx format).');
+                this.value = '';
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}

@@ -99,6 +99,99 @@ class Inventory(models.Model):
     def available_quantity(self):
         return self.quantity_on_hand - self.quantity_allocated
 
+#Manasi-31/7/25
+
+class InventoryHistory(models.Model):
+    component = models.ForeignKey('Component', on_delete=models.CASCADE, related_name='inventory_history')
+    location = models.ForeignKey('InventoryLocation', on_delete=models.SET_NULL, null=True, blank=True)
+    snapshot_date = models.DateField(default=timezone.now)
+    quantity_on_hand = models.PositiveIntegerField()
+    quantity_allocated = models.PositiveIntegerField()
+    available_quantity = models.IntegerField()  # quantity_on_hand - quantity_allocated
+
+    class Meta:
+        unique_together = ('component', 'location', 'snapshot_date')
+        ordering = ['component', 'snapshot_date']
+
+    def __str__(self):
+        return f"{self.component.part_number} - {self.snapshot_date}"
+    
+
+    #Manasi 1-8-25
+class InventoryTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('receipt', 'Receipt'),
+        ('issue', 'Issue'), 
+        ('adjustment', 'Adjustment'),
+    ]
+    
+    component = models.ForeignKey('Component', on_delete=models.PROTECT)  # Uses existing model
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    date = models.DateTimeField(auto_now_add=True)
+    reference = models.CharField(max_length=100)  # PO#, MO#, etc.
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    location = models.ForeignKey('InventoryLocation', on_delete=models.PROTECT, null=True, blank=True)  # Uses existing model
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['component', 'date']),  # Speeds up demand analysis
+        ]
+    
+    def __str__(self):
+        return f"{self.transaction_type} of {self.quantity} {self.component.part_number}"
+    
+
+
+class MonthlyComponentDemand(models.Model):
+    component = models.ForeignKey(
+        Component,
+        on_delete=models.CASCADE,
+        to_field='part_number',
+        db_column='component_id'
+    )
+    month = models.DateField()
+    total_issued = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'BOM_monthlycomponentdemand'
+        unique_together = ('component', 'month')
+
+    def __str__(self):
+        return f"{self.component.part_number} - {self.month} - {self.total_issued}"
+
+
+    
+class PurchaseReceipt(models.Model):
+    requisition = models.ForeignKey(
+        'MaterialPlan.PurchaseRequisition',  # Explicit app_label.ModelName reference
+        on_delete=models.PROTECT,
+        verbose_name='Requisition'
+    )
+    actual_receipt_date = models.DateTimeField()
+    quantity_received = models.DecimalField(max_digits=12, decimal_places=3)
+    accepted_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.PROTECT,
+        verbose_name='Accepted By'
+    )
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Purchase Receipts"
+
+    @property
+    def actual_lead_time(self):
+        return (self.actual_receipt_date - self.requisition.created_at).days
+
+class ComponentCostParameter(models.Model):
+    component = models.OneToOneField('Component', on_delete=models.CASCADE)  # Uses existing model
+    ordering_cost = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)  # Per-order cost
+    holding_cost_pct = models.DecimalField(max_digits=5, decimal_places=2, default=25.00)  # Annual % of unit cost
+    
+    def __str__(self):
+        return f"Cost params for {self.component.part_number}"
+
 class BOMHeader(models.Model):
     STATUS_CHOICES = [
         ('Draft', 'Draft'),

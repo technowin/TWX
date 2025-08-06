@@ -172,6 +172,16 @@ def language_name(code):
     except:
         return code
     
+
+from itertools import groupby
+from operator import attrgetter
+
+@register.filter
+def groupby_type(items):
+    # Filter out items with empty type first
+    filtered_items = [item for item in items if item.type]
+    return groupby(sorted(filtered_items, key=attrgetter('type')), key=attrgetter('type'))
+
 @register.filter
 def increment(value):
     return value + 1
