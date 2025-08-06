@@ -22,6 +22,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.core.validators import RegexValidator
 from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import ChatSession, ChatLog
 
 # Initialize Gemini (replace with your actual API key)
 # genai.configure(api_key='AIzaSyCEDlkdLcCrhy2tRgXTd22-67SB_Dmdcaw')
@@ -189,7 +192,7 @@ class ChatBotView(View):
             return cached
             
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             prompt = f"""
             Translate this manufacturing menu item to {language_name}.
             Important Instructions:
@@ -246,6 +249,7 @@ class ChatBotView(View):
         input_text = request.POST.get('input_text', '').strip()
 
         # language_name = get_object_or_404(Language, code= language).name 
+        language_code = request.POST.get('selected_language') or request.session.get('language')
 
         
         # 1. First handle contact collection if not completed
@@ -259,7 +263,7 @@ class ChatBotView(View):
         
         # Handle contact collection if not completed
         if not request.session.get('collected_contact'):
-            return self._handle_contact_collection(request, input_text)
+            return self._handle_contact_collection(request, input_text,language_code)
         
         # Handle query input if awaiting
         if request.session.get('awaiting_query'):
@@ -301,7 +305,7 @@ class ChatBotView(View):
         # Default response
         return JsonResponse({
             'response': self._translate_text(
-                "Sorry, I didn't understand. Please select from the menu options.",
+                "Welcome !!! Please select from the menu options Below.",
                 language.code
             ),
             'menu_options': self._get_menu_options(language, request.session.get('current_menu_parent'))
@@ -400,18 +404,23 @@ class ChatBotView(View):
     
 
         
-    def _handle_contact_collection(self, request, input_text):
-        """Handle phone and email collection flow"""
+    def _handle_contact_collection(self, request, input_text,language_code):
+        """Handle phone and email collection flow with language support"""
         session = request.session
-        
-        # Clean the input - remove all non-digit characters
+        # language_code = session.get('language', 'mr')
+        language = Language.objects.get(code=language_code)
+
+        # Clean the input - remove all non-digit characters for phone
         cleaned_input = re.sub(r'\D', '', input_text) if input_text else ''
         
         # PHONE NUMBER COLLECTION
         if 'awaiting_phone' not in session and 'phone' not in session:
             session['awaiting_phone'] = True
             return JsonResponse({
-                'response': "Please enter your 10-digit Indian phone number:",
+                'response': self._translate_text(
+                    "Please enter your 10-digit Indian phone number:",
+                    language.code
+                ),
                 'collecting_contact': True,
                 'awaiting_input': 'phone'
             })
@@ -420,7 +429,10 @@ class ChatBotView(View):
             # Validate Indian phone number
             if not re.match(r'^[6-9]\d{9}$', cleaned_input):
                 return JsonResponse({
-                    'response': "Please enter a valid 10-digit Indian phone number (should start with 6-9):",
+                    'response': self._translate_text(
+                        "Please enter a valid 10-digit Indian phone number (should start with 6-9):",
+                        language.code
+                    ),
                     'collecting_contact': True,
                     'awaiting_input': 'phone'
                 })
@@ -429,27 +441,28 @@ class ChatBotView(View):
             session.pop('awaiting_phone', None)
             session['awaiting_email'] = True
             return JsonResponse({
-                'response': "Thank you. Now please enter your email address:",
+                'response': self._translate_text(
+                    "Thank you. Now please enter your email address:",
+                    language.code
+                ),
                 'collecting_contact': True,
                 'awaiting_input': 'email'
             })
         
         # EMAIL COLLECTION
         if 'awaiting_email' in session and 'email' not in session:
+            # Email validation should be in English only
             if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', input_text):
                 return JsonResponse({
-                    'response': "Please enter a valid email address (e.g. example@gmail.com):",
+                    'response': self._translate_text(
+                        "Please enter a valid email address (e.g. example@gmail.com):",
+                        language.code
+                    ),
                     'collecting_contact': True,
                     'awaiting_input': 'email'
                 })
             
             try:
-                # Get language from session (set during language selection)
-                language = Language.objects.get(
-                    code=session.get('language', 'en'),
-                    is_active=True
-                )
-                
                 chat_session = ChatSession.objects.create(
                     phone_number=session['phone'],
                     email=input_text,
@@ -461,8 +474,13 @@ class ChatBotView(View):
                 session['collected_contact'] = True
                 session['chat_session_id'] = chat_session.id
                 
+                welcome_msg = self._translate_text(
+                    "Thank you! How can I assist you today?",
+                    language.code
+                )
+                
                 return JsonResponse({
-                    'response': "Thank you! How can I assist you today?",
+                    'response': welcome_msg,
                     'show_menu': True,
                     'menu_options': self._get_menu_options(language, None),  # Main menu
                     'selected_language': language.code
@@ -471,7 +489,10 @@ class ChatBotView(View):
             except Exception as e:
                 print(f"Error saving contact: {str(e)}")
                 return JsonResponse({
-                    'response': "We encountered an error. Please start again.",
+                    'response': self._translate_text(
+                        "We encountered an error. Please start again.",
+                        language.code
+                    ),
                     'reset_contact': True
                 })
      
@@ -625,10 +646,13 @@ class ChatBotView(View):
 
 
     def _handle_ai_response_user(self, input_text):
-        """Generate AI response using chat history with only input_text"""
+        """Generate AI response for free-form queries in selected language"""
         try:
+            # Get current language from session
+            language_code = self.request.session.get('language', 'en')
+            language = Language.objects.get(code=language_code)
+            
             # Get chat history for context
-            Language= "English"
             chat_history = ChatLog.objects.filter(
                 session_id=self.request.session['chat_session_id']
             ).order_by('timestamp')
@@ -639,7 +663,7 @@ class ChatBotView(View):
                 for log in chat_history
             )
             
-            # Generate prompt
+            # Generate prompt with language specification
             model = genai.GenerativeModel('gemini-2.0-flash')
             prompt = f"""
             You are a professional AI assistant for a manufacturing company.
@@ -648,40 +672,47 @@ class ChatBotView(View):
             
             New user query: {input_text}
             
-            Please provide a helpful, accurate response in {Language} language.
+            Please provide a helpful, accurate response in {language.name} language.
             Important: 
             - Keep technical terms in English if needed
             - Be concise but informative
             - Only return the response text, no explanations
+            - Respond in {language.name} language using appropriate script if needed
             """
             
             # Get AI response
             response = model.generate_content(prompt)
             ai_response = response.text.strip()
-            translated_response = self._translate_text(ai_response, Language)
+            
+            # Additional translation to ensure proper script if needed
+            translated_response = self._translate_text(ai_response, language.code)
             
             # Log the interaction
             self._log_chat(
                 request=self.request,
-                user_input=input_text,  # Using input_text instead of menu_option.menu_text
+                user_input=input_text,
                 bot_response=translated_response,
-                menu_option=None,  # No menu option for free-form queries
+                menu_option=None,
                 is_ai_response=True
             )
             
             return JsonResponse({
                 'response': translated_response,
+                'selected_language': language.code,
                 'show_back_button': True,
                 'show_other_query': True
             })
             
         except Exception as e:
             print(f"AI Error: {str(e)}")
+            language_code = self.request.session.get('language', 'en')
             return JsonResponse({
                 'response': self._translate_text(
                     "Sorry, I encountered an error. Please try again.",
+                    language_code
                 ),
-                'show_back_button': True
+                'show_back_button': True,
+                'selected_language': language_code
             })
 
     
@@ -731,3 +762,77 @@ class ChatBotView(View):
         return any(
             indicator in query_lower for indicator in complex_indicators
         )
+    
+
+def convert_input_view(request):
+    """Convert user input to selected language"""
+    try:
+        data = json.loads(request.body)
+        text = data.get('text', '')
+        language_code = data.get('language', 'en')
+        
+        if language_code == 'en' or not text:
+            return JsonResponse({'converted_text': text})
+        
+        # Language mapping
+        LANGUAGE_NAMES = {
+            'hi': 'Hindi',
+            'mr': 'Marathi',
+            'gu': 'Gujarati',
+            'ur': 'Urdu',
+            'bn': 'Bengali',
+            'ta': 'Tamil',
+            'te': 'Telugu',
+            'kn': 'Kannada',
+            'ml': 'Malayalam',
+            'pa': 'Punjabi'
+        }
+        
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        prompt = f"""
+        Translate this text to {LANGUAGE_NAMES.get(language_code, language_code)}.
+        Important Instructions:
+        1. Keep technical terms in English if no translation exists
+        2. Return ONLY the translated text
+        3. Use appropriate script for the language
+        4. Never add explanations or notes
+        
+        Text to translate: "{text}"
+        """
+        
+        response = model.generate_content(prompt)
+        translated = response.text.strip('"\'').strip()
+        
+        # Remove common response prefixes
+        for prefix in ["Translation:", "Translated text:", "Here's the translation:"]:
+            if translated.startswith(prefix):
+                translated = translated[len(prefix):].strip()
+        
+        return JsonResponse({'converted_text': translated})
+    
+    except Exception as e:
+        print(f"Conversion error: {str(e)}")
+        return JsonResponse({'converted_text': text})
+    
+
+
+@login_required
+def chat_session_list(request):
+    """View all chat sessions"""
+    sessions = ChatSession.objects.all().prefetch_related('logs').order_by('-created_at')
+    return render(request, 'Chat/chat_session_list.html', {'sessions': sessions})
+
+@login_required
+def chat_session_detail(request, reqno):
+    """View details of a specific chat session"""
+    session = get_object_or_404(ChatSession.objects.prefetch_related('logs'), REQNO=reqno)
+    return render(request, 'Chat/chat_session_detail.html', {'session': session})
+
+@login_required
+def chat_log_search(request):
+    """Search through chat logs"""
+    query = request.GET.get('q', '')
+    logs = ChatLog.objects.filter(
+        Q(user_input__icontains=query) | 
+        Q(bot_response__icontains=query))
+    return render(request, 'chat/log_search.html', {'logs': logs, 'query': query})

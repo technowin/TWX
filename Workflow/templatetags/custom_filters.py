@@ -1,6 +1,7 @@
 from django import template
 
 register = template.Library()
+from django.utils.translation import get_language_info
 
 @register.filter
 def to_int(value):
@@ -163,3 +164,10 @@ def calculate_value(quantity, cost):
 def multiply(value, arg):
     """Multiply the value by the arg"""
     return float(value) * float(arg)
+
+@register.filter
+def language_name(code):
+    try:
+        return get_language_info(code)['name_local']
+    except:
+        return code

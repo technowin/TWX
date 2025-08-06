@@ -1,0 +1,44 @@
+/* Chat message styling */
+.chat-message {
+    padding: 10px 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    max-width: 80%;
+}
+
+.user-message {
+    background-color: #f0f0f0;
+    margin-left: auto;
+    border-bottom-right-radius: 0;
+}
+
+.bot-message {
+    background-color: #e3f2fd;
+    margin-right: auto;
+    border-bottom-left-radius: 0;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+}
+
+.message-content {
+    white-space: pre-line;
+}
+
+/* Search results styling */
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item .user-message,
+.list-group-item .bot-message {
+    max-width: 100%;
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+}

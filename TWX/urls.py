@@ -271,6 +271,7 @@ urlpatterns = [
     # MachinePlan
     path('mcp/', include('MachinePlan.urls', namespace='mcp')),
     path('manpower/', include('Manpower.urls', namespace='manpower')),
+    path('convert-input/', convert_input_view, name='convert_input'),
 
     # path('get_faq_answer', get_faq_answer, name='get_faq_answer'),
 
@@ -280,6 +281,9 @@ urlpatterns = [
     # path('chat/', ChatBotView.as_view(), name='chatbot'),
 
     path('chat/', ChatBotView.as_view(), name='chatbot'),
+    path('sessions/', chat_session_list, name='chat_session_list'),
+    path('sessions/<str:reqno>/',chat_session_detail, name='chat_session_detail'),
+    path('chat_log_search/', chat_log_search, name='chat_log_search'),
 
 
     # Media files
