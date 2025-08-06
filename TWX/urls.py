@@ -31,8 +31,6 @@ from Workflow.views import *
 from BOM.views import *
 from MaterialPlan.views import *
 from BookMetadata.views import *
-
-from Checklist.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
@@ -163,24 +161,6 @@ urlpatterns = [
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
     
-    # compliance checklist
-    # path('compliance-checklist/', compliance_checklist, name='compliance_checklist'),
-    # Checklist URLs
-    path('checklist_list/', ChecklistListView.as_view(), name='checklist_list'),
-    path('checklist_type/<str:checklist_type>/', checklist_documents_view, name='checklist_detail'),
-    path('checklist_add/', ChecklistCreateView.as_view(), name='checklist_add'),
-    path('<int:pk>/checklist_edit/', ChecklistUpdateView.as_view(), name='checklist_edit'),
-    path('<int:pk>/checklist_delete/', ChecklistDeleteView.as_view(), name='checklist_delete'),
-    # Document URLs
-    path('documents/add/', DocumentCreateView.as_view(), name='document_add'),
-    path('documents/<int:pk>/edit/', DocumentUpdateView.as_view(), name='document_edit'),
-    path('documents/<int:pk>/delete/', DocumentDeleteView.as_view(), name='document_delete'),
-    path('documents/<int:pk>/download/', download_document, name='document_download'),
-    path('download-checklist-template/', download_checklist_template, name='download_checklist_template'),
-
-    # Bulk Upload URLs
-    path('bulk-upload-checklist/', bulk_upload_checklist, name='bulk_upload_checklist'),
-    path('bulk-upload-documents/', bulk_upload_documents, name='bulk_upload_documents'),
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
@@ -303,19 +283,11 @@ urlpatterns = [
     path('chat/', ChatBotView.as_view(), name='chatbot'),
     path('sessions/', chat_session_list, name='chat_session_list'),
     path('sessions/<str:reqno>/',chat_session_detail, name='chat_session_detail'),
-    path('chat_log_search/', chat_log_search, name='chat_log_search'),
+    path('search/', chat_log_search, name='chat_log_search'),
 
 
     # Media files
-    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
-
-
-
-
-    #   path('dashboard/', powerbi_dashboard_view, name='dashboard'),
-    # path('insights', include('Dashboard.urls')),  # include app URL
-
-
+    # *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 
 if settings.DEBUG:
