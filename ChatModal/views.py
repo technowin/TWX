@@ -873,4 +873,4 @@ def chat_log_search(request):
     logs = ChatLog.objects.filter(
         Q(user_input__icontains=query) | 
         Q(bot_response__icontains=query))
-    return render(request, 'chat/log_search.html', {'logs': logs, 'query': query})
+    return render(request, 'Chat/log_search.html', {'logs': logs, 'query': query})
