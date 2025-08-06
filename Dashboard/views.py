@@ -182,5 +182,40 @@ def get_roster_data_tommorow(request):
         callproc("stp_error_log", [fun, str(e), request.user.id])
         print(f"Error: {e}")
         return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
+    
+
+
+# from django.shortcuts import render
+from .powerbi import get_powerbi_embed_info  
+from Masters.models import para_master
+
+def powerbi_dashboard_view(request):
+    # Get the Power BI Report ID from the database
+    report_id = para_master.objects.filter(
+        para_name='TWX Dashboard',
+        para_details='REPORT_ID'
+    ).values_list('description', flat=True).first()
+
+    if not report_id:
+        # Optional: Handle missing report ID case
+        return render(request, 'Dashboard/dashboard.html', {
+            'embed_info': None,
+            'error': 'Report ID not configured in para_master table.'
+        })
+
+    try:
+        embed_info = get_powerbi_embed_info(report_id)
+    except Exception as e:
+        # Optional: Log this in real use
+        return render(request, 'Dashboard/dashboard.html', {
+            'embed_info': None,
+            'error': f"Power BI Embed Error: {str(e)}"
+        })
+
+    return render(request, 'Dashboard/dashboard.html', {
+        'embed_info': embed_info
+    })
+
+
 
     

@@ -30,6 +30,7 @@ from Workflow.views import *
 from BOM.views import *
 from MaterialPlan.views import *
 from BookMetadata.views import *
+
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
@@ -262,6 +263,14 @@ urlpatterns = [
 
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
+
+
+
+
+    #   path('dashboard/', powerbi_dashboard_view, name='dashboard'),
+    path('insights', include('Dashboard.urls')),  # include app URL
+
+
 ]
 
 if settings.DEBUG:
