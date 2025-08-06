@@ -30,7 +30,12 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <h2>Chat Sessions</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Chat Sessions</h2>
+        <a href="{% url 'chat_log_search' %}" class="btn btn-primary">
+            <i class="fas fa-search me-2"></i>Search Chat
+        </a>
+    </div>
     
     <!-- Auto-filter Form -->
     <div class="card mb-4">
@@ -102,15 +107,7 @@
                             <td>{{ session.REQNO }}</td>
                             <td>{{ session.phone_number }}</td>
                             <td>{{ session.email }}</td>
-                            <td>
-                                {% with lang=session.language %}
-                                    {% for l in languages %}
-                                        {% if l.code == lang %}
-                                            {{ l.name }} ({{ l.code|upper }})
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endwith %}
-                            </td>
+                            <td>{{ session.language|language_name }}</td>
                             <td>{{ session.created_at }}</td>
                             <td>
                                 <a href="{% url 'chat_session_detail' session.REQNO %}" 
