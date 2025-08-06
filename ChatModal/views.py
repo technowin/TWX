@@ -822,11 +822,49 @@ def chat_session_list(request):
     sessions = ChatSession.objects.all().prefetch_related('logs').order_by('-created_at')
     return render(request, 'Chat/chat_session_list.html', {'sessions': sessions})
 
+# @login_required
+# def chat_session_detail(request, reqno):
+#     """View details of a specific chat session"""
+#     session = get_object_or_404(ChatSession.objects.prefetch_related('logs'), REQNO=reqno)
+#     return render(request, 'Chat/chat_session_detail.html', {'session': session})
+
 @login_required
 def chat_session_detail(request, reqno):
-    """View details of a specific chat session"""
-    session = get_object_or_404(ChatSession.objects.prefetch_related('logs'), REQNO=reqno)
-    return render(request, 'Chat/chat_session_detail.html', {'session': session})
+    """View details of a specific chat session with related menu options"""
+    session = get_object_or_404(
+        ChatSession.objects.prefetch_related(
+            'logs',
+            'logs__menu_option',
+            'logs__menu_option__parent',
+            'logs__menu_option__parent__children',
+            'logs__menu_option__children'  # Prefetch children if needed
+        ), 
+        REQNO=reqno
+    )
+    
+    # Prepare logs with their related menu options
+    logs_with_menus = []
+    for log in session.logs.all():
+        log_data = {
+            'log': log,
+            'related_menu_options': None
+        }
+        if log.menu_option:
+            # Check if menu_option has a parent
+            if log.menu_option.parent:
+                # Show siblings (same parent)
+                log_data['related_menu_options'] = log.menu_option.parent.children.all()
+            else:
+                # Show root menus (parent_id is null)
+                log_data['related_menu_options'] = MenuOption.objects.filter(parent__isnull=True)
+        
+        logs_with_menus.append(log_data)
+    
+    return render(request, 'Chat/chat_session_detail.html', {
+        'session': session,
+        'logs_with_menus': logs_with_menus,
+        'initial_bot_message': "Welcome! How can I assist you today?"  # Fixed first bot prompt
+    })
 
 @login_required
 def chat_log_search(request):
