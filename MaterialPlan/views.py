@@ -365,3 +365,256 @@ class ProductionOrderDetailView(DetailView):
         
         context['material_plan'] = material_plan
         return context
+    
+# material_planning/views.py
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count, Q, F, ExpressionWrapper, fields
+from django.db.models.functions import Coalesce
+from datetime import date, timedelta
+from .models import (
+    MaterialPlan, MaterialPlanItem, PurchaseRequisition, 
+    InventoryReservation, MaterialShortageAlert, ProductionOrder
+)
+from BOM.models import Inventory
+
+
+@login_required
+def mtp_dashboard(request):
+    # Total active plans (draft or confirmed)
+    total_active_plans = MaterialPlan.objects.filter(
+        Q(status='confirmed') | Q(status='draft')
+    ).count()
+
+    # Total open shortage alerts
+    total_shortage_alerts = MaterialShortageAlert.objects.filter(
+        status='open'
+    ).count()
+
+    # Critical components based on coverage ratio
+    critical_components = MaterialPlanItem.objects.annotate(
+        coverage_ratio=ExpressionWrapper(
+            F('quantity_available') * 100.0 / F('quantity_required'),
+            output_field=fields.FloatField()
+        )
+    ).filter(
+        coverage_ratio__lt=100,
+        plan__status='confirmed'
+    ).order_by('coverage_ratio')[:5]
+
+    # Procurement status breakdown
+    requisition_status = PurchaseRequisition.objects.values('status').annotate(
+        count=Count('id'),
+        total_quantity=Sum('quantity'),
+        total_cost=Sum(
+            ExpressionWrapper(
+                F('quantity') * F('unit_cost'),
+                output_field=fields.DecimalField()
+            )
+        )
+    ).order_by('status')
+
+    # Material shortage alerts (latest 5)
+    shortage_alerts = MaterialShortageAlert.objects.filter(
+        status='open'
+    ).select_related('component', 'plan').order_by('required_date')[:5]
+
+    # Production order readiness (% of fulfilled material plan items)
+    production_orders = ProductionOrder.objects.filter(
+        status__in=['planned', 'scheduled']
+    ).annotate(
+        total_items=Count('materialplan__items'),
+        fulfilled_items=Count('materialplan__items', filter=Q(materialplan__items__status='fulfilled')),
+        material_readiness=ExpressionWrapper(
+            100.0 * F('fulfilled_items') / Coalesce(F('total_items'), 1),
+            output_field=fields.FloatField()
+        )
+    ).order_by('start_date')[:5]
+
+    # Inventory coverage by component category
+    inventory_coverage = MaterialPlanItem.objects.filter(
+        plan__status='confirmed'
+    ).values('component__category').annotate(
+        total_required=Sum('quantity_required'),
+        total_available=Sum('quantity_available'),
+        coverage=ExpressionWrapper(
+            Sum('quantity_available') * 100.0 / Coalesce(Sum('quantity_required'), 1),
+            output_field=fields.FloatField()
+        )
+    ).order_by('coverage')
+
+    # Time-based material requirement forecast
+    today = date.today()
+    date_ranges = [
+        (today, today + timedelta(days=7)),
+        (today + timedelta(days=7), today + timedelta(days=14)),
+        (today + timedelta(days=14), today + timedelta(days=30)),
+        (today + timedelta(days=30), today + timedelta(days=60)),
+    ]
+
+    time_based_requirements = []
+    for start_date, end_date in date_ranges:
+        requirements = MaterialPlanItem.objects.filter(
+            required_date__gte=start_date,
+            required_date__lt=end_date,
+            plan__status='confirmed'
+        ).aggregate(
+            total_required=Sum('quantity_required'),
+            total_available=Sum('quantity_available'),
+            components=Count('component', distinct=True)
+        )
+
+        time_based_requirements.append({
+            'range': f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d')}",
+            'required': requirements['total_required'] or 0,
+            'available': requirements['total_available'] or 0,
+            'components': requirements['components'] or 0
+        })
+
+    context = {
+        'total_active_plans': total_active_plans,
+        'total_shortage_alerts': total_shortage_alerts,
+        'critical_components': critical_components,
+        'requisition_status': requisition_status,
+        'shortage_alerts': shortage_alerts,
+        'production_orders': production_orders,
+        'inventory_coverage': inventory_coverage,
+        'time_based_requirements': time_based_requirements,
+    }
+
+    return render(request, 'MaterialPlan/dashboard2.html', context)
+
+
+# material_planning/views.py
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Sum, Q, F, Value, Case, When, IntegerField
+from django.utils import timezone
+
+from .models import (
+    MaterialPlan, MaterialPlanItem, PurchaseRequisition,
+    MaterialShortageAlert, InventoryReservation
+)
+from BOM.models import Component, Inventory
+
+
+@login_required
+def mtp_dashboar3(request):
+    # Summary statistics
+    total_plans = MaterialPlan.objects.count()
+    active_plans = MaterialPlan.objects.exclude(status__in=['cancelled', 'executed']).count()
+    open_shortages = MaterialShortageAlert.objects.filter(status='open').count()
+    pending_requisitions = PurchaseRequisition.objects.filter(status='draft').count()
+
+    # Material status breakdown
+    material_status = MaterialPlanItem.objects.values('status').annotate(
+        count=Count('id'),
+        total_quantity=Sum('quantity_required')
+    ).order_by('status')
+
+    # Critical shortages (top 10 within 7 days)
+    critical_shortages = MaterialShortageAlert.objects.filter(
+        status='open',
+        required_date__lte=timezone.now() + timezone.timedelta(days=7)
+    ).order_by('required_date')[:10]
+
+    # Upcoming material requirements (next 30 days)
+    upcoming_requirements = MaterialPlanItem.objects.filter(
+        required_date__gte=timezone.now(),
+        required_date__lte=timezone.now() + timezone.timedelta(days=30)
+    ).select_related('component', 'plan').order_by('required_date')[:15]
+
+    # Inventory health (low stock components)
+    inventory_health = Inventory.objects.annotate(
+        shortage=Case(
+            When(quantity_on_hand__lt=F('min_stock_level'), then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        )
+    ).filter(shortage=1).select_related('component')[:10]
+
+    # Cost analysis by component category
+    cost_analysis = PurchaseRequisition.objects.filter(
+        status__in=['approved', 'ordered']
+    ).values('component__category').annotate(
+        total_cost=Sum(F('quantity') * F('unit_cost')),
+        count=Count('id')
+    ).order_by('-total_cost')
+
+    # Plan status overview
+    plan_status = MaterialPlan.objects.values('status').annotate(
+        count=Count('id'),
+        total_quantity=Sum('quantity')
+    ).order_by('status')
+
+    context = {
+        'total_plans': total_plans,
+        'active_plans': active_plans,
+        'open_shortages': open_shortages,
+        'pending_requisitions': pending_requisitions,
+        'material_status': list(material_status),
+        'critical_shortages': critical_shortages,
+        'upcoming_requirements': upcoming_requirements,
+        'inventory_health': inventory_health,
+        'cost_analysis': list(cost_analysis),
+        'plan_status': list(plan_status),
+    }
+
+    return render(request, 'MaterialPlan/dashboard3.html', context)
+
+# material_planning/views.py
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import MaterialShortageAlert
+from BOM.models import Component, Inventory
+
+@login_required
+def shortage_list(request):
+    # Get all open shortages ordered by urgency
+    shortages = MaterialShortageAlert.objects.filter(
+        status='open'
+    ).order_by('required_date')
+    
+    # Group by component for summary view
+    component_shortages = MaterialShortageAlert.objects.filter(
+        status='open'
+    ).values(
+        'component__part_number',
+        'component__description',
+        'component__category'
+    ).annotate(
+        total_required=Sum('required_quantity'),
+        total_available=Sum('available_quantity'),
+        shortage_count=Count('id')
+    ).order_by('component__part_number')
+    
+    context = {
+        'shortages': shortages,
+        'component_shortages': component_shortages,
+        'view_mode': request.GET.get('view', 'list')  # 'list' or 'summary'
+    }
+    return render(request, 'MaterialPlan/shortage_list.html', context)
+
+@login_required
+def shortage_detail(request, pk):
+    shortage = get_object_or_404(MaterialShortageAlert, pk=pk)
+    
+    # Get inventory locations with this component
+    inventory_items = Inventory.objects.filter(
+        component=shortage.component
+    ).select_related('location')
+    
+    # Get similar shortages for the same component
+    related_shortages = MaterialShortageAlert.objects.filter(
+        component=shortage.component,
+        status='open'
+    ).exclude(pk=pk).order_by('required_date')
+    
+    context = {
+        'shortage': shortage,
+        'inventory_items': inventory_items,
+        'related_shortages': related_shortages,
+    }
+    return render(request, 'MaterialPlan/shortage_detail.html', context)

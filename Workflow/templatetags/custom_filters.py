@@ -1,6 +1,7 @@
 from django import template
 
 register = template.Library()
+from django.utils.translation import get_language_info
 
 @register.filter
 def to_int(value):
@@ -137,3 +138,40 @@ def duration_format(value):
     seconds = total_seconds % 60
     
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+@register.filter
+def mul(value, arg):
+    """Multiply the value by the arg"""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0
+    
+
+@register.filter
+def get_lowest_cost_supplier(component):
+    return component.suppliers.filter(is_approved=True).order_by('cost').first()
+
+@register.filter
+def calculate_value(quantity, cost):
+    try:
+        return float(quantity) * float(cost)
+    except (TypeError, ValueError):
+        return 0
+    
+
+@register.filter
+def multiply(value, arg):
+    """Multiply the value by the arg"""
+    return float(value) * float(arg)
+
+@register.filter
+def language_name(code):
+    try:
+        return get_language_info(code)['name_local']
+    except:
+        return code
+    
+@register.filter
+def increment(value):
+    return value + 1

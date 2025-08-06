@@ -28,6 +28,10 @@
 
 <style>
     /* Custom dashboard styles */
+
+body{
+    font-family: "'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif", 
+}
 .card {
     margin-bottom: 1.5rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -90,11 +94,6 @@
                             <i class="bi bi-cpu"></i> Machines
                         </a>
                     </li>
-                    {% comment %} <li class="nav-item">
-                        <a class="nav-link" href="{% url 'mcp:production_order_list' %}">
-                            <i class="bi bi-clipboard-data"></i> Production Orders
-                        </a>
-                    </li> {% endcomment %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'mcp:maintenance_schedule_list' %}">
                             <i class="bi bi-tools"></i> Maintenance
@@ -145,14 +144,8 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Machine Planning Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="form-check form-switch me-3">
-                        <input class="form-check-input" type="checkbox" id="themeSwitch">
-                        <label class="form-check-label" for="themeSwitch">Dark Mode</label>
-                    </div>
                     <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Today</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Week</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Month</button>
+                        {% comment %} Optional time period buttons could go here {% endcomment %}
                     </div>
                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newOrderModal">
                         <i class="bi bi-plus-circle"></i> New Order
@@ -167,23 +160,10 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Operational Machines</h6>
-                                    <h2 class="card-text">{{ operational_machines_count }}</h2>
+                                    <h6 class="card-title text-white">Operational Machines</h6>
+                                    <h2 class="card-text text-white">{{ operational_machines_count }}</h2>
                                 </div>
                                 <i class="bi bi-check-circle-fill fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-warning mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">In Maintenance</h6>
-                                    <h2 class="card-text">{{ maintenance_machines_count }}</h2>
-                                </div>
-                                <i class="bi bi-tools fs-1"></i>
                             </div>
                         </div>
                     </div>
@@ -193,8 +173,21 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Out of Order</h6>
-                                    <h2 class="card-text">{{ ooo_machines_count }}</h2>
+                                    <h6 class="card-title text-white">In Maintenance</h6>
+                                    <h2 class="card-text text-white">{{ maintenance_machines_count }}</h2>
+                                </div>
+                                <i class="bi bi-tools fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-white">Out of Order</h6>
+                                    <h2 class="card-text text-white">{{ ooo_machines_count }}</h2>
                                 </div>
                                 <i class="bi bi-exclamation-triangle-fill fs-1"></i>
                             </div>
@@ -206,8 +199,8 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Active Orders</h6>
-                                    <h2 class="card-text">{{ active_orders_count }}</h2>
+                                    <h6 class="card-title text-white">Active Orders</h6>
+                                    <h2 class="card-text text-white">{{ active_orders_count }}</h2>
                                 </div>
                                 <i class="bi bi-clipboard-data fs-1"></i>
                             </div>
@@ -228,11 +221,10 @@
                         </div>
                     </div>
                 </div>
-                {% comment %} <div class="row mb-4"> {% endcomment %}
                 <div class="col-md-6">
                     <div class="card">
-                        <div class="card-header bg-warning text-dark">
-                            <h5>Upcoming Maintenance</h5>
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="text-white">Upcoming Maintenance</h5>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -268,65 +260,11 @@
                                 </table>
                             </div>
                         </div>
-                    {% comment %} </div> {% endcomment %}
-                </div>
-                {% comment %} <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Production Schedule Timeline</h5>
-                        </div>
-                        <div class="card-body">
-                            <div style="height: 250px; overflow-y: auto;">
-                                <div id="productionTimeline"></div>
-                            </div>
-                        </div>
                     </div>
-                </div> {% endcomment %}
+                </div>
             </div>
 
-            <!-- Maintenance Alerts and Machine Utilization -->
-            {% comment %} <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-warning text-dark">
-                            <h5>Upcoming Maintenance</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Machine</th>
-                                            <th>Type</th>
-                                            <th>Scheduled</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for maintenance in upcoming_maintenance %}
-                                        <tr>
-                                            <td>{{ maintenance.machine.name }}</td>
-                                            <td>{{ maintenance.maintenance_type }}</td>
-                                            <td>{{ maintenance.scheduled_date|date:"M d, Y" }}</td>
-                                            <td>
-                                                {% if maintenance.completed %}
-                                                <span class="badge bg-success">Completed</span>
-                                                {% else %}
-                                                <span class="badge bg-warning text-dark">Pending</span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% empty %}
-                                        <tr>
-                                            <td colspan="4" class="text-center">No upcoming maintenance</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div> {% endcomment %}
+            <div class="row mb-4">
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
@@ -339,19 +277,6 @@
                 </div>
             </div>
 
-            <!-- Work Center Capacity -->
-            {% comment %} <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Work Center Capacity</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="workCenterCapacityChart" height="150"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div> {% endcomment %}
         </main>
     </div>
 </div>
@@ -398,7 +323,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="orderNotes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="orderNotes" rows="3"></textarea>
+                            <textarea class="form-control" id="orderNotes" rows="3"></textarea>
                     </div>
                 </form>
             </div>
@@ -411,51 +336,34 @@
 </div>
 
 {% block extra_javascript %}
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-{% include "bootstrap/partials/syntax-highlight.html" %}
-
-<!-- Third party js -->
-<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
-<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
-    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
-<!-- Third party js ends -->
-
-<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
-
-<!-- Init js -->
-<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
-<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Init js end -->
-
-<!-- Selectize.js JS -->
-<script src="{% static 'js/selectize.min.js' %}"></script>
-
 
 <script>
 $(document).ready(function() {
-    // Theme switcher
-    const themeSwitch = document.getElementById('themeSwitch');
-    const htmlElement = document.documentElement;
-    
-    // Check for saved theme preference or use preferred color scheme
-    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    if (savedTheme === 'dark') {
-        htmlElement.setAttribute('data-bs-theme', 'dark');
-        themeSwitch.checked = true;
+    // Theme detection and color management
+    function isDarkTheme() {
+        return document.documentElement.getAttribute('data-bs-theme') === 'dark' || 
+               (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
-    
-    themeSwitch.addEventListener('change', function() {
-        if (this.checked) {
-            htmlElement.setAttribute('data-bs-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            htmlElement.setAttribute('data-bs-theme', 'light');
-            localStorage.setItem('theme', 'light');
-        }
-    });
+
+    function getTextColor() {
+        return isDarkTheme() ? '#f8f9fa' : '#212529'; // Light for dark, dark for light
+    }
+
+    function getSecondaryColor() {
+        return isDarkTheme() ? '#adb5bd' : '#6c757d'; // Lighter grey for dark, standard grey for light
+    }
+
+    function getGridColor() {
+        return isDarkTheme() ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    }
+
+    // Common font settings
+    const fontFamily = "'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif";
+    const titleFont = { family: fontFamily, size: 13, weight: 500 };
+    const tickFont = { family: fontFamily, size: 12 };
+    const tooltipBodyFont = { family: fontFamily, size: 13 };
+    const tooltipTitleFont = { family: fontFamily, size: 14, weight: 500 };
 
     // Machine Status Chart
     const machineStatusCtx = document.getElementById('machineStatusChart').getContext('2d');
@@ -471,10 +379,10 @@ $(document).ready(function() {
                     {{ retired_machines_count }}
                 ],
                 backgroundColor: [
-                    '#28a745',
-                    '#ffc107',
-                    '#dc3545',
-                    '#6c757d'
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
                 ],
                 borderWidth: 1
             }]
@@ -485,8 +393,17 @@ $(document).ready(function() {
             plugins: {
                 legend: {
                     position: 'right',
+                    labels: {
+                        color: getSecondaryColor(),
+                        font: {
+                            family: fontFamily,
+                            size: 14
+                        }
+                    }
                 },
                 tooltip: {
+                    bodyFont: tooltipBodyFont,
+                    titleFont: tooltipTitleFont,
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
@@ -503,86 +420,15 @@ $(document).ready(function() {
 
     // Machine Utilization Chart
     const machineUtilizationCtx = document.getElementById('machineUtilizationChart').getContext('2d');
-        const machineUtilizationChart = new Chart(machineUtilizationCtx, {
-            type: 'bar',
-            data: {
-                labels: JSON.parse('{{ machine_type_names|escapejs }}'),
-                datasets: [{
-                    label: 'Utilization by Machine Type %',
-                    data: JSON.parse('{{ machine_type_utilization|escapejs }}'),
-                    backgroundColor: [
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(153, 102, 255, 0.7)'
-                    ],
-                    borderColor: [
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(255, 159, 64, 1)',
-                        'rgba(153, 102, 255, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Utilization (%)'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Machine Types'
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.parsed.y}% utilization`;
-                            },
-                            afterLabel: function(context) {
-                                // Optional: Add additional info in tooltip
-                                const machineType = context.label;
-                                return `Type: ${machineType}`;
-                            }
-                        }
-                    },
-                    legend: {
-                        display: false // Since we only have one dataset
-                    }
-                }
-            }
-        });
-
-    // Work Center Capacity Chart
-    const workCenterCapacityCtx = document.getElementById('workCenterCapacityChart').getContext('2d');
-    const workCenterCapacityChart = new Chart(workCenterCapacityCtx, {
-        type: 'horizontalBar',
+    const machineUtilizationChart = new Chart(machineUtilizationCtx, {
+        type: 'bar',
         data: {
-            labels: {{ work_center_names|safe }},
+            labels: JSON.parse('{{ machine_type_names|escapejs }}'),
             datasets: [{
-                label: 'Scheduled Hours',
-                data: {{ work_center_scheduled|safe }},
-                backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                borderColor: 'rgba(255, 99, 132, 1)',
-                borderWidth: 1
-            }, {
-                label: 'Available Hours',
-                data: {{ work_center_available|safe }},
-                backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                borderColor: 'rgba(75, 192, 192, 1)',
+                label: 'Utilization by Machine Type %',
+                data: JSON.parse('{{ machine_type_utilization|escapejs }}'),
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth: 1
             }]
         },
@@ -590,94 +436,88 @@ $(document).ready(function() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    stacked: true,
+                y: {
+                    beginAtZero: true,
+                    max: 100,
                     title: {
                         display: true,
-                        text: 'Hours'
+                        text: 'Utilization (%)',
+                        font: titleFont,
+                        color: getTextColor()
+                    },
+                    ticks: {
+                        font: tickFont,
+                        color: getSecondaryColor()
+                    },
+                    grid: {
+                        color: getGridColor()
                     }
                 },
-                y: {
-                    stacked: true
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Machine Types',
+                        font: titleFont,
+                        color: getTextColor()
+                    },
+                    ticks: {
+                        font: tickFont,
+                        color: getSecondaryColor()
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    bodyFont: tooltipBodyFont,
+                    titleFont: tooltipTitleFont,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y}% utilization`;
+                        }
+                    }
+                },
+                legend: {
+                    display: false
                 }
             }
         }
     });
 
-    // Production Timeline (simplified version)
-    function renderProductionTimeline() {
-        const timelineData = [
-            {% for schedule in production_schedules %}
-            {
-                id: {{ schedule.id }},
-                machine: "{{ schedule.machine.name }}",
-                component: "{{ schedule.component.name }}",
-                start: "{{ schedule.start_time|date:'Y-m-d H:i' }}",
-                end: "{{ schedule.end_time|date:'Y-m-d H:i' }}",
-                status: "{{ schedule.status }}"
-            },
-            {% endfor %}
-        ];
-
-        const timelineElement = $('#productionTimeline');
-        timelineElement.empty();
-
-        if (timelineData.length === 0) {
-            timelineElement.append('<div class="text-center py-3">No scheduled production</div>');
-            return;
-        }
-
-        timelineData.forEach(item => {
-            const statusClass = {
-                'PL': 'bg-primary',
-                'IP': 'bg-warning text-dark',
-                'CO': 'bg-success',
-                'CA': 'bg-secondary'
-            }[item.status] || 'bg-info';
-
-            const timelineItem = $(`
-                <div class="card mb-2">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>${item.machine}</strong>: ${item.component}
-                                <div class="text-muted small">
-                                    ${moment(item.start).format('MMM D, h:mm A')} - ${moment(item.end).format('MMM D, h:mm A')}
-                                </div>
-                            </div>
-                            <span class="badge ${statusClass}">${getStatusText(item.status)}</span>
-                        </div>
-                    </div>
-                </div>
-            `);
-            timelineElement.append(timelineItem);
-        });
+    // Theme change handler
+    function updateChartsForTheme() {
+        // Update Machine Status Chart
+        machineStatusChart.options.plugins.legend.labels.color = getSecondaryColor();
+        machineStatusChart.update();
+        
+        // Update Machine Utilization Chart
+        machineUtilizationChart.options.scales.y.title.color = getTextColor();
+        machineUtilizationChart.options.scales.y.ticks.color = getSecondaryColor();
+        machineUtilizationChart.options.scales.y.grid.color = getGridColor();
+        machineUtilizationChart.options.scales.x.title.color = getTextColor();
+        machineUtilizationChart.options.scales.x.ticks.color = getSecondaryColor();
+        machineUtilizationChart.update();
     }
 
-    function getStatusText(statusCode) {
-        const statusMap = {
-            'PL': 'Planned',
-            'IP': 'In Progress',
-            'CO': 'Completed',
-            'CA': 'Cancelled'
-        };
-        return statusMap[statusCode] || statusCode;
-    }
-
-    // Initial render
-    renderProductionTimeline();
+    // Watch for theme changes
+    const observer = new MutationObserver(function() {
+        updateChartsForTheme();
+    });
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-bs-theme']
+    });
 
     // Filter handlers
     $('#machineTypeFilter, #workCenterFilter, #statusFilter').change(function() {
-        // In a real implementation, this would make an AJAX call to filter the data
         console.log('Filters changed - would reload data with new filters');
     });
 
     // New order form submission
     $('#submitOrder').click(function() {
-        // Validate and submit the form
         if ($('#componentSelect').val() && $('#orderQuantity').val() && $('#dueDate').val()) {
-            // In a real implementation, this would submit via AJAX
             alert('Order would be created here');
             $('#newOrderModal').modal('hide');
         } else {
@@ -687,5 +527,4 @@ $(document).ready(function() {
 });
 </script>
 {% endblock %}
-
 {% endblock %}

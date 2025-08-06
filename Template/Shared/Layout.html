@@ -450,7 +450,40 @@
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    {% block content %}{% endblock %}
+                    
+                    
+                     {% comment %} <div id="chatbot-launcher" onclick="toggleChatbot()">
+    💬
+                </div>
+
+                <!-- Full Chat UI (hidden by default) -->
+                    <div id="chatbot-wrapper" class="hidden">
+                    <div id="chat-container">
+                        <div id="chat-header">
+                        Technowin Assistant 🤖
+                        <span id="close-chat" onclick="toggleChatbot()">✖</span>
+                        </div>
+
+                        <div id="chat-body">
+                        <div class="chat-message bot">
+                            Welcome to <strong>Technowin IT Infra Pvt. Ltd.</strong> 👋<br>
+                            In which language would you like to proceed?
+                        </div>
+                        <div class="chat-message bot">
+                            <button class="lang-btn" onclick="selectLanguage('en')">English</button>
+                            <button class="lang-btn" onclick="selectLanguage('hi')">हिंदी</button>
+                            <button class="lang-btn" onclick="selectLanguage('mr')">मराठी</button>
+                        </div>
+                        </div>
+
+                        <div id="chat-footer">
+                        <input type="text" id="user-input" placeholder="Type your message here...">
+                        <button onclick="sendMessage()">Send</button>
+                        </div>
+                    </div>
+                    </div> {% endcomment %}
+
+                   
                 </div>
                 <!-- /.container-fluid -->
 
@@ -573,5 +606,10 @@
         }
     }
     </script>
-    
+
+    {% comment %} <script>
+        function toggleChatbot() {
+            $('#chatbot-wrapper').toggleClass('hidden');
+        }
+    </script> {% endcomment %}
 </html>

@@ -8,7 +8,6 @@ class Employee(models.Model):
     employee_name = models.CharField(max_length=100, verbose_name="Full Name")
     work_center = models.ForeignKey(WorkCenter, on_delete=models.PROTECT, verbose_name="Primary Work Center")
     hire_date = models.DateField(verbose_name="Hire Date", null=True, blank=True)
-    is_active = models.BooleanField(default=True, verbose_name="Active Employee")
     contact_number = models.CharField(max_length=15, blank=True, verbose_name="Contact Number")
     email = models.EmailField(blank=True, verbose_name="Email Address")
     
@@ -66,7 +65,6 @@ class Shift(models.Model):
     start_time = models.TimeField(verbose_name="Start Time")
     end_time = models.TimeField(verbose_name="End Time")
     description = models.CharField(max_length=100, blank=True, verbose_name="Description")
-    is_active = models.BooleanField(default=True, verbose_name="Active Shift")
     
     class Meta:
         ordering = ['start_time']
@@ -124,7 +122,6 @@ class LaborAssignment(models.Model):
         verbose_name = "Labor Assignment"
         verbose_name_plural = "Labor Assignments"
         ordering = ['date', 'shift__start_time']
-        unique_together = ('employee', 'date', 'shift')
     
     def __str__(self):
         return f"{self.employee} assigned to {self.schedule} on {self.date}"

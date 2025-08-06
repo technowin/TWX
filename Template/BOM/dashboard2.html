@@ -1,0 +1,738 @@
+<!-- templates/bom/dashboard.html -->
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}BOM Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+    /* static/css/dashboard.css */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.card-footer {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme adjustments */
+[data-bs-theme="dark"] .card {
+    background-color: #2c3034;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-footer {
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Table hover effect */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Badge adjustments */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Quick action buttons */
+.btn-quick-action {
+    min-width: 200px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-quick-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid ">
+    <h3 class="mt-4">Dashboard</h3>
+    <!-- Summary Cards -->
+    <div class="row">
+        <!-- BOM Summary -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-light text-white"> <strong>Total BOMs</strong></h5>
+                            <h2 class="mb-0 text-white">{{ bom_stats.total }}</h2>
+                        </div>
+                        <i class="fas fa-list-alt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'bom_list' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Components Summary -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-light text-white"> <strong>Total Components</strong></h5>
+                            <h2 class="mb-0 text-white">{{ component_stats.total }}</h2>
+                        </div>
+                        <i class="fas fa-cubes fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'component_list' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inventory Summary -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-light text-white"> <strong>Low Stock Items</strong></h5>
+                            <h2 class="mb-0 text-white">{{ inventory_stats.low_stock }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'inventory_low_stock' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cost Summary -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-light text-white"><strong>Inventory Value</strong></h5>
+                            <h2 class="mb-0 text-white">${{ inventory_stats.total_items|floatformat:2 }}</h2>
+                        </div>
+                        <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'inventory_report' %}">View Report</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- BOM Status Chart -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-1"></i>
+                    BOM Status Distribution
+                </div>
+                <div class="card-body">
+                    <div id="bomStatusChart" style="height: 300px;"></div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Updated {% now "SHORT_DATETIME_FORMAT" %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Component Categories Chart -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    Component Categories
+                </div>
+                <div class="card-body">
+                    <div id="componentCategoryChart" style="height: 300px;"></div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Showing top 10 categories by count
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Second Charts Row -->
+    <div class="row">
+        <!-- Top Cost BOMs -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Top Cost BOMs
+                </div>
+                <div class="card-body">
+                    <div id="topCostBomsChart" style="height: 300px;"></div>
+                </div>
+                <div class="card-footer small text-muted">
+                    Showing top 5 BOMs by total cost
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inventory Status -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-area me-1"></i>
+                    Inventory Status
+                </div>
+                <div class="card-body">
+                    <div id="inventoryStatusChart" style="height: 300px;"></div>
+                </div>
+                <div class="card-footer small text-muted">
+                    On hand vs. allocated quantities
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity Row -->
+    <div class="row">
+        <!-- Recent BOMs -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i>
+                    Recently Modified BOMs
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>BOM Name</th>
+                                    <th>Status</th>
+                                    <th>Revision</th>
+                                    <th>Last Modified</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bom in recent_boms %}
+                                <tr onclick="window.location='{% url 'bom_detail' bom.id %}'" style="cursor:pointer;">
+                                    <td>{{ bom.name }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if bom.status == 'Active' %}bg-success
+                                            {% elif bom.status == 'Draft' %}bg-secondary
+                                            {% elif bom.status == 'Pending Approval' %}bg-warning text-dark
+                                            {% elif bom.status == 'Obsolete' %}bg-danger
+                                            {% else %}bg-info{% endif %}">
+                                            {{ bom.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ bom.revision }}</td>
+                                    <td>{{ bom.last_modified|date:"SHORT_DATETIME_FORMAT" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    <a href="{% url 'bom_list' %}">View all BOMs</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Components -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i>
+                    Recently Modified Components
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Part Number</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Last Modified</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for component in recent_components %}
+                                <tr onclick="window.location='{% url 'component_detail' component.id %}'" style="cursor:pointer;">
+                                    <td>{{ component.part_number }}</td>
+                                    <td>{{ component.description|truncatechars:30 }}</td>
+                                    <td>
+                                        <span class="badge bg-info text-dark">
+                                            {{ component.category }}
+                                        </span>
+                                    </td>
+                                    <td>{{ component.last_modified|date:"SHORT_DATETIME_FORMAT" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer small text-muted">
+                    <a href="{% url 'component_list' %}">View all components</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-bolt me-1"></i>
+                    Quick Actions
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="{% url 'bom_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> Create New BOM
+                        </a>
+                        <a href="{% url 'component_create' %}" class="btn btn-success">
+                            <i class="fas fa-cube me-1"></i> Add New Component
+                        </a>
+                        <a href="{% url 'inventory_report' %}" class="btn btn-warning text-dark">
+                            <i class="fas fa-clipboard-list me-1"></i> Inventory Report
+                        </a>
+                        <a href="{% url 'bom_approvals' %}" class="btn btn-info">
+                            <i class="fas fa-check-circle me-1"></i> Pending Approvals
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<!-- amCharts 5 -->
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/percent.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/themes/Dark.js"></script>
+
+<script>
+// Theme detection
+function getTheme() {
+    debugger;
+    return document.documentElement.getAttribute('data-bs-theme') || 'light';
+}
+
+// Apply theme to charts
+function applyTheme(chart, theme) {
+    if (theme === 'dark') {
+        am5themes_Dark.new(chart.root);
+    } else {
+        am5themes_Animated.new(chart.root);
+    }
+}
+
+// BOM Status Pie Chart
+document.addEventListener('DOMContentLoaded', function() {
+    // Load data from Django template
+    const bomStatusData = [
+        { status: 'Active', count: {{ bom_stats.active }}, color: am5.color('#28a745') },
+        { status: 'Draft', count: {{ bom_stats.draft }}, color: am5.color('#6c757d') },
+        { status: 'Pending Approval', count: {{ bom_stats.pending }}, color: am5.color('#ffc107') },
+        { status: 'Obsolete', count: {{ bom_stats.obsolete }}, color: am5.color('#dc3545') }
+    ];
+    
+    const componentCategoryData = [
+        {% for category in component_stats.by_category|slice:":10" %}
+        { category: '{{ category.category }}', count: {{ category.count }} },
+        {% endfor %}
+    ];
+    
+    const topCostBomsData = [
+        {% for bom in top_cost_boms %}
+        { bom: '{{ bom.bom.name|truncatechars:20 }}', cost: {{ bom.total_cost|default:0 }} },
+        {% endfor %}
+    ];
+    
+    const inventoryStatusData = {
+        onHand: {{ inventory_stats.total_items }},
+        allocated: {{ inventory_stats.allocated }}
+    };
+    
+    // Create root elements
+    const bomStatusRoot = am5.Root.new("bomStatusChart");
+    const componentCategoryRoot = am5.Root.new("componentCategoryChart");
+    const topCostBomsRoot = am5.Root.new("topCostBomsChart");
+    const inventoryStatusRoot = am5.Root.new("inventoryStatusChart");
+    
+    // Apply initial themes
+    applyTheme(bomStatusRoot, getTheme());
+    applyTheme(componentCategoryRoot, getTheme());
+    applyTheme(topCostBomsRoot, getTheme());
+    applyTheme(inventoryStatusRoot, getTheme());
+    
+    // BOM Status Pie Chart
+    const bomStatusChart = bomStatusRoot.container.children.push(
+        am5percent.PieChart.new(bomStatusRoot, {
+            layout: bomStatusRoot.verticalLayout
+        })
+    );
+    
+    const bomStatusSeries = bomStatusChart.series.push(
+        am5percent.PieSeries.new(bomStatusRoot, {
+            name: "BOM Status",
+            categoryField: "status",
+            valueField: "count",
+            fillField: "color"
+        })
+    );
+    
+    bomStatusSeries.data.setAll(bomStatusData);
+    bomStatusSeries.labels.template.set("visible", false);
+    bomStatusSeries.ticks.template.set("visible", false);
+    
+    bomStatusSeries.slices.template.set("tooltipText", "{status}: {value}");
+    bomStatusSeries.slices.template.events.on("click", function(ev) {
+        const status = ev.target.dataItem.dataContext.status;
+        // Redirect to filtered BOM list
+        window.location.href = `{% url 'bom_list' %}?status=${status.toLowerCase().replace(' ', '_')}`;
+    });
+    
+    const bomStatusLegend = bomStatusChart.children.push(
+        am5.Legend.new(bomStatusRoot, {
+            centerX: am5.percent(50),
+            x: am5.percent(50),
+            marginTop: 15,
+            marginBottom: 15
+        })
+    );
+    bomStatusLegend.data.setAll(bomStatusSeries.dataItems);
+    
+    // Component Category Bar Chart
+    const componentCategoryChart = componentCategoryRoot.container.children.push(
+        am5xy.XYChart.new(componentCategoryRoot, {
+            panX: false,
+            panY: false,
+            wheelX: "panX",
+            wheelY: "zoomX",
+            layout: componentCategoryRoot.verticalLayout
+        })
+    );
+    
+    const xRenderer = am5xy.AxisRendererX.new(componentCategoryRoot, { 
+        minGridDistance: 30,
+        inversed: true
+    });
+    xRenderer.labels.template.setAll({
+        rotation: -45,
+        centerY: am5.p50,
+        centerX: am5.p100,
+        paddingRight: 15
+    });
+    
+    const xAxis = componentCategoryChart.xAxes.push(
+        am5xy.CategoryAxis.new(componentCategoryRoot, {
+            maxDeviation: 0.3,
+            categoryField: "category",
+            renderer: xRenderer,
+            tooltip: am5.Tooltip.new(componentCategoryRoot, {})
+        })
+    );
+    
+    const yAxis = componentCategoryChart.yAxes.push(
+        am5xy.ValueAxis.new(componentCategoryRoot, {
+            maxDeviation: 0.3,
+            renderer: am5xy.AxisRendererY.new(componentCategoryRoot, {})
+        })
+    );
+    
+    const componentSeries = componentCategoryChart.series.push(
+        am5xy.ColumnSeries.new(componentCategoryRoot, {
+            name: "Components",
+            xAxis: xAxis,
+            yAxis: yAxis,
+            valueYField: "count",
+            categoryXField: "category",
+            tooltip: am5.Tooltip.new(componentCategoryRoot, {
+                labelText: "{category}: {valueY}"
+            })
+        })
+    );
+    
+    componentSeries.columns.template.setAll({
+        fill: am5.color("#0d6efd"),
+        stroke: am5.color("#0d6efd"),
+        cornerRadiusTL: 5,
+        cornerRadiusTR: 5,
+        cursorOverStyle: "pointer"
+    });
+    
+    componentSeries.columns.template.events.on("click", function(ev) {
+        const category = ev.target.dataItem.dataContext.category;
+        window.location.href = `{% url 'component_list' %}?category=${category}`;
+    });
+    
+    componentSeries.data.setAll(componentCategoryData);
+    xAxis.data.setAll(componentCategoryData);
+    
+    // Top Cost BOMs Chart
+    const topCostBomsChart = topCostBomsRoot.container.children.push(
+        am5xy.XYChart.new(topCostBomsRoot, {
+            panX: false,
+            panY: false,
+            wheelX: "panX",
+            wheelY: "zoomX",
+            layout: topCostBomsRoot.verticalLayout
+        })
+    );
+    
+    const costXAxis = topCostBomsChart.xAxes.push(
+        am5xy.ValueAxis.new(topCostBomsRoot, {
+            renderer: am5xy.AxisRendererX.new(topCostBomsRoot, {})
+        })
+    );
+    
+    const costYAxis = topCostBomsChart.yAxes.push(
+        am5xy.CategoryAxis.new(topCostBomsRoot, {
+            renderer: am5xy.AxisRendererY.new(topCostBomsRoot, {}),
+            categoryField: "bom"
+        })
+    );
+    
+    const costSeries = topCostBomsChart.series.push(
+        am5xy.ColumnSeries.new(topCostBomsRoot, {
+            name: "Cost",
+            xAxis: costXAxis,
+            yAxis: costYAxis,
+            valueXField: "cost",
+            categoryYField: "bom",
+            tooltip: am5.Tooltip.new(topCostBomsRoot, {
+                pointerOrientation: "left",
+                labelText: "{categoryY}: {valueX}"
+            })
+        })
+    );
+    
+    costSeries.columns.template.setAll({
+        fill: am5.color("#fd7e14"),
+        stroke: am5.color("#fd7e14"),
+        cornerRadiusTL: 5,
+        cornerRadiusTR: 5,
+        cornerRadiusBL: 5,
+        cornerRadiusBR: 5,
+        cursorOverStyle: "pointer"
+    });
+    
+    costSeries.columns.template.events.on("click", function(ev) {
+        const bomName = ev.target.dataItem.dataContext.bom;
+        // In a real app, you'd need to pass the BOM ID or find another way to link
+        // For demo, we'll just show an alert
+        alert(`Clicked on BOM: ${bomName}`);
+    });
+    
+    costSeries.data.setAll(topCostBomsData);
+    costYAxis.data.setAll(topCostBomsData);
+    
+    // Inventory Status Chart
+    const inventoryStatusChart = inventoryStatusRoot.container.children.push(
+        am5xy.XYChart.new(inventoryStatusRoot, {
+            panX: false,
+            panY: false,
+            wheelX: "panX",
+            wheelY: "zoomX",
+            layout: inventoryStatusRoot.verticalLayout
+        })
+    );
+    
+    const inventoryXAxis = inventoryStatusChart.xAxes.push(
+        am5xy.CategoryAxis.new(inventoryStatusRoot, {
+            renderer: am5xy.AxisRendererX.new(inventoryStatusRoot, {}),
+            categoryField: "status"
+        })
+    );
+    
+    const inventoryYAxis = inventoryStatusChart.yAxes.push(
+        am5xy.ValueAxis.new(inventoryStatusRoot, {
+            renderer: am5xy.AxisRendererY.new(inventoryStatusRoot, {})
+        })
+    );
+    
+    const inventorySeries = inventoryStatusChart.series.push(
+        am5xy.ColumnSeries.new(inventoryStatusRoot, {
+            name: "Quantity",
+            xAxis: inventoryXAxis,
+            yAxis: inventoryYAxis,
+            valueYField: "value",
+            categoryXField: "status",
+            tooltip: am5.Tooltip.new(inventoryStatusRoot, {
+                labelText: "{status}: {valueY}"
+            })
+        })
+    );
+    
+    inventorySeries.columns.template.setAll({
+        fill: am5.color("#6f42c1"),
+        stroke: am5.color("#6f42c1"),
+        cornerRadiusTL: 5,
+        cornerRadiusTR: 5,
+        cursorOverStyle: "pointer"
+    });
+    
+    inventorySeries.data.setAll([
+        { status: "On Hand", value: inventoryStatusData.onHand },
+        { status: "Allocated", value: inventoryStatusData.allocated }
+    ]);
+    
+    inventoryXAxis.data.setAll([
+        { status: "On Hand" },
+        { status: "Allocated" }
+    ]);
+    
+    // Theme switcher event listener
+    document.querySelectorAll('[data-bs-theme-value]').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const theme = getTheme();
+            applyTheme(bomStatusRoot, theme);
+            applyTheme(componentCategoryRoot, theme);
+            applyTheme(topCostBomsRoot, theme);
+            applyTheme(inventoryStatusRoot, theme);
+        });
+    });
+    
+    // Resize charts when window resizes
+    window.addEventListener('resize', function() {
+        bomStatusRoot.resize();
+        componentCategoryRoot.resize();
+        topCostBomsRoot.resize();
+        inventoryStatusRoot.resize();
+    });
+});
+</script>
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/mtp.js' %}"></script>
+
+{% endblock %}

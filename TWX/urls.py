@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 from Account.views import *
+from ChatModal.views import *
 from Dashboard.views import *
 from Masters.views import *
 from Form.views import *
@@ -31,6 +32,8 @@ from BOM.views import *
 from MaterialPlan.views import *
 from BookMetadata.views import *
 
+from Checklist.views import *
+# from ChatBot.views import *
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
@@ -65,7 +68,14 @@ urlpatterns = [
 
     # Dashboard
     path('bom/dashboard',DashboardView.as_view(), name='dashboard'),
-    
+    path('bom/dashboard2/', bom_dashboard, name='bom_dashboard'),
+
+    path('inventory/low-stock/', inventory_low_stock, name='inventory_low_stock'),
+    path('inventory/report/', inventory_report, name='inventory_report'),
+    path('bom/approvals/', bom_approvals, name='bom_approvals'),
+    path('bom/approve/<int:approval_id>/', approve_bom, name='approve_bom'),
+    path('bom/reject/<int:approval_id>/', reject_bom, name='reject_bom'),
+
     # BOM Management
     path('boms/',BOMListView.as_view(), name='bom_list'),
     path('boms/new/',BOMCreateView.as_view(), name='bom_create'),
@@ -114,6 +124,9 @@ urlpatterns = [
 
     # Dashboard and list views
     path('mtp/dashboard',MaterialPlanDashboardView.as_view(), name='dashboard'),
+    path('mtp/dashboard2/', mtp_dashboard, name='mtp_dashboard'),
+    path('mtp/dashboard3/', mtp_dashboar3, name='mtp_dashboard3'),
+
     path('plans/',MaterialPlanListView.as_view(), name='plan_list'),
     
     # Material Plan CRUD
@@ -137,7 +150,8 @@ urlpatterns = [
     # Shortage alerts
     path('alerts/<int:alert_id>/resolve/',
          MaterialShortageResolutionView.as_view(), name='shortage_resolve'),
-    
+    path('shortages/', shortage_list, name='shortage_list'),
+    path('shortages/<int:pk>/', shortage_detail, name='shortage_detail'),
     # Production Orders
     path('production-orders/create/',ProductionOrderCreateView.as_view(), name='production_order_create'),
     path('production-orders/<int:pk>/',ProductionOrderDetailView.as_view(), name='production_order_detail'),
@@ -148,6 +162,10 @@ urlpatterns = [
     path('<int:pk>/', BookDetailView.as_view(), name='book_detail'),
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
+    
+    # Chat Modal
+    path('compliance-checklist/', compliance_checklist, name='compliance_checklist'),
+
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
@@ -258,7 +276,19 @@ urlpatterns = [
     # MachinePlan
     path('mcp/', include('MachinePlan.urls', namespace='mcp')),
     path('manpower/', include('Manpower.urls', namespace='manpower')),
+    path('convert-input/', convert_input_view, name='convert_input'),
 
+    # path('get_faq_answer', get_faq_answer, name='get_faq_answer'),
+
+
+    # chatbot
+    # path('chatbot_view/', chatbot_view, name='chatbot_home'),
+    # path('chat/', ChatBotView.as_view(), name='chatbot'),
+
+    path('chat/', ChatBotView.as_view(), name='chatbot'),
+    path('sessions/', chat_session_list, name='chat_session_list'),
+    path('sessions/<str:reqno>/',chat_session_detail, name='chat_session_detail'),
+    path('chat_log_search/', chat_log_search, name='chat_log_search'),
 
 
     # Media files

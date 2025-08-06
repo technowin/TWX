@@ -49,15 +49,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-3">
-                <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select">
-                    <option value="">All Statuses</option>
-                    {% for value, label in status_choices %}
-                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            
             <div class="col-md-3">
                 <label for="leave_type" class="form-label">Leave Type</label>
                 <select name="leave_type" id="leave_type" class="form-select">

@@ -151,7 +151,9 @@ LOCAL_APPS = [
     'MaterialPlan',
     'MachinePlan',
     'BookMetadata',
-    'Manpower'
+    'Manpower',
+    'ChatModal',
+    'Checklist'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -171,7 +173,7 @@ MIDDLEWARE = [
     'django_auto_logout.middleware.auto_logout',
     'corsheaders.middleware.CorsMiddleware',
     'axes.middleware.AxesMiddleware',
-    'TWX.middleware.AutoLogoutMiddleware',
+    # 'TWX.middleware.AutoLogoutMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
     'http://15.207.169.98',
@@ -202,7 +204,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            # 'filename': os.path.join(BASE_DIR, 'D:/Python Project/TDMS logs', 'django.log'),  
+            # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
             'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },
