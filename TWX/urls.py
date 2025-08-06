@@ -313,7 +313,7 @@ urlpatterns = [
 
 
     #   path('dashboard/', powerbi_dashboard_view, name='dashboard'),
-    path('insights', include('Dashboard.urls')),  # include app URL
+    # path('insights', include('Dashboard.urls')),  # include app URL
 
 
 ]
