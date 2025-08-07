@@ -47,6 +47,17 @@
     </div>
 </div>
 
+<div class="card">
+    <div class="card-body">
+
+        <div class="row mb-4">
+    <div class="col">
+        <h2>
+           <i class="fas fa-robot"></i>  Machine Type List
+        </h2>
+    </div>
+    
+</div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -74,7 +85,7 @@
     <table class="table table-hover">
         <thead class="table-light">
             <tr>
-                <th>ID</th>
+                <th>Sr no.</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Created At</th>
@@ -85,7 +96,7 @@
         <tbody>
             {% for machine_type in machine_types %}
             <tr>
-                <td>{{ machine_type.id }}</td>
+                <td>{{ forloop.counter }}</td>
                 <td>{{ machine_type.name }}</td>
                 <td>{{ machine_type.description|default:"-" }}</td>
                 <td>{{ machine_type.created_at|date:"Y-m-d H:i" }}</td>
@@ -137,6 +148,9 @@
         </ul>
     </nav>
     {% endif %}
+</div>
+   </div>
+    
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

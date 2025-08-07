@@ -159,11 +159,17 @@ class MachineCapabilityListView( ListView):
         context['components'] = BOMHeader.objects.all()
         return context
 
-class MachineCapabilityCreateView( CreateView):
+class MachineCapabilityCreateView(CreateView):
     model = MachineCapability
     form_class = MachineCapabilityForm
     template_name = 'MachinePlan/machine_capability_form.html'
     success_url = reverse_lazy('mcp:machine_capability_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['machines'] = Machine.objects.all()  # Or add any filtering you need
+        context['components'] = BOMHeader.objects.all()  # Or add any filtering you need
+        return context
 
 class MachineCapabilityUpdateView( UpdateView):
     model = MachineCapability
@@ -224,6 +230,7 @@ class MaintenanceScheduleUpdateView( UpdateView):
     template_name = 'MachinePlan/maintenance_schedule_form.html'
     success_url = reverse_lazy('mcp:maintenance_schedule_list')
 
+
 class MaintenanceScheduleDeleteView( DeleteView):
     model = MaintenanceSchedule
     template_name = 'MachinePlan/maintenance_schedule_confirm_delete.html'
@@ -271,21 +278,43 @@ class MachinePlanningListView(ListView):
     model = MachinePlanning
     template_name = 'MachinePlan/machine_planning_list.html'
     context_object_name = 'plans'
+    paginate_by = 20  # Optional: add pagination
     
     def get_queryset(self):
-        return super().get_queryset().select_related(
+        queryset = super().get_queryset().select_related(
             'production_order', 'component', 'operation', 'machine'
-        ).order_by('scheduled_start')
+        )
+        
+        # Get filter parameters from request
+        machine_filter = self.request.GET.get('machine')
+        status_filter = self.request.GET.get('status')
+        date_filter = self.request.GET.get('date')
+        
+        # Apply filters
+        if machine_filter:
+            queryset = queryset.filter(machine_id=machine_filter)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if date_filter:
+            queryset = queryset.filter(scheduled_start__date=date_filter)
+        
+        return queryset.order_by('scheduled_start')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add the additional context needed for dropdowns
         context['production_orders'] = ProductionOrder.objects.all()
         context['components'] = BOMHeader.objects.all()
         context['operations'] = Operation.objects.all()
         context['machines'] = Machine.objects.all()
         status_field = MachinePlanning._meta.get_field('status')
-        context['status_choices'] = status_field.choices  # Assuming STATUS_CHOICES is defined in your model
+        context['status_choices'] = status_field.choices
+        
+        # Preserve existing filter parameters in context
+        context['current_filters'] = {
+            'machine': self.request.GET.get('machine', ''),
+            'status': self.request.GET.get('status', ''),
+            'date': self.request.GET.get('date', ''),
+        }
         return context
 
 class MachinePlanningCreateView(CreateView):

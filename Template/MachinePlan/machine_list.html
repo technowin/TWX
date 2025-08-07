@@ -44,10 +44,18 @@
     </div>
 
 </div>
-    {% comment %} <a href="{% url 'mcp:machine_create' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Add Machine
-    </a> {% endcomment %}
 
+<div class="card">
+    <div class="card-body">
+
+        <div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="fas fa-server"></i>   Machine List
+        </h2>
+    </div>
+    
+</div>
 <div class="table-responsive">
     <table class="table table-hover">
         <thead class="table-light">
@@ -127,7 +135,9 @@
     </nav>
     {% endif %}
 </div>
-
+   </div>
+    
+</div>
 
 
 {% block extra_javascript %}

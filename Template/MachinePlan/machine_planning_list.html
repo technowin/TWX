@@ -43,33 +43,50 @@
         </button>
     </div>
 </div>
+
+<div class="card">
+    <div class="card-body">
+
+        <div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="fas fa-industry"></i>  Planning List
+        </h2>
+    </div>
+    
+</div>
 <div class="row mb-3">
-    <div class="col-md-3">
-        <select class="form-select" id="machineFilter">
-            <option value="">All Machines</option>
-            {% for machine in machines %}
-            <option value="{{ machine.id }}" {% if request.GET.machine == machine.id|stringformat:"s" %}selected{% endif %}>
-                {{ machine.name }}
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-3">
-        <select class="form-select" id="statusFilter">
-            <option value="">All Statuses</option>
-            {% for value, display in status %}
-            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
-                {{ display }}
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-3">
-        <input type="date" class="form-control" id="dateFilter" value="{{ request.GET.date }}">
-    </div>
-    <div class="col-md-3">
-        <input type="text" class="form-control" placeholder="Search..." id="searchInput">
-    </div>
+    <form method="get" id="filterForm">
+        <div class="row">
+            <div class="col-md-3">
+                <select class="form-select" name="machine" id="machineFilter">
+                    <option value="">All Machines</option>
+                    {% for machine in machines %}
+                    <option value="{{ machine.id }}" {% if current_filters.machine == machine.id|stringformat:"s" %}selected{% endif %}>
+                        {{ machine.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status" id="statusFilter">
+                    <option value="">All Statuses</option>
+                    {% for value, display in status_choices %}
+                    <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                        {{ display }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" class="form-control" name="date" id="dateFilter" 
+                       value="{{ current_filters.date }}">
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+            </div>
+        </div>
+    </form>
 </div>
 
 <div class="table-responsive">
@@ -137,6 +154,8 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+</div>
 </div>
 
 {% include 'MachinePlan/pagination.html' %}
@@ -300,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (id) {
                 // Edit mode
                 planningModal.querySelector('.modal-title').textContent = 'Edit Schedule';
-                form.action = `/machine-planning/plans/${id}/edit/`;
+                form.action = `/mcp/machine-plans/${id}/edit/`;
                 
                 // Set form values
                 form.querySelector('[name="production_order"]').value = button.getAttribute('data-production-order');
@@ -347,12 +366,37 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = button.getAttribute('data-name');
             
             const form = deleteModal.querySelector('form');
-            form.action = `/machine-planning/plans/${id}/delete/`;
+            form.action = `/mcp/machine-plans/${id}/delete/`;
             
             document.getElementById('deleteName').textContent = name;
         });
     }
 });
+</script>
+
+<script>
+// Submit form when any filter changes
+document.getElementById('machineFilter').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+document.getElementById('statusFilter').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+document.getElementById('dateFilter').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+function resetFilters() {
+    // Reset all filter fields
+    document.getElementById('machineFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    
+    // Submit the form
+    document.getElementById('filterForm').submit();
+}
 </script>
 {% endblock %}
 

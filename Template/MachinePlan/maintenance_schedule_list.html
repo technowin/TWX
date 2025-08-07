@@ -45,6 +45,18 @@
     </div>
 </div>
 
+<div class="card">
+    <div class="card-body">
+
+        <div class="row mb-4">
+    <div class="col">
+        <h2>
+            <i class="fas fa-screwdriver-wrench"></i>  Machine Maintenance
+        </h2>
+    </div>
+    
+</div>
+
 
 <div class="row mb-3">
     <div class="col-md-4">
@@ -63,9 +75,6 @@
             <option value="true" {% if request.GET.completed == 'true' %}selected{% endif %}>Completed</option>
             <option value="false" {% if request.GET.completed == 'false' %}selected{% endif %}>Pending</option>
         </select>
-    </div>
-    <div class="col-md-4">
-        <input type="text" class="form-control" placeholder="Search type..." id="searchInput">
     </div>
 </div>
 
@@ -126,6 +135,10 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+</div>
+
 </div>
 
 {% include 'MachinePlan/pagination.html' %}
@@ -296,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const notes = button.getAttribute('data-notes');
             
             const form = editModal.querySelector('form');
-            form.action = `/machine-planning/maintenance/${id}/edit/`;
+            form.action = `/mcp/maintenance/${id}/edit/`;
             
             document.getElementById('editMachine').value = machineId;
             document.getElementById('editType').value = type;
@@ -318,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = button.getAttribute('data-name');
             
             const form = deleteModal.querySelector('form');
-            form.action = `/machine-planning/maintenance/${id}/delete/`;
+            form.action = `/mcp/maintenance/${id}/delete/`;
             
             document.getElementById('deleteName').textContent = name;
         });

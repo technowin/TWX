@@ -72,7 +72,7 @@
                             <select name="component" class="form-select" required id="id_component">
                                 {% for component in components %}
                                 <option value="{{ component.id }}" {% if form.component.value == component.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ component.part_number }}
+                                    {{ component.name }}
                                 </option>
                                 {% endfor %}
                             </select>

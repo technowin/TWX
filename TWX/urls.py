@@ -283,7 +283,7 @@ urlpatterns = [
     path('chat/', ChatBotView.as_view(), name='chatbot'),
     path('sessions/', chat_session_list, name='chat_session_list'),
     path('sessions/<str:reqno>/',chat_session_detail, name='chat_session_detail'),
-    path('search/', chat_log_search, name='chat_log_search'),
+    path('chat_log_search/', chat_log_search, name='chat_log_search'),
 
 
     # Media files

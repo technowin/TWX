@@ -176,6 +176,7 @@ class MachinePlanning(models.Model):
         ('IN_PROGRESS', 'In Progress'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
+        ('PLANNED', 'Planned'),
     ], default='SCHEDULED')
     actual_start = models.DateTimeField(null=True, blank=True)
     actual_end = models.DateTimeField(null=True, blank=True)
