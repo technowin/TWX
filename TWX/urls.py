@@ -184,6 +184,8 @@ urlpatterns = [
     path('bulk-upload-documents/', bulk_upload_documents, name='bulk_upload_documents'),
     path('get_observ/', get_observ, name='get_observ'),
 
+    # Inventory and Warehouse Management
+    path('inventory_dashboard/', inventory_dashboard, name='inventory-dashboard'),
     # Product Management
     path('products/', ProductListView.as_view(), name='product-list'),
     path('products/add/', ProductCreateView.as_view(), name='product-create'),
@@ -205,7 +207,8 @@ urlpatterns = [
     path('stock/entries/add/', StockEntryCreateView.as_view(), name='stockentry-create'),
     path('stock/movements/add/', StockMovementCreateView.as_view(), name='stockmovement-create'),
     path('stock/movements/<int:pk>/confirm/', StockMovementConfirmView.as_view(), name='stockmovement-confirm'),
-    
+    path('stock-movements/', stock_movement_list, name='stock-movement-list'),
+
     # AJAX Views
     path('ajax/get-locations/', get_locations_for_warehouse, name='get-locations'),
     path('ajax/get-product-details/', get_product_details, name='get-product-details'),
@@ -221,6 +224,12 @@ urlpatterns = [
     
     # AJAX Views
     path('ajax/get-product-variants/', get_product_variants, name='get-product-variants'),
+
+     # Category Management
+    path('categories/', CategoryListView.as_view(), name='category-list'),
+    path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
+    path('categories/add/', CategoryCreateView.as_view(), name='category-create'),
+    path('categories/<slug:slug>/edit/', CategoryUpdateView.as_view(), name='category-update'),
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),

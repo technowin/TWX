@@ -1,4 +1,4 @@
-<!-- inventory/templates/inventory/barcode_form.html -->
+<!-- inventory/templates/inventory/category_form.html -->
 {% extends "bootstrap/vertical_base.html" %}
 
 {% load humanize %}
@@ -9,7 +9,7 @@
 
 {% load static %}
 
-{% block title %}Generate Barcode{% endblock %}
+{% block title %}{% if object %}Edit {{ object.name }}{% else %}Add New Category{% endif %}{% endblock %}
 
 {% block extra_css %}
 <!-- Select2 css -->
@@ -38,14 +38,20 @@
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
-
-
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'barcode-list' %}">Barcode Management</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Generate Barcode</li>
+        <li class="breadcrumb-item"><a href="{% url 'product-list' %}">Products</a></li>
+        {% if object %}
+            {% if object.parent %}
+            <li class="breadcrumb-item"><a href="{% url 'category-detail' slug=object.parent.slug %}">{{ object.parent.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item"><a href="{% url 'category-detail' slug=object.slug %}">{{ object.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        {% else %}
+            <li class="breadcrumb-item active" aria-current="page">Add Category</li>
+        {% endif %}
     </ol>
 </nav>
 {% endblock %}
@@ -54,7 +60,8 @@
 <div class="card mt-3">
     <div class="card-header">
         <h5 class="mb-0">
-            <i class="bi bi-upc-scan"></i> Generate Barcode
+            <i class="bi bi-tags"></i> 
+            {% if object %}Edit Category{% else %}Add New Category{% endif %}
         </h5>
     </div>
     <div class="card-body">
@@ -64,21 +71,21 @@
             <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        {{ form.product.label_tag }}
-                        {{ form.product }}
-                        {% if form.product.errors %}
+                        {{ form.name.label_tag }}
+                        {{ form.name }}
+                        {% if form.name.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.product.errors }}
+                            {{ form.name.errors }}
                         </div>
                         {% endif %}
                     </div>
                     
                     <div class="mb-3">
-                        {{ form.variant.label_tag }}
-                        {{ form.variant }}
-                        {% if form.variant.errors %}
+                        {{ form.parent.label_tag }}
+                        {{ form.parent }}
+                        {% if form.parent.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.variant.errors }}
+                            {{ form.parent.errors }}
                         </div>
                         {% endif %}
                     </div>
@@ -86,35 +93,53 @@
                 
                 <div class="col-md-6">
                     <div class="mb-3">
-                        {{ form.barcode_format.label_tag }}
-                        {{ form.barcode_format }}
-                        {% if form.barcode_format.errors %}
+                        {{ form.image.label_tag }}
+                        {{ form.image }}
+                        {% if form.image.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.barcode_format.errors }}
+                            {{ form.image.errors }}
                         </div>
                         {% endif %}
-                    </div>
-                    
-                    <div class="mb-3 form-check form-switch">
-                        {{ form.is_primary }}
-                        <label class="form-check-label" for="{{ form.is_primary.id_for_label }}">
-                            {{ form.is_primary.label }}
-                        </label>
+                        
+                        {% if object and object.image %}
+                        <div class="mt-2">
+                            <img src="{{ object.image.url }}" alt="{{ object.name }}" class="img-thumbnail" style="max-height: 100px;">
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
             
+            <div class="mb-3">
+                {{ form.description.label_tag }}
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.description.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3 form-check form-switch">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    {{ form.is_active.label }}
+                </label>
+            </div>
+            
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a href="{% url 'barcode-list' %}" class="btn btn-outline-secondary me-md-2">
+                <a href="{% if object %}{% url 'category-detail' slug=object.slug %}{% else %}{% url 'product-list' %}{% endif %}" 
+                   class="btn btn-outline-secondary me-md-2">
                     Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-upc-scan"></i> Generate Barcode
+                    {% if object %}Update Category{% else %}Create Category{% endif %}
                 </button>
             </div>
         </form>
     </div>
 </div>
+
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
@@ -142,30 +167,7 @@
   </script>
 {% endif %}
 
-<script>
-$(document).ready(function() {
-    // Update variants when product changes
-    $('select[name="product"]').change(function() {
-        const productId = $(this).val();
-        const $variantSelect = $('select[name="variant"]');
-        
-        if (productId) {
-            $.get(`/inventory/ajax/get-product-variants/?product_id=${productId}`, function(data) {
-                $variantSelect.empty();
-                $variantSelect.append('<option value="">No Variant</option>');
-                $.each(data, function(index, variant) {
-                    $variantSelect.append(
-                        `<option value="${variant.id}">${variant.name}: ${variant.value}</option>`
-                    );
-                });
-            });
-        } else {
-            $variantSelect.empty();
-            $variantSelect.append('<option value="">No Variant</option>');
-        }
-    });
-});
-</script>
+
 {% endblock %}
 
 {% block extra_javascript %}

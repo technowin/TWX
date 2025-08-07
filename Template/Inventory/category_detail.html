@@ -1,4 +1,4 @@
-<!-- inventory/templates/inventory/stockmovement_confirm.html -->
+<!-- inventory/templates/inventory/category_detail.html -->
 {% extends "bootstrap/vertical_base.html" %}
 
 {% load humanize %}
@@ -9,7 +9,7 @@
 
 {% load static %}
 
-{% block title %}Confirm Stock Movement{% endblock %}
+{% block title %}{{ category.name }}{% endblock %}
 
 {% block extra_css %}
 <!-- Select2 css -->
@@ -43,94 +43,115 @@
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{% url 'product-list' %}">Products</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'product-detail' pk=object.product.pk %}">{{ object.product.name }}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Confirm Movement</li>
+        {% if category.parent %}
+        <li class="breadcrumb-item"><a href="{% url 'category-detail' slug=category.parent.slug %}">{{ category.parent.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
     </ol>
 </nav>
 {% endblock %}
 
 {% block content %}
 <div class="card mt-3">
-    <div class="card-header bg-warning text-dark">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-            <i class="bi bi-exclamation-triangle-fill"></i> Confirm Stock Movement
+            <i class="bi bi-tags"></i> {{ category.name }}
         </h5>
+        <div>
+            <a href="{% url 'category-update' slug=category.slug %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+        </div>
     </div>
     <div class="card-body">
-        <div class="alert alert-warning">
-            <strong>Warning:</strong> Confirming this movement will update stock levels in both source and destination locations.
-            This action cannot be undone.
-        </div>
-        
         <div class="row mb-4">
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">Movement Details</h6>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Product:</strong> {{ object.product.name }} ({{ object.product.sku }})</p>
-                        <p><strong>Quantity:</strong> {{ object.quantity }}</p>
-                        <p><strong>Type:</strong> {{ object.get_movement_type_display }}</p>
-                        <p><strong>Reference:</strong> {{ object.reference|default:"-" }}</p>
-                        <p><strong>Created:</strong> {{ object.moved_at|date:"DATETIME_FORMAT" }} by {{ object.moved_by }}</p>
-                    </div>
+                <div class="mb-3">
+                    <strong>Parent Category:</strong>
+                    <p>
+                        {% if category.parent %}
+                        <a href="{% url 'category-detail' slug=category.parent.slug %}">
+                            {{ category.parent.name }}
+                        </a>
+                        {% else %}
+                        None
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p>{{ category.description|default:"No description provided" }}</p>
                 </div>
             </div>
             
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">Locations</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="fw-bold">From:</p>
-                                {% if object.from_location %}
-                                <p>{{ object.from_location.warehouse.name }} - {{ object.from_location.code }}</p>
-                                <p>Current Stock: {{ object.from_location.current_stock }}</p>
-                                {% else %}
-                                <p>External Source</p>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <p class="fw-bold">To:</p>
-                                {% if object.to_location %}
-                                <p>{{ object.to_location.warehouse.name }} - {{ object.to_location.code }}</p>
-                                <p>Current Stock: {{ object.to_location.current_stock }}</p>
-                                {% else %}
-                                <p>External Destination</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
+                {% if category.image %}
+                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="img-fluid rounded">
+                {% endif %}
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3">Subcategories</h6>
+                {% if subcategories %}
+                <div class="list-group">
+                    {% for subcategory in subcategories %}
+                    <a href="{% url 'category-detail' slug=subcategory.slug %}" class="list-group-item list-group-item-action">
+                        {{ subcategory.name }}
+                        <span class="badge bg-primary rounded-pill float-end">{{ subcategory.products.count }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No subcategories found.</p>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <a href="{% url 'category-create' %}?parent={{ category.pk }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Subcategory
+                    </a>
                 </div>
             </div>
+            
+            <div class="col-md-6">
+                <h6 class="mb-3">Products ({{ products.count }})</h6>
+                {% if products %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'product-detail' pk=product.pk %}">
+                                        {{ product.name }}
+                                    </a>
+                                </td>
+                                <td>{{ product.sku }}</td>
+                                <td>{{ product.current_stock }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No products in this category.</p>
+                {% endif %}
+            </div>
         </div>
-        
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">Notes</h6>
-            </div>
-            <div class="card-body">
-                {{ object.notes|default:"No notes provided" }}
-            </div>
-        </div>
-        
-        <form method="post">
-            {% csrf_token %}
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a href="{% url 'product-detail' pk=object.product.pk %}" class="btn btn-outline-secondary me-md-2">
-                    Cancel
-                </a>
-                <button type="submit" class="btn btn-warning">
-                    <i class="bi bi-check-circle"></i> Confirm Movement
-                </button>
-            </div>
-        </form>
     </div>
 </div>
+
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
@@ -157,6 +178,7 @@
     });
   </script>
 {% endif %}
+
 
 {% endblock %}
 

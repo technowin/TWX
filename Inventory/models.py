@@ -4,6 +4,8 @@ from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 from django.urls import reverse
 from Account.models import CustomUser
+from django.db.models.functions import Coalesce
+from django.db.models import Sum, Value
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -78,6 +80,21 @@ class Product(models.Model):
     def is_low_stock(self):
         return self.current_stock <= self.min_stock_level
     
+
+    @property
+    def current_stock(self):
+        # This is the property that can be used in Python code
+        return self.stock_entries.aggregate(
+            total=Coalesce(Sum('quantity'), Value(0))
+        )['total']
+    
+    @classmethod
+    def with_current_stock(cls):
+        # Use this when you need to query products with their stock
+        return cls.objects.annotate(
+            current_stock=Coalesce(Sum('stock_entries__quantity'), Value(0))
+        )
+
     def get_stock_at_location(self, location):
         """
         Returns current stock quantity at specified location.
@@ -297,6 +314,12 @@ class StockEntry(models.Model):
     
     def __str__(self):
         return f"{self.quantity} x {self.product} at {self.location}"
+
+    @property
+    def days_left(self):
+        if not self.expiry_date:
+            return None
+        return (self.expiry_date - timezone.now().date()).days
 
 class StockMovement(models.Model):
     MOVEMENT_TYPES = [

@@ -201,3 +201,12 @@ def custom_truncate(value, arg=50):
     if len(value) > length:
         return value[:length] + '...'
     return value
+
+from datetime import date
+
+@register.filter
+def days_left(value):
+    if not value:
+        return None
+    delta = value - date.today()
+    return delta.days
