@@ -33,6 +33,7 @@ from MaterialPlan.views import *
 from BookMetadata.views import *
 
 from Checklist.views import *
+from Inventory.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
@@ -182,6 +183,45 @@ urlpatterns = [
     path('bulk-upload-checklist/', bulk_upload_checklist, name='bulk_upload_checklist'),
     path('bulk-upload-documents/', bulk_upload_documents, name='bulk_upload_documents'),
     path('get_observ/', get_observ, name='get_observ'),
+
+    # Product Management
+    path('products/', ProductListView.as_view(), name='product-list'),
+    path('products/add/', ProductCreateView.as_view(), name='product-create'),
+    path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
+    path('products/<int:pk>/edit/', ProductUpdateView.as_view(), name='product-update'),
+    
+    # Warehouse Management
+    path('warehouses/', WarehouseListView.as_view(), name='warehouse-list'),
+    path('warehouses/add/', WarehouseCreateView.as_view(), name='warehouse-create'),
+    path('warehouses/<int:pk>/', WarehouseDetailView.as_view(), name='warehouse-detail'),
+    path('warehouses/<int:pk>/edit/', WarehouseUpdateView.as_view(), name='warehouse-update'),
+    
+     # Storage Location Management
+    path('locations/add/<int:warehouse_pk>/', StorageLocationCreateView.as_view(), name='storage-location-create'),
+    path('locations/<int:pk>/', StorageLocationDetailView.as_view(), name='storage-location-detail'),
+    path('locations/<int:pk>/edit/', StorageLocationUpdateView.as_view(), name='storage-location-update'),
+
+    # Stock Management
+    path('stock/entries/add/', StockEntryCreateView.as_view(), name='stockentry-create'),
+    path('stock/movements/add/', StockMovementCreateView.as_view(), name='stockmovement-create'),
+    path('stock/movements/<int:pk>/confirm/', StockMovementConfirmView.as_view(), name='stockmovement-confirm'),
+    
+    # AJAX Views
+    path('ajax/get-locations/', get_locations_for_warehouse, name='get-locations'),
+    path('ajax/get-product-details/', get_product_details, name='get-product-details'),
+
+    # Alert Management
+    path('alerts/', InventoryAlertListView.as_view(), name='alert-list'),
+    path('alerts/<int:pk>/acknowledge/', AcknowledgeAlertView.as_view(), name='acknowledge-alert'),
+    
+    # Barcode Management
+    path('barcodes/', BarcodeListView.as_view(), name='barcode-list'),
+    path('barcodes/add/', BarcodeCreateView.as_view(), name='barcode-create'),
+    path('barcodes/<int:pk>/set-primary/', SetPrimaryBarcodeView.as_view(), name='set-primary-barcode'),
+    
+    # AJAX Views
+    path('ajax/get-product-variants/', get_product_variants, name='get-product-variants'),
+
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  

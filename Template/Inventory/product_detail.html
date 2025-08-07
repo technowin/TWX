@@ -1,0 +1,357 @@
+<!-- inventory/templates/inventory/product_detail.html -->
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'product-list' %}">Products</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-5">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Product Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if product.images.exists %}
+                    <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}" 
+                         class="img-fluid rounded" style="max-height: 250px;">
+                    {% else %}
+                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                         style="height: 250px;">
+                        <span class="text-muted">No image available</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>SKU:</strong>
+                        <p>{{ product.sku }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>UPC/Barcode:</strong>
+                        <p>{{ product.upc|default:"-" }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p>{{ product.description|default:"No description provided" }}</p>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Category:</strong>
+                        <p>
+                            {% if product.category %}
+                            <a href="{% url 'category-detail' slug=product.category.slug %}">
+                                {{ product.category.name }}
+                            </a>
+                            {% else %}
+                            Uncategorized
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Product Type:</strong>
+                        <p>{{ product.get_type_display }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Cost Price:</strong>
+                        <p>${{ product.cost_price }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Selling Price:</strong>
+                        <p>${{ product.selling_price }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Weight:</strong>
+                        <p>{{ product.weight|default:"-" }} kg</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Dimensions:</strong>
+                        <p>{{ product.dimensions|default:"-" }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Status:</strong>
+                    <p>
+                        {% if product.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'product-update' pk=product.pk %}" class="btn btn-primary me-md-2">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'stockentry-create' %}?product={{ product.pk }}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Add Stock
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {% if product.variants.exists %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Product Variants</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Variant</th>
+                                <th>SKU</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for variant in product.variants.all %}
+                            <tr>
+                                <td>{{ variant.name }}: {{ variant.value }}</td>
+                                <td>{{ variant.full_sku }}</td>
+                                <td>${{ variant.final_price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Inventory Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3 class="card-title">{{ total_stock }}</h3>
+                                <p class="card-text">Total Quantity in Stock</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card {% if product.is_low_stock %}bg-danger text-white{% else %}bg-light{% endif %}">
+                            <div class="card-body text-center">
+                                <h3 class="card-title">{{ product.min_stock_level }}</h3>
+                                <p class="card-text">Minimum Stock Level</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3">Stock by Location</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Warehouse</th>
+                                <th>Location</th>
+                                <th class="text-end">Quantity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for location, quantity in stock_by_location.items %}
+                            <tr>
+                                <td>{{ location.warehouse.name }}</td>
+                                <td>{{ location.code }} ({{ location.name }})</td>
+                                <td class="text-end">{{ quantity }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'stockmovement-create' %}?product={{ product.pk }}&from_location={{ location.pk }}" 
+                                           class="btn btn-outline-secondary btn-sm" title="Transfer Out">
+                                            <i class="bi bi-arrow-up"></i>
+                                        </a>
+                                        <a href="{% url 'stockmovement-create' %}?product={{ product.pk }}&to_location={{ location.pk }}" 
+                                           class="btn btn-outline-secondary btn-sm" title="Transfer In">
+                                            <i class="bi bi-arrow-down"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No stock entries found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Movements</h5>
+            </div>
+            <div class="card-body">
+                {% if movements %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th class="text-end">Qty</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movement in movements %}
+                            <tr>
+                                <td>{{ movement.moved_at|date:"SHORT_DATE_FORMAT" }}</td>
+                                <td>{{ movement.get_movement_type_display }}</td>
+                                <td>
+                                    {% if movement.from_location %}
+                                    {{ movement.from_location.warehouse.code }} - {{ movement.from_location.code }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if movement.to_location %}
+                                    {{ movement.to_location.warehouse.code }} - {{ movement.to_location.code }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ movement.quantity }}</td>
+                                <td>
+                                    {% if movement.confirmed %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="#" class="btn btn-sm btn-outline-primary">View All Movements</a>
+                </div>
+                {% else %}
+                <p class="text-muted">No recent movements found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}

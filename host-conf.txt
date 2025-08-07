@@ -187,6 +187,11 @@ python manage.py migrate Checklist
 python manage.py migrate Account
 
 python manage.py startapp MaterialPlan
+
+python manage.py startapp Inventory
+python manage.py makemigrations Inventory
+python manage.py migrate Inventory
+
 curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"
