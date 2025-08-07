@@ -237,7 +237,7 @@
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
-<script src="{% static 'js/manpower.js' %}"></script>
+{% comment %} <script src="{% static 'js/manpower.js' %}"></script> {% endcomment %}
 {% endblock %}
 
 <script>
@@ -267,6 +267,66 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         link.href = `${url.pathname}?${params.toString()}`;
+    });
+});
+</script>
+
+<script>
+document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const name = this.getAttribute('data-name');
+        const url = this.getAttribute('data-url');
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You are about to delete ${name}.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                console.log('Attempting to delete at URL:', url);
+                
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    data: {
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(data) {
+                        console.log('Delete response:', data);
+                        if (data.success) {
+                            // Simply redirect or reload without showing success message
+                            if (data.redirect_url) {
+                                window.location.href = data.redirect_url;
+                            } else {
+                                window.location.reload();
+                            }
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                data.error || 'Deletion failed.',
+                                'error'
+                            );
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Delete error:', error);
+                        Swal.fire(
+                            'Error!',
+                            'There was a problem with the request: ' + error,
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
     });
 });
 </script>
