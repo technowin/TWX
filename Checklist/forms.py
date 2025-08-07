@@ -3,11 +3,52 @@ from .models import Checklist, ChecklistDocument
 from django.core.validators import FileExtensionValidator
 
 class ChecklistForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add Bootstrap classes to all fields
+        for field_name, field in self.fields.items():
+            if field_name in ['risk', 'status']:
+                # Special handling for select fields
+                field.widget.attrs.update({
+                    'class': 'form-select',
+                    'data-bs-theme': 'auto'
+                })
+            elif isinstance(field.widget, forms.Textarea):
+                # Textarea fields
+                field.widget.attrs.update({
+                    'class': 'form-control',
+                    'data-bs-theme': 'auto',
+                    'rows': 3,
+                    'style': 'min-height: 100px;'
+                })
+            else:
+                # Regular input fields
+                field.widget.attrs.update({
+                    'class': 'form-control',
+                    'data-bs-theme': 'auto'
+                })
+
     class Meta:
         model = Checklist
-        fields = ['type', 'task', 'description', 'risk']
+        fields = ['type', 'task', 'description', 'risk', 'observation', 'recommendation', 'status']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
+            'description': forms.Textarea(),
+            'observation': forms.Textarea(),
+            'recommendation': forms.Textarea(),
+        }
+        labels = {
+            'type': 'Checklist Type',
+            'task': 'Task/Requirement',
+            'description': 'Description',
+            'risk': 'Risk Level',
+            'observation': 'Observations',
+            'recommendation': 'Recommendations',
+            'status': 'Compliance Status'
+        }
+        help_texts = {
+            'type': 'The category or type of compliance requirement',
+            'risk': 'Select the appropriate risk level',
+            'status': 'Current compliance status'
         }
 
 class ChecklistDocumentForm(forms.ModelForm):

@@ -185,3 +185,19 @@ def groupby_type(items):
 @register.filter
 def increment(value):
     return value + 1
+
+@register.filter(name='custom_truncate')
+def custom_truncate(value, arg=50):
+    if value is None:
+        return ''
+    
+    try:
+        length = int(arg)
+    except ValueError:
+        return value  # return original if arg is not an integer
+
+    value = str(value)  # in case it's not a string
+
+    if len(value) > length:
+        return value[:length] + '...'
+    return value

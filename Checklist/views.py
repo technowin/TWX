@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
@@ -51,6 +52,60 @@ class ChecklistListView(ListView):
         context['selected_risk'] = self.request.GET.get('risk', '')
         return context
 
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import google.generativeai as genai
+
+@csrf_exempt
+@require_POST
+def get_observ(request):
+    try:
+        data = json.loads(request.body)
+        
+        # Extract fields from the request
+        status = data.get('status', '')
+        type_ = data.get('type', '')
+        task = data.get('task', '')
+        description = data.get('description', '')
+
+        # Prepare the prompt in a meaningful format
+        prompt_base = (
+            f"Audit Type: {type_}\n"
+            f"Task: {task}\n"
+            f"Description: {description}\n"
+        )
+
+        genai.configure(api_key='AIzaSyAJWKnoo45JeoQxcwD5R8RUatPUZmVhEMU')
+        model = genai.GenerativeModel('models/gemini-2.0-flash')
+
+        # Generate observation
+        observation_prompt = (
+            prompt_base +
+            "Based on the above audit task details, provide a short observation summary. "
+            "Do not include any heading or bullet points. Keep it concise."
+        )
+        obs_response = model.generate_content(observation_prompt)
+        observation = obs_response.text.strip() if hasattr(obs_response, 'text') else ""
+
+        # Generate recommendation
+        recommendation_prompt = (
+            prompt_base +
+            "Based on the above audit task details, provide a short recommendation summary. "
+            "Do not include any heading or bullet points. Keep it concise."
+        )
+        rec_response = model.generate_content(recommendation_prompt)
+        recommendation = rec_response.text.strip() if hasattr(rec_response, 'text') else ""
+
+        return JsonResponse({
+            'observation': observation,
+            'recommendation': recommendation
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    
 def checklist_documents_view(request, checklist_type):
     documents = ChecklistDocument.objects.filter(checklist_type=checklist_type)
     checklist_items = Checklist.objects.filter(type=checklist_type)

@@ -2,6 +2,8 @@
 
 {% load static %}
 
+{% load custom_filters %}
+
 {% load crispy_forms_tags %}
 
 {% block title %}Compliance Checklist{% endblock %}
@@ -169,6 +171,9 @@
                                         <th class="w-25">Task</th>
                                         <th class="w-50">Description</th>
                                         <th class="w-15">Risk</th>
+                                        {% comment %} <th class="w-15">Observation</th>
+                                        <th class="w-15">Recommendation</th> {% endcomment %}
+                                        <th class="w-15">Status</th>
                                         <th class="w-10 text-end">Actions</th>
                                     </tr>
                                 </thead>
@@ -201,6 +206,54 @@
                                                 {{ item.risk }}
                                             </span>
                                         </td>
+                                        {% comment %} <!-- Observation -->
+                                        <td>
+                                            <span class="d-inline-block text-truncate" style="max-width: 150px;" 
+                                                  data-bs-toggle="tooltip" title="{{ item.observation }}">
+                                                {{ item.observation|custom_truncate:50 }}
+                                            </span>
+                                        </td>
+
+                                        <!-- Recommendation -->
+                                        <td>
+                                            <span class="d-inline-block text-truncate" style="max-width: 150px;" 
+                                                  data-bs-toggle="tooltip" title="{{ item.recommendation }}">
+                                                {{ item.recommendation|custom_truncate:50 }}
+                                            </span>
+                                        </td> {% endcomment %}
+
+
+                                        <td>
+                                            <span class="badge rounded-pill py-2 px-3 
+                                                {% if item.status == 'Open' %}bg-primary
+                                                {% elif item.status == 'Compliant' %}bg-success
+                                                {% elif item.status == 'Not Compliant' %}bg-danger
+                                                {% elif item.status == 'Compliant But Delayed' %}bg-warning text-dark
+                                                {% elif item.status == 'Rejected' %}bg-danger
+                                                {% elif item.status == 'Not Applicable' %}bg-secondary
+                                                {% elif item.status == 'Partially Compliant' %}bg-info text-dark
+                                                {% elif item.status == 'Escalated' %}bg-dark
+                                                {% elif item.status == 'Closed' %}bg-success
+                                                {% else %}bg-light text-dark
+                                                {% endif %}">
+
+                                                <i class="bi 
+                                                    {% if item.status == 'Open' %}bi-hourglass-split
+                                                    {% elif item.status == 'Compliant' %}bi-check-circle
+                                                    {% elif item.status == 'Not Compliant' %}bi-x-circle
+                                                    {% elif item.status == 'Compliant But Delayed' %}bi-clock-history
+                                                    {% elif item.status == 'Rejected' %}bi-slash-circle
+                                                    {% elif item.status == 'Not Applicable' %}bi-dash-circle
+                                                    {% elif item.status == 'Partially Compliant' %}bi-pie-chart
+                                                    {% elif item.status == 'Escalated' %}bi-arrow-up-circle
+                                                    {% elif item.status == 'Closed' %}bi-check2-circle
+                                                    {% else %}bi-question-circle
+                                                    {% endif %} me-1"></i>
+
+                                                {{ item.status }}
+                                            </span>
+                                        </td>
+
                                         <td class="text-end">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <a href="{% url 'checklist_edit' item.pk %}" class="btn btn-outline-primary"
