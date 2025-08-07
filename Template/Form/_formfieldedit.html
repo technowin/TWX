@@ -260,7 +260,7 @@
                                                         <div style="font-size:18px;" class="form-check me-2">
                                                             <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
                                                                 {% if option == field.value %} checked {% endif %}
-
+                                                                 {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}
                                                                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                                                             <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
                                                         </div>
