@@ -9,10 +9,23 @@ class Checklist(models.Model):
         ('High', 'High'),
         ('Critical', 'Critical'),
     ]
-    
+    STATUS_CHOICES = [
+        ('Open', 'Open'),
+        ('Compliant', 'Compliant'),
+        ('Not Compliant', 'Not Compliant'),
+        ('Compliant But Delayed', 'Compliant But Delayed'),
+        ('Rejected', 'Rejected'),
+        ('Not Applicable', 'Not Applicable'),
+        ('Partially Compliant', 'Partially Compliant'),
+        ('Escalated', 'Escalated'),
+        ('Closed', 'Closed'),
+    ]
     type = models.CharField(max_length=100)
     task = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
+    observation = models.TextField(null=True, blank=True)
+    recommendation = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, null=True, blank=True)
     risk = models.CharField(max_length=10, choices=RISK_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

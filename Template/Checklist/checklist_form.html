@@ -36,18 +36,46 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
-
 {% block content %}
 <div class="card shadow mt-3">
-    <div class="card-header ">
+    <div class="card-header">
         <h3 class="mb-0">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Checklist Item</h3>
     </div>
     
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="checklistForm">
             {% csrf_token %}
-            {{ form|crispy }}
             
+            <!-- First row with two fields -->
+            <div class="row">
+                <div class="col-md-4">
+                    {{ form.type|as_crispy_field }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.task|as_crispy_field }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.description|as_crispy_field }}
+                </div>
+            </div>
+            <!-- Second row with two fields -->
+            <div class="row">
+                <div class="col-md-6">
+                    {{ form.risk|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.status|as_crispy_field }}
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6">
+                     {{ form.observation|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.recommendation|as_crispy_field }}
+                </div>
+            </div>
+          
             <div class="d-flex justify-content-between mt-4">
                 <a href="{% url 'checklist_list' %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Cancel
@@ -59,6 +87,7 @@
         </form>
     </div>
 </div>
+
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
@@ -85,6 +114,86 @@
     });
   </script>
 {% endif %}
+
+
+<!-- Add this JavaScript at the end of your template -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusField = document.querySelector('#id_status');
+    const observationField = document.querySelector('#id_observation');
+    const recommendationField = document.querySelector('#id_recommendation');
+    const form = document.querySelector('#checklistForm');
+    
+    if (statusField) {
+        statusField.addEventListener('change', function() {
+            var status = $("#id_status").val();
+            if(status != "Compliant")
+            {
+              // Get all form data
+              const formData = new FormData(form);
+              
+              // Convert to JSON
+              const jsonData = {};
+              formData.forEach((value, key) => {
+                  jsonData[key] = value;
+              });
+
+              // Make AJAX request
+              fetch("{% url 'get_observ' %}", {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': '{{ csrf_token }}'
+                  },
+                  body: JSON.stringify(jsonData)
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.observation) {
+                      observationField.value = data.observation;
+                  }
+                  if (data.recommendation) {
+                      recommendationField.value = data.recommendation;
+                  }
+              })
+              .catch(error => console.error('Error:', error));
+            }
+        });
+    }
+});
+</script>
+
+<script type="text/javascript">
+  function change_status(id,text) {
+    debugger;
+    var status = $("#status_" + id).val();
+    const status_element = document.getElementById("action_has_"+id);
+    
+    if(status == "Open")
+    {
+     status_element.style.backgroundColor = "red";
+    }
+    else {
+     status_element.style.backgroundColor = "green";
+    }
+   if(status != "Compliant")
+   {
+    $.ajax({
+      type: "GET",
+      url: "get_observ",
+      data: {'text': text},
+      beforeSend: function () {},
+      success: function (data) {
+        if (data.result === "success") {
+          $("#observation_" + id).val(data.observation);
+          $("#recommendation_" + id).val(data.recommendation);
+        }
+      },
+      error: function (res) {},
+    });
+   }
+  }
+</script>
 
 {% endblock %}
 

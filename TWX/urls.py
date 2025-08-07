@@ -181,6 +181,7 @@ urlpatterns = [
     # Bulk Upload URLs
     path('bulk-upload-checklist/', bulk_upload_checklist, name='bulk_upload_checklist'),
     path('bulk-upload-documents/', bulk_upload_documents, name='bulk_upload_documents'),
+    path('get_observ/', get_observ, name='get_observ'),
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  
