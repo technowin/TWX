@@ -312,10 +312,101 @@ class ChatBotView(View):
     
 
         
-    def _handle_contact_collection(self, request, input_text,language_code):
+    # def _handle_contact_collection(self, request, input_text,language_code):
+    #     """Handle phone and email collection flow with language support"""
+    #     session = request.session
+    #     # language_code = session.get('language', 'mr')
+    #     language = Language.objects.get(code=language_code)
+
+    #     # Clean the input - remove all non-digit characters for phone
+    #     cleaned_input = re.sub(r'\D', '', input_text) if input_text else ''
+        
+    #     # PHONE NUMBER COLLECTION
+    #     if 'awaiting_phone' not in session and 'phone' not in session:
+    #         session['awaiting_phone'] = True
+    #         return JsonResponse({
+    #             'response': self._translate_text(
+    #                 "Please enter your 10-digit Indian phone number:",
+    #                 language.code
+    #             ),
+    #             'collecting_contact': True,
+    #             'awaiting_input': 'phone'
+    #         })
+        
+    #     if 'awaiting_phone' in session and 'phone' not in session:
+    #         # Validate Indian phone number
+    #         if not re.match(r'^[6-9]\d{9}$', cleaned_input):
+    #             return JsonResponse({
+    #                 'response': self._translate_text(
+    #                     "Please enter a valid 10-digit Indian phone number (should start with 6-9):",
+    #                     language.code
+    #                 ),
+    #                 'collecting_contact': True,
+    #                 'awaiting_input': 'phone'
+    #             })
+            
+    #         session['phone'] = cleaned_input
+    #         session.pop('awaiting_phone', None)
+    #         session['awaiting_email'] = True
+    #         return JsonResponse({
+    #             'response': self._translate_text(
+    #                 "Thank you. Now please enter your email address:",
+    #                 language.code
+    #             ),
+    #             'collecting_contact': True,
+    #             'awaiting_input': 'email'
+    #         })
+        
+    #     # EMAIL COLLECTION
+    #     if 'awaiting_email' in session and 'email' not in session:
+    #         # Email validation should be in English only
+    #         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', input_text):
+    #             return JsonResponse({
+    #                 'response': self._translate_text(
+    #                     "Please enter a valid email address (e.g. example@gmail.com):",
+    #                     language.code
+    #                 ),
+    #                 'collecting_contact': True,
+    #                 'awaiting_input': 'email'
+    #             })
+            
+    #         try:
+    #             chat_session = ChatSession.objects.create(
+    #                 phone_number=session['phone'],
+    #                 email=input_text,
+    #                 language=language.code
+    #             )
+                
+    #             # Clear collection flags and set completion flag
+    #             session.pop('awaiting_email', None)
+    #             session['collected_contact'] = True
+    #             session['chat_session_id'] = chat_session.id
+                
+    #             welcome_msg = self._translate_text(
+    #                 "Thank you! How can I assist you today?",
+    #                 language.code
+    #             )
+                
+    #             return JsonResponse({
+    #                 'response': welcome_msg,
+    #                 'show_menu': True,
+    #                 'menu_options': self._get_menu_options(language, None),  # Main menu
+    #                 'selected_language': language.code
+    #             })
+                
+    #         except Exception as e:
+    #             print(f"Error saving contact: {str(e)}")
+    #             return JsonResponse({
+    #                 'response': self._translate_text(
+    #                     "We encountered an error. Please start again.",
+    #                     language.code
+    #                 ),
+    #                 'reset_contact': True
+    #             })
+
+    def _handle_contact_collection(self, request, input_text, language_code):
         """Handle phone and email collection flow with language support"""
         session = request.session
-        # language_code = session.get('language', 'mr')
         language = Language.objects.get(code=language_code)
 
         # Clean the input - remove all non-digit characters for phone
@@ -371,6 +462,70 @@ class ChatBotView(View):
                 })
             
             try:
+                # Check for previous sessions with this phone and email
+                previous_sessions = ChatSession.objects.filter(
+                    phone_number=session['phone'],
+                    email=input_text
+                ).order_by('-created_at')
+                
+                summary_response = ""
+                
+                if previous_sessions.exists():
+                    # Get the most recent session
+                    latest_session = previous_sessions.first()
+                    
+                    # Get all chat logs for this session
+                    previous_chats = ChatLog.objects.filter(
+                        session_id=latest_session.id
+                    ).order_by('timestamp')
+                    
+                    if previous_chats.exists():
+                        # Prepare conversation history for summary
+                        conversation_history = "\n".join(
+                            [f"{'User' if chat.user_input else 'Bot'}: {chat.bot_response}" 
+                            for chat in previous_chats]
+                        )
+                        
+                        # Language mapping for Gemini prompt
+                        LANGUAGE_NAMES = {
+                            'hi': 'Hindi',
+                            'mr': 'Marathi',
+                            'gu': 'Gujarati',
+                            'ur': 'Urdu',
+                            'bn': 'Bengali',
+                            'ta': 'Tamil',
+                            'te': 'Telugu',
+                            'kn': 'Kannada',
+                            'ml': 'Malayalam',
+                            'pa': 'Punjabi',
+                            'en': 'English'
+                        }
+                        
+                        # Generate summary prompt in the selected language
+                        summary_prompt = f"""
+                        Please provide a concise summary (2-3 sentences) in {LANGUAGE_NAMES.get(language_code, 'English')} 
+                        of this conversation history. Important instructions:
+                        1. Keep the summary brief and relevant
+                        2. Maintain context of the conversation
+                        3. Return ONLY the summary text in the requested language
+                        4. Use appropriate script for the language
+                        5. Never add explanations or notes
+                        
+                        Conversation History:
+                        {conversation_history}
+                        """
+                        
+                        # Get summary from Gemini
+                        model = genai.GenerativeModel('gemini-2.0-flash')
+                        response = model.generate_content(summary_prompt)
+                        summary_response = response.text.strip('"\'').strip()
+                        
+                        # Remove common response prefixes if any
+                        for prefix in ["Summary:", "Here's the summary:", "Conversation summary:"]:
+                            if summary_response.startswith(prefix):
+                                summary_response = summary_response[len(prefix):].strip()
+                
+                # Create new chat session
                 chat_session = ChatSession.objects.create(
                     phone_number=session['phone'],
                     email=input_text,
@@ -385,10 +540,16 @@ class ChatBotView(View):
                 welcome_msg = self._translate_text(
                     "Thank you! How can I assist you today?",
                     language.code
+                ) + (f"\n\n{summary_response}" if summary_response else "")
+                
+                # Add the "Do you want to talk about more?" prompt before menu
+                menu_prompt = self._translate_text(
+                    "Do you want to talk about more? Please choose from below:",
+                    language.code
                 )
                 
                 return JsonResponse({
-                    'response': welcome_msg,
+                    'response': f"{welcome_msg}\n\n{menu_prompt}",
                     'show_menu': True,
                     'menu_options': self._get_menu_options(language, None),  # Main menu
                     'selected_language': language.code
@@ -403,7 +564,7 @@ class ChatBotView(View):
                     ),
                     'reset_contact': True
                 })
-     
+        
 
     def _handle_menu_selection(self, menu_option, language):
         """Process menu selection with 'Any Other Query' option in every response"""

@@ -79,9 +79,8 @@ body{
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
         <!-- Sidebar -->
-        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+        {% comment %} <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
             <div class="position-sticky pt-3">
                 <ul class="nav flex-column">
                     <li class="nav-item">
@@ -137,10 +136,10 @@ body{
                     </li>
                 </ul>
             </div>
-        </nav>
+        </nav> {% endcomment %}
 
         <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        {% comment %} <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"> {% endcomment %}
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Machine Planning Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
@@ -262,7 +261,7 @@ body{
                         </div>
                     </div>
                 </div>
-            </div>
+            {% comment %} </div> {% endcomment %}
 
             <div class="row mb-4">
                 <div class="col-md-12">
@@ -277,7 +276,7 @@ body{
                 </div>
             </div>
 
-        </main>
+        {% comment %} </main> {% endcomment %}
     </div>
 </div>
 
