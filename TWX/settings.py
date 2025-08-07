@@ -79,7 +79,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 3600  # 1-hour session timeout
+# SESSION_COOKIE_AGE = 3600  # 1-hour session timeout
+
+SESSION_COOKIE_AGE = 1209600    # 1-hour session timeout
+SESSION_SAVE_EVERY_REQUEST = True
 # Clickjacking Protection
 # X_FRAME_OPTIONS = 'DENY'
 
@@ -153,7 +156,8 @@ LOCAL_APPS = [
     'BookMetadata',
     'Manpower',
     'ChatModal',
-    'Checklist'
+    'Checklist',
+    'Inventory'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
