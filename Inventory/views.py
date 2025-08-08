@@ -536,6 +536,7 @@ from django.db.models import Sum, Count, F, Q, ExpressionWrapper, DecimalField
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.decorators import login_required
+from django.db.models import Value
 
 @login_required
 def inventory_dashboard(request):
@@ -590,13 +591,23 @@ def inventory_dashboard(request):
     
     # Warehouse Stock Levels
     warehouse_stock = Warehouse.objects.annotate(
-        total_items=Coalesce(Sum('locations__stock_entries__quantity'), 0),
-        total_value=Coalesce(Sum(
-            F('locations__stock_entries__quantity') * 
-            F('locations__stock_entries__product__cost_price')
-        ), 0)
+        total_items=Coalesce(
+            Sum('locations__stock_entries__quantity', output_field=DecimalField()),
+            Value(0, output_field=DecimalField())
+        ),
+        total_value=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F('locations__stock_entries__quantity') * 
+                    F('locations__stock_entries__product__cost_price'),
+                    output_field=DecimalField()
+                )
+            ),
+            Value(0, output_field=DecimalField())
+        )
     ).order_by('-total_value')[:5]
-    
+
+
     # Expiring Stock (next 30 days)
     expiring_soon = StockEntry.objects.filter(
         expiry_date__gte=timezone.now().date(),
