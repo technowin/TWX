@@ -227,9 +227,10 @@ urlpatterns = [
 
      # Category Management
     path('categories/', CategoryListView.as_view(), name='category-list'),
-    path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
     path('categories/add/', CategoryCreateView.as_view(), name='category-create'),
     path('categories/<slug:slug>/edit/', CategoryUpdateView.as_view(), name='category-update'),
+    path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
+
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
