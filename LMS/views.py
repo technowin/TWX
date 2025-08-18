@@ -34,7 +34,7 @@ def register_view(request):
     else:
         form = CustomUserCreationForm()
     
-    return render(request, 'accounts/register.html', {'form': form})
+    return render(request, 'LMS/accounts/register.html', {'form': form})
 
 def login_view(request):
     if request.method == 'POST':
@@ -50,7 +50,7 @@ def login_view(request):
     else:
         form = LoginForm()
     
-    return render(request, 'accounts/login.html', {'form': form})
+    return render(request, 'LMS/accounts/login.html', {'form': form})
 
 @login_required
 def profile_view(request):
@@ -63,7 +63,7 @@ def profile_view(request):
     else:
         form = ProfileForm(instance=request.user)
     
-    return render(request, 'accounts/profile.html', {'form': form})
+    return render(request, 'LMS/accounts/profile.html', {'form': form})
 
 @login_required
 def logout_view(request):
@@ -82,7 +82,7 @@ from .models import Course, Module, Lesson, Resource
 
 class CourseListView(ListView):
     model = Course
-    template_name = 'courses/course_list.html'
+    template_name = 'LMS/courses/course_list.html'
     context_object_name = 'courses'
     paginate_by = 9
     
@@ -109,7 +109,7 @@ class CourseListView(ListView):
 
 class CourseDetailView(DetailView):
     model = Course
-    template_name = 'courses/course_detail.html'
+    template_name = 'LMS/courses/course_detail.html'
     context_object_name = 'course'
     
     def get_context_data(self, **kwargs):
@@ -127,7 +127,7 @@ class CourseDetailView(DetailView):
 class CourseCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Course
     form_class = CourseForm
-    template_name = 'courses/course_form.html'
+    template_name = 'LMS/courses/course_form.html'
     success_url = reverse_lazy('course_list')
     
     def test_func(self):
@@ -140,7 +140,7 @@ class CourseCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 class CourseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Course
     form_class = CourseForm
-    template_name = 'courses/course_form.html'
+    template_name = 'LMS/courses/course_form.html'
     
     def test_func(self):
         return self.request.user == self.get_object().instructor or self.request.user.is_superuser
@@ -151,7 +151,7 @@ class CourseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 class ModuleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Module
     form_class = ModuleForm
-    template_name = 'courses/module_form.html'
+    template_name = 'LMS/courses/module_form.html'
     
     def test_func(self):
         course = Course.objects.get(slug=self.kwargs['slug'])
@@ -174,7 +174,7 @@ class ModuleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 class LessonCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Lesson
     form_class = LessonForm
-    template_name = 'courses/lesson_form.html'
+    template_name = 'LMS/courses/lesson_form.html'
     
     def test_func(self):
         module = Module.objects.get(id=self.kwargs['module_id'])
@@ -198,7 +198,7 @@ class LessonCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 class ResourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Resource
     form_class = ResourceForm
-    template_name = 'courses/resource_form.html'
+    template_name = 'LMS/courses/resource_form.html'
     
     def test_func(self):
         lesson = Lesson.objects.get(id=self.kwargs['lesson_id'])
@@ -280,7 +280,7 @@ def enroll_course(request, slug):
         messages.success(request, 'You have successfully enrolled in this course!')
         return redirect('course_learning', slug=slug)
     
-    return render(request, 'enrollment/enroll_confirm.html', {'course': course})
+    return render(request, 'LMS/enrollment/enroll_confirm.html', {'course': course})
 
 @login_required
 def course_learning(request, slug):
@@ -317,7 +317,7 @@ def course_learning(request, slug):
         'progress': enrollment.progress,
     }
     
-    return render(request, 'enrollment/course_learning.html', context)
+    return render(request, 'LMS/enrollment/course_learning.html', context)
 
 @login_required
 def lesson_detail(request, slug, module_id, lesson_id):
@@ -362,7 +362,7 @@ def lesson_detail(request, slug, module_id, lesson_id):
         'progress': enrollment.progress,
     }
     
-    return render(request, 'enrollment/lesson_detail.html', context)
+    return render(request, 'LMS/enrollment/lesson_detail.html', context)
 
 @login_required
 def corporate_enrollment_requests(request):
@@ -378,7 +378,7 @@ def corporate_enrollment_requests(request):
         'requests': requests,
     }
     
-    return render(request, 'enrollment/corporate_requests.html', context)
+    return render(request, 'LMS/enrollment/corporate_requests.html', context)
 
 @login_required
 def process_corporate_request(request, request_id, action):
@@ -444,7 +444,7 @@ def cart_view(request):
         'subtotal': total - discount,
     }
     
-    return render(request, 'payment/cart.html', context)
+    return render(request, 'LMS/payment/cart.html', context)
 
 @login_required
 def add_to_cart(request, slug):
@@ -612,7 +612,7 @@ def checkout(request):
             'order_id': order.id,
         }
         
-        return render(request, 'payment/checkout.html', context)
+        return render(request, 'LMS/payment/checkout.html', context)
     
     context = {
         'courses': courses,
@@ -624,7 +624,7 @@ def checkout(request):
         'user': request.user,
     }
     
-    return render(request, 'payment/checkout_review.html', context)
+    return render(request, 'LMS/payment/checkout_review.html', context)
 
 @csrf_exempt
 def razorpay_callback(request):
@@ -690,11 +690,11 @@ def razorpay_callback(request):
 @login_required
 def payment_success(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    return render(request, 'payment/success.html', {'order': order})
+    return render(request, 'LMS/payment/success.html', {'order': order})
 
 @login_required
 def payment_failed(request):
-    return render(request, 'payment/failed.html')
+    return render(request, 'LMS/payment/failed.html')
 
 
 # Learning Experience
@@ -777,7 +777,7 @@ def verify_certificate(request, verification_uuid):
         is_active=True
     )
     
-    return render(request, 'learning/verify_certificate.html', {'certificate': certificate})
+    return render(request, 'LMS/learning/verify_certificate.html', {'certificate': certificate})
 
 @login_required
 def add_note(request, lesson_id):
@@ -803,7 +803,7 @@ def add_note(request, lesson_id):
     else:
         form = NoteForm()
     
-    return render(request, 'learning/add_note.html', {
+    return render(request, 'LMS/learning/add_note.html', {
         'form': form,
         'lesson': lesson,
     })
@@ -849,7 +849,7 @@ def update_bookmark(request, bookmark_id):
     else:
         form = BookmarkForm(instance=bookmark)
     
-    return render(request, 'learning/update_bookmark.html', {
+    return render(request, 'LMS/learning/update_bookmark.html', {
         'form': form,
         'bookmark': bookmark,
     })
@@ -878,7 +878,7 @@ def add_discussion(request, lesson_id):
     else:
         form = DiscussionForm()
     
-    return render(request, 'learning/add_discussion.html', {
+    return render(request, 'LMS/learning/add_discussion.html', {
         'form': form,
         'lesson': lesson,
     })
@@ -920,7 +920,7 @@ def reply_discussion(request, discussion_id):
     else:
         form = ReplyForm()
     
-    return render(request, 'learning/reply_discussion.html', {
+    return render(request, 'LMS/learning/reply_discussion.html', {
         'form': form,
         'parent_discussion': parent_discussion,
         'lesson': lesson,
@@ -999,7 +999,7 @@ User = get_user_model()
 
 @method_decorator(staff_member_required, name='dispatch')
 class AdminDashboardView(TemplateView):
-    template_name = 'admin/dashboard.html'
+    template_name = 'LMS/admin/dashboard.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1066,7 +1066,7 @@ class AdminDashboardView(TemplateView):
 @method_decorator(staff_member_required, name='dispatch')
 class UserManagementView(ListView):
     model = User
-    template_name = 'admin/user_management.html'
+    template_name = 'LMS/admin/user_management.html'
     context_object_name = 'users'
     paginate_by = 20
     
@@ -1117,12 +1117,12 @@ def user_detail(request, user_id):
         'form': form,
     }
     
-    return render(request, 'admin/user_detail.html', context)
+    return render(request, 'LMS/admin/user_detail.html', context)
 
 @method_decorator(staff_member_required, name='dispatch')
 class CourseManagementView(ListView):
     model = Course
-    template_name = 'admin/course_management.html'
+    template_name = 'LMS/admin/course_management.html'
     context_object_name = 'courses'
     paginate_by = 20
     
@@ -1177,7 +1177,7 @@ def enrollment_management(request):
         'courses': Course.objects.all(),
     }
     
-    return render(request, 'admin/enrollment_management.html', context)
+    return render(request, 'LMS/admin/enrollment_management.html', context)
 
 @staff_member_required
 def update_enrollment(request, enrollment_id):
@@ -1197,7 +1197,7 @@ def update_enrollment(request, enrollment_id):
         'enrollment': enrollment,
     }
     
-    return render(request, 'admin/update_enrollment.html', context)
+    return render(request, 'LMS/admin/update_enrollment.html', context)
 
 @staff_member_required
 def corporate_management(request):
@@ -1210,7 +1210,7 @@ def corporate_management(request):
         'companies': companies,
     }
     
-    return render(request, 'admin/corporate_management.html', context)
+    return render(request, 'LMS/admin/corporate_management.html', context)
 
 @staff_member_required
 def company_detail(request, company_id):
@@ -1236,7 +1236,7 @@ def company_detail(request, company_id):
         'form': form,
     }
     
-    return render(request, 'admin/company_detail.html', context)
+    return render(request, 'LMS/admin/company_detail.html', context)
 
 @staff_member_required
 def reports(request):
@@ -1268,7 +1268,7 @@ def reports(request):
         'active_users': active_users,
     }
     
-    return render(request, 'admin/reports.html', context)
+    return render(request, 'LMS/admin/reports.html', context)
 
 
 # Notification 
@@ -1288,7 +1288,7 @@ def notifications_view(request):
             notification.save()
             return JsonResponse({'status': 'success'})
     
-    return render(request, 'notifications/notifications.html', {
+    return render(request, 'LMS/notifications/notifications.html', {
         'notifications': notifications,
         'unread_count': unread_count,
     })
@@ -1324,7 +1324,7 @@ def submit_feedback(request, enrollment_id):
     else:
         form = FeedbackForm()
     
-    return render(request, 'feedback/submit_feedback.html', {
+    return render(request, 'LMS/feedback/submit_feedback.html', {
         'form': form,
         'enrollment': enrollment,
     })
@@ -1354,7 +1354,7 @@ def corporate_enrollment_requests(request):
         'companies': Company.objects.all(),
     }
     
-    return render(request, 'admin/corporate_enrollment_requests.html', context)
+    return render(request, 'LMS/admin/corporate_enrollment_requests.html', context)
 
 @staff_member_required
 def process_corporate_request(request, request_id):
@@ -1396,4 +1396,4 @@ def process_corporate_request(request, request_id):
         'request': enrollment_request,
     }
     
-    return render(request, 'admin/process_corporate_request.html', context)
+    return render(request, 'LMS/admin/process_corporate_request.html', context)
