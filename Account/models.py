@@ -2,6 +2,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
+from LMS.models import Company,Group
 
 class CustomUserManager(BaseUserManager):
     
@@ -22,9 +23,14 @@ class CustomUserManager(BaseUserManager):
         
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
+    username = models.CharField(max_length=255, null=True, blank=True)
     full_name = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=255, null=True, blank=True)
+    last_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15)
+    password1 = models.CharField(max_length=255, null=True, blank=True)
+    password2 = models.CharField(max_length=255, null=True, blank=True)
     first_time_login = models.IntegerField(default=1)  # 1 for True, 0 for False
     last_login = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
@@ -32,6 +38,25 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     device_token = models.CharField(max_length=255, null=True, blank=True)
     file_category = models.TextField(null=True, blank=True)
     module = models.TextField(null=True, blank=True)
+
+    USER_TYPES = (
+        ('INDIVIDUAL', 'Individual Learner'),
+        ('GROUP_LEADER', 'Group Leader'),
+        ('GROUP_TRAINEE', 'Group Trainee'),
+        ('CORPORATE_TRAINEE', 'Corporate Trainee'),
+        ('CORPORATE_APPROVER', 'Corporate Approver'),
+        ('ADMIN', 'Admin'),
+    )
+    
+    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='INDIVIDUAL')
+    company = models.ForeignKey('LMS.Company', on_delete=models.SET_NULL, null=True, blank=True)
+    group = models.ForeignKey('LMS.Group', on_delete=models.SET_NULL, null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    dark_mode = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
+    phone_verified = models.BooleanField(default=False)
+    last_activity = models.DateTimeField(auto_now=True)
+
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name', 'phone']  # Add any additional required fields

@@ -30,6 +30,9 @@ ALLOWED_HOSTS = ['13.232.86.95']
 DEBUG = False
 # DEBUG = True   
 
+# SITE_URL = "http://localhost:8000"  # for local development
+SITE_URL = "http://13.232.86.95"  # for production development
+
 import mimetypes
 mimetypes.add_type("application/javascript", ".mjs")
 
@@ -157,7 +160,8 @@ LOCAL_APPS = [
     'Manpower',
     'ChatModal',
     'Checklist',
-    'Inventory'
+    'Inventory',
+    'LMS'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

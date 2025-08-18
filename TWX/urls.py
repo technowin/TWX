@@ -34,6 +34,7 @@ from BookMetadata.views import *
 
 from Checklist.views import *
 from Inventory.views import *
+from LMS.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
@@ -230,6 +231,79 @@ urlpatterns = [
     path('categories/add/', CategoryCreateView.as_view(), name='category-create'),
     path('categories/<slug:slug>/edit/', CategoryUpdateView.as_view(), name='category-update'),
     path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
+
+    # Learning Management System (LMS)
+    
+    # User Management System
+    path('register/', register_view, name='register'),
+    path('login/', login_view, name='login'),
+    path('profile/', profile_view, name='profile'),
+    path('logout/', logout_view, name='logout'),
+
+    # Course Management
+    path('courses/', CourseListView.as_view(), name='course_list'),
+    path('courses/<slug:slug>/', CourseDetailView.as_view(), name='course_detail'),
+    path('courses/create/', CourseCreateView.as_view(), name='course_create'),
+    path('courses/<slug:slug>/update/', CourseUpdateView.as_view(), name='course_update'),
+    path('courses/<slug:slug>/modules/create/', ModuleCreateView.as_view(), name='module_create'),
+    path('courses/<slug:slug>/modules/<int:module_id>/lessons/create/', 
+         LessonCreateView.as_view(), name='lesson_create'),
+    path('courses/<slug:slug>/resources/create/', 
+         ResourceCreateView.as_view(), name='resource_create'),
+
+    # Enrollment & Access Control
+    path('courses/<slug:slug>/enroll/', enroll_course, name='enroll_course'),
+    path('learning/<slug:slug>/', course_learning, name='course_learning'),
+    path('learning/<slug:slug>/modules/<int:module_id>/lessons/<int:lesson_id>/', 
+         lesson_detail, name='lesson_detail'),
+    path('corporate/enrollment-requests/', 
+         corporate_enrollment_requests, name='corporate_enrollment_requests'),
+    path('corporate/enrollment-requests/<int:request_id>/<str:action>/', 
+         process_corporate_request, name='process_corporate_request'),
+
+    # Payment & Subscription
+    path('cart/', cart_view, name='cart'),
+    path('cart/add/<slug:slug>/', add_to_cart, name='add_to_cart'),
+    path('cart/remove/<slug:slug>/', remove_from_cart, name='remove_from_cart'),
+    path('cart/apply-coupon/', apply_coupon, name='apply_coupon'),
+    path('cart/remove-coupon/', remove_coupon, name='remove_coupon'),
+    path('checkout/', checkout, name='checkout'),
+    path('razorpay/callback/', razorpay_callback, name='razorpay_callback'),
+    path('payment/success/<str:order_id>/', payment_success, name='payment_success'),
+    path('payment/failed/', payment_failed, name='payment_failed'),
+
+    # Learning Experience
+    path('certificate/<int:enrollment_id>/', 
+         generate_certificate, name='generate_certificate'),
+    path('certificate/verify/<uuid:verification_uuid>/', 
+         verify_certificate, name='verify_certificate'),
+    path('lessons/<int:lesson_id>/notes/add/', add_note, name='add_note'),
+    path('lessons/<int:lesson_id>/bookmark/', toggle_bookmark, name='toggle_bookmark'),
+    path('bookmarks/<int:bookmark_id>/update/', update_bookmark, name='update_bookmark'),
+    path('lessons/<int:lesson_id>/discussion/add/', 
+         add_discussion, name='add_discussion'),
+    path('discussions/<int:discussion_id>/reply/', 
+         reply_discussion, name='reply_discussion'),
+    path('discussions/<int:discussion_id>/vote/<str:vote_type>/', 
+         vote_discussion, name='vote_discussion'),
+    path('discussions/<int:discussion_id>/resolve/', 
+         mark_resolved, name='mark_resolved'),
+
+    # Admin Interface
+    path('admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+    path('admin/users/', UserManagementView.as_view(), name='admin_user_management'),
+    path('admin/users/<int:user_id>/', user_detail, name='admin_user_detail'),
+    path('admin/courses/', CourseManagementView.as_view(), name='admin_course_management'),
+    path('admin/enrollments/', enrollment_management, name='admin_enrollment_management'),
+    path('admin/enrollments/<int:enrollment_id>/update/', 
+         update_enrollment, name='admin_update_enrollment'),
+    path('admin/corporate/', corporate_management, name='admin_corporate_management'),
+    path('admin/companies/<int:company_id>/', 
+         company_detail, name='admin_company_detail'),
+    path('admin/reports/', reports, name='admin_reports'),
+    path('admin/notifications/', notifications_view, name='admin_notifications'),
+    path('admin/feedback/<int:enrollment_id>/', 
+         submit_feedback, name='admin_submit_feedback'), 
 
 
     # Form 

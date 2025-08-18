@@ -1,0 +1,357 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Overview</li>
+    </ol>
+    
+    <div class="row">
+        <!-- Stats Cards -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Total Users</h6>
+                            <h2 class="mt-2">{{ total_users }}</h2>
+                        </div>
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'admin_user_management' %}">View Details</a>
+                    <div class="small text-white"><i class="bi bi-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Total Courses</h6>
+                            <h2 class="mt-2">{{ total_courses }}</h2>
+                        </div>
+                        <i class="bi bi-journal-bookmark fs-1"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'admin_course_management' %}">View Details</a>
+                    <div class="small text-white"><i class="bi bi-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Total Enrollments</h6>
+                            <h2 class="mt-2">{{ total_enrollments }}</h2>
+                        </div>
+                        <i class="bi bi-clipboard-check fs-1"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-dark stretched-link" href="{% url 'admin_enrollment_management' %}">View Details</a>
+                    <div class="small text-dark"><i class="bi bi-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Total Revenue</h6>
+                            <h2 class="mt-2">₹{{ total_revenue|floatformat:2 }}</h2>
+                        </div>
+                        <i class="bi bi-currency-rupee fs-1"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'admin_reports' %}">View Details</a>
+                    <div class="small text-white"><i class="bi bi-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Enrollment Stats -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart me-1"></i>
+                    Enrollment Types
+                </div>
+                <div class="card-body">
+                    <canvas id="enrollmentChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Completion Stats -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-pie-chart me-1"></i>
+                    Course Completion
+                </div>
+                <div class="card-body">
+                    <canvas id="completionChart" width="100%" height="40"></canvas>
+                    <div class="text-center mt-3">
+                        <span class="me-3"><i class="bi bi-square-fill text-success me-1"></i> Completed: {{ completion_stats.completed }}</span>
+                        <span><i class="bi bi-square-fill text-primary me-1"></i> In Progress: {{ completion_stats.in_progress }}</span>
+                    </div>
+                    <div class="text-center mt-2">
+                        <strong>Overall Completion Rate: {{ completion_stats.completion_rate }}%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Users -->
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-people me-1"></i>
+                    Recent Users
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for user in recent_users %}
+                        <a href="{% url 'admin_user_detail' user.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ user.profile_picture.url|default:'/static/images/default-profile.png' }}" 
+                                     class="rounded-circle me-3" width="40" height="40" alt="{{ user.get_full_name }}">
+                                <div>
+                                    <h6 class="mb-0">{{ user.get_full_name }}</h6>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Payments -->
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-currency-rupee me-1"></i>
+                    Recent Payments
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for payment in recent_payments %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">₹{{ payment.amount }}</h6>
+                                    <small class="text-muted">{{ payment.payment_method }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <small>{{ payment.completed_at|date:"M j" }}</small>
+                                    <div class="badge bg-success">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Courses -->
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-journal-bookmark me-1"></i>
+                    Recent Courses
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for course in recent_courses %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ course.thumbnail.url }}" class="rounded me-3" width="50" height="50" alt="{{ course.title }}">
+                                <div>
+                                    <h6 class="mb-0">{{ course.title }}</h6>
+                                    <small class="text-muted">{{ course.instructor.get_full_name }}</small>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enrollment Chart
+    const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+    const enrollmentChart = new Chart(enrollmentCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Individual', 'Corporate', 'Group'],
+            datasets: [{
+                label: 'Enrollments by Type',
+                data: [
+                    {{ enrollment_stats.individual }},
+                    {{ enrollment_stats.corporate }},
+                    {{ enrollment_stats.group }}
+                ],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(255, 206, 86, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Completion Chart
+    const completionCtx = document.getElementById('completionChart').getContext('2d');
+    const completionChart = new Chart(completionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'In Progress'],
+            datasets: [{
+                data: [
+                    {{ completion_stats.completed }},
+                    {{ completion_stats.in_progress }}
+                ],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(13, 110, 253, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(13, 110, 253, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
