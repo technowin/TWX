@@ -57,7 +57,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email_verified = models.BooleanField(default=False)
     phone_verified = models.BooleanField(default=False)
     last_activity = models.DateTimeField(auto_now=True)
-
+    date_joined = models.DateTimeField(auto_now=True)
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name', 'phone']  # Add any additional required fields
@@ -69,6 +69,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     
     def get_full_name(self):
         return f"{self.full_name}".strip()
+    
+    @property
+    def profile_picture_url(self):
+        if self.profile_picture and hasattr(self.profile_picture, 'url'):
+            return self.profile_picture.url
+        return '/static/images/user.png'
 
 class roles(models.Model):
     id = models.AutoField(primary_key=True)

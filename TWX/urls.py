@@ -40,7 +40,7 @@ urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
 
-    path('admin/', admin.site.urls),
+#     path('admin/', admin.site.urls),
     # User management
     # path("users/", include("bootstrap.users.urls", namespace="users")),
     # Your stuff: custom urls includes go here

@@ -210,3 +210,8 @@ def days_left(value):
         return None
     delta = value - date.today()
     return delta.days
+
+@register.filter
+def get_item(dictionary, key):
+    """Custom template filter to get a dictionary value by key"""
+    return dictionary.get(str(key))

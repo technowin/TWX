@@ -253,7 +253,7 @@ def enroll_course(request, slug):
             )
             
             # Notify approvers
-            approvers = User.objects.filter(
+            approvers = CustomUser.objects.filter(
                 company=request.user.company,
                 user_type='CORPORATE_APPROVER'
             )
@@ -1007,7 +1007,7 @@ class AdminDashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
 
         # Total counts (fewer queries)
-        total_users = User.objects.count()
+        total_users = CustomUser.objects.count()
         total_courses = Course.objects.count()
         total_enrollments = Enrollment.objects.count()
         total_revenue = Payment.objects.filter(status='COMPLETED').aggregate(
@@ -1015,7 +1015,7 @@ class AdminDashboardView(TemplateView):
         )['total'] or 0
 
         # Recent activity (limit to 5 each)
-        recent_users = User.objects.order_by('-date_joined')[:5]
+        recent_users = CustomUser.objects.order_by('-date_joined')[:5]
         recent_payments = Payment.objects.filter(
             status='COMPLETED'
         ).select_related('user').order_by('-completed_at')[:5]
@@ -1067,7 +1067,7 @@ class AdminDashboardView(TemplateView):
 
 @method_decorator(staff_member_required, name='dispatch')
 class UserManagementView(ListView):
-    model = User
+    model = CustomUser
     template_name = 'LMS/admin/user_management.html'
     context_object_name = 'users'
     paginate_by = 20
@@ -1094,12 +1094,12 @@ class UserManagementView(ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['user_types'] = User.USER_TYPES
+        context['user_types'] = CustomUser.USER_TYPES
         return context
 
 @staff_member_required
 def user_detail(request, user_id):
-    user = get_object_or_404(User, id=user_id)
+    user = get_object_or_404(CustomUser, id=user_id)
     enrollments = user.enrollments.select_related('course')
     payments = user.payments.order_by('-created_at')
     
@@ -1175,7 +1175,7 @@ def enrollment_management(request):
     context = {
         'enrollments': enrollments[:50],  # Limit to 50 for performance
         'status_choices': Enrollment.STATUS_CHOICES,
-        'user_types': User.USER_TYPES,
+        'user_types': CustomUser.USER_TYPES,
         'courses': Course.objects.all(),
     }
     
@@ -1204,9 +1204,10 @@ def update_enrollment(request, enrollment_id):
 @staff_member_required
 def corporate_management(request):
     companies = Company.objects.annotate(
-        user_count=Count('user'),
-        enrollment_count=Count('user__enrollments')
+        user_count=Count('customuser'),
+        enrollment_count=Count('corporateenrollment')
     ).order_by('-user_count')
+
     
     context = {
         'companies': companies,
@@ -1217,8 +1218,8 @@ def corporate_management(request):
 @staff_member_required
 def company_detail(request, company_id):
     company = get_object_or_404(Company, id=company_id)
-    approvers = User.objects.filter(company=company, user_type='CORPORATE_APPROVER')
-    trainees = User.objects.filter(company=company, user_type='CORPORATE_TRAINEE')
+    approvers = CustomUser.objects.filter(company=company, user_type='CORPORATE_APPROVER')
+    trainees = CustomUser.objects.filter(company=company, user_type='CORPORATE_TRAINEE')
     enrollments = CorporateEnrollment.objects.filter(company=company)
     
     if request.method == 'POST':
@@ -1259,7 +1260,7 @@ def reports(request):
     ).filter(total_revenue__gt=0).order_by('-total_revenue')
     
     # User activity report
-    active_users = User.objects.annotate(
+    active_users = CustomUser.objects.annotate(
         enrollment_count=Count('enrollments'),
         last_activity=Max('enrollments__lesson_completions__last_accessed')
     ).order_by('-last_activity')[:10]

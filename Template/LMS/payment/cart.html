@@ -38,6 +38,7 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-8">
@@ -81,15 +82,15 @@
                                     <td>
                                         <div class="input-group" style="width: 120px;">
                                             <button class="btn btn-outline-secondary" type="button">-</button>
-                                            <input type="text" class="form-control text-center" value="{{ cart|get_item:course.id|stringformat:'d' }}">
+                                            <input type="text" class="form-control text-center" value="{{ cart|get_item:course.id }}">
                                             <button class="btn btn-outline-secondary" type="button">+</button>
                                         </div>
                                     </td>
                                     <td>
                                         {% if course.discount_price %}
-                                        ${{ course.discount_price|multiply:cart|get_item:course.id|stringformat:'d' }}
+                                        ${{ course.discount_price|multiply:cart|get_item:course.id }}
                                         {% else %}
-                                        ${{ course.price|multiply:cart|get_item:course.id|stringformat:'d' }}
+                                        ${{ course.price|multiply:cart|get_item:course.id }}
                                         {% endif %}
                                     </td>
                                     <td>
@@ -120,9 +121,10 @@
                 </div>
                 <div class="card-body">
                     <form method="post" action="{% url 'apply_coupon' %}" class="row g-3">
+                        {% csrf_token %}
                         <div class="col-md-8">
                             <input type="text" name="coupon_code" class="form-control" placeholder="Enter coupon code" 
-                                   value="{{ coupon.code if coupon else '' }}">
+                                   value="{% if coupon %}{{ coupon.code }}{% endif %}">
                         </div>
                         <div class="col-md-4">
                             <button type="submit" class="btn btn-primary w-100">Apply Coupon</button>
@@ -179,7 +181,7 @@
                     {% endif %}
                     
                     <div class="text-center mt-3">
-                        <img src="{% static 'images/payment-methods.png' %}" alt="Payment Methods" class="img-fluid" style="max-height: 30px;">
+                        <img src="{% static 'images/payment-methods.png' %}" alt="Payment Methods" class="img-fluid" style="max-height: 40px;">
                     </div>
                 </div>
             </div>
