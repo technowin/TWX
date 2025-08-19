@@ -1442,4 +1442,4 @@ def wishlist_view(request):
     context = {
         'wishlist_courses': wishlist_courses,
     }
-    return render(request, 'courses/wishlist.html', context)
+    return render(request, 'LMS/courses/wishlist.html', context)

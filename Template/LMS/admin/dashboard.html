@@ -167,7 +167,7 @@
                         {% for user in recent_users %}
                         <a href="{% url 'admin_user_detail' user.id %}" class="list-group-item list-group-item-action">
                             <div class="d-flex align-items-center">
-                                <img src="{{ user.profile_picture.url|default:'/static/images/default-profile.png' }}" 
+                                <img src="{{ user.profile_picture.url|default:'/static/images/user.png' }}" 
                                      class="rounded-circle me-3" width="40" height="40" alt="{{ user.get_full_name }}">
                                 <div>
                                     <h6 class="mb-0">{{ user.get_full_name }}</h6>
