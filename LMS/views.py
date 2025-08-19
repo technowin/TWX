@@ -22,6 +22,7 @@ import os
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from datetime import datetime
+from django.views.decorators.http import require_POST
 
 def register_view(request):
     if request.method == 'POST':
@@ -124,12 +125,13 @@ class CourseDetailView(DetailView):
         
         return context
 
-class CourseCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class CourseCreateView(CreateView):
     model = Course
     form_class = CourseForm
     template_name = 'LMS/courses/course_form.html'
     success_url = reverse_lazy('course_list')
-    
+    paginate_by = 10
+    ordering = ['-created_at']   # safe ordering
     def test_func(self):
         return self.request.user.is_staff
     
@@ -137,7 +139,7 @@ class CourseCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         form.instance.instructor = self.request.user
         return super().form_valid(form)
 
-class CourseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class CourseUpdateView(UpdateView):
     model = Course
     form_class = CourseForm
     template_name = 'LMS/courses/course_form.html'
@@ -148,7 +150,7 @@ class CourseUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('course_detail', kwargs={'slug': self.object.slug})
 
-class ModuleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ModuleCreateView(CreateView):
     model = Module
     form_class = ModuleForm
     template_name = 'LMS/courses/module_form.html'
@@ -171,7 +173,7 @@ class ModuleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('course_detail', kwargs={'slug': self.kwargs['slug']})
 
-class LessonCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class LessonCreateView(CreateView):
     model = Lesson
     form_class = LessonForm
     template_name = 'LMS/courses/lesson_form.html'
@@ -195,7 +197,7 @@ class LessonCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         module = Module.objects.get(id=self.kwargs['module_id'])
         return reverse_lazy('course_detail', kwargs={'slug': module.course.slug})
 
-class ResourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ResourceCreateView(CreateView):
     model = Resource
     form_class = ResourceForm
     template_name = 'LMS/courses/resource_form.html'
@@ -1397,3 +1399,47 @@ def process_corporate_request(request, request_id):
     }
     
     return render(request, 'LMS/admin/process_corporate_request.html', context)
+
+
+@require_POST
+def add_to_wishlist(request, slug):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Please login to add items to your wishlist')
+        return redirect('login')
+    
+    course = get_object_or_404(Course, slug=slug)
+    if course in request.user.wishlisted_courses.all():
+        messages.info(request, 'This course is already in your wishlist')
+    else:
+        request.user.wishlisted_courses.add(course)
+        messages.success(request, 'Course added to your wishlist')
+    
+    # Redirect back to the previous page
+    return redirect(request.META.get('HTTP_REFERER', 'course_list'))
+
+@require_POST
+def remove_from_wishlist(request, slug):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Please login to manage your wishlist')
+        return redirect('login')
+    
+    course = get_object_or_404(Course, slug=slug)
+    if course in request.user.wishlisted_courses.all():
+        request.user.wishlisted_courses.remove(course)
+        messages.success(request, 'Course removed from your wishlist')
+    else:
+        messages.info(request, 'This course was not in your wishlist')
+    
+    # Redirect back to the previous page
+    return redirect(request.META.get('HTTP_REFERER', 'course_list'))
+
+def wishlist_view(request):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Please login to view your wishlist')
+        return redirect('login')
+    
+    wishlist_courses = request.user.wishlisted_courses.all()
+    context = {
+        'wishlist_courses': wishlist_courses,
+    }
+    return render(request, 'courses/wishlist.html', context)

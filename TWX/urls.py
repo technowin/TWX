@@ -241,9 +241,9 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
 
     # Course Management
-    path('courses/', CourseListView.as_view(), name='course_list'),
-    path('courses/<slug:slug>/', CourseDetailView.as_view(), name='course_detail'),
     path('courses/create/', CourseCreateView.as_view(), name='course_create'),
+    path('courses/<slug:slug>/', CourseDetailView.as_view(), name='course_detail'),
+    path('courses/', CourseListView.as_view(), name='course_list'),
     path('courses/<slug:slug>/update/', CourseUpdateView.as_view(), name='course_update'),
     path('courses/<slug:slug>/modules/create/', ModuleCreateView.as_view(), name='module_create'),
     path('courses/<slug:slug>/modules/<int:module_id>/lessons/create/', 
@@ -304,7 +304,9 @@ urlpatterns = [
     path('admin/notifications/', notifications_view, name='admin_notifications'),
     path('admin/feedback/<int:enrollment_id>/', 
          submit_feedback, name='admin_submit_feedback'), 
-
+    path('wishlist/add/<slug:slug>/', add_to_wishlist, name='add_to_wishlist'),
+    path('wishlist/remove/<slug:slug>/', remove_from_wishlist, name='remove_from_wishlist'),
+    path('wishlist/', wishlist_view, name='wishlist'),
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),

@@ -1,31 +1,90 @@
-
-# User Management System
-
 # forms.py
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.core.exceptions import ValidationError
 from .models import *
 from Account.models import CustomUser
 
+# User Management Forms
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-    phone = forms.CharField(max_length=20, required=False)
-    user_type = forms.ChoiceField(choices=CustomUser.USER_TYPES)
-    company = forms.ModelChoiceField(queryset=Company.objects.all(), required=False)
-    group = forms.ModelChoiceField(queryset=Group.objects.all(), required=False)
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter email address',
+            'autocomplete': 'email'
+        })
+    )
+    phone = forms.CharField(
+        max_length=20, 
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter phone number',
+            'autocomplete': 'tel'
+        })
+    )
+    user_type = forms.ChoiceField(
+        choices=CustomUser.USER_TYPES,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'user_type_select'
+        })
+    )
+    company = forms.ModelChoiceField(
+        queryset=Company.objects.all(), 
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'company_select'
+        })
+    )
+    group = forms.ModelChoiceField(
+        queryset=Group.objects.all(), 
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'group_select'
+        })
+    )
     
     class Meta:
         model = CustomUser
         fields = ('email', 'username', 'password1', 'password2', 'user_type', 'phone', 'company', 'group')
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Choose a username',
+                'autocomplete': 'username'
+            }),
+            'password1': forms.PasswordInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Create a password',
+                'autocomplete': 'new-password'
+            }),
+            'password2': forms.PasswordInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Confirm password',
+                'autocomplete': 'new-password'
+            }),
+        }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['company'].queryset = Company.objects.all()
-        self.fields['group'].queryset = Group.objects.all()
+        # Set placeholders and help text
+        self.fields['username'].help_text = 'Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'
+        self.fields['password1'].help_text = '''
+            <ul class="form-text">
+                <li>Your password can\'t be too similar to your other personal information.</li>
+                <li>Your password must contain at least 8 characters.</li>
+                <li>Your password can\'t be a commonly used password.</li>
+                <li>Your password can\'t be entirely numeric.</li>
+            </ul>
+        '''
         
-        # Add Bootstrap classes
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
+        # Initially hide conditional fields
+        self.fields['company'].widget.attrs.update({'class': 'form-select d-none'})
+        self.fields['group'].widget.attrs.update({'class': 'form-select d-none'})
     
     def clean(self):
         cleaned_data = super().clean()
@@ -34,79 +93,193 @@ class CustomUserCreationForm(UserCreationForm):
         group = cleaned_data.get('group')
         
         if user_type == 'CORPORATE_TRAINEE' and not company:
-            raise forms.ValidationError("Corporate trainees must select a company")
+            self.add_error('company', "Corporate trainees must select a company")
         if user_type == 'GROUP_TRAINEE' and not group:
-            raise forms.ValidationError("Group trainees must select a group")
+            self.add_error('group', "Group trainees must select a group")
         
         return cleaned_data
 
 class LoginForm(AuthenticationForm):
-    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your email or username',
+            'autocomplete': 'username'
+        })
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your password',
+            'autocomplete': 'current-password'
+        })
+    )
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
+    error_messages = {
+        'invalid_login': "Please enter a correct email/username and password.",
+        'inactive': "This account is inactive.",
+    }
 
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = ('first_name', 'last_name', 'email', 'phone', 'profile_picture', 'dark_mode')
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your first name'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your last name'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your email address'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter your phone number'
+            }),
+            'profile_picture': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'dark_mode': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        self.fields['profile_picture'].widget.attrs.update({'class': 'form-control-file'})
+        # Add help text for image field
+        self.fields['profile_picture'].help_text = 'Upload a profile picture (JPG, PNG, GIF)'
 
-
-# Course Management
-
-# forms.py
+# Course Management Forms
 class CourseForm(forms.ModelForm):
     class Meta:
         model = Course
         fields = ['title', 'slug', 'description', 'short_description', 'instructor', 'category', 
                  'level', 'duration', 'price', 'discount_price', 'thumbnail', 'is_featured', 'is_active']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 4}),
-            'short_description': forms.Textarea(attrs={'rows': 2}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter course title'
+            }),
+            'slug': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'course-title-url'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Detailed course description'
+            }),
+            'short_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Brief course summary (max 300 characters)'
+            }),
+            'instructor': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'level': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'duration': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Duration in hours',
+                'min': 1
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'discount_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'thumbnail': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'is_featured': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        self.fields['thumbnail'].widget.attrs.update({'class': 'form-control-file'})
         self.fields['instructor'].queryset = CustomUser.objects.filter(is_staff=True)
+        self.fields['discount_price'].required = False
+        self.fields['thumbnail'].help_text = 'Recommended size: 800x450 pixels'
 
 class ModuleForm(forms.ModelForm):
     class Meta:
         model = Module
         fields = ['title', 'description', 'order', 'is_free']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Module title'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Module description'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1
+            }),
+            'is_free': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
 
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
         fields = ['title', 'description', 'video_url', 'video_file', 'duration', 'order', 'is_free']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Lesson title'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Lesson description'
+            }),
+            'video_url': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://example.com/video.mp4'
+            }),
+            'video_file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'video/*'
+            }),
+            'duration': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+                'placeholder': 'Duration in minutes'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1
+            }),
+            'is_free': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        self.fields['video_file'].widget.attrs.update({'class': 'form-control-file'})
     
     def clean(self):
         cleaned_data = super().clean()
@@ -122,44 +295,102 @@ class ResourceForm(forms.ModelForm):
     class Meta:
         model = Resource
         fields = ['title', 'file', 'resource_type', 'is_free']
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        self.fields['file'].widget.attrs.update({'class': 'form-control-file'})
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Resource title'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control'
+            }),
+            'resource_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'is_free': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
 
-
-# Enrollment & Access Control
-
-# forms.py
+# Enrollment & Access Control Forms
 class EnrollmentForm(forms.ModelForm):
     class Meta:
         model = Enrollment
         fields = ['user', 'course', 'status', 'is_paid', 'payment_amount', 'payment_method', 'transaction_id']
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
+        widgets = {
+            'user': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'course': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'is_paid': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'payment_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'payment_method': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'transaction_id': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+        }
 
 class CorporateEnrollmentForm(forms.ModelForm):
     class Meta:
         model = CorporateEnrollment
         fields = ['company', 'course', 'purchased_seats', 'payment_amount', 'payment_method', 'transaction_id', 'access_expiry']
         widgets = {
-            'access_expiry': forms.DateInput(attrs={'type': 'date'}),
+            'company': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'course': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'purchased_seats': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1
+            }),
+            'payment_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'payment_method': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'transaction_id': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'access_expiry': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
 
 class CorporateEnrollmentRequestForm(forms.ModelForm):
     class Meta:
         model = CorporateEnrollmentRequest
         fields = ['corporate_enrollment', 'user', 'comments']
+        widgets = {
+            'corporate_enrollment': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'user': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'comments': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Additional comments or requests'
+            }),
+        }
     
     def __init__(self, *args, **kwargs):
         company = kwargs.pop('company', None)
@@ -168,97 +399,108 @@ class CorporateEnrollmentRequestForm(forms.ModelForm):
         if company:
             self.fields['corporate_enrollment'].queryset = CorporateEnrollment.objects.filter(company=company)
             self.fields['user'].queryset = CustomUser.objects.filter(company=company, user_type='CORPORATE_TRAINEE')
-        
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
 
-
-# Learning Experience
-
-# forms.py
+# Learning Experience Forms
 class NoteForm(forms.ModelForm):
     class Meta:
         model = Note
         fields = ['content', 'is_private']
         widgets = {
-            'content': forms.Textarea(attrs={'rows': 4}),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Write your notes here...'
+            }),
+            'is_private': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
 
 class BookmarkForm(forms.ModelForm):
     class Meta:
         model = Bookmark
         fields = ['notes']
         widgets = {
-            'notes': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Add notes about this bookmark...'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['notes'].widget.attrs.update({'class': 'form-control'})
 
 class DiscussionForm(forms.ModelForm):
     class Meta:
         model = Discussion
         fields = ['content']
         widgets = {
-            'content': forms.Textarea(attrs={'rows': 4}),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Ask a question or share your thoughts...'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['content'].widget.attrs.update({
-            'class': 'form-control',
-            'placeholder': 'Ask a question or share your thoughts...'
-        })
 
 class ReplyForm(forms.ModelForm):
     class Meta:
         model = Discussion
         fields = ['content']
         widgets = {
-            'content': forms.Textarea(attrs={'rows': 3}),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Write your reply...'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['content'].widget.attrs.update({
-            'class': 'form-control',
-            'placeholder': 'Write your reply...'
-        })
 
-
-# forms.py
+# User Management Forms
 class UserEditForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = ['first_name', 'last_name', 'email', 'phone', 'profile_picture', 
                  'user_type', 'company', 'group', 'is_active']
         widgets = {
-            'user_type': forms.Select(attrs={'class': 'form-control'}),
-            'company': forms.Select(attrs={'class': 'form-control'}),
-            'group': forms.Select(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'profile_picture': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'user_type': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'user_type_edit'
+            }),
+            'company': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'company_edit'
+            }),
+            'group': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'group_edit'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        self.fields['profile_picture'].widget.attrs.update({'class': 'form-control-file'})
+        self.fields['profile_picture'].required = False
         
-        # Make company and group fields conditional
-        self.fields['company'].queryset = Company.objects.all()
-        self.fields['group'].queryset = Group.objects.all()
-        
-        if 'instance' in kwargs:
-            user = kwargs['instance']
-            if user.user_type not in ['CORPORATE_TRAINEE', 'CORPORATE_APPROVER']:
+        # Conditionally hide company and group fields based on user type
+        if self.instance:
+            if self.instance.user_type not in ['CORPORATE_TRAINEE', 'CORPORATE_APPROVER']:
                 self.fields['company'].widget = forms.HiddenInput()
-            if user.user_type != 'GROUP_TRAINEE':
+            if self.instance.user_type != 'GROUP_TRAINEE':
                 self.fields['group'].widget = forms.HiddenInput()
 
     def clean(self):
@@ -266,34 +508,71 @@ class UserEditForm(forms.ModelForm):
         user_type = cleaned_data.get('user_type')
         
         if user_type in ['CORPORATE_TRAINEE', 'CORPORATE_APPROVER'] and not cleaned_data.get('company'):
-            raise forms.ValidationError("Corporate users must have a company assigned")
+            self.add_error('company', "Corporate users must have a company assigned")
         
         if user_type == 'GROUP_TRAINEE' and not cleaned_data.get('group'):
-            raise forms.ValidationError("Group trainees must have a group assigned")
+            self.add_error('group', "Group trainees must have a group assigned")
         
         return cleaned_data
-    
 
-# forms.py
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
         fields = ['name', 'address', 'billing_details', 'contact_person', 
                  'contact_email', 'contact_phone', 'is_active']
         widgets = {
-            'address': forms.Textarea(attrs={'rows': 3}),
-            'billing_details': forms.Textarea(attrs={'rows': 3}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Company name'
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Company address'
+            }),
+            'billing_details': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Billing information'
+            }),
+            'contact_person': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contact person name'
+            }),
+            'contact_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'contact@company.com'
+            }),
+            'contact_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Contact phone number'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
 
 class CompanyUserForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = ['first_name', 'last_name', 'email', 'phone', 'user_type']
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+            'user_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+        }
     
     def __init__(self, *args, **kwargs):
         company = kwargs.pop('company', None)
@@ -305,9 +584,6 @@ class CompanyUserForm(forms.ModelForm):
             ('CORPORATE_APPROVER', 'Corporate Approver'),
         ]
         
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        
         if company:
             self.fields['company'] = forms.ModelChoiceField(
                 queryset=Company.objects.filter(id=company.id),
@@ -315,17 +591,31 @@ class CompanyUserForm(forms.ModelForm):
                 widget=forms.HiddenInput()
             )
 
-# forms.py
 class FeedbackForm(forms.ModelForm):
     class Meta:
         model = Feedback
         fields = ['rating', 'comment', 'is_public']
         widgets = {
-            'comment': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Share your experience with this course...'}),
+            'rating': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'comment': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Share your experience with this course...'
+            }),
+            'is_public': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({'class': 'form-control'})
-        self.fields['is_public'].widget.attrs.update({'class': 'form-check-input'})
+        # Customize rating choices display
+        self.fields['rating'].choices = [
+            (5, '★★★★★ - Excellent'),
+            (4, '★★★★ - Very Good'),
+            (3, '★★★ - Good'),
+            (2, '★★ - Fair'),
+            (1, '★ - Poor'),
+        ]

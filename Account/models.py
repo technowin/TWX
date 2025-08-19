@@ -34,6 +34,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     first_time_login = models.IntegerField(default=1)  # 1 for True, 0 for False
     last_login = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)
     role_id = models.BigIntegerField(null=True, blank=True)
     device_token = models.CharField(max_length=255, null=True, blank=True)
     file_category = models.TextField(null=True, blank=True)

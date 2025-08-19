@@ -120,13 +120,19 @@
                         </div>
                         <div>
                             {% if request.user.is_authenticated and course in request.user.wishlisted_courses.all %}
-                            <a href="{% url 'remove_from_wishlist' course.slug %}" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-heart-fill"></i>
-                            </a>
+                            <form method="post" action="{% url 'remove_from_wishlist' course.slug %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-heart-fill"></i>
+                                </button>
+                            </form>
                             {% else %}
-                            <a href="{% url 'add_to_wishlist' course.slug %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-heart"></i>
-                            </a>
+                            <form method="post" action="{% url 'add_to_wishlist' course.slug %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-heart"></i>
+                                </button>
+                            </form>
                             {% endif %}
                         </div>
                     </div>
