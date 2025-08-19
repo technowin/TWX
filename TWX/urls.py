@@ -293,7 +293,12 @@ urlpatterns = [
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
     path('admin/users/', UserManagementView.as_view(), name='admin_user_management'),
     path('admin/users/<int:user_id>/', user_detail, name='admin_user_detail'),
+    path('courses/create/', CourseCreateView.as_view(), name='admin_add_course'),
     path('admin/courses/', CourseManagementView.as_view(), name='admin_course_management'),
+    path('admin/courses/edit/<int:pk>/', CourseUpdateView.as_view(), name='admin_edit_course'),
+    path('admin/courses/delete/<int:pk>/', CourseDeleteView.as_view(), name='admin_delete_course'),
+    path('admin/modules/create/<slug:slug>/', ModuleCreateView.as_view(), name='admin_add_module'),
+
     path('admin/enrollments/', enrollment_management, name='admin_enrollment_management'),
     path('admin/enrollments/<int:enrollment_id>/update/', 
          update_enrollment, name='admin_update_enrollment'),

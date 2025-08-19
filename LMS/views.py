@@ -23,17 +23,19 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from datetime import datetime
 from django.views.decorators.http import require_POST
+from django.utils import timezone
+from datetime import datetime   # if you need datetime somewhere else
 
 def register_view(request):
     if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
+        form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
             messages.success(request, 'Registration successful!')
             return redirect('dashboard')
     else:
-        form = CustomUserCreationForm()
+        form = UserCreationForm()
     
     return render(request, 'LMS/accounts/register.html', {'form': form})
 
@@ -143,13 +145,22 @@ class CourseUpdateView(UpdateView):
     model = Course
     form_class = CourseForm
     template_name = 'LMS/courses/course_form.html'
-    
+    success_url = reverse_lazy('admin_course_management')
     def test_func(self):
         return self.request.user == self.get_object().instructor or self.request.user.is_superuser
     
     def get_success_url(self):
         return reverse_lazy('course_detail', kwargs={'slug': self.object.slug})
-
+    
+class CourseDeleteView(DeleteView):
+    model = Course
+    template_name = 'LMS/admin/course_confirm_delete.html'
+    success_url = reverse_lazy('admin_course_management')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Course deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+    
 class ModuleCreateView(CreateView):
     model = Module
     form_class = ModuleForm
@@ -1247,11 +1258,14 @@ def reports(request):
     course_completion = Course.objects.annotate(
         total_enrollments=Count('enrollments'),
         completed_enrollments=Count('enrollments', filter=Q(enrollments__status='COMPLETED')),
-        completion_rate=ExpressionWrapper(
-            F('completed_enrollments') * 100.0 / F('total_enrollments'),
-            output_field=FloatField()
-        )
-    ).order_by('-completion_rate')
+    ).order_by('-completed_enrollments')
+
+    for course in course_completion:
+        if course.total_enrollments > 0:
+            course.completion_rate = course.completed_enrollments * 100.0 / course.total_enrollments
+        else:
+            course.completion_rate = 0
+
     
     # Revenue report
     revenue_by_course = Course.objects.annotate(
@@ -1261,9 +1275,9 @@ def reports(request):
     
     # User activity report
     active_users = CustomUser.objects.annotate(
-        enrollment_count=Count('enrollments'),
-        last_activity=Max('enrollments__lesson_completions__last_accessed')
-    ).order_by('-last_activity')[:10]
+    enrollment_count=Count('enrollments'),
+    last_enrollment_activity=Max('enrollments__lesson_completions__last_accessed')
+    ).order_by('-last_enrollment_activity')[:10]
     
     context = {
         'course_completion': course_completion,

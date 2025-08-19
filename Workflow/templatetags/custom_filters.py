@@ -215,3 +215,12 @@ def days_left(value):
 def get_item(dictionary, key):
     """Custom template filter to get a dictionary value by key"""
     return dictionary.get(str(key))
+
+
+@register.filter
+def div(value, arg):
+    """Divide value by arg."""
+    try:
+        return float(value) / float(arg) if arg else 0
+    except (ValueError, ZeroDivisionError, TypeError):
+        return 0

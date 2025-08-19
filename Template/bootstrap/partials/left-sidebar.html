@@ -314,105 +314,106 @@
                 </a>
             </li>
 
-  <div class="container-fluid">
-    <a class="navbar-brand" >LMS</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#lmsNavbar">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    
-    <div class="collapse navbar-collapse" id="lmsNavbar">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        
-        <!-- User Management -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-person"></i> Account
-          </a>
-          <ul class="dropdown-menu">
-            {% if user.is_authenticated %}
-              <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
-              <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
-            {% else %}
-              <li><a class="dropdown-item" href="{% url 'login' %}">Login</a></li>
-              <li><a class="dropdown-item" href="{% url 'register' %}">Register</a></li>
-            {% endif %}
-          </ul>
+        {% comment %} <!-- User Management -->
+        <li>User Management
+            <ul>
+                <li><a href="/register/">Register</a></li>
+                <li><a href="/login/">Login</a></li>
+                <li><a href="/profile/">Profile</a></li>
+                <li><a href="/logout/">Logout</a></li>
+            </ul>
         </li>
-        
-        <!-- Course Management -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="courseDropdown" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-book"></i> Courses
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'course_list' %}">Browse Courses</a></li>
-            {% if user.is_staff or user.is_superuser %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{% url 'course_create' %}">Create Course</a></li>
-            {% endif %}
-          </ul>
-        </li>
-        
-        <!-- Learning -->
-        {% if user.is_authenticated %}
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="learningDropdown" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-mortarboard"></i> My Learning
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#">My Courses</a></li>
-            <li><a class="dropdown-item" href="#">Bookmarks</a></li>
-            <li><a class="dropdown-item" href="#">Notes</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#">Certificates</a></li>
-          </ul>
-        </li>
-        {% endif %}
-        
-        <!-- Cart & Payments -->
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'cart' %}">
-            <i class="bi bi-cart"></i> Cart
-            <span class="badge bg-primary cart-count">0</span>
-          </a>
-        </li>
-        
-        <!-- Admin Section -->
-        {% if user.is_staff or user.is_superuser %}
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-gear"></i> Admin
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Dashboard</a></li>
-            <li><a class="dropdown-item" href="{% url 'admin_user_management' %}">User Management</a></li>
-            <li><a class="dropdown-item" href="{% url 'admin_course_management' %}">Course Management</a></li>
-            <li><a class="dropdown-item" href="{% url 'admin_enrollment_management' %}">Enrollments</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{% url 'admin_corporate_management' %}">Corporate</a></li>
-            <li><a class="dropdown-item" href="{% url 'admin_reports' %}">Reports</a></li>
-          </ul>
-        </li>
-        {% endif %}
-        
-      </ul>
-      
-      <!-- Theme Toggle -->
-      <div class="form-check form-switch me-3">
-        <input class="form-check-input" type="checkbox" id="themeToggle">
-        <label class="form-check-label" for="themeToggle">
-          <i class="bi bi-moon-stars"></i> Dark Mode
-        </label>
-      </div>
-      
-      <!-- Search -->
-      <form class="d-flex">
-        <input class="form-control me-2" type="search" placeholder="Search courses...">
-        <button class="btn btn-outline-primary" type="submit">Search</button>
-      </form>
-    </div>
-  </div>
 
+        <!-- Courses -->
+        <li>Courses
+            <ul>
+                <li><a href="/courses/">All Courses</a></li>
+                <li><a href="/courses/create/">Create Course</a></li>
+                <li><a href="/wishlist/">Wishlist</a></li>
+            </ul>
+        </li>
+
+        <!-- Enrollment & Learning -->
+        <li>Learning
+            <ul>
+                <li><a href="/courses/complete-python-bootcamp/enroll/">Enroll in Course</a></li>
+                <li><a href="/learning/complete-python-bootcamp/">My Learning</a></li>
+                <li><a href="/learning/complete-python-bootcamp/modules/1/lessons/1/">Lesson Detail</a></li>
+            </ul>
+        </li>
+
+        <!-- Corporate -->
+        <li>Corporate
+            <ul>
+                <li><a href="/corporate/enrollment-requests/">Enrollment Requests</a></li>
+                <li><a href="/corporate/enrollment-requests/1/approve/">Process Request</a></li>
+            </ul>
+        </li>
+
+        <!-- Payments -->
+        <li>Payments
+            <ul>
+                <li><a href="/cart/">My Cart</a></li>
+                <li><a href="/checkout/">Checkout</a></li>
+                <li><a href="/cart/apply-coupon/">Apply Coupon</a></li>
+                <li><a href="/cart/remove-coupon/">Remove Coupon</a></li>
+            </ul>
+        </li>
+
+        <!-- Learning Experience -->
+        <li>Learning Experience
+            <ul>
+                <li><a href="/certificate/1/">Generate Certificate</a></li>
+                <li><a href="/certificate/verify/123e4567-e89b-12d3-a456-426614174000/">Verify Certificate</a></li>
+                <li><a href="/lessons/1/notes/add/">Add Notes</a></li>
+                <li><a href="/lessons/1/bookmark/">Bookmark Lesson</a></li>
+                <li><a href="/bookmarks/1/update/">Update Bookmark</a></li>
+                <li><a href="/lessons/1/discussion/add/">Add Discussion</a></li>
+                <li><a href="/discussions/1/reply/">Reply Discussion</a></li>
+                <li><a href="/discussions/1/vote/up/">Vote Discussion</a></li>
+                <li><a href="/discussions/1/resolve/">Mark Resolved</a></li>
+            </ul>
+        </li>
+
+        <!-- Admin Panel -->
+        <li>Admin Panel
+            <ul>
+                <li><a href="/admin/dashboard/">Dashboard</a></li>
+                <li>Users
+                    <ul>
+                        <li><a href="/admin/users/">Manage Users</a></li>
+                        <li><a href="/admin/users/1/">User Detail</a></li>
+                    </ul>
+                </li>
+                <li>Courses
+                    <ul>
+                        <li><a href="/admin/courses/">Manage Courses</a></li>
+                        <li><a href="/courses/create/">Add Course</a></li>
+                        <li><a href="/admin/courses/edit/1/">Edit Course</a></li>
+                        <li><a href="/admin/courses/delete/1/">Delete Course</a></li>
+                        <li><a href="/admin/modules/create/sample-course/">Add Module</a></li>
+                    </ul>
+                </li>
+                <li>Enrollments
+                    <ul>
+                        <li><a href="/admin/enrollments/">Manage Enrollments</a></li>
+                        <li><a href="/admin/enrollments/1/update/">Update Enrollment</a></li>
+                    </ul>
+                </li>
+                <li>Corporate
+                    <ul>
+                        <li><a href="/admin/corporate/">Manage Corporate</a></li>
+                        <li><a href="/admin/companies/1/">Company Detail</a></li>
+                    </ul>
+                </li>
+                <li><a href="/admin/reports/">Reports</a></li>
+                <li><a href="/admin/notifications/">Notifications</a></li>
+                <li><a href="/admin/feedback/1/">Feedback</a></li>
+            </ul>
+        </li> {% endcomment %}
+
+
+  
             {% comment %} <li class="side-nav-title">Custom</li>
 
             <li class="side-nav-item">

@@ -6,7 +6,7 @@ from .models import *
 from Account.models import CustomUser
 
 # User Management Forms
-class CustomUserCreationForm(UserCreationForm):
+class UserCreationForm(UserCreationForm):
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
