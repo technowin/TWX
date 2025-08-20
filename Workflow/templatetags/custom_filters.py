@@ -224,3 +224,11 @@ def div(value, arg):
         return float(value) / float(arg) if arg else 0
     except (ValueError, ZeroDivisionError, TypeError):
         return 0
+    
+
+@register.filter(name='add_class')
+def add_class(field, css_class):
+    """Add or merge CSS class to a form field widget."""
+    existing_classes = field.field.widget.attrs.get("class", "")
+    new_classes = f"{existing_classes} {css_class}".strip()
+    return field.as_widget(attrs={"class": new_classes})
