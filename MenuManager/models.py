@@ -4,8 +4,8 @@ from django.db import models
 
 class MenuMaster(models.Model):
     menu_id = models.AutoField(primary_key=True)
-    menu_name = models.CharField(max_length=50, null=True, blank=True)
-    menu_action = models.CharField(max_length=50, null=True, blank=True)
+    menu_name = models.CharField(max_length=500, null=True, blank=True)
+    menu_action = models.CharField(max_length=500, null=True, blank=True)
     menu_is_parent = models.BooleanField(null=True, blank=True)
     menu_parent_id = models.IntegerField(null=True, blank=True)
     menu_order = models.DecimalField(max_digits=20, decimal_places=6, null=True, blank=True)

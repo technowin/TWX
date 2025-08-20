@@ -33,12 +33,14 @@ from MaterialPlan.views import *
 from BookMetadata.views import *
 
 from Checklist.views import *
+from Inventory.views import *
+from LMS.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
     # Django Admin, use {% url 'admin:index' %}
 
-    path('admin/', admin.site.urls),
+#     path('admin/', admin.site.urls),
     # User management
     # path("users/", include("bootstrap.users.urls", namespace="users")),
     # Your stuff: custom urls includes go here
@@ -182,6 +184,130 @@ urlpatterns = [
     path('bulk-upload-checklist/', bulk_upload_checklist, name='bulk_upload_checklist'),
     path('bulk-upload-documents/', bulk_upload_documents, name='bulk_upload_documents'),
     path('get_observ/', get_observ, name='get_observ'),
+
+    # Inventory and Warehouse Management
+    path('inventory_dashboard/', inventory_dashboard, name='inventory-dashboard'),
+    # Product Management
+    path('products/', ProductListView.as_view(), name='product-list'),
+    path('products/add/', ProductCreateView.as_view(), name='product-create'),
+    path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
+    path('products/<int:pk>/edit/', ProductUpdateView.as_view(), name='product-update'),
+    
+    # Warehouse Management
+    path('warehouses/', WarehouseListView.as_view(), name='warehouse-list'),
+    path('warehouses/add/', WarehouseCreateView.as_view(), name='warehouse-create'),
+    path('warehouses/<int:pk>/', WarehouseDetailView.as_view(), name='warehouse-detail'),
+    path('warehouses/<int:pk>/edit/', WarehouseUpdateView.as_view(), name='warehouse-update'),
+    
+     # Storage Location Management
+    path('locations/add/<int:warehouse_pk>/', StorageLocationCreateView.as_view(), name='storage-location-create'),
+    path('locations/<int:pk>/', StorageLocationDetailView.as_view(), name='storage-location-detail'),
+    path('locations/<int:pk>/edit/', StorageLocationUpdateView.as_view(), name='storage-location-update'),
+
+    # Stock Management
+    path('stock/entries/add/', StockEntryCreateView.as_view(), name='stockentry-create'),
+    path('stock/movements/add/', StockMovementCreateView.as_view(), name='stockmovement-create'),
+    path('stock/movements/<int:pk>/confirm/', StockMovementConfirmView.as_view(), name='stockmovement-confirm'),
+    path('stock-movements/', stock_movement_list, name='stock-movement-list'),
+
+    # AJAX Views
+    path('ajax/get-locations/', get_locations_for_warehouse, name='get-locations'),
+    path('ajax/get-product-details/', get_product_details, name='get-product-details'),
+
+    # Alert Management
+    path('alerts/', InventoryAlertListView.as_view(), name='alert-list'),
+    path('alerts/<int:pk>/acknowledge/', AcknowledgeAlertView.as_view(), name='acknowledge-alert'),
+    
+    # Barcode Management
+    path('barcodes/', BarcodeListView.as_view(), name='barcode-list'),
+    path('barcodes/add/', BarcodeCreateView.as_view(), name='barcode-create'),
+    path('barcodes/<int:pk>/set-primary/', SetPrimaryBarcodeView.as_view(), name='set-primary-barcode'),
+    
+    # AJAX Views
+    path('ajax/get-product-variants/', get_product_variants, name='get-product-variants'),
+
+     # Category Management
+    path('categories/', CategoryListView.as_view(), name='category-list'),
+    path('categories/add/', CategoryCreateView.as_view(), name='category-create'),
+    path('categories/<slug:slug>/edit/', CategoryUpdateView.as_view(), name='category-update'),
+    path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
+
+    # Learning Management System (LMS)
+    
+    # User Management System
+    path('register/', register_view, name='register'),
+    path('login/', login_view, name='login'),
+    path('profile/', profile_view, name='profile'),
+    path('logout/', logout_view, name='logout'),
+
+    # Course Management
+    path('courses/create/', CourseCreateView.as_view(), name='course_create'),
+    path('courses/<slug:slug>/', CourseDetailView.as_view(), name='course_detail'),
+    path('courses/', CourseListView.as_view(), name='course_list'),
+    path('courses/<slug:slug>/update/', CourseUpdateView.as_view(), name='course_update'),
+    path('courses/<slug:slug>/modules/create/', ModuleCreateView.as_view(), name='module_create'),
+    path('courses/<slug:slug>/modules/<int:module_id>/lessons/create/',LessonCreateView.as_view(), name='lesson_create'),
+    path('courses/<slug:slug>/resources/create/',ResourceCreateView.as_view(), name='resource_create'),
+
+    # Enrollment & Access Control
+    path('courses/<slug:slug>/enroll/', enroll_course, name='enroll_course'),
+    path('learning/<slug:slug>/', course_learning, name='course_learning'),
+    path('learning/<slug:slug>/modules/<int:module_id>/lessons/<int:lesson_id>/',lesson_detail, name='lesson_detail'),
+    path('corporate/enrollment-requests/', corporate_enrollment_requests, name='corporate_enrollment_requests'),
+    path('corporate/enrollment-requests/<int:request_id>/',process_corporate_request, name='process_corporate_request'),
+
+    # Payment & Subscription
+    path('cart/', cart_view, name='cart'),
+    path('cart/add/<slug:slug>/', add_to_cart, name='add_to_cart'),
+    path('cart/remove/<slug:slug>/', remove_from_cart, name='remove_from_cart'),
+    path('cart/apply-coupon/', apply_coupon, name='apply_coupon'),
+    path('cart/remove-coupon/', remove_coupon, name='remove_coupon'),
+    path('checkout/', checkout, name='checkout'),
+    path('razorpay/callback/', razorpay_callback, name='razorpay_callback'),
+    path('payment/success/<str:order_id>/', payment_success, name='payment_success'),
+    path('payment/failed/', payment_failed, name='payment_failed'),
+
+    # Learning Experience
+    path('certificate/<int:enrollment_id>/', generate_certificate, name='generate_certificate'),
+    path('certificate/verify/<str:certificate_id>/', verify_certificate, name='verify_certificate'),
+    
+    path('lessons/<int:lesson_id>/notes/add/', add_note, name='add_note'),
+    path('lessons/<int:lesson_id>/bookmark/', toggle_bookmark, name='toggle_bookmark'),
+    path('bookmarks/<int:bookmark_id>/update/', update_bookmark, name='update_bookmark'),
+    path('lessons/<int:lesson_id>/discussion/add/', add_discussion, name='add_discussion'),
+    path('discussions/<int:discussion_id>/reply/', reply_discussion, name='reply_discussion'),
+    path('discussions/<int:discussion_id>/vote/<str:vote_type>/', vote_discussion, name='vote_discussion'),
+    path('discussions/<int:discussion_id>/resolve/', mark_resolved, name='mark_resolved'),
+    path('admin/lessons/add/<int:module_id>/', LessonCreateView.as_view(), name='admin_add_lesson'),
+
+    # Admin Interface
+    path('admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+    path('admin/users/', UserManagementView.as_view(), name='admin_user_management'),
+    path('admin/users/<int:user_id>/', user_detail, name='admin_user_detail'),
+    path('courses/create/', CourseCreateView.as_view(), name='admin_add_course'),
+    path('admin/courses/', CourseManagementView.as_view(), name='admin_course_management'),
+    path('admin/courses/edit/<int:pk>/', CourseUpdateView.as_view(), name='admin_edit_course'),
+    path('admin/courses/delete/<int:pk>/', CourseDeleteView.as_view(), name='admin_delete_course'),
+    path('admin/modules/create/<slug:slug>/', ModuleCreateView.as_view(), name='admin_add_module'),
+    path('admin/modules/edit/<int:pk>/', ModuleUpdateView.as_view(), name='admin_edit_module'),
+    path('admin/modules/delete/<int:pk>/', ModuleDeleteView.as_view(), name='admin_delete_module'),
+
+    path('admin/enrollments/', enrollment_management, name='admin_enrollment_management'),
+    path('admin/enrollments/<int:enrollment_id>/update/', update_enrollment, name='admin_update_enrollment'),
+    path('admin/corporate/', corporate_management, name='admin_corporate_management'),
+    path('admin/companies/<int:company_id>/', company_detail, name='admin_company_detail'),
+    path('admin/corporate/enrollment-requests/', corporate_enrollment_requests, name='admin_corporate_enrollment_requests'),
+    path('admin/process_corporate_request/<int:request_id>/',process_corporate_request, name='admin_process_corporate_request'),
+
+    path('admin/reports/', reports, name='admin_reports'),
+    path('admin/notifications/', notifications_view, name='admin_notifications'),
+    path('admin/notifications/mark-read/', mark_notification_read, name='notifications'),
+
+    path('admin/feedback/<int:enrollment_id>/', submit_feedback, name='admin_submit_feedback'), 
+    path('wishlist/add/<slug:slug>/', add_to_wishlist, name='add_to_wishlist'),
+    path('wishlist/remove/<slug:slug>/', remove_from_wishlist, name='remove_from_wishlist'),
+    path('wishlist/', wishlist_view, name='wishlist'),
+
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  

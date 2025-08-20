@@ -201,3 +201,26 @@ def custom_truncate(value, arg=50):
     if len(value) > length:
         return value[:length] + '...'
     return value
+
+from datetime import date
+
+@register.filter
+def days_left(value):
+    if not value:
+        return None
+    delta = value - date.today()
+    return delta.days
+
+@register.filter
+def get_item(dictionary, key):
+    """Custom template filter to get a dictionary value by key"""
+    return dictionary.get(str(key))
+
+
+@register.filter
+def div(value, arg):
+    """Divide value by arg."""
+    try:
+        return float(value) / float(arg) if arg else 0
+    except (ValueError, ZeroDivisionError, TypeError):
+        return 0

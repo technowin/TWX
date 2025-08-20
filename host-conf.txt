@@ -187,6 +187,15 @@ python manage.py migrate Checklist
 python manage.py migrate Account
 
 python manage.py startapp MaterialPlan
+
+python manage.py startapp Inventory
+python manage.py makemigrations Inventory
+python manage.py migrate Inventory
+
+python manage.py startapp LMS
+python manage.py makemigrations LMS
+python manage.py migrate LMS
+
 curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"
@@ -238,6 +247,7 @@ sudo service nginx restart
 sudo service gunicorn restart
 sudo curl -s https://lknconsultants.net/bulk_mail
 curl -s http://15.207.169.98/ocr_files
+
 
 
 How to remove .pyc files
