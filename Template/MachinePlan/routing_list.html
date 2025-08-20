@@ -27,7 +27,6 @@
 {% endblock %}
 {% load static %}
 
-
 {% block content %}
 
 <div class="row mb-3">
@@ -309,6 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 {% endblock %}
 
 {% block extra_javascript %}
@@ -326,12 +326,10 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Init js -->
 <script src="{% static 'js/pages/demo.typehead.js' %}"></script>
 <script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Init js end -->
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
 
 {% endblock %}
-
 

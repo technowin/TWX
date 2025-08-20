@@ -91,7 +91,6 @@ class BotResponse(models.Model):
     class Meta:
         verbose_name = _("Bot Response")
         verbose_name_plural = _("Bot Responses")
-        unique_together = ['menu_option']
     
     def __str__(self):
         return f"Response for {self.menu_option})"
@@ -173,3 +172,6 @@ class ChatLog(models.Model):
     
     class Meta:
         ordering = ['timestamp']
+
+
+

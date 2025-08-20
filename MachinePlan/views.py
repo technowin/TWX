@@ -1,7 +1,8 @@
 # MachinePlan/views.py
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import count
 import json
+import traceback
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Count, Q
@@ -9,7 +10,9 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+from Account.db_utils import callproc
 from BOM.models import Component
+from MaterialPlan.models import ProductionOrder
 from .models import *
 from  .forms import *
 from django.shortcuts import get_object_or_404, redirect, render
@@ -44,10 +47,6 @@ class MachineTypeDetailView( DetailView):
     template_name = 'MachinePlan/machine_type_detail.html'
     context_object_name = 'machine_type'
 
-# class MachineTypeDeleteView( DeleteView):
-#     model = MachineType
-#     template_name = 'MachinePlan/machine_type_confirm_delete.html'
-#     success_url = reverse_lazy('mcp:machine_type_list')
 
 class MachineTypeDeleteView(LoginRequiredMixin, DeleteView):
     model = MachineType
@@ -237,7 +236,6 @@ class MaintenanceScheduleDeleteView( DeleteView):
     success_url = reverse_lazy('mcp:maintenance_schedule_list')
 
 
-
 class RoutingListView(ListView):
     model = Routing
     template_name = 'MachinePlan/routing_list.html'
@@ -246,13 +244,12 @@ class RoutingListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.select_related('component', 'operation', 'work_center')
+        return queryset.select_related('component', 'work_center')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add dropdown options for the modal forms
         context['components'] = BOMHeader.objects.all()
-        context['operations'] = Operation.objects.all()
+        context['operation'] = Operation.objects.all()
         context['work_centers'] = WorkCenter.objects.all()
         return context
 
@@ -261,6 +258,19 @@ class RoutingCreateView(CreateView):
     form_class = RoutingForm
     template_name = 'MachinePlan/routing_form.html'
     success_url = reverse_lazy('mcp:routing_list')
+
+    def form_valid(self, form):
+        # Save the form first
+        response = super().form_valid(form)
+        
+        # Update the work center's is_routing status
+        work_center = form.cleaned_data.get('work_center')
+        if work_center:
+            # Set is_routing to True for the selected work center
+            work_center.is_routing = True
+            work_center.save()
+            
+        return response
 
 class RoutingUpdateView(UpdateView):
     model = Routing
@@ -304,7 +314,7 @@ class MachinePlanningListView(ListView):
         context = super().get_context_data(**kwargs)
         context['production_orders'] = ProductionOrder.objects.all()
         context['components'] = BOMHeader.objects.all()
-        context['operations'] = Operation.objects.all()
+        context['operation'] = Operation.objects.all()
         context['machines'] = Machine.objects.all()
         status_field = MachinePlanning._meta.get_field('status')
         context['status_choices'] = status_field.choices
@@ -366,7 +376,7 @@ class MachinePlanningDeleteView(DeleteView):
 class OperationListView(ListView):
     model = Operation
     template_name = 'MachinePlan/operation_list.html'
-    context_object_name = 'operations'
+    context_object_name = 'operation'
     paginate_by = 20
 
 class OperationCreateView(CreateView):
@@ -539,3 +549,181 @@ def dashboard(request):
     }
     
     return render(request, 'MachinePlan/dashboard.html', context)
+
+
+
+class MachineSchedulingListView(ListView):
+    model = MachineScheduling
+    template_name = 'MachinePlan/machine_scheduling_list.html'
+    context_object_name = 'schedules'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by status if provided
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+            
+        # Filter by machine if provided
+        machine_id = self.request.GET.get('machine')
+        if machine_id:
+            queryset = queryset.filter(machine_id=machine_id)
+            
+        # Filter by date range if provided
+        start_date = self.request.GET.get('start_date')
+        end_date = self.request.GET.get('end_date')
+        if start_date and end_date:
+            queryset = queryset.filter(
+                scheduled_start__date__gte=start_date,
+                scheduled_end__date__lte=end_date
+            )
+            
+        return queryset.select_related('component', 'routing', 'machine', 'work_center')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['machines'] = Machine.objects.all()
+        context['status_choices'] = MachineScheduling._meta.get_field('status').choices
+        return context
+
+class MachineSchedulingCreateView(CreateView):
+    model = MachineScheduling
+    form_class = MachineSchedulingForm
+    template_name = 'MachinePlan/machine_scheduling_form.html'
+    success_url = reverse_lazy('mcpmachine_scheduling_list')
+    
+    def form_valid(self, form):
+        # Set work_center from routing before saving
+        if form.cleaned_data['routing']:
+            form.instance.work_center = form.cleaned_data['routing'].work_center
+        return super().form_valid(form)
+
+class MachineSchedulingUpdateView(UpdateView):
+    model = MachineScheduling
+    form_class = MachineSchedulingForm
+    template_name = 'MachinePlan/machine_scheduling_form.html'
+    success_url = reverse_lazy('mcp:machine_scheduling_list')
+    
+    def form_valid(self, form):
+        # Set work_center from routing before saving
+        if form.cleaned_data['routing']:
+            form.instance.work_center = form.cleaned_data['routing'].work_center
+        return super().form_valid(form)
+
+class MachineSchedulingDeleteView(DeleteView):
+    model = MachineScheduling
+    template_name = 'MachinePlan/machine_scheduling_confirm_delete.html'
+    success_url = reverse_lazy('mcp:machine_scheduling_list')
+
+def load_routings(request):
+    """AJAX view to load routings based on selected component"""
+    user_id = request.session.get('user_id', '')
+    try:
+        component_id = request.GET.get('component_id')
+        if component_id:
+            # Get routings for the component
+            routings = Routing.objects.filter(component_id=component_id).order_by('sequence')
+            
+            # Prepare routing data for JSON response
+            routing_data = []
+            for routing in routings:
+                routing_data.append({
+                    'id': routing.id,
+                    'operation_name': str(routing.operation),
+                    'operation_code': routing.operation.code if routing.operation else '',
+                    'sequence': routing.sequence,
+                    'work_center': routing.work_center.name if routing.work_center else '',
+                    'work_center_id': routing.work_center.id if routing.work_center else None,
+                    'setup_time': routing.setup_time,
+                    'run_time_per_unit': routing.run_time_per_unit
+                })
+            
+            # Return JSON response
+            return JsonResponse({
+                'success': True,
+                'routings': routing_data,
+                'count': len(routing_data)
+            })
+        
+        return JsonResponse({'success': False, 'error': 'Invalid component ID'}, status=400)
+    
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name if tb else 'unknown'
+        print(f"Error in load_routings: {e}")
+        # callproc("stp_error_log", [fun, str(e), user_id])
+        return JsonResponse({
+            'success': False, 
+            'error': 'Oops...! Something went wrong!'
+        }, status=500)
+
+def load_machines(request):
+    """AJAX view to load machines based on selected routing"""
+    try:
+        routing_id = request.GET.get('routing_id')
+        if not routing_id:
+            return JsonResponse({'success': False, 'error': 'No routing ID provided'}, status=400)
+        
+        # Get routing and work center
+        routing = Routing.objects.get(id=routing_id)
+        work_center = routing.work_center
+        
+        # Get machines for this work center
+        machines = Machine.objects.filter(work_center=work_center)
+        
+        # Get machine status information
+        now = timezone.now()
+        machines_data = []
+        
+        for machine in machines:
+            # Check current and upcoming schedules
+            current_schedules = MachineScheduling.objects.filter(
+                machine=machine
+            ).exclude(status__in=['COMPLETED', 'CANCELLED']).order_by('scheduled_start')
+            
+            status_info = {
+                'current': 'Available',
+                'next_available': None,
+                'busy_until': None
+            }
+            
+            for schedule in current_schedules:
+                if schedule.scheduled_start <= now <= schedule.scheduled_end:
+                    status_info['current'] = 'Busy'
+                    status_info['busy_until'] = schedule.scheduled_end
+                    break
+                elif schedule.scheduled_start > now:
+                    status_info['next_available'] = schedule.scheduled_start
+                    break
+            
+            # Safely get machine code - use empty string if attribute doesn't exist
+            machine_code = getattr(machine, 'code', '')  # This won't raise error if code doesn't exist
+            
+            machines_data.append({
+                'id': machine.id,
+                'name': machine.name,
+                'code': machine_code,  # Use the safely retrieved code
+                'work_center_id': work_center.id,
+                'work_center_name': work_center.name,
+                'status': status_info['current'],
+                'busy_until': status_info['busy_until'].strftime('%Y-%m-%d %H:%M:%S') if status_info['busy_until'] else None,
+                'next_available': status_info['next_available'].strftime('%Y-%m-%d %H:%M:%S') if status_info['next_available'] else None
+            })
+        
+        # Return JSON response
+        return JsonResponse({
+            'success': True,
+            'machines': machines_data,
+            'count': len(machines_data),
+            'work_center': {
+                'id': work_center.id,
+                'name': work_center.name
+            }
+        })
+        
+    except Routing.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Routing not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)

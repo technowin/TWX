@@ -1,16 +1,18 @@
 # views.py
 from datetime import date, timedelta
+from io import BytesIO
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.db.models import Count, Sum, Case, When, IntegerField,F
 from django.utils import timezone
+import pandas as pd
 
 
 from .models import (
@@ -100,7 +102,7 @@ class EmployeeDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['skills'] = self.object.skills.all().select_related('skill')
-        # context['assignments'] = self.object.labor_assignments.all().select_related('schedule', 'shift')
+        context['assignments'] = self.object.labor_assignments.all().select_related('schedule', 'shift')
         context['availabilities'] = self.object.availabilities.all().order_by('-date')[:10]
         context['attendances'] = self.object.attendances.all().order_by('-date')[:10]
         return context
@@ -563,6 +565,7 @@ class AttendanceListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['employees'] = Employee.objects.all()
+        context['shifts'] = Shift.objects.all()
         return context
 
 class AttendanceCreateUpdateView(LoginRequiredMixin, UpdateView):
@@ -714,7 +717,7 @@ def manpower_dashboard(request):
     
     # Skill gaps - now based on Routing's labor requirements
     skill_gaps = LaborRequirement.objects.filter(
-        routing__production_order__due_date__gte=today
+        routing__production_order__start_date__gte=today
     ).values('skill__skill_name').annotate(
         total_needed=Sum('employees_needed'),
         assigned=Count('routing', distinct=True)
@@ -785,7 +788,7 @@ def daily_assignments(request, date):
 
 def skill_gaps_report(request):
     skill_gaps = LaborRequirement.objects.filter(
-        routing__production_orders__due_date__gte=timezone.now().date()
+        routing__production_orders__start_date__gte=timezone.now().date()
     ).values('skill__skill_name', 'skill__skill_code').annotate(
         total_needed=Sum('employees_needed')
     )
@@ -825,3 +828,118 @@ def routing_assignments(request, routing_id):
     }
     
     return render(request, 'Manpower/routing_assignments.html', context)
+
+
+def upload_attendance(request):
+    if request.method == 'POST':
+        try:
+            # Get the uploaded file
+            uploaded_file = request.FILES['attendance_file']
+            shift_id = request.POST.get('shift')
+            
+            if not shift_id:
+                return JsonResponse({'success': False, 'error': 'Please select a shift'})
+                
+            shift = Shift.objects.get(id=shift_id)
+            
+            # Read the Excel file
+            df = pd.read_excel(uploaded_file)
+            
+            # Validate required columns
+            required_columns = ['Employee Name', 'Date', 'Clock In', 'Clock Out']
+            for col in required_columns:
+                if col not in df.columns:
+                    return JsonResponse({'success': False, 'error': f'Missing column: {col}'})
+            
+            # Process each row
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            for index, row in df.iterrows():
+                try:
+                    employee_name = row['Employee Name']
+                    date_str = row['Date']
+                    clock_in_str = row['Clock In']
+                    clock_out_str = row['Clock Out']
+                    
+                    # Find employee
+                    try:
+                        employee = Employee.objects.get(employee_name=employee_name)
+                    except Employee.DoesNotExist:
+                        errors.append(f"Row {index+1}: Employee '{employee_name}' not found")
+                        error_count += 1
+                        continue
+                    
+                    # Parse dates and times
+                    try:
+                        date = pd.to_datetime(date_str).date()
+                        clock_in = pd.to_datetime(clock_in_str) if pd.notna(clock_in_str) else None
+                        clock_out = pd.to_datetime(clock_out_str) if pd.notna(clock_out_str) else None
+                    except Exception as e:
+                        errors.append(f"Row {index+1}: Error parsing date/time - {str(e)}")
+                        error_count += 1
+                        continue
+                    
+                    # Create or update attendance record
+                    attendance, created = Attendance.objects.update_or_create(
+                        employee=employee,
+                        date=date,
+                        defaults={
+                            'shift': shift,
+                            'clock_in': clock_in,
+                            'clock_out': clock_out,
+                            # You might want to add logic to calculate status and overtime here
+                        }
+                    )
+                    
+                    success_count += 1
+                    
+                except Exception as e:
+                    errors.append(f"Row {index+1}: {str(e)}")
+                    error_count += 1
+            
+            if error_count > 0:
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'Processed {success_count} records successfully, {error_count} errors occurred.',
+                    'errors': errors[:10]  # Return first 10 errors
+                })
+            else:
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'Successfully uploaded {success_count} attendance records'
+                })
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def download_attendance_sample(request):
+    # Create sample data
+    sample_data = {
+        'Employee Name': ['John Doe', 'Jane Smith'],
+        'Date': ['2023-10-01', '2023-10-01'],
+        'Clock In': ['09:00', '08:45'],
+        'Clock Out': ['17:00', '17:15']
+    }
+    
+    # Create DataFrame
+    df = pd.DataFrame(sample_data)
+    
+    # Create Excel file in memory
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Attendance', index=False)
+    
+    # Prepare response
+    output.seek(0)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=attendance_sample.xlsx'
+    
+    return response

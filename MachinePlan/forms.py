@@ -160,9 +160,6 @@ class RoutingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add any custom queryset filtering if needed
-        # For example:
-        # self.fields['work_center'].queryset = WorkCenter.objects.filter(is_active=True)
 
 class MachinePlanningForm(forms.ModelForm):
     class Meta:
@@ -262,3 +259,51 @@ class WorkCenterForm(forms.ModelForm):
                 'placeholder': 'Enter description...'
             }),
         }
+
+class MachineSchedulingForm(forms.ModelForm):
+    class Meta:
+        model = MachineScheduling
+        fields = ['production_order', 'component', 'routing', 'machine', 
+                 'scheduled_start', 'scheduled_end', 'status', 'notes']
+        widgets = {
+            'scheduled_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'scheduled_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Set classes for all fields
+        for field_name, field in self.fields.items():
+            if field_name not in self.Meta.widgets:
+                field.widget.attrs.update({'class': 'form-control'})
+        
+        # Filter routings based on selected component
+        if 'component' in self.data:
+            try:
+                component_id = int(self.data.get('component'))
+                self.fields['routing'].queryset = Routing.objects.filter(component_id=component_id).order_by('sequence')
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            self.fields['routing'].queryset = self.instance.component.routing_set.order_by('sequence')
+        else:
+            self.fields['routing'].queryset = Routing.objects.none()
+        
+        # Filter machines based on work center from routing
+        if 'routing' in self.data:
+            try:
+                routing_id = int(self.data.get('routing'))
+                routing = Routing.objects.get(id=routing_id)
+                self.fields['machine'].queryset = Machine.objects.filter(
+                    work_center=routing.work_center
+                )
+            except (ValueError, TypeError, Routing.DoesNotExist):
+                pass
+        elif self.instance.pk and self.instance.routing:
+            self.fields['machine'].queryset = Machine.objects.filter(
+                work_center=self.instance.routing.work_center
+            )
+        else:
+            self.fields['machine'].queryset = Machine.objects.none()
