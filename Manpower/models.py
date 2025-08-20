@@ -76,12 +76,21 @@ class Shift(models.Model):
     def __str__(self):
         return f"{self.shift_code} - {self.shift_name} ({self.start_time.strftime('%H:%M')} to {self.end_time.strftime('%H:%M')})"
 
+PROFICIENCY_CHOICES = [
+    (1, "Beginner (Basic knowledge)"),
+    (2, "Novice (Limited experience)"),
+    (3, "Competent (Practical application)"),
+    (4, "Professional (Thorough understanding)"),
+    (5, "Expert (Advanced mastery)"),
+]
+
 class LaborRequirement(models.Model):
     routing = models.ForeignKey(Routing, on_delete=models.CASCADE, related_name='labor_requirements')
     skill = models.ForeignKey(Skill, on_delete=models.PROTECT, verbose_name="Required Skill")
     employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="Employees Needed")
     min_proficiency = models.PositiveSmallIntegerField(
         default=2,
+        choices=PROFICIENCY_CHOICES,  # Add choices here
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         verbose_name="Minimum Proficiency"
     )
@@ -93,7 +102,9 @@ class LaborRequirement(models.Model):
         unique_together = ('routing', 'skill')
     
     def __str__(self):
-        return f"{self.routing} requires {self.employees_needed} {self.skill} (min level {self.min_proficiency})"
+        # Get the display value for proficiency
+        proficiency_display = dict(PROFICIENCY_CHOICES).get(self.min_proficiency, self.min_proficiency)
+        return f"{self.routing} requires {self.employees_needed} {self.skill} (min level {proficiency_display})"
 
 class LaborAssignment(models.Model):
     schedule = models.ForeignKey(MachinePlanning, on_delete=models.CASCADE, related_name='labor_assignments')
