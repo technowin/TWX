@@ -43,8 +43,14 @@
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{% url 'admin_course_management' %}">Courses</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'admin_edit_course' module.course.id %}">{{ module.course.title }}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'admin_edit_module' module.id %}">{{ module.title }}</a></li>
+        {% comment %} <li class="breadcrumb-item"><a href="{% url 'admin_edit_course' module.course.id %}">{{ module.course.title }}</a></li> {% endcomment %}
+        {% if module.course %}
+             <li class="breadcrumb-item"><a href="{% url 'admin_edit_course' module.course.id %}">{{ module.course.title }}</a></li>
+        {% endif %}
+        {% if module.id %}
+             <li class="breadcrumb-item"><a href="{% url 'admin_edit_module' module.id %}">{{ module.title }}</a></li>
+        {% endif %}
+        
         <li class="breadcrumb-item active">{% if form.instance.id %}Edit{% else %}Add{% endif %} Lesson</li>
     </ol>
     
@@ -103,7 +109,13 @@
                 
                 <div class="mt-4">
                     <button type="submit" class="btn btn-primary">Save Lesson</button>
-                    <a href="{% url 'admin_edit_module' module.id %}" class="btn btn-secondary">Cancel</a>
+
+                    {% if module.course %}
+                        <a href="{% url 'admin_edit_module' module.id %}" class="btn btn-secondary">Cancel</a>
+                    {% else %}
+                        <a href="#" class="btn btn-secondary">Cancel</a>
+                    {% endif %}
+                    
                 </div>
             </form>
         </div>

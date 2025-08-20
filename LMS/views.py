@@ -183,6 +183,43 @@ class ModuleCreateView(CreateView):
     
     def get_success_url(self):
         return reverse_lazy('course_detail', kwargs={'slug': self.kwargs['slug']})
+    
+from django.views.generic import UpdateView
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib import messages
+
+class ModuleUpdateView(UserPassesTestMixin, UpdateView):
+    model = Module
+    form_class = ModuleForm
+    template_name = 'LMS/courses/module_form.html'
+    
+    def test_func(self):
+        module = self.get_object()
+        return self.request.user == module.course.instructor or self.request.user.is_superuser
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Module updated successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        module = self.get_object()
+        return reverse_lazy('course_detail', kwargs={'slug': module.course.slug})
+    
+# In views.py
+from django.views.generic import DeleteView
+
+class ModuleDeleteView(UserPassesTestMixin, DeleteView):
+    model = Module
+    template_name = 'LMS/courses/module_confirm_delete.html'
+    
+    def test_func(self):
+        module = self.get_object()
+        return self.request.user == module.course.instructor or self.request.user.is_superuser
+    
+    def get_success_url(self):
+        module = self.get_object()
+        messages.success(self.request, 'Module deleted successfully.')
+        return reverse_lazy('course_detail', kwargs={'slug': module.course.slug})
 
 class LessonCreateView(CreateView):
     model = Lesson
@@ -712,6 +749,11 @@ def payment_failed(request):
 
 # Learning Experience
 
+import io
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+
 @login_required
 def generate_certificate(request, enrollment_id):
     enrollment = get_object_or_404(Enrollment, id=enrollment_id, user=request.user)
@@ -724,9 +766,9 @@ def generate_certificate(request, enrollment_id):
     certificate, created = Certificate.objects.get_or_create(
         enrollment=enrollment,
         defaults={
-            'certificate_id': str(uuid.uuid4()),
+            'certificate_id': str(uuid.uuid4())[:8],   # short ID instead of UUID URL
             'issued_date': datetime.now(),
-            'verification_url': f"{settings.SITE_URL}/verify/{uuid.uuid4()}"
+            'verification_url': f"{settings.SITE_URL}/certificate/verify/{enrollment.id}"
         }
     )
 
@@ -734,16 +776,13 @@ def generate_certificate(request, enrollment_id):
         certificate.download_count = (certificate.download_count or 0) + 1
         certificate.save()
 
-    # Prepare PDF response
-    response = FileResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Certificate_{enrollment.course.slug}.pdf"'
-
-    # PDF page setup
-    p = canvas.Canvas(response, pagesize=letter)
+    # ✅ Create PDF in memory
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Add background image if exists
-    bg_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'certificate_bg.jpg')
+    # Background
+    bg_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'certificate_bg.png')
     if os.path.exists(bg_path):
         p.drawImage(bg_path, 0, 0, width=width, height=height)
 
@@ -755,11 +794,11 @@ def generate_certificate(request, enrollment_id):
     p.setFont("Helvetica", 18)
     p.drawCentredString(width / 2, height - 140, "This is to certify that")
 
-    # Recipient Name
+    # Recipient
     p.setFont("Helvetica-Bold", 26)
     p.drawCentredString(width / 2, height - 180, request.user.get_full_name())
 
-    # Course completion line
+    # Course line
     p.setFont("Helvetica", 18)
     p.drawCentredString(width / 2, height - 220, "has successfully completed the course")
 
@@ -771,26 +810,28 @@ def generate_certificate(request, enrollment_id):
     p.setFont("Helvetica", 16)
     p.drawCentredString(width / 2, height - 300, f"on {certificate.issued_date.strftime('%B %d, %Y')}")
 
-    # Footer details
+    # Footer
     p.setFont("Helvetica", 10)
     p.drawCentredString(width / 2, 40, f"Certificate ID: {certificate.certificate_id}")
     p.drawCentredString(width / 2, 25, f"Verify at: {certificate.verification_url}")
 
-    # Finalize PDF
+    # Save
     p.showPage()
     p.save()
 
-    return response
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename=f"Certificate_{enrollment.course.slug}.pdf")
+
 
 @login_required
-def verify_certificate(request, verification_uuid):
+def verify_certificate(request, certificate_id):
     certificate = get_object_or_404(
-        Certificate, 
-        verification_url__contains=verification_uuid,
+        Certificate,
+        certificate_id=certificate_id,
         is_active=True
     )
-    
     return render(request, 'LMS/learning/verify_certificate.html', {'certificate': certificate})
+
 
 @login_required
 def add_note(request, lesson_id):
@@ -1310,6 +1351,20 @@ def notifications_view(request):
         'unread_count': unread_count,
     })
 
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+
+@login_required
+@require_POST
+def mark_notification_read(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        notification_id = request.POST.get('notification_id')
+        if notification_id:
+            notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+            notification.is_read = True
+            notification.save()
+            return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'failed'}, status=400)
 
 # Feedback 
 

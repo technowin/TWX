@@ -143,7 +143,7 @@
                                         {{ form.user_type }}
                                     </div>
                                     <div class="col-md-6" id="companyField" 
-                                         style="display: {% if user.user_type in ['CORPORATE_TRAINEE', 'CORPORATE_APPROVER'] %}block{% else %}none{% endif %}">
+                                         style="display: {% if user.user_type == 'CORPORATE_TRAINEE' or user.user_type == 'CORPORATE_APPROVER' %}block{% else %}none{% endif %};">
                                         <label for="{{ form.company.id_for_label }}" class="form-label">Company</label>
                                         {{ form.company }}
                                     </div>

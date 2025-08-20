@@ -92,7 +92,7 @@
                 </div>
                 <div class="card-body">
                     <div class="accordion" id="courseAccordion">
-                        {% for module in course.modules.all %}
+                        {% comment %} {% for module in course.modules.all %}
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="heading{{ module.id }}">
                                 <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
@@ -128,7 +128,78 @@
                                 </div>
                             </div>
                         </div>
+                        {% endfor %} {% endcomment %}
+                        {% for module in course.modules.all %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ module.id }}">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#collapse{{ module.id }}" 
+                                        aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                                        aria-controls="collapse{{ module.id }}">
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <div>
+                                            {{ module.title }}
+                                            <span class="badge bg-secondary ms-2">{{ module.lessons.count }} lessons</span>
+                                            {% if module.is_free %}
+                                            <span class="badge bg-success ms-2">Free</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Check if user is admin or course instructor -->
+                                        {% if request.user.is_authenticated and request.user.is_superuser or request.user == course.instructor %}
+                                        <div class="btn-group btn-group-sm" onclick="event.stopPropagation();">
+                                            <a href="{% url 'admin_edit_module' module.id %}" class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </a>
+                                            <a href="{% url 'admin_delete_module' module.id %}" class="btn btn-outline-danger">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ module.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                                 aria-labelledby="heading{{ module.id }}" data-bs-parent="#courseAccordion">
+                                <div class="accordion-body p-0">
+                                    <ul class="list-group list-group-flush">
+                                        {% for lesson in module.lessons.all %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-play-circle me-2"></i>
+                                                {{ lesson.title }}
+                                                <span class="text-muted small ms-2">{{ lesson.duration }} min</span>
+                                            </div>
+                                            {% if lesson.is_free or is_enrolled %}
+                                            <a href="{% url 'lesson_detail' course.slug module.id lesson.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Locked</span>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                        
+                                        <!-- Check if user is admin or course instructor -->
+                                        {% if request.user.is_authenticated and request.user.is_superuser or request.user == course.instructor %}
+                                        <li class="list-group-item text-center">
+                                            <a href="{% url 'admin_add_lesson' module.id %}" class="btn btn-sm btn-success">
+                                                <i class="bi bi-plus-circle"></i> Add Lesson
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                         {% endfor %}
+                        
+                        <!-- Check if user is admin or course instructor -->
+                        {% if request.user.is_authenticated and request.user.is_superuser or request.user == course.instructor %}
+                        <div class="text-center mt-4">
+                            <a href="{% url 'admin_add_module' course.slug %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Add New Module
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
