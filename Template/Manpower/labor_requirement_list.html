@@ -102,7 +102,7 @@
                 <td>{{ requirement.skill.skill_name }} ({{ requirement.skill.skill_code }})</td>
                 <td>{{ requirement.employees_needed }}</td>
                 <td>
-                    <span class="badge bg-info">{{ requirement.min_proficiency }}</span>
+                   <span class="badge bg-info">{{ requirement.get_min_proficiency_display }}</span>
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">

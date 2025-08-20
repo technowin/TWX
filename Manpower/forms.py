@@ -4,7 +4,7 @@ from django import forms
 import MachinePlan
 from MachinePlan.models import Routing
 from .models import (
-    Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
+    PROFICIENCY_CHOICES, Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
     LaborAssignment, EmployeeAvailability, Attendance, LeaveRequest
 )
 from django.core.exceptions import ValidationError
@@ -70,6 +70,7 @@ class ShiftForm(forms.ModelForm):
             raise ValidationError("End time must be after start time")
         return cleaned_data
 
+
 class LaborRequirementForm(forms.ModelForm):
     class Meta:
         model = LaborRequirement
@@ -78,7 +79,7 @@ class LaborRequirementForm(forms.ModelForm):
             'routing': forms.Select(attrs={'class': 'form-select'}),
             'skill': forms.Select(attrs={'class': 'form-select'}),
             'employees_needed': forms.NumberInput(attrs={'class': 'form-control'}),
-            'min_proficiency': forms.NumberInput(attrs={'class': 'form-control'}),
+            'min_proficiency': forms.Select(attrs={'class': 'form-select'}),  # Changed to Select widget
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
@@ -86,7 +87,8 @@ class LaborRequirementForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['routing'].queryset = Routing.objects.all().order_by('component')
         self.fields['skill'].queryset = Skill.objects.all().order_by('skill_name')
-
+        # Set the choices for min_proficiency field
+        self.fields['min_proficiency'].choices = PROFICIENCY_CHOICES
 class LaborAssignmentForm(forms.ModelForm):
     class Meta:
         model = LaborAssignment
