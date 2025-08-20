@@ -233,7 +233,11 @@ urlpatterns = [
     path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
 
     # Learning Management System (LMS)
-    
+    # Dashboards
+
+    path('user-dashboard/', UserDashboardView.as_view(), name='user_dashboard'),
+    path('admin/dashboard1/', AdminDashboardView.as_view(), name='admin_dashboard'),
+
     # User Management System
     path('register/', register_view, name='register'),
     path('login/', login_view, name='login'),

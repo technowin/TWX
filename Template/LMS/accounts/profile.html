@@ -43,7 +43,7 @@
         <div class="col-lg-8">
             <div class="card shadow-lg border-0 rounded-lg">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="text-center font-weight-light my-4">Profile Settings</h3>
+                    <h3 class="text-center font-weight-light my-1">Profile Settings</h3>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
@@ -51,47 +51,37 @@
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <div class="form-floating mb-3 mb-md-0">
-                                    {{ form.first_name }}
-                                    <label for="{{ form.first_name.id_for_label }}">First Name</label>
-                                </div>
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                {{ form.first_name|add_class:"form-control" }}
                             </div>
                             <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ form.last_name }}
-                                    <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                {{ form.last_name|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                            {{ form.email|add_class:"form-control" }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                            {{ form.phone|add_class:"form-control" }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.profile_picture.id_for_label }}" class="form-label">Profile Picture</label>
+                            {{ form.profile_picture|add_class:"form-control" }}
+                            {% if request.user.profile_picture %}
+                                <div class="mt-2">
+                                    <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture" class="img-thumbnail" style="max-width: 150px;">
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-floating">
-                                {{ form.email }}
-                                <label for="{{ form.email.id_for_label }}">Email</label>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-floating">
-                                {{ form.phone }}
-                                <label for="{{ form.phone.id_for_label }}">Phone</label>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-group">
-                                <label for="{{ form.profile_picture.id_for_label }}">Profile Picture</label>
-                                {{ form.profile_picture }}
-                                {% if request.user.profile_picture %}
-                                    <div class="mt-2">
-                                        <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture" class="img-thumbnail" style="max-width: 150px;">
-                                    </div>
-                                {% endif %}
-                            </div>
+                            {% endif %}
                         </div>
                         
                         <div class="mb-3 form-check form-switch">
-                            {{ form.dark_mode }}
+                            {{ form.dark_mode|add_class:"form-check-input" }}
                             <label class="form-check-label" for="{{ form.dark_mode.id_for_label }}">Dark Mode</label>
                         </div>
                         
@@ -104,6 +94,7 @@
         </div>
     </div>
 </div>
+
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>

@@ -1513,3 +1513,139 @@ def wishlist_view(request):
         'wishlist_courses': wishlist_courses,
     }
     return render(request, 'LMS/courses/wishlist.html', context)
+
+
+
+# views.py
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
+from django.db.models import Count, Sum, Avg, Q
+from django.utils import timezone
+from datetime import timedelta
+
+@method_decorator(login_required, name='dispatch')
+class UserDashboardView(TemplateView):
+    template_name = 'LMS/dashboard/user_dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Get user enrollments with progress
+        enrollments = Enrollment.objects.filter(user=user).select_related('course')
+        
+        # Calculate statistics
+        completed_courses = enrollments.filter(status='COMPLETED').count()
+        in_progress_count = enrollments.filter(status='ACTIVE').count()
+        not_started_count = enrollments.filter(status='PENDING').count()
+        
+        # Calculate average progress
+        progress_values = [enrollment.progress for enrollment in enrollments]
+        avg_progress = sum(progress_values) / len(progress_values) if progress_values else 0
+        
+        # Mock data for demonstration
+        learning_hours = sum([enrollment.course.duration for enrollment in enrollments if enrollment.progress > 0])
+        
+        # Recent enrollments (last 5)
+        recent_enrollments = enrollments.order_by('-enrollment_date')[:5]
+        
+        # Mock upcoming deadlines
+        upcoming_deadlines = [
+            {'title': 'Complete Python Assignment', 'due_date': timezone.now() + timedelta(days=3), 'priority': 'warning', 'course': 'Complete Python Bootcamp'},
+            {'title': 'Web Development Quiz', 'due_date': timezone.now() + timedelta(days=7), 'priority': 'info', 'course': 'Web Development Masterclass'},
+        ]
+        
+        # Mock recent activities
+        recent_activities = [
+            {'type': 'primary', 'title': 'Completed Lesson', 'description': 'Finished Python Basics lesson', 'timestamp': timezone.now() - timedelta(hours=2)},
+            {'type': 'success', 'title': 'Enrolled in Course', 'description': 'Joined Data Science Fundamentals', 'timestamp': timezone.now() - timedelta(days=1)},
+            {'type': 'info', 'title': 'Added Note', 'description': 'Added note to Web Development lesson', 'timestamp': timezone.now() - timedelta(days=2)},
+        ]
+        
+        context.update({
+            'enrolled_courses': enrollments,
+            'completed_courses': completed_courses,
+            'in_progress_count': in_progress_count,
+            'not_started_count': not_started_count,
+            'avg_progress': round(avg_progress),
+            'learning_hours': learning_hours,
+            'recent_enrollments': recent_enrollments,
+            'upcoming_deadlines': upcoming_deadlines,
+            'recent_activities': recent_activities,
+        })
+        
+        return context
+
+@method_decorator(login_required, name='dispatch')
+class AdminDashboardView(TemplateView):
+    template_name = 'LMS/dashboard/admin_dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Check if user is admin
+        if not self.request.user.is_staff:
+            return context
+            
+        # Calculate statistics
+        total_users = CustomUser.objects.count()
+        total_courses = Course.objects.count()
+        total_enrollments = Enrollment.objects.count()
+        
+        # Calculate total revenue (mock data for demonstration)
+        total_revenue = Enrollment.objects.filter(is_paid=True).aggregate(
+            total=Sum('payment_amount')
+        )['total'] or 0
+        
+        # User distribution
+        individual_users = CustomUser.objects.filter(user_type='INDIVIDUAL').count()
+        corporate_users = CustomUser.objects.filter(
+            Q(user_type='CORPORATE_TRAINEE') | Q(user_type='CORPORATE_APPROVER')
+        ).count()
+        admin_users = CustomUser.objects.filter(is_staff=True).count()
+        
+        # Monthly revenue (mock data)
+        monthly_revenue = [12000, 19000, 15000, 18000, 25000, 22000, 30000, 28000, 32000, 35000, 40000, 42000]
+        
+        # Top courses by enrollment
+        top_courses = Course.objects.annotate(
+            enrollment_count=Count('enrollments')
+        ).order_by('-enrollment_count')[:5]
+        
+        # Add mock revenue to courses
+        for course in top_courses:
+            course.revenue = course.enrollment_count * course.price
+        
+        # Recent enrollments
+        recent_enrollments = Enrollment.objects.select_related('user', 'course').order_by('-enrollment_date')[:5]
+        
+        # Pending corporate requests
+        pending_requests = CorporateEnrollmentRequest.objects.filter(
+            status='PENDING'
+        ).select_related('corporate_enrollment__company', 'corporate_enrollment__course', 'user')[:5]
+        
+        # System health metrics (mock data)
+        active_sessions = 142
+        storage_usage = 65
+        pending_tasks = 8
+        
+        context.update({
+            'total_users': total_users,
+            'total_courses': total_courses,
+            'total_enrollments': total_enrollments,
+            'total_revenue': total_revenue,
+            'individual_users': individual_users,
+            'corporate_users': corporate_users,
+            'admin_users': admin_users,
+            'monthly_revenue': monthly_revenue,
+            'top_courses': top_courses,
+            'recent_enrollments': recent_enrollments,
+            'pending_requests': pending_requests,
+            'active_sessions': active_sessions,
+            'storage_usage': storage_usage,
+            'pending_tasks': pending_tasks,
+        })
+        
+        return context
