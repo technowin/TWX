@@ -8,7 +8,6 @@
 
 {% load static %}
 
-{% block title %}Dashboard{% endblock %}
 
 {% block extra_css %}
 <!-- Select2 css -->
@@ -223,8 +222,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-   {% comment %} <script>
+    {% comment %} <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
     let currentLanguage = null;
     let currentMenuParent = null;
     let isCollectingContact = false;
@@ -247,6 +246,7 @@
     });
 
     function resetChatState() {
+        debugger;
         currentLanguage = null;
         currentMenuParent = null;
         isCollectingContact = false;
@@ -482,294 +482,16 @@
         const el = document.getElementById('chat-messages');
         el.scrollTop = el.scrollHeight;
     }
+
 </script> {% endcomment %}
-
-{% comment %} <script>
-    let currentLanguage = null;
-    let currentMenuParent = null;
-    let isCollectingContact = false;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        sessionStorage.clear();
-        const userInput = document.getElementById('user-input');
-        const sendButton = document.getElementById('send-button');
-        
-        resetChatState();
-        showLanguageSelection();
-        
-        // Set up event listeners
-        sendButton.addEventListener('click', function() {
-            sendMessage();
-        });
-        userInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') sendMessage();
-        });
-    });
-
-    function resetChatState() {
-        currentLanguage = null;
-        currentMenuParent = null;
-        isCollectingContact = false;
-        document.getElementById('chat-messages').innerHTML = '';
-        addMessage("Welcome to the chatbot! Please select a language.", 'bot-message');
-    }
-
-    function showLanguageSelection() {
-        const languagesFromTemplate = {{ languages_json|safe }};
-        if (languagesFromTemplate && languagesFromTemplate.length > 0) {
-            renderLanguageOptions(languagesFromTemplate);
-        } else {
-            fetch('/chat/', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => renderLanguageOptions(data.languages))
-            .catch(error => console.error('Error fetching languages:', error));
-        }
-    }
-
-    function renderLanguageOptions(languages) {
-        let html = `
-            <div class="message bot-message">
-                <p>Please select your language:</p>
-                <div class="menu-options">
-        `;
-        
-        languages.forEach((lang, index) => {
-            html += `
-                <div class="menu-option" onclick="selectLanguage('${lang.code}', '${lang.name}')">
-                    <span class="menu-option-number">${index + 1}.</span>
-                    ${lang.name}
-                </div>
-            `;
-        });
-        
-        html += `</div></div>`;
-        document.getElementById('chat-messages').innerHTML = html;
-    }
-
-    function selectLanguage(langCode, langName) {
-        currentLanguage = langCode;
-        // Show the language name in chat but pass the code to the function
-        addMessage(langName, 'user-message');
-        sendMessage(langCode);
-    }
-
-    function sendMessage(message = null) {
-        // Handle case where event object might be passed
-        if (message && typeof message === 'object' && 'preventDefault' in message) {
-            return; // Ignore direct event objects
-        }
-        
-        const input = document.getElementById('user-input');
-        const messageText = message || input.value.trim();
-        
-        if (!messageText) return;
-        
-        if (!message) {
-            // Only add the message to chat if it's a direct user input
-            addMessage(messageText, 'user-message');
-            input.value = '';
-        }
-        
-        const typingId = 'typing-' + Date.now();
-        document.getElementById('chat-messages').innerHTML += `
-            <div class="message bot-message" id="${typingId}">
-                <div class="typing-indicator">
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                </div>
-            </div>
-        `;
-        scrollToBottom();
-        
-        const formData = new FormData();
-        formData.append('input_text', messageText);
-        if (currentLanguage) {
-            formData.append('selected_language', currentLanguage);
-        }
-        
-        fetch('/chat/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById(typingId)?.remove();
-            
-            if (data.error) {
-                addMessage(data.error, 'bot-message error-message');
-            } else {
-                // Handle contact collection state
-                if (data.collecting_contact) {
-                    isCollectingContact = true;
-                } else if (data.show_menu) {
-                    isCollectingContact = false;
-                }
-
-                // Add bot response
-                addMessage(data.response, 'bot-message');
-
-                // Handle reset case
-                if (data.reset_contact) {
-                    resetChatState();
-                    return;
-                }
-
-                // Render menu options if available
-                if (data.menu_options?.length > 0 && !isCollectingContact) {
-                    renderMenuOptions(data.menu_options, data.is_submenu);
-                }
-
-                // Handle back button and other query options
-                let additionalOptionsHtml = '';
-                
-                if (data.show_back_button) {
-                    additionalOptionsHtml += `
-                        <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
-                            <span class="menu-option-number">←</span>
-                            Back
-                        </div>
-                    `;
-                }
-
-                if (data.show_other_query) {
-                    const optionNumber = data.menu_options ? data.menu_options.length + 1 : 1;
-                    additionalOptionsHtml += `
-                        <div class="menu-option" onclick="handleOtherQueryClick(event)">
-                            <span class="menu-option-number">${optionNumber}.</span>
-                            Any Other Query
-                        </div>
-                    `;
-                }
-
-                if (additionalOptionsHtml) {
-                    const fullOptionsHtml = `<div class="menu-options mt-3">${additionalOptionsHtml}</div>`;
-                    const botMessages = document.querySelectorAll('.bot-message');
-                    if (botMessages.length > 0) {
-                        botMessages[botMessages.length - 1].innerHTML += fullOptionsHtml;
-                    }
-                }
-
-                if (data.awaiting_query) {
-                    document.getElementById('user-input').placeholder = "Type your query here...";
-                    document.getElementById('user-input').focus();
-                }
-
-                // Update current language if changed
-                if (data.selected_language) {
-                    currentLanguage = data.selected_language;
-                }
-            }
-            
-            scrollToBottom();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById(typingId)?.remove();
-            addMessage("Sorry, something went wrong. Please try again.", 'bot-message error-message');
-            scrollToBottom();
-        });
-    }
-
-    function renderMenuOptions(options, isSubmenu = false) {
-        let menuHtml = '<div class="menu-options mt-3">';
-        
-        options.forEach(option => {
-            menuHtml += `
-                <div class="menu-option" 
-                     data-option-number="${option.option_number}" 
-                     data-menu-text="${option.menu_text}"
-                     data-has-children="${option.has_children}" 
-                     onclick="handleMenuOptionClick(event)">
-                    <span class="menu-option-number">${option.option_number}.</span>
-                    ${option.menu_text}
-                </div>
-            `;
-        });
-        
-        if (isSubmenu) {
-            menuHtml += `
-                <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
-                    <span class="menu-option-number">←</span>
-                    Back
-                </div>
-            `;
-        }
-        
-        menuHtml += '</div>';
-        
-        const botMessages = document.querySelectorAll('.bot-message');
-        if (botMessages.length > 0) {
-            botMessages[botMessages.length - 1].innerHTML += menuHtml;
-        }
-    }
-
-    function handleMenuOptionClick(event) {
-        event.preventDefault();
-        const optionElement = event.currentTarget;
-        const optionNumber = optionElement.getAttribute('data-option-number');
-        const menuText = optionElement.getAttribute('data-menu-text');
-        const hasChildren = optionElement.getAttribute('data-has-children') === 'true';
-        
-        // Add the menu text to chat instead of the option number
-        addMessage(menuText, 'user-message');
-        
-        if (hasChildren) {
-            currentMenuParent = optionNumber;
-        }
-        
-        // Pass the option number to the backend
-        sendMessage(optionNumber);
-    }
-
-    function goBackToParentMenu(event) {
-        event.preventDefault();
-        // Add "Back" to chat
-        addMessage("Back", 'user-message');
-        sendMessage('menu');
-    }
-
-    function handleOtherQueryClick(event) {
-        event.preventDefault();
-        // Add "Any Other Query" to chat
-        addMessage("Any Other Query", 'user-message');
-        sendMessage("Any Other Query");
-    }
-
-    function addMessage(text, className) {
-        // Sanitize text to prevent XSS
-        const div = document.createElement('div');
-        div.textContent = text;
-        const sanitizedText = div.innerHTML;
-        
-        document.getElementById('chat-messages').innerHTML += `
-            <div class="message ${className}">${sanitizedText}</div>
-        `;
-        scrollToBottom();
-    }
-
-    function scrollToBottom() {
-        const el = document.getElementById('chat-messages');
-        el.scrollTop = el.scrollHeight;
-    }
-</script> {% endcomment %}
-
-<script>
+ 
+ <script>
     let currentLanguage = null;
     let currentMenuParent = null;
     let isCollectingContact = false;
     let isCollectingPhoneOrEmail = false;
 
-    document.addEventListener('DOMContentLoaded', function() {
+    {% comment %} document.addEventListener('DOMContentLoaded', function() {
         sessionStorage.clear();
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
@@ -787,16 +509,42 @@
 
         // Initialize input placeholder
         updateInputPlaceholder();
+    }); {% endcomment %}
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for existing session
+        const hasActiveSession = sessionStorage.getItem('hasActiveSession');
+        currentLanguage = sessionStorage.getItem('currentLanguage');
+        
+        if (hasActiveSession && currentLanguage) {
+            // We have an active session - request main menu
+            updateInputPlaceholder();
+            sendMessage('menu');
+        } else {
+            // New session - clear storage and show language selection
+            sessionStorage.clear();
+            resetChatState();
+            showLanguageSelection();
+        }
+        
+        // Set up event listeners
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+        document.getElementById('user-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
     });
 
     function resetChatState() {
-        currentLanguage = null;
         currentMenuParent = null;
         isCollectingContact = false;
         isCollectingPhoneOrEmail = false;
         document.getElementById('chat-messages').innerHTML = '';
-        addMessage("Welcome to the chatbot! Please select a language.", 'bot-message');
+        
+        if (!currentLanguage) {
+            addMessage("Welcome to the chatbot! Please select a language.", 'bot-message');
+        }
     }
+
 
     function showLanguageSelection() {
         const languagesFromTemplate = {{ languages_json|safe }};
@@ -837,6 +585,7 @@
 
     function selectLanguage(langCode, langName) {
         currentLanguage = langCode;
+        sessionStorage.setItem('currentLanguage', langCode);
         addMessage(langName, 'user-message');
         sendMessage(langCode);
         updateInputPlaceholder();
@@ -870,7 +619,6 @@
     }
 
     async function sendMessage(message = null) {
-        // Handle case where event object might be passed
         if (message && typeof message === 'object' && 'preventDefault' in message) {
             return;
         }
@@ -880,10 +628,19 @@
         
         if (!messageText) return;
         
+        // Handle direct language selection
+        if (!currentLanguage && !isCollectingContact) {
+            const languages = {{ languages_json|safe }};
+            const detectedLang = detectLanguageFromInput(messageText, languages);
+            if (detectedLang) {
+                selectLanguage(detectedLang.code, detectedLang.name);
+                return;
+            }
+        }
+        
         if (!message) {
-            input.value = ''; // Clear input immediately
+            input.value = '';
             
-            // Convert input if needed (not English and not collecting contact info)
             if (currentLanguage && currentLanguage !== 'en' && !isCollectingPhoneOrEmail) {
                 const typingId = 'converting-' + Date.now();
                 document.getElementById('chat-messages').innerHTML += `
@@ -941,70 +698,46 @@
             if (data.error) {
                 addMessage(data.error, 'bot-message error-message');
             } else {
-                // Update contact collection state
                 isCollectingPhoneOrEmail = data.collecting_contact;
                 
                 if (data.collecting_contact) {
                     isCollectingContact = true;
                 } else if (data.show_menu) {
                     isCollectingContact = false;
+                    sessionStorage.setItem('hasActiveSession', 'true');
                 }
 
-                // Add bot response
                 addMessage(data.response, 'bot-message');
 
-                // Handle reset case
                 if (data.reset_contact) {
+                    sessionStorage.clear();
                     resetChatState();
                     return;
                 }
 
-                // Render menu options if available
                 if (data.menu_options?.length > 0 && !isCollectingContact) {
                     renderMenuOptions(data.menu_options, data.is_submenu);
-                }
-
-                // Handle awaiting query state
-                if (data.awaiting_query) {
-                    const placeholderText = await convertTextToSelectedLanguage("Type your query here...");
-                    document.getElementById('user-input').placeholder = placeholderText;
-                    document.getElementById('user-input').focus();
-                    return;
-                }
-
-                // Handle back button and other query options
-                let additionalOptionsHtml = '';
-                
-                if (data.show_back_button) {
-                    additionalOptionsHtml += `
-                        <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
-                            <span class="menu-option-number">←</span>
-                            ${await convertTextToSelectedLanguage("Back")}
-                        </div>
-                    `;
-                }
-
-                if (data.show_other_query) {
-                    const optionNumber = data.menu_options ? data.menu_options.length + 1 : 1;
-                    additionalOptionsHtml += `
-                        <div class="menu-option" onclick="handleOtherQueryClick(event)">
-                            <span class="menu-option-number">${optionNumber}.</span>
-                            ${await convertTextToSelectedLanguage("Any Other Query")}
-                        </div>
-                    `;
-                }
-
-                if (additionalOptionsHtml) {
-                    const fullOptionsHtml = `<div class="menu-options mt-3">${additionalOptionsHtml}</div>`;
-                    const botMessages = document.querySelectorAll('.bot-message');
-                    if (botMessages.length > 0) {
-                        botMessages[botMessages.length - 1].innerHTML += fullOptionsHtml;
+                    
+                    if (data.footer_text) {
+                        const footerHtml = `<div class="footer-text">${data.footer_text}</div>`;
+                        const botMessages = document.querySelectorAll('.bot-message');
+                        if (botMessages.length > 0) {
+                            botMessages[botMessages.length - 1].insertAdjacentHTML('beforeend', footerHtml);
+                        }
                     }
                 }
 
-                // Update current language if changed
+                if (data.bot_footer_text) {
+                    const footerHtml = `<div class="footer-text">${data.bot_footer_text}</div>`;
+                    const botMessages = document.querySelectorAll('.bot-message');
+                    if (botMessages.length > 0) {
+                        botMessages[botMessages.length - 1].insertAdjacentHTML('beforeend', footerHtml);
+                    }
+                }
+
                 if (data.selected_language) {
                     currentLanguage = data.selected_language;
+                    sessionStorage.setItem('currentLanguage', currentLanguage);
                     updateInputPlaceholder();
                 }
             }
@@ -1036,8 +769,8 @@
         if (isSubmenu) {
             menuHtml += `
                 <div class="menu-option back-option" onclick="goBackToParentMenu(event)">
-                    <span class="menu-option-number">←</span>
-                    Back
+                    <span class="menu-option-icon">↩️</span>
+                    <span class="menu-option-text">Return to Main Menu</span>
                 </div>
             `;
         }
@@ -1068,15 +801,8 @@
 
     function goBackToParentMenu(event) {
         event.preventDefault();
-        addMessage("Back", 'user-message');
+        addMessage("Return to Main Menu", 'user-message');
         sendMessage('menu');
-    }
-
-    async function handleOtherQueryClick(event) {
-        event.preventDefault();
-        const translatedText = await convertInputToSelectedLanguage("Any Other Query");
-        addMessage(translatedText, 'user-message');
-        sendMessage("Any Other Query");
     }
 
     function addMessage(text, className) {
@@ -1107,17 +833,37 @@
         input.placeholder = placeholderText;
     }
 
-    async function convertTextToSelectedLanguage(text) {
-        return convertInputToSelectedLanguage(text);
-    }
-
     function scrollToBottom() {
         const el = document.getElementById('chat-messages');
         if (el) {
             el.scrollTop = el.scrollHeight;
         }
     }
-</script>
+
+    function detectLanguageFromInput(input, languages) {
+        if (!input || !languages) return null;
+        
+        input = input.toLowerCase().trim();
+        
+        // Check by number
+        if (/^\d+$/.test(input)) {
+            const index = parseInt(input) - 1;
+            if (index >= 0 && index < languages.length) {
+                return languages[index];
+            }
+        }
+        
+        // Check by name or code
+        for (const lang of languages) {
+            if (input === lang.name.toLowerCase() || 
+                input === lang.code.toLowerCase()) {
+                return lang;
+            }
+        }
+        
+        return null;
+    }
+</script> 
 
 </body>
 {% endblock %}

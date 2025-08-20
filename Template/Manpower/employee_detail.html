@@ -153,11 +153,11 @@
                                 <tr>
                                     <td>{{ assignment.date|date:"Y-m-d" }}</td>
                                     <td>{{ assignment.shift.shift_code }}</td>
-                                    <td>
+                                    {% comment %} <td>
                                         <a href="{% url 'machine_planning:schedule_detail' assignment.schedule.pk %}">
                                             {{ assignment.schedule.work_order }}
                                         </a>
-                                    </td>
+                                    </td> {% endcomment %}
                                     <td>{{ assignment.hours_allocated }}</td>
                                     <td>
                                         <span class="badge 

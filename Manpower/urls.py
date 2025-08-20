@@ -51,6 +51,8 @@ urlpatterns = [
     path('attendance/add/', views.AttendanceCreateUpdateView.as_view(), name='attendance_create'),
     path('attendance/<int:pk>/edit/', views.AttendanceCreateUpdateView.as_view(), name='attendance_edit'),
     path('attendance/<int:pk>/delete/', views.delete_attendance, name='attendance_delete'),
+    path('download-attendance-sample/', views.download_attendance_sample, name='download_attendance_sample'),
+    path('upload-attendance/', views.upload_attendance, name='attendance_upload'),
     
     # Leave Request URLs
     path('leave-requests/', views.LeaveRequestListView.as_view(), name='leave_request_list'),

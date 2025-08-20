@@ -39,9 +39,66 @@
     </div>
 
     <div class="col-auto mt-2">
+        <!-- Upload Attendance Button -->
+        <button type="button" class="btn btn-sm btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#uploadAttendanceModal">
+            <i class="fas fa-upload"></i> Upload Attendance
+        </button>
+        
+        <!-- New Record Button -->
         <a href="{% url 'manpower:attendance_create' %}" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-plus"></i> New Record
         </a>
+    </div>
+</div>
+
+<!-- Upload Attendance Modal -->
+<div class="modal fade" id="uploadAttendanceModal" tabindex="-1" aria-labelledby="uploadAttendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadAttendanceModalLabel">Upload Attendance Records</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadAttendanceForm" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="shiftSelect" class="form-label">Shift</label>
+                        <select class="form-select" id="shiftSelect" name="shift" required>
+                            <option value="" selected disabled>Select Shift</option>
+                            {% for shift in shifts %}
+                            <option value="{{ shift.pk }}">{{ shift.shift_code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Upload File</label>
+                        <input type="file" class="form-control" id="attendanceFile" name="attendance_file" accept=".xlsx,.xls" required>
+                        <div class="form-text">Upload Excel file with attendance data</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <a href="{% url 'manpower:download_attendance_sample' %}" class="btn btn-sm btn-outline-info" id="downloadSampleBtn">
+                            <i class="fas fa-download"></i> Download Sample
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">File Format Requirements:</h6>
+                        <ul class="mb-0">
+                            <li>Columns must include: Employee Name, Date, Clock In, Clock Out</li>
+                            <li>Date format: YYYY-MM-DD</li>
+                            <li>Time format: HH:MM (24-hour format)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -269,6 +326,101 @@
 });
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Download sample file
+    document.getElementById('downloadSampleBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Create sample data
+        const sampleData = [
+            ['Employee Name', 'Date', 'Clock In', 'Clock Out'],
+            ['John Doe', '2023-10-01', '09:00', '17:00'],
+            ['Jane Smith', '2023-10-01', '08:45', '17:15']
+        ];
+        
+        // Convert to worksheet
+        const ws = XLSX.utils.aoa_to_sheet(sampleData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+        
+        // Download
+        XLSX.writeFile(wb, "attendance_sample.xlsx");
+    });
+    
+    // Handle form submission
+    document.getElementById('uploadAttendanceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+        
+        fetch("{% url 'manpower:attendance_upload' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                Swal.fire({
+                    title: 'Success!',
+                    text: data.message,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Close modal and refresh page
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('uploadAttendanceModal'));
+                    modal.hide();
+                    window.location.reload();
+                });
+            } else {
+                // Show error message
+                let errorMessage = data.error;
+                if (data.errors) {
+                    errorMessage += '\n\nErrors:\n' + data.errors.join('\n');
+                }
+                
+                Swal.fire({
+                    title: 'Upload Failed',
+                    text: errorMessage,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred during upload: ' + error,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        })
+        .finally(() => {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+    
+    // Reset form when modal is closed
+    document.getElementById('uploadAttendanceModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('uploadAttendanceForm').reset();
+    });
+});
+</script>
+
+<!-- Add XLSX library for sample download -->
+
 
 
 {% block extra_javascript %}
@@ -290,6 +442,8 @@
 <script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Init js end -->
+ <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>

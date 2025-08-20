@@ -55,7 +55,6 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
-
 @admin.register(Routing)
 class RoutingAdmin(admin.ModelAdmin):
     list_display = ['component', 'sequence', 'operation', 'work_center', 

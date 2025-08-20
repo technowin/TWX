@@ -10,6 +10,7 @@ class Employee(models.Model):
     hire_date = models.DateField(verbose_name="Hire Date", null=True, blank=True)
     contact_number = models.CharField(max_length=15, blank=True, verbose_name="Contact Number")
     email = models.EmailField(blank=True, verbose_name="Email Address")
+    is_active = models.BooleanField(default=True)
     
     class Meta:
         ordering = ['employee_name']
@@ -65,6 +66,7 @@ class Shift(models.Model):
     start_time = models.TimeField(verbose_name="Start Time")
     end_time = models.TimeField(verbose_name="End Time")
     description = models.CharField(max_length=100, blank=True, verbose_name="Description")
+    is_active = models.BooleanField(default=True)
     
     class Meta:
         ordering = ['start_time']
@@ -95,7 +97,7 @@ class LaborRequirement(models.Model):
 
 class LaborAssignment(models.Model):
     schedule = models.ForeignKey(MachinePlanning, on_delete=models.CASCADE, related_name='labor_assignments')
-    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name="Assigned Employee")
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name="Assigned Employee",related_name='labor_assignments')
     shift = models.ForeignKey(Shift, on_delete=models.PROTECT, verbose_name="Assigned Shift")
     date = models.DateField(verbose_name="Assignment Date")
     hours_allocated = models.DecimalField(
