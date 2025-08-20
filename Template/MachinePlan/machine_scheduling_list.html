@@ -41,15 +41,7 @@
     </div>
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-3">
-                <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select">
-                    <option value="">All Statuses</option>
-                    {% for value, label in status_choices %}
-                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+           
             <div class="col-md-3">
                 <label for="machine" class="form-label">Machine</label>
                 <select name="machine" id="machine" class="form-select">
@@ -67,9 +59,9 @@
                 <label for="end_date" class="form-label">End Date</label>
                 <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request.GET.end_date }}">
             </div>
-            <div class="col-12">
+            <div class="col-md-3">
                 <button type="submit" class="btn btn-primary">Apply Filters</button>
-                <a href="/mcp/machine_scheduling_list/" class="btn btn-outline-secondary">Clear</a>
+                <a href="{% url 'mcp:machine_scheduling_list' %}" class="btn btn-outline-secondary">Clear</a>
             </div>
         </form>
     </div>

@@ -592,7 +592,7 @@ class MachineSchedulingCreateView(CreateView):
     model = MachineScheduling
     form_class = MachineSchedulingForm
     template_name = 'MachinePlan/machine_scheduling_form.html'
-    success_url = reverse_lazy('machine_scheduling_list')
+    success_url = reverse_lazy('mcpmachine_scheduling_list')
     
     def form_valid(self, form):
         # Set work_center from routing before saving
@@ -604,7 +604,7 @@ class MachineSchedulingUpdateView(UpdateView):
     model = MachineScheduling
     form_class = MachineSchedulingForm
     template_name = 'MachinePlan/machine_scheduling_form.html'
-    success_url = reverse_lazy('machine_scheduling_list')
+    success_url = reverse_lazy('mcp:machine_scheduling_list')
     
     def form_valid(self, form):
         # Set work_center from routing before saving
@@ -615,7 +615,7 @@ class MachineSchedulingUpdateView(UpdateView):
 class MachineSchedulingDeleteView(DeleteView):
     model = MachineScheduling
     template_name = 'MachinePlan/machine_scheduling_confirm_delete.html'
-    success_url = reverse_lazy('machine_scheduling_list')
+    success_url = reverse_lazy('mcp:machine_scheduling_list')
 
 def load_routings(request):
     """AJAX view to load routings based on selected component"""
