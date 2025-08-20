@@ -43,7 +43,7 @@
         <div class="col-lg-8 col-md-10">
             <div class="card shadow-lg border-0 rounded-lg">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="text-center font-weight-light my-4">Create Account</h3>
+                    <h3 class="text-center font-weight-light my-1">Create Account</h3>
                 </div>
                 <div class="card-body">
                     <form method="post" class="needs-validation" novalidate>
@@ -51,76 +51,60 @@
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <div class="form-floating mb-3 mb-md-0">
-                                    {{ form.username }}
-                                    <label for="{{ form.username.id_for_label }}">Username</label>
-                                    <div class="invalid-feedback">
-                                        Please choose a username.
-                                    </div>
+                                <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                                {{ form.username|add_class:"form-control" }}
+                                <div class="invalid-feedback">
+                                    Please choose a username.
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ form.email }}
-                                    <label for="{{ form.email.id_for_label }}">Email</label>
-                                    <div class="invalid-feedback">
-                                        Please provide a valid email.
-                                    </div>
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                {{ form.email|add_class:"form-control" }}
+                                <div class="invalid-feedback">
+                                    Please provide a valid email.
                                 </div>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <div class="form-floating mb-3 mb-md-0">
-                                    {{ form.password1 }}
-                                    <label for="{{ form.password1.id_for_label }}">Password</label>
-                                    <div class="invalid-feedback">
-                                        Please provide a password.
-                                    </div>
+                                <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+                                {{ form.password1|add_class:"form-control" }}
+                                <div class="invalid-feedback">
+                                    Please provide a password.
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ form.password2 }}
-                                    <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
-                                    <div class="invalid-feedback">
-                                        Passwords must match.
-                                    </div>
+                                <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
+                                {{ form.password2|add_class:"form-control" }}
+                                <div class="invalid-feedback">
+                                    Passwords must match.
                                 </div>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <div class="form-floating">
-                                {{ form.user_type }}
-                                <label for="{{ form.user_type.id_for_label }}">User Type</label>
-                            </div>
+                            <label for="{{ form.user_type.id_for_label }}" class="form-label">User Type</label>
+                            {{ form.user_type|add_class:"form-select" }}
                         </div>
                         
                         <div class="mb-3" id="company-field" style="display: none;">
-                            <div class="form-floating">
-                                {{ form.company }}
-                                <label for="{{ form.company.id_for_label }}">Company</label>
-                            </div>
+                            <label for="{{ form.company.id_for_label }}" class="form-label">Company</label>
+                            {{ form.company|add_class:"form-control" }}
                         </div>
                         
                         <div class="mb-3" id="group-field" style="display: none;">
-                            <div class="form-floating">
-                                {{ form.group }}
-                                <label for="{{ form.group.id_for_label }}">Group</label>
-                            </div>
+                            <label for="{{ form.group.id_for_label }}" class="form-label">Group</label>
+                            {{ form.group|add_class:"form-control" }}
                         </div>
                         
                         <div class="mb-3">
-                            <div class="form-floating">
-                                {{ form.phone }}
-                                <label for="{{ form.phone.id_for_label }}">Phone Number</label>
-                            </div>
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">Phone Number</label>
+                            {{ form.phone|add_class:"form-control" }}
                         </div>
                         
                         <div class="mt-4 mb-0">
-                            <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                            <button type="submit" class="btn btn-primary w-100">Create Account</button>
                         </div>
                     </form>
                 </div>
@@ -131,6 +115,7 @@
         </div>
     </div>
 </div>
+
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
