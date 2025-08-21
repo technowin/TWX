@@ -24,7 +24,7 @@ from .forms import (
     LaborRequirementForm, LaborAssignmentForm, EmployeeAvailabilityForm,
     AttendanceForm, LeaveRequestForm
 )
-from MachinePlan.models import MachinePlanning, Routing
+from MachinePlan.models import MachinePlanning, MachineScheduling, Routing
     
 class EmployeeListView(LoginRequiredMixin, ListView):
     model = Employee
@@ -327,7 +327,7 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         # Add schedule context if exists
         schedule_id = self.request.GET.get('schedule_id')
         if schedule_id:
-            context['schedule'] = get_object_or_404(MachinePlanning, pk=schedule_id)
+            context['schedule'] = get_object_or_404(MachineScheduling, pk=schedule_id)
             
         return context
     
@@ -412,7 +412,6 @@ class LeaveRequestCreateUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('manpower:leave_request_list')
 
-@require_POST
 @login_required
 def delete_leave_request(request, pk):
     leave_request = get_object_or_404(LeaveRequest, pk=pk)
@@ -420,7 +419,6 @@ def delete_leave_request(request, pk):
     messages.success(request, "Leave request has been deleted.")
     return JsonResponse({'success': True})
 
-@require_POST
 @login_required
 def approve_leave_request(request, pk):
     leave_request = get_object_or_404(LeaveRequest, pk=pk)
@@ -434,7 +432,6 @@ def approve_leave_request(request, pk):
         messages.warning(request, "Leave request is not in pending status.")
     return JsonResponse({'success': True})
 
-@require_POST
 @login_required
 def reject_leave_request(request, pk):
     leave_request = get_object_or_404(LeaveRequest, pk=pk)

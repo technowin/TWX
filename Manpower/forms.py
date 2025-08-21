@@ -4,7 +4,7 @@ from django import forms
 import MachinePlan
 from MachinePlan.models import Routing
 from .models import (
-    PROFICIENCY_CHOICES, Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
+    Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
     LaborAssignment, EmployeeAvailability, Attendance, LeaveRequest
 )
 from django.core.exceptions import ValidationError
@@ -88,7 +88,6 @@ class LaborRequirementForm(forms.ModelForm):
         self.fields['routing'].queryset = Routing.objects.all().order_by('component')
         self.fields['skill'].queryset = Skill.objects.all().order_by('skill_name')
         # Set the choices for min_proficiency field
-        self.fields['min_proficiency'].choices = PROFICIENCY_CHOICES
 class LaborAssignmentForm(forms.ModelForm):
     class Meta:
         model = LaborAssignment
