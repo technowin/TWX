@@ -376,7 +376,7 @@ class MachinePlanningDeleteView(DeleteView):
 class OperationListView(ListView):
     model = Operation
     template_name = 'MachinePlan/operation_list.html'
-    context_object_name = 'operation'
+    context_object_name = 'operations'
     paginate_by = 20
 
 class OperationCreateView(CreateView):
