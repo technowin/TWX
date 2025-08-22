@@ -1,7 +1,7 @@
 # models.py
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from MachinePlan.models import MachinePlanning, WorkCenter, Routing
+from MachinePlan.models import MachinePlanning, MachineScheduling, WorkCenter, Routing
 
 class Employee(models.Model):
     employee_code = models.CharField(max_length=10, unique=True, verbose_name="Employee ID")
@@ -73,6 +73,7 @@ class Shift(models.Model):
 
 class LaborRequirement(models.Model):
     routing = models.ForeignKey(Routing, on_delete=models.CASCADE, related_name='labor_requirements')
+    schedule = models.ForeignKey(MachineScheduling, on_delete=models.PROTECT,null=True,blank=True )
     skill = models.ForeignKey(Skill, on_delete=models.PROTECT, verbose_name="Required Skill")
     employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="Employees Needed")
     min_proficiency = models.ForeignKey(Proficeincy,on_delete=models.CASCADE, related_name='require_proficiency',null=True,blank=True)
@@ -88,7 +89,7 @@ class LaborRequirement(models.Model):
         return f"{self.routing} requires {self.employees_needed} {self.skill})"
 
 class LaborAssignment(models.Model):
-    schedule = models.ForeignKey(MachinePlanning, on_delete=models.CASCADE, related_name='labor_assignments')
+    schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE, related_name='labor_assignments')
     employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name="Assigned Employee",related_name='labor_assignments')
     shift = models.ForeignKey(Shift, on_delete=models.PROTECT, verbose_name="Assigned Shift")
     date = models.DateField(verbose_name="Assignment Date")

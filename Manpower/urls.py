@@ -66,4 +66,6 @@ urlpatterns = [
     path('daily-assignments/<str:date>/', views.daily_assignments, name='daily_assignments'),
     path('skill-gaps/', views.skill_gaps_report, name='skill_gaps_report'),
     path('routing-assignments/<int:routing_id>/', views.routing_assignments, name='routing_assignments'),
+
+     path('api/employees/', views.get_employees_with_status, name='employee_api'),
 ]
