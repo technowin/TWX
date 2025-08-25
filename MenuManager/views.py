@@ -90,14 +90,10 @@ def delete_menu(request):
         if request.method == "POST" and type == 'delete':
             menu_id1 = request.POST.get('menu_id', '')
             menu_id = dec(menu_id1)
-            try:
-                menu = get_object_or_404(MenuMaster, menu_id=menu_id)
-                menu.delete()
+            menu = get_object_or_404(MenuMaster, menu_id=menu_id)
+            menu.delete()
         
-                return JsonResponse({'success': True, 'message': 'Menu Successfully Deleted!'})
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                return JsonResponse({'success': False, 'message': 'An error occurred while deleting the menu.'})
+            return JsonResponse({'success': True, 'message': 'Menu Successfully Deleted!'})
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         callproc("stp_error_log", [tb[0].name, str(e), request.user.id])

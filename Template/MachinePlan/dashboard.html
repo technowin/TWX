@@ -79,76 +79,16 @@ body{
 
 {% block content %}
 <div class="container-fluid">
-        <!-- Sidebar -->
-        {% comment %} <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-            <div class="position-sticky pt-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'mcp:machine_list' %}">
-                            <i class="bi bi-cpu"></i> Machines
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'mcp:maintenance_schedule_list' %}">
-                            <i class="bi bi-tools"></i> Maintenance
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'mcp:routing_list' %}">
-                            <i class="bi bi-diagram-3"></i> Routings
-                        </a>
-                    </li>
-                </ul>
 
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    <span>Quick Filters</span>
-                </h6>
-                <ul class="nav flex-column mb-2">
-                    <li class="nav-item">
-                        <select class="form-select form-select-sm" id="machineTypeFilter">
-                            <option value="">All Machine Types</option>
-                            {% for type in machine_types %}
-                            <option value="{{ type.id }}">{{ type.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </li>
-                    <li class="nav-item mt-2">
-                        <select class="form-select form-select-sm" id="workCenterFilter">
-                            <option value="">All Work Centers</option>
-                            {% for wc in work_centers %}
-                            <option value="{{ wc.id }}">{{ wc.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </li>
-                    <li class="nav-item mt-2">
-                        <select class="form-select form-select-sm" id="statusFilter">
-                            <option value="">All Statuses</option>
-                            <option value="OP">Operational</option>
-                            <option value="MN">Maintenance</option>
-                            <option value="OO">Out of Order</option>
-                            <option value="RT">Retired</option>
-                        </select>
-                    </li>
-                </ul>
-            </div>
-        </nav> {% endcomment %}
-
-        <!-- Main Content -->
-        {% comment %} <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"> {% endcomment %}
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Machine Planning Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
                         {% comment %} Optional time period buttons could go here {% endcomment %}
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newOrderModal">
+                    {% comment %} <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newOrderModal">
                         <i class="bi bi-plus-circle"></i> New Order
-                    </button>
+                    </button> {% endcomment %}
                 </div>
             </div>
 
@@ -289,40 +229,54 @@ body{
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="newOrderForm">
+                <form id="newOrderForm" method="post">
+                    {% csrf_token %}
+                    
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="componentSelect" class="form-label">Component</label>
-                            <select class="form-select" id="componentSelect" required>
-                                <option value="">Select Component</option>
-                                {% for component in components %}
-                                <option value="{{ component.id }}">{{ component.name }}</option>
+                            <label for="id_order_number" class="form-label">Order Number</label>
+                            <input type="text" class="form-control" id="id_order_number" name="order_number" 
+                                   placeholder="PO-XXXX" required>
+                            <div class="form-text">Unique identifier for this production order</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_bom" class="form-label">BOM Version</label>
+                            <select class="form-select" id="id_bom" name="bom" required>
+                                <option value="">Select BOM Version</option>
+                                {% for bom in boms %}
+                                <option value="{{ bom.id }}">{{ bom.name }} ({{ bom.version }})</option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="orderQuantity" class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="orderQuantity" required>
+                            <div class="form-text">Select the approved Bill of Materials for this production</div>
                         </div>
                     </div>
+                    
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="dueDate" class="form-label">Due Date</label>
-                            <input type="date" class="form-control" id="dueDate" required>
+                            <label for="id_quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="id_quantity" name="quantity" 
+                                   min="1" required>
+                            <div class="form-text">Number of items to produce</div>
                         </div>
                         <div class="col-md-6">
-                            <label for="priority" class="form-label">Priority</label>
-                            <select class="form-select" id="priority">
-                                <option value="1">Low</option>
-                                <option value="2" selected>Medium</option>
-                                <option value="3">High</option>
-                                <option value="4">Urgent</option>
-                            </select>
+                            <label for="id_start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="id_start_date" name="start_date" required>
+                            <div class="form-text">When production should begin</div>
                         </div>
                     </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="id_end_date" name="end_date" required>
+                            <div class="form-text">When production should be completed</div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
-                        <label for="orderNotes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="orderNotes" rows="3"></textarea>
+                        <label for="id_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="id_notes" name="notes" rows="3"></textarea>
+                        <div class="form-text">Special instructions for production</div>
                     </div>
                 </form>
             </div>
@@ -515,14 +469,7 @@ $(document).ready(function() {
     });
 
     // New order form submission
-    $('#submitOrder').click(function() {
-        if ($('#componentSelect').val() && $('#orderQuantity').val() && $('#dueDate').val()) {
-            alert('Order would be created here');
-            $('#newOrderModal').modal('hide');
-        } else {
-            alert('Please fill all required fields');
-        }
-    });
+   
 });
 </script>
 {% endblock %}

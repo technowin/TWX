@@ -125,7 +125,7 @@ urlpatterns = [
     # Material Planning
 
     # Dashboard and list views
-    path('mtp/dashboard',MaterialPlanDashboardView.as_view(), name='dashboard'),
+    path('mtp/dashboard/',MaterialPlanDashboardView.as_view(), name='dashboard'),
     path('mtp/dashboard2/', mtp_dashboard, name='mtp_dashboard'),
     path('mtp/dashboard3/', mtp_dashboar3, name='mtp_dashboard3'),
 
