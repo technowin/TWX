@@ -435,6 +435,7 @@ urlpatterns = [
     path('sessions/', chat_session_list, name='chat_session_list'),
     path('sessions/<str:reqno>/',chat_session_detail, name='chat_session_detail'),
     path('chat_log_search/', chat_log_search, name='chat_log_search'),
+    path('plan/<int:pk>/confirm/', confirm_plan, name='plan_confirm'),
 
 
     # Media files
