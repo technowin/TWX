@@ -19,7 +19,7 @@ from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views import defaults as default_views
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView 
 from Account.views import *
 from ChatModal.views import *
 from Dashboard.views import *
@@ -445,6 +445,32 @@ urlpatterns = [
 
     #   path('dashboard/', powerbi_dashboard_view, name='dashboard'),
     path('insights', include('Dashboard.urls')),  # include app URL
+
+
+    # inventory and and stock
+
+    path('inventory/dashboard/', InventoryDashboardView.as_view(), name='inventory_dashboard'),
+    
+    # Stock transactions
+    path('inventory/transactions/', StockTransactionListView.as_view(), name='stock_transaction_list'),
+    path('inventory/transactions/add/', StockTransactionCreateView.as_view(), name='stock_transaction_add'),
+    
+    # Stock takes
+    path('inventory/stocktakes/', StockTakeListView.as_view(), name='stocktake_list'),
+    path('inventory/stocktakes/add/', StockTakeCreateView.as_view(), name='stocktake_add'),
+    path('inventory/stocktakes/<int:pk>/', StockTakeDetailView.as_view(), name='stocktake_detail'),
+    path('inventory/stocktakes/<int:pk>/edit/', StockTakeUpdateView.as_view(), name='stocktake_edit'),
+    path('inventory/stocktakes/<int:pk>/complete/', StockTakeCompleteView.as_view(), name='stocktake_complete'),
+    path('inventory/stocktakes/<int:pk>/update-item/', StockTakeItemUpdateView.as_view(), name='stocktake_update_item'),
+    
+    # Reorder rules
+    path('inventory/reorder-rules/', ReorderRuleListView.as_view(), name='reorder_rule_list'),
+    path('inventory/reorder-rules/add/', ReorderRuleCreateView.as_view(), name='reorder_rule_add'),
+    path('inventory/reorder-rules/<int:pk>/edit/', ReorderRuleUpdateView.as_view(), name='reorder_rule_edit'),
+    
+    # BOM inventory integration
+    path('bom/<int:pk>/inventory-check/', BOMInventoryCheckView.as_view(), name='bom_inventory_check'),
+    path('bom/<int:pk>/allocate-inventory/', BOMInventoryAllocateView.as_view(), name='bom_allocate_inventory'),
 
 
 ]

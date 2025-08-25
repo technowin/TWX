@@ -101,8 +101,6 @@ def delete_menu(request):
         messages.error(request, 'Oops...! Something went wrong!')
         response = {'result': 'fail', 'messages': 'something went wrong!'}
 
-    finally:
-        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 
 @login_required
