@@ -722,16 +722,14 @@ def manpower_dashboard(request):
     
     # Current assignments - now properly linked through Routing
     today_assignments = LaborAssignment.objects.filter(
-        date=today,
-        schedule__routing__isnull=False
+        date=today
     ).select_related(
-        'employee', 'shift', 'schedule', 'schedule__routing'
+        'employee', 'shift', 'schedule',
     )[:5]  # Limit to 5 for the dashboard
     
     # Shift distribution - now considering Routing connections
     shift_distribution = LaborAssignment.objects.filter(
-        date__range=[start_of_week, end_of_week],
-        schedule__routing__isnull=False
+        date__range=[start_of_week, end_of_week]
     ).values('shift__shift_name').annotate(
         total=Count('id')
     ).order_by('shift__start_time')
@@ -752,7 +750,7 @@ def manpower_dashboard(request):
     )
     
     # Routing-based statistics
-    active_routings = Routing.objects.distinct().count()
+    active_routings = MachineScheduling.objects.distinct().count()
     
     context = {
         'today': today,
