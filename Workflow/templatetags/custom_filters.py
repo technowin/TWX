@@ -235,8 +235,15 @@ def add_class(field, css_class):
     return field.as_widget(attrs={"class": new_classes})
 
 @register.filter
+def total_price(course, cart):
+    quantity = cart.get(str(course.id), 1)
+    price = course.discount_price if course.discount_price else course.price
+    return price * quantity
+
+@register.filter
 def abs(value):
     try:
         return builtins.abs(float(value))
     except (ValueError, TypeError):
         return 0
+

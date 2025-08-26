@@ -25,6 +25,8 @@ from datetime import datetime
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from datetime import datetime   # if you need datetime somewhere else
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 def register_view(request):
     if request.method == 'POST':
@@ -458,6 +460,7 @@ def process_corporate_request(request, request_id, action):
 # Payment & Subscription
 
 # views.py
+# views.py - Enhanced cart view
 @login_required
 def cart_view(request):
     cart = request.session.get('cart', {})
@@ -485,6 +488,23 @@ def cart_view(request):
             messages.warning(request, 'Invalid coupon code.')
             request.session.pop('coupon_code', None)
     
+    # Handle quantity updates via POST
+    if request.method == 'POST' and 'update_quantities' in request.POST:
+        for course in courses:
+            quantity = request.POST.get(f'quantity_{course.id}', 1)
+            try:
+                quantity = int(quantity)
+                if quantity < 1:
+                    cart.pop(str(course.id), None)
+                else:
+                    cart[str(course.id)] = quantity
+            except (ValueError, TypeError):
+                pass
+        
+        request.session['cart'] = cart
+        messages.success(request, 'Cart updated successfully!')
+        return redirect('cart')
+    
     context = {
         'courses': courses,
         'cart': cart,
@@ -493,7 +513,7 @@ def cart_view(request):
         'discount': discount,
         'subtotal': total - discount,
     }
-    
+        
     return render(request, 'LMS/payment/cart.html', context)
 
 @login_required
@@ -610,59 +630,69 @@ def checkout(request):
             )
         
         # Initialize Razorpay payment
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-        
-        payment_data = {
-            'amount': int(subtotal * 100),  # Razorpay expects amount in paise
-            'currency': 'INR',
-            'receipt': f'order_{order.id}',
-            'payment_capture': '1',
-            'notes': {
-                'order_id': str(order.id),
-                'user_id': str(request.user.id),
+        try:
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            
+            payment_data = {
+                'amount': int(subtotal * 100),  # Razorpay expects amount in paise
+                'currency': 'INR',
+                'receipt': f'order_{order.id}',
+                'payment_capture': '1',
+                'notes': {
+                    'order_id': str(order.id),
+                    'user_id': str(request.user.id),
+                }
             }
-        }
-        
-        razorpay_order = client.order.create(data=payment_data)
-        
-        # Create payment record
-        payment = Payment.objects.create(
-            user=request.user,
-            amount=subtotal,
-            currency='INR',
-            payment_method='RAZORPAY',
-            transaction_id=razorpay_order['id'],
-            razorpay_order_id=razorpay_order['id'],
-            status='PENDING',
-            notes={
-                'order_id': str(order.id),
-                'courses': [str(course.id) for course in courses],
+            
+            razorpay_order = client.order.create(data=payment_data)
+            
+            # Create payment record
+            payment = Payment.objects.create(
+                user=request.user,
+                amount=subtotal,
+                currency='INR',
+                payment_method='RAZORPAY',
+                transaction_id=razorpay_order['id'],
+                razorpay_order_id=razorpay_order['id'],
+                status='PENDING',
+                billing_name=request.user.get_full_name(),
+                billing_email=request.user.email,
+                billing_phone=request.user.phone,
+                notes={
+                    'order_id': str(order.id),
+                    'courses': [str(course.id) for course in courses],
+                }
+            )
+            
+            order.payment = payment
+            order.save()
+            
+            context = {
+                'razorpay_order_id': razorpay_order['id'],
+                'razorpay_key': settings.RAZORPAY_KEY_ID,
+                'amount': subtotal,
+                'currency': 'INR',
+                'name': settings.COMPANY_NAME,
+                'description': f'Payment for {len(courses)} course(s)',
+                'image': settings.LOGO_URL,
+                'prefill': {
+                    'name': request.user.get_full_name(),
+                    'email': request.user.email,
+                    'contact': request.user.phone or '',
+                },
+                'theme': {
+                    'color': '#F37254' if not request.user.dark_mode else '#2D3748',
+                },
+                'order_id': order.id,
             }
-        )
+            
+            return render(request, 'payment/checkout.html', context)
         
-        order.payment = payment
-        order.save()
-        
-        context = {
-            'razorpay_order_id': razorpay_order['id'],
-            'razorpay_key': settings.RAZORPAY_KEY_ID,
-            'amount': subtotal,
-            'currency': 'INR',
-            'name': settings.COMPANY_NAME,
-            'description': f'Payment for {len(courses)} course(s)',
-            'image': settings.LOGO_URL,
-            'prefill': {
-                'name': request.user.get_full_name(),
-                'email': request.user.email,
-                'contact': request.user.phone or '',
-            },
-            'theme': {
-                'color': '#F37254' if not request.user.dark_mode else '#2D3748',
-            },
-            'order_id': order.id,
-        }
-        
-        return render(request, 'LMS/payment/checkout.html', context)
+        except Exception as e:
+            messages.error(request, f'Payment initialization failed: {str(e)}')
+            order.status = 'FAILED'
+            order.save()
+            return redirect('cart')
     
     context = {
         'courses': courses,
@@ -673,9 +703,10 @@ def checkout(request):
         'subtotal': subtotal,
         'user': request.user,
     }
-    
+        
     return render(request, 'LMS/payment/checkout_review.html', context)
 
+# views.py - Enhanced Razorpay callback
 @csrf_exempt
 def razorpay_callback(request):
     if request.method == 'POST':
@@ -693,6 +724,7 @@ def razorpay_callback(request):
         }
         
         try:
+            # Verify payment signature
             client.utility.verify_payment_signature(params_dict)
             
             # Get payment and order
@@ -713,15 +745,27 @@ def razorpay_callback(request):
             # Enroll user in courses
             for item in order.items.all():
                 if item.course:
-                    Enrollment.objects.create(
+                    enrollment, created = Enrollment.objects.get_or_create(
                         user=order.user,
                         course=item.course,
-                        is_paid=True,
-                        payment_amount=item.price,
-                        payment_date=timezone.now(),
-                        payment_method='RAZORPAY',
-                        transaction_id=razorpay_payment_id
+                        defaults={
+                            'is_paid': True,
+                            'payment_amount': item.price,
+                            'payment_date': timezone.now(),
+                            'payment_method': 'RAZORPAY',
+                            'transaction_id': razorpay_payment_id,
+                            'status': 'ACTIVE'
+                        }
                     )
+                    
+                    if not created:
+                        enrollment.is_paid = True
+                        enrollment.payment_amount = item.price
+                        enrollment.payment_date = timezone.now()
+                        enrollment.payment_method = 'RAZORPAY'
+                        enrollment.transaction_id = razorpay_payment_id
+                        enrollment.status = 'ACTIVE'
+                        enrollment.save()
             
             # Clear cart and coupon
             if 'cart' in request.session:
@@ -729,13 +773,43 @@ def razorpay_callback(request):
             if 'coupon_code' in request.session:
                 del request.session['coupon_code']
             
+            # Send confirmation email
+            try:
+                send_payment_confirmation_email(order.user, order)
+            except Exception as e:
+                print(f"Failed to send confirmation email: {str(e)}")
+            
             return redirect('payment_success', order_id=order.id)
         
+        except Exception as e: 
+            print("Payment signature verification failed : {str(e)}")
+            return redirect('payment_failed')
         except Exception as e:
-            print(f"Payment verification failed: {str(e)}")
+            print(f"Payment processing failed: {str(e)}")
             return redirect('payment_failed')
     
     return redirect('payment_failed')
+
+
+def send_payment_confirmation_email(user, order):
+    subject = f'Payment Confirmation - Order #{order.id}'
+    context = {
+        'user': user,
+        'order': order,
+        'site_name': settings.COMPANY_NAME,
+    }
+    
+    html_message = render_to_string('emails/payment_confirmation.html', context)
+    plain_message = strip_tags(html_message)
+    
+    send_mail(
+        subject,
+        plain_message,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        html_message=html_message,
+        fail_silently=False,
+    )
 
 @login_required
 def payment_success(request, order_id):
