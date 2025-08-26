@@ -237,8 +237,8 @@
                                 <tr>
                                     <td>{{ assignment.employee.employee_name }}</td>
                                     <td>
-                                        {% if assignment.schedule.routing %}
-                                            {{ assignment.schedule.routing.component }} - {{ assignment.schedule.routing.operation }}
+                                        {% if assignment.schedule %}
+                                            {{ assignment.schedule.component }} - {{ assignment.schedule.operation }}
                                         {% else %}
                                             N/A
                                         {% endif %}
