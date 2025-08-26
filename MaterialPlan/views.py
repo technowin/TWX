@@ -652,3 +652,32 @@ def confirm_plan(request, pk):
         messages.error(request, f"Error confirming plan: {str(e)}")
     
     return redirect('plan_list')
+
+def get_bom_for_production_order(request):
+    production_order_id = request.GET.get('production_order_id')
+    
+    if not production_order_id:
+        return JsonResponse({'error': 'Production order ID is required'}, status=400)
+    
+    try:
+        # Get the production order
+        production_order = ProductionOrder.objects.get(id=production_order_id)
+        
+        # Get the associated BOM
+        bom = production_order.bom  # Assuming your model has a ForeignKey from ProductionOrder to BOM
+        
+        if bom:
+            return JsonResponse({
+                'bom_id': bom.id,
+                'bom_name': str(bom)  # Or use the appropriate field for display
+            })
+        else:
+            return JsonResponse({
+                'bom_id': None,
+                'bom_name': 'No BOM associated'
+            })
+            
+    except ProductionOrder.DoesNotExist:
+        return JsonResponse({'error': 'Production order not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

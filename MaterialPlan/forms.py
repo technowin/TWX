@@ -31,12 +31,14 @@ class MaterialPlanForm(BootstrapFormMixin, forms.ModelForm):
     bom = forms.ModelChoiceField(
         queryset=BOMHeader.objects.all(),
         label="BOM Version",
-        help_text="Select an approved Bill of Materials version for this plan"
+        help_text="Select an approved Bill of Materials version for this plan",
+        widget=forms.Select(attrs={'id': 'id_bom'})
     )
     production_order = forms.ModelChoiceField(
         queryset=ProductionOrder.objects.all(),
         label="Production Order",
-        help_text="Select an production order"
+        help_text="Select an production order for this plan",
+        widget=forms.Select(attrs={'id': 'id_production_order'}) 
     )
     
     class Meta:

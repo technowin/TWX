@@ -472,6 +472,7 @@ urlpatterns = [
     # BOM inventory integration
     path('bom/<int:pk>/inventory-check/', BOMInventoryCheckView.as_view(), name='bom_inventory_check'),
     path('bom/<int:pk>/allocate-inventory/', BOMInventoryAllocateView.as_view(), name='bom_allocate_inventory'),
+    path('get-bom/', get_bom_for_production_order, name='get_bom'),
 
 
 ]
