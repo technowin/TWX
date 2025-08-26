@@ -1615,3 +1615,21 @@ def get_suppliers_by_component(request, component_id):
         for cs in suppliers
     ]
     return JsonResponse({"suppliers": data})
+
+def component_upload_document(request, pk):
+    component = get_object_or_404(Component, pk=pk)
+
+    if request.method == "POST":
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.component = component   # link document to component
+            document.save()
+            return redirect("component_detail", pk=component.pk)  # adjust to your detail page
+    else:
+        form = DocumentForm()
+
+    return render(request, "your_template.html", {
+        "component": component,
+        "document_form": form,
+    })

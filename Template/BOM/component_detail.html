@@ -351,7 +351,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form method="post" enctype="multipart/form-data">
+              <form method="post" enctype="multipart/form-data"
+                    action="{% url 'component_upload_document' component.id %}">
                     {% csrf_token %}
                     {{ document_form.as_p }}
                     <div class="modal-footer">
@@ -359,6 +360,7 @@
                         <button type="submit" class="btn btn-primary">Upload Document</button>
                     </div>
                 </form>
+
             </div>
         </div>
     </div>
