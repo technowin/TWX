@@ -257,7 +257,7 @@
                                         {% for item in used_in_boms %}
                                             <tr>
                                                 <td>
-                                                    <a href="{% url 'bom_detail' pk=item.bom.id %}">{{ item.bom.name }}</a>
+                                                    <a href="{% url 'bom_detail' pk=item.id %}">{{ item.bom.name }}</a>
                                                 </td>
                                                 <td>{{ item.bom.description|truncatechars:50 }}</td>
                                                 <td>{{ item.bom.revision }}</td>

@@ -537,6 +537,7 @@ class ComponentDetailView(DetailView):
         # Add forms for related models
         context['supplier_form'] = ComponentSupplierForm(initial={'component': component})
         context['document_form'] = DocumentForm(initial={'component': component, 'uploaded_by': self.request.user})
+
         
         # Get inventory summary
         context['inventory_summary'] = Inventory.objects.filter(component=component).select_related('location')
@@ -1585,3 +1586,17 @@ class BOMInventoryAllocateView(View):
         
         messages.success(request, f'Inventory allocated successfully for BOM: {bom.name}')
         return redirect('bom_detail', pk=bom_id)
+    
+
+
+def get_suppliers_by_component(request, component_id):
+    suppliers = ComponentSupplier.objects.filter(component_id=component_id).select_related("supplier")
+    data = [
+        {
+            "id": cs.supplier.id,
+            "name": cs.supplier.name,   # adjust field name accordingly
+            "cost": cs.cost
+        }
+        for cs in suppliers
+    ]
+    return JsonResponse({"suppliers": data})

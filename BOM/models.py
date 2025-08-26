@@ -229,6 +229,8 @@ class BOMHeader(models.Model):
 class BOMItem(models.Model):
     bom = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, related_name='items')
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
+    supplier =models.ForeignKey(Supplier, on_delete=models.CASCADE,null=True,blank=True)
+    cost = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
     reference_designators = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)

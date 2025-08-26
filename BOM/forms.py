@@ -52,7 +52,7 @@ class BOMHeaderForm(BaseForm):
 class BOMItemForm(BaseForm):
     class Meta:
         model = BOMItem
-        fields = ['component', 'position', 'quantity', 'reference_designators', 'notes']
+        fields = ['component', 'supplier','cost','position', 'quantity', 'reference_designators', 'notes']
         widgets = {
             'component': forms.HiddenInput(),
             'bom': forms.HiddenInput(),

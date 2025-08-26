@@ -473,6 +473,8 @@ urlpatterns = [
     path('bom/<int:pk>/inventory-check/', BOMInventoryCheckView.as_view(), name='bom_inventory_check'),
     path('bom/<int:pk>/allocate-inventory/', BOMInventoryAllocateView.as_view(), name='bom_allocate_inventory'),
     path('get-bom/', get_bom_for_production_order, name='get_bom'),
+     path("get-suppliers/<int:component_id>/", get_suppliers_by_component, name="get_suppliers_by_component"),
+
 
 
 ]
