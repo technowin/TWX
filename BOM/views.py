@@ -87,6 +87,7 @@ class BOMDetailView(DetailView):
         
         # Get all BOM items and structure them hierarchically
         items = bom.items.all().order_by('sort_order')
+        context['total_cost'] = sum(item.cost for item in bom.items.all())
         hierarchical_items = self.build_hierarchy(items)
         
         # Get related data

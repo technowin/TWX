@@ -280,7 +280,7 @@
                                                 <th>Category</th>
                                                 <th>Unit</th>
                                                 <th>Price</th>
-                                                <th>Total Cost</th>
+                                                <th>BOM Item Cost</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -294,12 +294,19 @@
                                                 <td>{{ item.component.get_purchase_type_display }}</td>
                                                 <td>{{ item.component.get_category_display }}</td>
                                                 <td>{{ item.component.unit_of_measure }}</td>
-                                                <td>{{ item.component.supplier.cost }}</td>
-                                                <td>{{ item.component.cost }}</td>
-                                                {% comment %} <td>${{ item.extended_cost|floatformat:2 }}</td> {% endcomment %}
+                                                <td>{{ item.supplier.cost }}</td>
+                                                <td>{{ item.cost }}</td>
                                             </tr>
                                             {% endfor %}
+
+                                            <!-- Highlighted Total Row -->
+                                            <tr style="background-color:#f8f9fa; font-weight:bold;">
+                                                <td colspan="9" class="text-end">Total BOM Cost:</td>
+                                                <td>{{ total_cost }}</td>
+                                            </tr>
                                         </tbody>
+
+
                                     </table>
                                 </div>
                             </div>
@@ -478,7 +485,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="id_quantity" class="form-label">Total Cost</label>
+                            <label for="id_quantity" class="form-label">Total Cost(Rs.)</label>
                             <input type="text"  class="form-control" id="id_cost" name="cost" required>
                         </div>
 
@@ -555,7 +562,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="edit_cost" class="form-label">Total Cost</label>
+                            <label for="edit_cost" class="form-label">Total Cost(Rs.)</label>
                             <input type="text"  class="form-control" id="edit_cost" name="cost" required>
                         </div>
                         
