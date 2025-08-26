@@ -376,7 +376,7 @@ class MachinePlanningDeleteView(DeleteView):
 class OperationListView(ListView):
     model = Operation
     template_name = 'MachinePlan/operation_list.html'
-    context_object_name = 'operation'
+    context_object_name = 'operations'
     paginate_by = 20
 
 class OperationCreateView(CreateView):
@@ -480,6 +480,7 @@ def dashboard(request):
     machine_status_counts = Machine.objects.values('status').annotate(count=Count('status'))
     status_map = {'OP': 'Operational', 'MN': 'Maintenance', 'OO': 'Out of Order', 'RT': 'Retired'}
     components= BOMHeader.objects.all()
+    boms = BOMHeader.objects.all()
     
     operational_machines_count = Machine.objects.filter(status='OP').count()
     maintenance_machines_count = Machine.objects.filter(status='MN').count()
@@ -531,6 +532,7 @@ def dashboard(request):
     work_center_scheduled = [32, 28, 35, 25]  # Scheduled hours
     
     context = {
+        'boms':boms,
         'machine_types': MachineType.objects.all(),
         'work_centers': work_centers,
         'operational_machines_count': operational_machines_count,

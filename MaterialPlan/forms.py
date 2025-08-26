@@ -29,16 +29,23 @@ class BootstrapFormMixin:
 
 class MaterialPlanForm(BootstrapFormMixin, forms.ModelForm):
     bom = forms.ModelChoiceField(
-        queryset=BOMHeader.objects.filter(status='approved'),
+        queryset=BOMHeader.objects.all(),
         label="BOM Version",
-        help_text="Select an approved Bill of Materials version for this plan"
+        help_text="Select an approved Bill of Materials version for this plan",
+        widget=forms.Select(attrs={'id': 'id_bom'})
+    )
+    production_order = forms.ModelChoiceField(
+        queryset=ProductionOrder.objects.all(),
+        label="Production Order",
+        help_text="Select an production order for this plan",
+        widget=forms.Select(attrs={'id': 'id_production_order'}) 
     )
     
     class Meta:
         model = MaterialPlan
         fields = [
             'name', 'description', 'sales_order_reference',
-            'bom', 'quantity', 'due_date'
+            'bom', 'quantity', 'due_date','production_order'
         ]
         widgets = {
             'due_date': forms.DateInput(attrs={'type': 'date'}),

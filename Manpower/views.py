@@ -1,6 +1,7 @@
 # views.py
 from datetime import date, timedelta
 from io import BytesIO
+import traceback
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.urls import reverse_lazy
@@ -24,7 +25,7 @@ from .forms import (
     LaborRequirementForm, LaborAssignmentForm, EmployeeAvailabilityForm,
     AttendanceForm, LeaveRequestForm
 )
-from MachinePlan.models import MachinePlanning, Routing
+from MachinePlan.models import MachinePlanning, MachineScheduling, Routing
     
 class EmployeeListView(LoginRequiredMixin, ListView):
     model = Employee
@@ -327,10 +328,9 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         # Add schedule context if exists
         schedule_id = self.request.GET.get('schedule_id')
         if schedule_id:
-            context['schedule'] = get_object_or_404(MachinePlanning, pk=schedule_id)
+            context['schedule'] = get_object_or_404(MachineScheduling, pk=schedule_id)
             
         return context
-    
 class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = LaborAssignment
     form_class = LaborAssignmentForm
@@ -412,7 +412,6 @@ class LeaveRequestCreateUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('manpower:leave_request_list')
 
-@require_POST
 @login_required
 def delete_leave_request(request, pk):
     leave_request = get_object_or_404(LeaveRequest, pk=pk)
@@ -420,7 +419,6 @@ def delete_leave_request(request, pk):
     messages.success(request, "Leave request has been deleted.")
     return JsonResponse({'success': True})
 
-@require_POST
 @login_required
 def approve_leave_request(request, pk):
     leave_request = get_object_or_404(LeaveRequest, pk=pk)
@@ -434,7 +432,6 @@ def approve_leave_request(request, pk):
         messages.warning(request, "Leave request is not in pending status.")
     return JsonResponse({'success': True})
 
-@require_POST
 @login_required
 def reject_leave_request(request, pk):
     leave_request = get_object_or_404(LeaveRequest, pk=pk)
@@ -943,3 +940,58 @@ def download_attendance_sample(request):
     response['Content-Disposition'] = 'attachment; filename=attendance_sample.xlsx'
     
     return response
+
+
+def get_employees_with_status(request):
+    schedule_id = request.GET.get('schedule_id')
+    date = request.GET.get('date')
+    
+    if not schedule_id or not date:
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+    
+    try:
+        schedule = MachineScheduling.objects.get(id=schedule_id)
+        routing_id = get_object_or_404(MachineScheduling, id=schedule_id).routing
+        requirement = LaborRequirement.objects.get(routing=routing_id)
+        
+        # Get employees with the required skill and proficiency
+        employees = Employee.objects.filter(
+            skills__skill=requirement.skill,
+            skills__proficiency__name__gte=requirement.min_proficiency
+        ).annotate(
+            skill_proficiency_level=F('skills__proficiency__name')
+        ).distinct()
+
+        # Access the proficiency level
+        for employee in employees:
+            print(f"{employee.employee_name}")
+
+        
+        employee_list = []
+        for employee in employees:
+            # Check if employee is already assigned on this date
+            is_assigned = LaborAssignment.objects.filter(
+                employee=employee, 
+                date=date
+            ).exists()
+            
+            status = 'Busy' if is_assigned else 'Available'
+            
+            employee_list.append({
+                'id': employee.id,
+                'name': employee.employee_name,  # Changed from employee.name to employee.employee_name
+                'status': status,
+                'proficiency_level': employee.skill_proficiency_level
+            })
+        
+        return JsonResponse({'employees': employee_list})
+    
+    except MachineScheduling.DoesNotExist:
+        return JsonResponse({'error': 'Schedule not found'}, status=404)
+    except LaborRequirement.DoesNotExist:
+        return JsonResponse({'error': 'Labor requirement not found'}, status=404)
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name if tb else 'unknown'
+        print(f"Error in get_employees_with_status: {e}")
+        return JsonResponse({'error': str(e)}, status=500)

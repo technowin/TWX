@@ -302,33 +302,62 @@
 </div>
 
 <!-- Confirm Plan Modal -->
-<div class="modal fade" id="confirmPlanModal" tabindex="-1" aria-labelledby="confirmPlanModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="confirmPlanModalLabel">Confirm Material Plan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to confirm this material plan? This will:</p>
-                <ul>
-                    <li>Reserve available inventory</li>
-                    <li>Submit purchase requisitions for approval</li>
-                    <li>Mark the plan as confirmed</li>
-                </ul>
-                <p class="text-danger">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="#">
-                    {% comment %} {% url 'plan_confirm' pk=plan.id %} {% endcomment %}
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Confirm Plan</button>
-                </form>
+ <div class="modal fade" id="confirmPlanModal" tabindex="-1" aria-labelledby="confirmPlanModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="confirmPlanModalLabel">Confirm Material Plan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to confirm this material plan? This will:</p>
+                    <ul>
+                        <li>Reserve available inventory</li>
+                        <li>Submit purchase requisitions for approval</li>
+                        <li>Mark the plan as confirmed</li>
+                    </ul>
+                    <p class="text-danger">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="post" action="{% url 'plan_confirm' pk=plan.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Confirm Plan</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the modal and button elements
+            const confirmPlanButton = document.getElementById('confirmPlanButton');
+            const planStatusBadge = document.getElementById('planStatusBadge');
+            const confirmationToast = document.getElementById('confirmationToast');
+            
+            // Add event listener to the confirm button
+            confirmPlanButton.addEventListener('click', function() {
+                // Update the status badge
+                planStatusBadge.textContent = 'Confirmed';
+                planStatusBadge.className = 'badge status-confirmed';
+                
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmPlanModal'));
+                modal.hide();
+                
+                // Show success toast
+                const toast = new bootstrap.Toast(confirmationToast);
+                toast.show();
+                
+                // In a real application, you would also make an AJAX call to update the server
+                console.log('Material plan confirmed - status updated');
+                
+                // You could also update other elements on the page as needed
+                // For example, disable the confirm button
+                document.querySelector('[data-bs-target="#confirmPlanModal"]').disabled = true;
+            });
+        });
+    </script>
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script> 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>

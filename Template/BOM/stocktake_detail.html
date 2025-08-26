@@ -1,0 +1,260 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block title %}BOM Approvals{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-clipboard-check"></i> Stock Take: {{ stocktake.location.name }}</h2>
+    <div>
+        {% if stocktake.status != 'completed' and stocktake.status != 'adjusted' %}
+        <a href="{% url 'stocktake_edit' pk=stocktake.pk %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        {% endif %}
+        <a href="{% url 'stocktake_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Details</h6>
+                <p class="mb-1"><strong>Status:</strong> 
+                    <span class="badge {% if stocktake.status == 'completed' %}bg-success{% elif stocktake.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                        {{ stocktake.get_status_display }}
+                    </span>
+                </p>
+                <p class="mb-1"><strong>Conducted By:</strong> {{ stocktake.conducted_by.get_full_name|default:stocktake.conducted_by.username }}</p>
+                <p class="mb-1"><strong>Conducted Date:</strong> {{ stocktake.conducted_date|date:"M d, Y H:i" }}</p>
+                {% if stocktake.completed_date %}
+                <p class="mb-1"><strong>Completed Date:</strong> {{ stocktake.completed_date|date:"M d, Y H:i" }}</p>
+                {% endif %}
+                {% if stocktake.notes %}
+                <p class="mb-0"><strong>Notes:</strong> {{ stocktake.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-title">Items Counted</h6>
+                <h3 class="text-primary">{{ stocktake.items.count }}</h3>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-title">Variance Value</h6>
+                <h3 class="{% if stocktake.variance_value > 0 %}text-danger{% elif stocktake.variance_value < 0 %}text-success{% else %}text-muted{% endif %}">
+                    ${{ stocktake.variance_value|floatformat:2|default:"0.00" }}
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Stock Take Items</h5>
+        {% if stocktake.status != 'completed' and stocktake.status != 'adjusted' %}
+        <form method="post" action="{% url 'stocktake_complete' pk=stocktake.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Complete Stock Take
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Component</th>
+                        <th class="text-end">Expected Qty</th>
+                        <th class="text-end">Counted Qty</th>
+                        <th class="text-end">Variance</th>
+                        <th class="text-end">Unit Cost</th>
+                        <th class="text-end">Value Variance</th>
+                        <th>Notes</th>
+                        {% if stocktake.status != 'completed' and stocktake.status != 'adjusted' %}
+                        <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.component.part_number }}</strong><br>
+                            <small class="text-muted">{{ item.component.name }}</small>
+                        </td>
+                        <td class="text-end">{{ item.expected_quantity }}</td>
+                        <td class="text-end">{{ item.counted_quantity }}</td>
+                        <td class="text-end {% if item.variance > 0 %}positive-variance{% elif item.variance < 0 %}negative-variance{% endif %}">
+                            {{ item.variance }}
+                        </td>
+                        <td class="text-end">${{ item.expected_unit_cost|floatformat:4 }}</td>
+                        <td class="text-end {% if item.variance > 0 %}positive-variance{% elif item.variance < 0 %}negative-variance{% endif %}">
+                            ${{ item.variance|abs|multiply:item.expected_unit_cost|floatformat:2 }}
+                        </td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                        {% if stocktake.status != 'completed' and stocktake.status != 'adjusted' %}
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editItemModal" 
+                                    data-item-id="{{ item.id }}" data-counted-quantity="{{ item.counted_quantity }}" 
+                                    data-notes="{{ item.notes }}">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if stocktake.status != 'completed' and stocktake.status != 'adjusted' %}8{% else %}7{% endif %}" class="text-center py-4">
+                            No items found for this stock take
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Stock Take Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editItemForm" method="post" action="{% url 'stocktake_edit' pk=stocktake.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="item_id" id="editItemId">
+                    <div class="mb-3">
+                        <label for="editCountedQuantity" class="form-label">Counted Quantity</label>
+                        <input type="number" class="form-control text-end" id="editCountedQuantity" name="counted_quantity" step="0.001" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNotes" class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="editNotes" name="notes">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Handle modal show event
+    $('#editItemModal').on('show.bs.modal', function(event) {
+        var button = $(event.relatedTarget);
+        var itemId = button.data('item-id');
+        var countedQuantity = button.data('counted-quantity');
+        var notes = button.data('notes');
+        
+        var modal = $(this);
+        modal.find('#editItemId').val(itemId);
+        modal.find('#editCountedQuantity').val(countedQuantity);
+        modal.find('#editNotes').val(notes || '');
+    });
+    
+    // Handle form submission
+    $('#editItemForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            type: 'POST',
+            url: $(this).attr('action'),
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    $('#editItemModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (response.errors || response.error));
+                }
+            },
+            error: function() {
+                alert('An error occurred while updating the item.');
+            }
+        });
+    });
+});
+</script>
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/mtp.js' %}"></script>
+
+{% endblock %}
+{% endblock %}

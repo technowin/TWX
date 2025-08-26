@@ -1,5 +1,5 @@
 from django import forms
-from .models import BOMHeader, BOMItem, Component, ComponentSupplier, Document, Comment, ApprovalRequest
+from .models import *
 
 class BaseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -310,3 +310,110 @@ class BOMRevisionForm(BaseForm):  # Inherits from BaseForm we created earlier
             'class': 'form-control' + 
                     (' is-invalid' if 'change_reason' in self.errors else '')
         })
+
+# Add to your forms.py
+
+class StockTransactionForm(BaseForm):
+    class Meta:
+        model = StockTransaction
+        fields = ['component', 'transaction_type', 'quantity', 'unit_cost', 'location', 
+                 'related_location', 'source_type', 'source_reference', 'notes']
+        widgets = {
+            'component': forms.Select(attrs={
+                'class': 'form-select component-select',
+                'data-live-search': 'true'
+            }),
+            'transaction_type': forms.Select(attrs={'class': 'form-select'}),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control text-end',
+                'step': '0.001',
+                'min': '0.001'
+            }),
+            'unit_cost': forms.NumberInput(attrs={
+                'class': 'form-control text-end',
+                'step': '0.0001',
+                'min': '0'
+            }),
+            'location': forms.Select(attrs={'class': 'form-select'}),
+            'related_location': forms.Select(attrs={'class': 'form-select'}),
+            'source_type': forms.Select(attrs={'class': 'form-select'}),
+            'source_reference': forms.TextInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Additional notes about this transaction'
+            }),
+        }
+
+
+class StockTakeForm(BaseForm):
+    class Meta:
+        model = StockTake
+        fields = ['location', 'conducted_date', 'conducted_by', 'notes']
+        widgets = {
+            'location': forms.Select(attrs={'class': 'form-select'}),
+            'conducted_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'conducted_by': forms.Select(attrs={'class': 'form-select'}),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Notes about this stock take'
+            }),
+        }
+
+
+class StockTakeItemForm(BaseForm):
+    class Meta:
+        model = StockTakeItem
+        fields = ['component', 'counted_quantity', 'notes']
+        widgets = {
+            'component': forms.HiddenInput(),
+            'counted_quantity': forms.NumberInput(attrs={
+                'class': 'form-control text-end counted-quantity',
+                'step': '0.001',
+                'min': '0'
+            }),
+            'notes': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Notes about this item count'
+            }),
+        }
+
+
+class ReorderRuleForm(BaseForm):
+    class Meta:
+        model = ReorderRule
+        fields = ['component', 'location', 'rule_type', 'min_quantity', 'max_quantity', 
+                 'reorder_point', 'order_quantity', 'is_active']
+        widgets = {
+            'component': forms.Select(attrs={
+                'class': 'form-select component-select',
+                'data-live-search': 'true'
+            }),
+            'location': forms.Select(attrs={'class': 'form-select'}),
+            'rule_type': forms.Select(attrs={'class': 'form-select'}),
+            'min_quantity': forms.NumberInput(attrs={
+                'class': 'form-control text-end',
+                'step': '0.001',
+                'min': '0'
+            }),
+            'max_quantity': forms.NumberInput(attrs={
+                'class': 'form-control text-end',
+                'step': '0.001',
+                'min': '0'
+            }),
+            'reorder_point': forms.NumberInput(attrs={
+                'class': 'form-control text-end',
+                'step': '0.001',
+                'min': '0'
+            }),
+            'order_quantity': forms.NumberInput(attrs={
+                'class': 'form-control text-end',
+                'step': '0.001',
+                'min': '0.001'
+            }),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

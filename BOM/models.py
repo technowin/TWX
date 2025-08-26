@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from django.core.validators import MinValueValidator
+from django.db.models import Sum
+
 
 from Account.models import CustomUser
 
@@ -323,3 +325,185 @@ class ApprovalRequest(models.Model):
             return "Rejected"
         return "Pending"
     
+
+# Add to your models.py
+
+class StockTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('receipt', 'Stock Receipt'),
+        ('issue', 'Stock Issue'),
+        ('adjustment', 'Stock Adjustment'),
+        ('transfer', 'Stock Transfer'),
+        ('allocation', 'Production Allocation'),
+        ('deallocation', 'Production Deallocation'),
+    ]
+    
+    SOURCE_TYPES = [
+        ('purchase', 'Purchase Order'),
+        ('production', 'Production Order'),
+        ('adjustment', 'Manual Adjustment'),
+        ('transfer', 'Location Transfer'),
+        ('bom', 'BOM Allocation'),
+    ]
+    
+    component = models.ForeignKey(Component, on_delete=models.PROTECT, related_name='stock_transactions')
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    source_type = models.CharField(max_length=20, choices=SOURCE_TYPES, blank=True)
+    source_reference = models.CharField(max_length=100, blank=True)  # PO#, MO#, BOM#, etc.
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    location = models.ForeignKey(InventoryLocation, on_delete=models.PROTECT)
+    related_location = models.ForeignKey(InventoryLocation, on_delete=models.PROTECT, null=True, blank=True, 
+                                        related_name='related_transfers')
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_date']
+        indexes = [
+            models.Index(fields=['component', 'created_date']),
+            models.Index(fields=['source_type', 'source_reference']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.component.part_number} - {self.quantity}"
+    
+    def save(self, *args, **kwargs):
+        # Update inventory levels when saving transaction
+        super().save(*args, **kwargs)
+        self.update_inventory_levels()
+    
+    def update_inventory_levels(self):
+        # Get or create inventory record
+        inventory, created = Inventory.objects.get_or_create(
+            component=self.component,
+            location=self.location,
+            defaults={
+                'quantity_on_hand': 0,
+                'quantity_allocated': 0,
+                'min_stock_level': 0
+            }
+        )
+        
+        # Update based on transaction type
+        if self.transaction_type == 'receipt':
+            inventory.quantity_on_hand += self.quantity
+        elif self.transaction_type == 'issue':
+            inventory.quantity_on_hand -= self.quantity
+        elif self.transaction_type == 'allocation':
+            inventory.quantity_allocated += self.quantity
+        elif self.transaction_type == 'deallocation':
+            inventory.quantity_allocated -= self.quantity
+        elif self.transaction_type == 'adjustment':
+            inventory.quantity_on_hand = self.quantity  # Direct adjustment
+        
+        inventory.save()
+
+
+class StockTake(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('adjusted', 'Adjusted'),
+    ]
+    
+    location = models.ForeignKey(InventoryLocation, on_delete=models.PROTECT)
+    conducted_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='conducted_stocktakes')
+    conducted_date = models.DateTimeField(default=timezone.now)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    completed_date = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-conducted_date']
+    
+    def __str__(self):
+        return f"Stock Take - {self.location.name} - {self.conducted_date.strftime('%Y-%m-%d')}"
+    
+    @property
+    def variance_value(self):
+        total = 0
+        for item in self.items.all():
+            if item.variance != 0 and item.expected_unit_cost:
+                total += abs(item.variance) * item.expected_unit_cost
+        return total
+
+
+class StockTakeItem(models.Model):
+    stock_take = models.ForeignKey(StockTake, on_delete=models.CASCADE, related_name='items')
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    expected_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    counted_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    expected_unit_cost = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        unique_together = ['stock_take', 'component']
+    
+    def __str__(self):
+        return f"{self.component.part_number} - {self.stock_take}"
+    
+    @property
+    def variance(self):
+        return self.counted_quantity - self.expected_quantity
+    
+    @property
+    def variance_percentage(self):
+        if self.expected_quantity == 0:
+            return 100 if self.counted_quantity > 0 else 0
+        return (self.variance / self.expected_quantity) * 100
+
+
+class ReorderRule(models.Model):
+    COMPARISON_CHOICES = [
+        ('lt', 'Less Than'),
+        ('lte', 'Less Than or Equal'),
+        ('eq', 'Equal'),
+        ('gte', 'Greater Than or Equal'),
+        ('gt', 'Greater Than'),
+    ]
+    
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, related_name='reorder_rules')
+    location = models.ForeignKey(InventoryLocation, on_delete=models.CASCADE, null=True, blank=True)
+    rule_type = models.CharField(max_length=20, choices=[
+        ('min_max', 'Min-Max'),
+        ('reorder_point', 'Reorder Point'),
+        ('periodic', 'Periodic Review'),
+    ], default='min_max')
+    min_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    max_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    reorder_point = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    order_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    is_active = models.BooleanField(default=True)
+    last_triggered = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['component', 'location']
+    
+    def __str__(self):
+        location_str = f" at {self.location.name}" if self.location else ""
+        return f"Reorder rule for {self.component.part_number}{location_str}"
+    
+    def check_stock_level(self):
+        if self.location:
+            inventory = Inventory.objects.filter(component=self.component, location=self.location).first()
+        else:
+            # Aggregate across all locations
+            total_inventory = Inventory.objects.filter(component=self.component).aggregate(
+                total_on_hand=Sum('quantity_on_hand'),
+                total_allocated=Sum('quantity_allocated')
+            )
+            available = (total_inventory['total_on_hand'] or 0) - (total_inventory['total_allocated'] or 0)
+        
+        if self.rule_type == 'min_max' and inventory:
+            return inventory.quantity_on_hand <= self.min_quantity
+        elif self.rule_type == 'reorder_point' and inventory:
+            return inventory.quantity_on_hand <= self.reorder_point
+        
+        return False

@@ -11,6 +11,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from datetime import timedelta
 
+
 from .models import (
     MaterialPlan, MaterialPlanItem, PurchaseRequisition,
     InventoryReservation, ProductionOrder, MaterialShortageAlert
@@ -618,3 +619,65 @@ def shortage_detail(request, pk):
         'related_shortages': related_shortages,
     }
     return render(request, 'MaterialPlan/shortage_detail.html', context)
+
+
+def confirm_plan(request, pk):
+    # Get the plan object or return 404 if not found
+    plan = get_object_or_404(MaterialPlan, pk=pk)
+    
+    # Check if user has permission to confirm this plan
+    if not request.user.has_perm('production.change_machineplan'):
+        messages.error(request, "You don't have permission to confirm plans.")
+        return redirect('plan_detail', pk=pk)
+    
+    # Check if plan is in a state that can be confirmed
+    if plan.status != 'draft':
+        messages.error(request, f"Plan cannot be confirmed. Current status: {plan.get_status_display()}.")
+        return redirect('plan_detail', pk=pk)
+    
+    try:
+        # Update the plan status to confirmed
+        plan.status = 'confirmed'
+        plan.confirmed_by = request.user
+        plan.confirmed_at = timezone.now()
+        plan.save()
+        
+        # Additional logic for reserving inventory, creating requisitions, etc.
+        # This would be implementation-specific
+        
+        messages.success(request, "Material plan has been successfully confirmed!")
+        
+    except Exception as e:
+        # Handle any errors that occur during confirmation
+        messages.error(request, f"Error confirming plan: {str(e)}")
+    
+    return redirect('plan_list')
+
+def get_bom_for_production_order(request):
+    production_order_id = request.GET.get('production_order_id')
+    
+    if not production_order_id:
+        return JsonResponse({'error': 'Production order ID is required'}, status=400)
+    
+    try:
+        # Get the production order
+        production_order = ProductionOrder.objects.get(id=production_order_id)
+        
+        # Get the associated BOM
+        bom = production_order.bom  # Assuming your model has a ForeignKey from ProductionOrder to BOM
+        
+        if bom:
+            return JsonResponse({
+                'bom_id': bom.id,
+                'bom_name': str(bom)  # Or use the appropriate field for display
+            })
+        else:
+            return JsonResponse({
+                'bom_id': None,
+                'bom_name': 'No BOM associated'
+            })
+            
+    except ProductionOrder.DoesNotExist:
+        return JsonResponse({'error': 'Production order not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

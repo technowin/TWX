@@ -8,14 +8,8 @@ from django.db.models import Q, Sum, F
 from django.http import JsonResponse
 from django.contrib import messages
 
-from .models import (
-    BOMHeader, BOMItem, Component, Supplier, ComponentSupplier,
-    Inventory, InventoryLocation, Document, BOMRevision, Comment, ApprovalRequest
-)
-from .forms import (
-    BOMHeaderForm, BOMItemForm, ComponentForm, ComponentSupplierForm,
-    DocumentForm, CommentForm, ApprovalRequestForm, RejectionForm
-)
+from .models import *
+from .forms import *
 from BOM import models
 
 class DashboardView(TemplateView):
@@ -1177,3 +1171,417 @@ def reject_bom(request, approval_id):
         return redirect('bom_approvals')
     
     return redirect('bom_approvals')
+
+# Add to your views.py
+
+class InventoryDashboardView(TemplateView):
+    template_name = 'BOM/inventory_dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Inventory summary
+        inventory_items = Inventory.objects.select_related('component', 'location')
+        total_value = 0
+        low_stock_count = 0
+        
+        for item in inventory_items:
+            # Get the latest cost from approved suppliers
+            supplier_info = item.component.suppliers.filter(is_approved=True).order_by('cost').first()
+            if supplier_info:
+                item_value = item.quantity_on_hand * supplier_info.cost
+                total_value += item_value
+                item.unit_value = supplier_info.cost
+                item.total_value = item_value
+            
+            # Check if stock is low
+            if item.quantity_on_hand < item.min_stock_level:
+                low_stock_count += 1
+        
+        # Recent transactions
+        recent_transactions = StockTransaction.objects.select_related(
+            'component', 'location', 'created_by'
+        ).order_by('-created_date')[:10]
+        
+        # Active stock takes
+        active_stocktakes = StockTake.objects.filter(
+            status__in=['draft', 'in_progress']
+        ).select_related('location', 'conducted_by')[:5]
+        
+        context.update({
+            'total_inventory_value': round(total_value, 2),
+            'total_inventory_items': inventory_items.count(),
+            'low_stock_count': low_stock_count,
+            'recent_transactions': recent_transactions,
+            'active_stocktakes': active_stocktakes,
+        })
+        
+        return context
+
+
+class StockTransactionListView(ListView):
+    model = StockTransaction
+    template_name = 'BOM/stock_transaction_list.html'
+    context_object_name = 'transactions'
+    paginate_by = 25
+    
+    def get_queryset(self):
+        queryset = StockTransaction.objects.select_related(
+            'component', 'location', 'created_by'
+        ).order_by('-created_date')
+        
+        # Filter by component if provided
+        component_id = self.request.GET.get('component')
+        if component_id:
+            queryset = queryset.filter(component_id=component_id)
+        
+        # Filter by location if provided
+        location_id = self.request.GET.get('location')
+        if location_id:
+            queryset = queryset.filter(location_id=location_id)
+        
+        # Filter by transaction type if provided
+        transaction_type = self.request.GET.get('transaction_type')
+        if transaction_type:
+            queryset = queryset.filter(transaction_type=transaction_type)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['components'] = Component.objects.all().order_by('part_number')
+        context['locations'] = InventoryLocation.objects.all().order_by('name')
+        context['transaction_types'] = StockTransaction.TRANSACTION_TYPES
+        
+        # Add filter values to context
+        for param in ['component', 'location', 'transaction_type']:
+            context[param] = self.request.GET.get(param)
+        
+        return context
+
+
+class StockTransactionCreateView(CreateView):
+    model = StockTransaction
+    form_class = StockTransactionForm
+    template_name = 'BOM/stock_transaction_form.html'
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, 'Stock transaction recorded successfully.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('stock_transaction_list')
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        # Pre-fill component if provided in URL
+        component_id = self.request.GET.get('component')
+        if component_id:
+            try:
+                component = Component.objects.get(pk=component_id)
+                initial['component'] = component
+            except Component.DoesNotExist:
+                pass
+        return initial
+
+
+class StockTakeListView(ListView):
+    model = StockTake
+    template_name = 'BOM/stocktake_list.html'
+    context_object_name = 'stocktakes'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = StockTake.objects.select_related(
+            'location', 'conducted_by', 'created_by'
+        ).order_by('-conducted_date')
+        
+        # Filter by status if provided
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Filter by location if provided
+        location_id = self.request.GET.get('location')
+        if location_id:
+            queryset = queryset.filter(location_id=location_id)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['locations'] = InventoryLocation.objects.all().order_by('name')
+        context['status_choices'] = StockTake.STATUS_CHOICES
+        
+        # Add filter values to context
+        for param in ['status', 'location']:
+            context[param] = self.request.GET.get(param)
+        
+        return context
+
+
+class StockTakeCreateView(CreateView):
+    model = StockTake
+    form_class = StockTakeForm
+    template_name = 'BOM/stocktake_form.html'
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, 'Stock take created successfully.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('stocktake_detail', kwargs={'pk': self.object.pk})
+
+
+class StockTakeDetailView(DetailView):
+    model = StockTake
+    template_name = 'BOM/stocktake_detail.html'
+    context_object_name = 'stocktake'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        stocktake = self.object
+        
+        # Get all components in the location with current quantities
+        inventory_items = Inventory.objects.filter(
+            location=stocktake.location
+        ).select_related('component')
+        
+        # Create or get stock take items
+        for item in inventory_items:
+            stock_item, created = StockTakeItem.objects.get_or_create(
+                stock_take=stocktake,
+                component=item.component,
+                defaults={
+                    'expected_quantity': item.quantity_on_hand,
+                    'expected_unit_cost': self.get_component_cost(item.component)
+                }
+            )
+        
+        context['items'] = stocktake.items.select_related('component').all()
+        context['item_form'] = StockTakeItemForm()
+        context['inventory_items'] = inventory_items
+        
+        return context
+    
+    def get_component_cost(self, component):
+        # Get the latest cost from approved suppliers
+        supplier_info = component.suppliers.filter(is_approved=True).order_by('cost').first()
+        return supplier_info.cost if supplier_info else 0
+
+
+class StockTakeUpdateView(UpdateView):
+    model = StockTake
+    form_class = StockTakeForm
+    template_name = 'BOM/stocktake_form.html'
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Stock take updated successfully.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('stocktake_detail', kwargs={'pk': self.object.pk})
+
+
+class StockTakeItemUpdateView(View):
+    def post(self, request, *args, **kwargs):
+        stocktake = get_object_or_404(StockTake, pk=kwargs.get('pk'))
+        item_id = request.POST.get('item_id')
+        
+        try:
+            item = stocktake.items.get(pk=item_id)
+            form = StockTakeItemForm(request.POST, instance=item)
+            if form.is_valid():
+                form.save()
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'errors': form.errors})
+        except StockTakeItem.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Item not found'})
+
+
+class StockTakeCompleteView(View):
+    def post(self, request, *args, **kwargs):
+        stocktake = get_object_or_404(StockTake, pk=kwargs.get('pk'))
+        
+        if stocktake.status not in ['draft', 'in_progress']:
+            messages.error(request, 'Cannot complete a stock take that is already completed or adjusted.')
+            return redirect('stocktake_detail', pk=stocktake.pk)
+        
+        # Create adjustment transactions for variances
+        for item in stocktake.items.all():
+            variance = item.variance
+            if variance != 0:
+                # Create adjustment transaction
+                StockTransaction.objects.create(
+                    component=item.component,
+                    transaction_type='adjustment',
+                    quantity=item.counted_quantity,
+                    unit_cost=item.expected_unit_cost,
+                    location=stocktake.location,
+                    source_type='adjustment',
+                    source_reference=f"Stock Take #{stocktake.id}",
+                    notes=f"Stock take adjustment: Expected {item.expected_quantity}, Counted {item.counted_quantity}",
+                    created_by=request.user
+                )
+        
+        # Update stock take status
+        stocktake.status = 'adjusted' if any(item.variance != 0 for item in stocktake.items.all()) else 'completed'
+        stocktake.completed_date = timezone.now()
+        stocktake.save()
+        
+        messages.success(request, f'Stock take completed successfully with {stocktake.items.count()} items processed.')
+        return redirect('stocktake_detail', pk=stocktake.pk)
+
+
+class ReorderRuleListView(ListView):
+    model = ReorderRule
+    template_name = 'BOM/reorder_rule_list.html'
+    context_object_name = 'reorder_rules'
+    
+    def get_queryset(self):
+        queryset = ReorderRule.objects.select_related(
+            'component', 'location', 'created_by'
+        ).filter(is_active=True).order_by('component__part_number')
+        
+        # Check stock levels for each rule
+        for rule in queryset:
+            rule.needs_reorder = rule.check_stock_level()
+        
+        return queryset
+
+
+class ReorderRuleCreateView(CreateView):
+    model = ReorderRule
+    form_class = ReorderRuleForm
+    template_name = 'BOM/reorder_rule_form.html'
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, 'Reorder rule created successfully.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('reorder_rule_list')
+
+
+class ReorderRuleUpdateView(UpdateView):
+    model = ReorderRule
+    form_class = ReorderRuleForm
+    template_name = 'BOM/reorder_rule_form.html'
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Reorder rule updated successfully.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('reorder_rule_list')
+
+
+class BOMInventoryCheckView(View):
+    def get(self, request, *args, **kwargs):
+        bom_id = kwargs.get('pk')
+        bom = get_object_or_404(BOMHeader, pk=bom_id)
+        
+        # Check inventory for all BOM items
+        inventory_status = []
+        insufficient_stock = False
+        
+        for item in bom.items.all():
+            component = item.component
+            
+            # Get total available inventory across all locations
+            total_inventory = Inventory.objects.filter(component=component).aggregate(
+                total_on_hand=Sum('quantity_on_hand'),
+                total_allocated=Sum('quantity_allocated')
+            )
+            
+            available = (total_inventory['total_on_hand'] or 0) - (total_inventory['total_allocated'] or 0)
+            required = item.quantity
+            
+            status = {
+                'component': component,
+                'required': required,
+                'available': available,
+                'sufficient': available >= required,
+                'deficit': max(0, required - available),
+                'inventory_locations': Inventory.objects.filter(component=component).select_related('location')
+            }
+            
+            inventory_status.append(status)
+            
+            if not status['sufficient']:
+                insufficient_stock = True
+        
+        context = {
+            'bom': bom,
+            'inventory_status': inventory_status,
+            'insufficient_stock': insufficient_stock,
+        }
+        
+        return render(request, 'BOM/bom_inventory_check.html', context)
+
+
+class BOMInventoryAllocateView(View):
+    def post(self, request, *args, **kwargs):
+        bom_id = kwargs.get('pk')
+        bom = get_object_or_404(BOMHeader, pk=bom_id)
+        
+        # Check if we have sufficient stock first
+        insufficient_items = []
+        for item in bom.items.all():
+            total_inventory = Inventory.objects.filter(component=item.component).aggregate(
+                total_on_hand=Sum('quantity_on_hand'),
+                total_allocated=Sum('quantity_allocated')
+            )
+            
+            available = (total_inventory['total_on_hand'] or 0) - (total_inventory['total_allocated'] or 0)
+            if available < item.quantity:
+                insufficient_items.append({
+                    'component': item.component,
+                    'required': item.quantity,
+                    'available': available
+                })
+        
+        if insufficient_items:
+            messages.error(request, 'Cannot allocate inventory: insufficient stock for some components.')
+            return redirect('bom_inventory_check', pk=bom_id)
+        
+        # Allocate inventory for each BOM item
+        for item in bom.items.all():
+            quantity_to_allocate = item.quantity
+            inventories = Inventory.objects.filter(
+                component=item.component
+            ).order_by('location')
+            
+            for inventory in inventories:
+                if quantity_to_allocate <= 0:
+                    break
+                    
+                available = inventory.quantity_on_hand - inventory.quantity_allocated
+                allocate_qty = min(available, quantity_to_allocate)
+                
+                if allocate_qty > 0:
+                    # Create allocation transaction
+                    StockTransaction.objects.create(
+                        component=item.component,
+                        transaction_type='allocation',
+                        quantity=allocate_qty,
+                        location=inventory.location,
+                        source_type='bom',
+                        source_reference=f"BOM#{bom.id}",
+                        notes=f"Allocated for BOM: {bom.name}",
+                        created_by=request.user
+                    )
+                    
+                    quantity_to_allocate -= allocate_qty
+        
+        messages.success(request, f'Inventory allocated successfully for BOM: {bom.name}')
+        return redirect('bom_detail', pk=bom_id)

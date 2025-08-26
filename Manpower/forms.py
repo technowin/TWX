@@ -2,9 +2,9 @@
 from django import forms
 
 import MachinePlan
-from MachinePlan.models import Routing
+from MachinePlan.models import MachineScheduling, Routing
 from .models import (
-    PROFICIENCY_CHOICES, Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
+    Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
     LaborAssignment, EmployeeAvailability, Attendance, LeaveRequest
 )
 from django.core.exceptions import ValidationError
@@ -88,7 +88,6 @@ class LaborRequirementForm(forms.ModelForm):
         self.fields['routing'].queryset = Routing.objects.all().order_by('component')
         self.fields['skill'].queryset = Skill.objects.all().order_by('skill_name')
         # Set the choices for min_proficiency field
-        self.fields['min_proficiency'].choices = PROFICIENCY_CHOICES
 class LaborAssignmentForm(forms.ModelForm):
     class Meta:
         model = LaborAssignment
@@ -106,11 +105,11 @@ class LaborAssignmentForm(forms.ModelForm):
         if 'schedule' in self.data:
             try:
                 schedule_id = int(self.data.get('schedule'))
-                schedule = MachinePlan.objects.get(id=schedule_id)
+                schedule = MachineScheduling.objects.get(id=schedule_id)
                 self.fields['employee'].queryset = Employee.objects.filter(
-                    work_center=schedule.WorkCenter
+                    work_center=schedule.work_center
                 )
-            except (ValueError, MachinePlan.DoesNotExist):
+            except (ValueError, MachineScheduling.DoesNotExist):
                 pass
         elif self.instance.pk:
             self.fields['employee'].queryset = Employee.objects.filter(

@@ -82,29 +82,32 @@
                     </div>
                 </div>
                 
-                <div class="row mb-3">
-                    <div class="col-md-6">
+                <div class="row mb-3"> 
+                   <div class="col-md-6">
                         <div class="form-group">
-                            <label for="{{ form.production_order.id_for_label }}">Production Order</label>
-                            {{ form.production_order }}
-                            {% if form.production_order.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.production_order.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="{{ form.bom.id_for_label }}">BOM</label>
-                            {{ form.bom }}
-                            {% if form.bom.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.bom.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
+                                        <label for="{{ form.production_order.id_for_label }}">Production Order</label>
+                                        {{ form.production_order }}
+                                        {% if form.production_order.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.production_order.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.bom.id_for_label }}">BOM</label>
+                                        {{ form.bom }}
+                                        <div id="bomLoading" class="spinner-border spinner-border-sm d-none" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        {% if form.bom.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.bom.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                 </div>
                 
                 <div class="row mb-3">
@@ -130,17 +133,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="{{ form.status.id_for_label }}">Status</label>
-                            {{ form.status }}
-                            {% if form.status.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.status.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
+                   
                 </div>
                 
                 <div class="form-group mb-3">
@@ -191,7 +184,58 @@
       {% endfor %}
     });
   </script>
-{% endif %}
+  {% endif %}
+
+  <script>
+    $(document).ready(function() {
+        // When production order selection changes
+        $('#id_production_order').change(function() {
+            debugger;
+            const productionOrderId = $(this).val();
+            if (productionOrderId) {
+                // Show loading indicator
+               // $('#bomLoading').removeClass('d-none');
+                
+                // Make AJAX request to get BOM for selected production order
+                $.ajax({
+                    url: '/get-bom/',
+                    type: 'GET',
+                    data: {
+                        'production_order_id': productionOrderId
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        // Update BOM field
+                        const bomField = $('#id_bom');
+                        bomField.empty();
+                        
+                        if (data.bom_id) {
+                            bomField.append($('<option>', {
+                                value: data.bom_id,
+                                text: data.bom_name,
+                                selected: true
+                            }));
+                        } else {
+                            bomField.append($('<option>', {
+                                value: '',
+                                text: 'No BOM available',
+                                selected: true
+                            }));
+                        }
+                        
+                        // Hide loading indicator
+                        $('#bomLoading').addClass('d-none');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching BOM:', error);
+                        $('#bomLoading').addClass('d-none');
+                    }
+                });
+            }
+        });
+    });
+    </script>
+
 
 {% endblock %}
 

@@ -1,7 +1,7 @@
 # models.py
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from MachinePlan.models import MachinePlanning, WorkCenter, Routing
+from MachinePlan.models import MachinePlanning, MachineScheduling, WorkCenter, Routing
 
 class Employee(models.Model):
     employee_code = models.CharField(max_length=10, unique=True, verbose_name="Employee ID")
@@ -32,23 +32,18 @@ class Skill(models.Model):
     
     def __str__(self):
         return f"{self.skill_code} - {self.skill_name}"
+    
+class Proficeincy(models.Model):
+    name = models.TextField(max_length=100, verbose_name="Proficiency Name")
+    is_active = models.BooleanField(blank=True, verbose_name="active")
+    def __str__(self):
+        return f"{self.name}"
 
 class EmployeeSkill(models.Model):
-    PROFICIENCY_CHOICES = [
-        (1, 'Basic Knowledge'),
-        (2, 'Novice'),
-        (3, 'Competent'),
-        (4, 'Proficient'),
-        (5, 'Expert'),
-    ]
     
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='skills')
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
-    proficiency = models.PositiveSmallIntegerField(
-        choices=PROFICIENCY_CHOICES,
-        default=1,
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
+    proficiency = models.ForeignKey(Proficeincy,on_delete=models.CASCADE, related_name='employee_proficiency', null=True,blank=True,db_column='proficiency_id')
     certification_date = models.DateField(null=True, blank=True, verbose_name="Certification Date")
     certified_by = models.CharField(max_length=100, blank=True, verbose_name="Certified By")
     
@@ -76,24 +71,12 @@ class Shift(models.Model):
     def __str__(self):
         return f"{self.shift_code} - {self.shift_name} ({self.start_time.strftime('%H:%M')} to {self.end_time.strftime('%H:%M')})"
 
-PROFICIENCY_CHOICES = [
-    (1, "Beginner (Basic knowledge)"),
-    (2, "Novice (Limited experience)"),
-    (3, "Competent (Practical application)"),
-    (4, "Professional (Thorough understanding)"),
-    (5, "Expert (Advanced mastery)"),
-]
-
 class LaborRequirement(models.Model):
     routing = models.ForeignKey(Routing, on_delete=models.CASCADE, related_name='labor_requirements')
+    schedule = models.ForeignKey(MachineScheduling, on_delete=models.PROTECT,null=True,blank=True )
     skill = models.ForeignKey(Skill, on_delete=models.PROTECT, verbose_name="Required Skill")
     employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="Employees Needed")
-    min_proficiency = models.PositiveSmallIntegerField(
-        default=2,
-        choices=PROFICIENCY_CHOICES,  # Add choices here
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        verbose_name="Minimum Proficiency"
-    )
+    min_proficiency = models.ForeignKey(Proficeincy,on_delete=models.CASCADE, related_name='require_proficiency',null=True,blank=True)
     notes = models.TextField(blank=True, verbose_name="Additional Notes")
     
     class Meta:
@@ -103,11 +86,10 @@ class LaborRequirement(models.Model):
     
     def __str__(self):
         # Get the display value for proficiency
-        proficiency_display = dict(PROFICIENCY_CHOICES).get(self.min_proficiency, self.min_proficiency)
-        return f"{self.routing} requires {self.employees_needed} {self.skill} (min level {proficiency_display})"
+        return f"{self.routing} requires {self.employees_needed} {self.skill})"
 
 class LaborAssignment(models.Model):
-    schedule = models.ForeignKey(MachinePlanning, on_delete=models.CASCADE, related_name='labor_assignments')
+    schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE, related_name='labor_assignments')
     employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name="Assigned Employee",related_name='labor_assignments')
     shift = models.ForeignKey(Shift, on_delete=models.PROTECT, verbose_name="Assigned Shift")
     date = models.DateField(verbose_name="Assignment Date")
