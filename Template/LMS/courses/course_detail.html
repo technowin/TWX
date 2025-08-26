@@ -249,12 +249,12 @@
                         Continue Learning
                     </a>
                     {% else %}
-                    {% comment %} <form method="post" action="{% url 'enroll_course' course.slug %}">
+                    <form method="post" action="{% url 'enroll_course' course.slug %}">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary w-100 mb-3">
                             Enroll Now
                         </button>
-                    </form> {% endcomment %}
+                    </form>
                     <!-- Add to Cart Button -->
                     <form method="post" action="{% url 'add_to_cart' course.slug %}">
                         {% csrf_token %}
