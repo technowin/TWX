@@ -280,7 +280,7 @@
                                                 <th>Category</th>
                                                 <th>Unit</th>
                                                 <th>Price</th>
-                                                <th>BOM Item Cost</th>
+                                                <th>Item Cost</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -294,7 +294,7 @@
                                                 <td>{{ item.component.get_purchase_type_display }}</td>
                                                 <td>{{ item.component.get_category_display }}</td>
                                                 <td>{{ item.component.unit_of_measure }}</td>
-                                                <td>{{ item.supplier.cost }}</td>
+                                                <td>{{ item.cost_subquery }}</td>
                                                 <td>{{ item.cost }}</td>
                                             </tr>
                                             {% endfor %}

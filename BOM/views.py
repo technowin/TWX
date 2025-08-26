@@ -75,6 +75,7 @@ from django.db import models
 from django.db.models import Prefetch
 from .models import BOMHeader, BOMItem, Document
 from .forms import CommentForm, BOMRevisionForm
+from django.db.models import OuterRef, Subquery
 
 class BOMDetailView(DetailView):
     model = BOMHeader
@@ -89,6 +90,13 @@ class BOMDetailView(DetailView):
         items = bom.items.all().order_by('sort_order')
         context['total_cost'] = sum(item.cost for item in bom.items.all())
         hierarchical_items = self.build_hierarchy(items)
+
+        cost_subquery = ComponentSupplier.objects.filter(
+        component=OuterRef("component"),
+        supplier=OuterRef("supplier")
+        ).values("cost")[:1]
+
+        context['items'] = bom.items.all().annotate(supplier_cost=Subquery(cost_subquery))
         
         # Get related data
         context['hierarchical_items'] = hierarchical_items
