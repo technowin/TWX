@@ -153,7 +153,7 @@ class PurchaseRequisitionForm(BootstrapFormMixin, forms.ModelForm):
 
 class ProductionOrderForm(BootstrapFormMixin, forms.ModelForm):
     bom = forms.ModelChoiceField(
-        queryset=BOMHeader.objects.filter(status='approved'),
+        queryset=BOMHeader.objects.all(),
         label="BOM Version",
         help_text="Select the approved Bill of Materials for this production"
     )
