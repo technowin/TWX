@@ -552,8 +552,14 @@ class ComponentDetailView(DetailView):
         context['inventory_summary'] = Inventory.objects.filter(component=component).select_related('location')
         
         # Get the unique BOMs where the component is used
+        # bom_ids = BOMItem.objects.filter(component=component).values_list('bom_id', flat=True).distinct()
+        # context['used_in_boms'] = BOMHeader.objects.filter(id__in=bom_ids)
+
+        # Instead of just getting BOMHeader objects, get the BOMItem objects
         bom_ids = BOMItem.objects.filter(component=component).values_list('bom_id', flat=True).distinct()
-        context['used_in_boms'] = BOMHeader.objects.filter(id__in=bom_ids)
+        bom_items = BOMItem.objects.filter(bom_id__in=bom_ids, component=component).select_related('bom')
+
+        context['used_in_boms'] = bom_items  # Now this contains BOMItem objects with quantity
 
         
         return context
