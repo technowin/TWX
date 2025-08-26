@@ -232,3 +232,11 @@ def add_class(field, css_class):
     existing_classes = field.field.widget.attrs.get("class", "")
     new_classes = f"{existing_classes} {css_class}".strip()
     return field.as_widget(attrs={"class": new_classes})
+
+
+
+@register.filter
+def total_price(course, cart):
+    quantity = cart.get(str(course.id), 1)
+    price = course.discount_price if course.discount_price else course.price
+    return price * quantity

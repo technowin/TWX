@@ -2,7 +2,7 @@
 # User Management System
 
 # models.py
-from datetime import timezone
+from django.utils import timezone 
 import uuid
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser

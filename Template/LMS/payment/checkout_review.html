@@ -78,11 +78,7 @@
                                     </td>
                                     <td>{{ cart|get_item:course.id|stringformat:"d" }}</td>
                                     <td>
-                                        {% if course.discount_price %}
-                                        ₹{{ course.discount_price|multiply:cart|get_item:course.id|stringformat:"d" }}
-                                        {% else %}
-                                        ₹{{ course.price|multiply:cart|get_item:course.id|stringformat:"d" }}
-                                        {% endif %}
+                                        ₹{{ course|total_price:cart|stringformat:"d" }}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -176,7 +172,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% include 'legal/terms_conditions.html' %}
+                {% comment %} {% include 'legal/terms_conditions.html' %} {% endcomment %}
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies tincidunt, nisl nisl aliquam nisl, eget ultricies nisl nisl eget nisl.</p>
+                <p>Nullam auctor, nisl eget ultricies tincidunt, nisl nisl aliquam nisl, eget ultricies nisl nisl eget nisl.</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies tincidunt, nisl nisl aliquam nisl, eget ultricies nisl nisl eget nisl.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>

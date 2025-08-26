@@ -43,66 +43,79 @@
     <div class="row">
         <div class="col-lg-8">
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">Your Shopping Cart</h3>
+                    <span class="badge bg-light text-dark">{{ courses|length }} item{{ courses|length|pluralize }}</span>
                 </div>
                 <div class="card-body">
                     {% if courses %}
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Course</th>
-                                    <th>Price</th>
-                                    <th>Quantity</th>
-                                    <th>Total</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for course in courses %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="{{ course.thumbnail.url }}" class="rounded me-3" width="60" height="60" alt="{{ course.title }}">
-                                            <div>
-                                                <h6 class="mb-0">{{ course.title }}</h6>
-                                                <small class="text-muted">{{ course.get_level_display }}</small>
+                    <form method="post" id="cart-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="update_quantities" value="1">
+                        
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for course in courses %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ course.thumbnail.url }}" class="rounded me-3" width="80" height="60" alt="{{ course.title }}" style="object-fit: cover;">
+                                                <div>
+                                                    <h6 class="mb-0">{{ course.title }}</h6>
+                                                    <small class="text-muted">{{ course.get_level_display }}</small>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if course.discount_price %}
-                                        <span class="text-danger fw-bold">${{ course.discount_price }}</span>
-                                        <span class="text-decoration-line-through text-muted small d-block">${{ course.price }}</span>
-                                        {% else %}
-                                        <span>${{ course.price }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="input-group" style="width: 120px;">
-                                            <button class="btn btn-outline-secondary" type="button">-</button>
-                                            <input type="text" class="form-control text-center" value="{{ cart|get_item:course.id }}">
-                                            <button class="btn btn-outline-secondary" type="button">+</button>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if course.discount_price %}
-                                        ${{ course.discount_price|multiply:cart|get_item:course.id }}
-                                        {% else %}
-                                        ${{ course.price|multiply:cart|get_item:course.id }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'remove_from_cart' course.slug %}" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </td>
+                                        <td>
+                                            {% if course.discount_price %}
+                                            <span class="text-danger fw-bold">₹{{ course.discount_price }}</span>
+                                            <span class="text-decoration-line-through text-muted small d-block">₹{{ course.price }}</span>
+                                            {% else %}
+                                            <span>₹{{ course.price }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="input-group" style="width: 120px;">
+                                                <button type="button" class="btn btn-outline-secondary quantity-down" data-course-id="{{ course.id }}">-</button>
+                                                <input type="number" class="form-control text-center quantity-input" 
+                                                       name="quantity_{{ course.id }}" value="{{ cart|get_item:course.id|stringformat:'d' }}" 
+                                                       min="1" data-course-id="{{ course.id }}">
+                                                <button type="button" class="btn btn-outline-secondary quantity-up" data-course-id="{{ course.id }}">+</button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            ₹{{ course|total_price:cart|stringformat:"d" }}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'remove_from_cart' course.slug %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{% url 'course_list' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left me-2"></i> Continue Shopping
+                            </a>
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise me-2"></i> Update Cart
+                            </button>
+                        </div>
+                    </form>
                     {% else %}
                     <div class="text-center py-5">
                         <i class="bi bi-cart-x fs-1 text-muted mb-3"></i>
@@ -124,7 +137,7 @@
                         {% csrf_token %}
                         <div class="col-md-8">
                             <input type="text" name="coupon_code" class="form-control" placeholder="Enter coupon code" 
-                                   value="{% if coupon %}{{ coupon.code }}{% endif %}">
+                                   value="{% if coupon %}{{ coupon.code }}{% endif %}" required>
                         </div>
                         <div class="col-md-4">
                             <button type="submit" class="btn btn-primary w-100">Apply Coupon</button>
@@ -137,6 +150,7 @@
                             <div>
                                 <i class="bi bi-tag-fill me-2"></i>
                                 <strong>{{ coupon.code }}</strong> applied successfully!
+                                <span class="badge bg-success ms-2">{{ coupon.value }}{% if coupon.coupon_type == 'PERCENTAGE' %}%{% endif %}</span>
                             </div>
                             <a href="{% url 'remove_coupon' %}" class="btn btn-sm btn-outline-danger">Remove</a>
                         </div>
@@ -156,21 +170,21 @@
                     <ul class="list-group list-group-flush mb-3">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Subtotal
-                            <span>${{ total }}</span>
+                            <span>₹{{ total }}</span>
                         </li>
                         {% if coupon %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Discount ({{ coupon.code }})
-                            <span class="text-danger">-${{ discount }}</span>
+                            <span class="text-danger">-₹{{ discount }}</span>
                         </li>
                         {% endif %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Tax
-                            <span>$0.00</span>
+                            <span>₹0.00</span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center fw-bold">
+                        <li class="list-group-item d-flex justify-content-between align-items-center fw-bold fs-5">
                             Total
-                            <span>${{ subtotal }}</span>
+                            <span>₹{{ subtotal }}</span>
                         </li>
                     </ul>
                     
@@ -181,13 +195,46 @@
                     {% endif %}
                     
                     <div class="text-center mt-3">
-                        <img src="{% static 'images/payment-methods.png' %}" alt="Payment Methods" class="img-fluid" style="max-height: 40px;">
+                        <img src="{% static 'images/payment-methods.png' %}" alt="Payment Methods" class="img-fluid" style="max-height: 30px;">
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quantity buttons functionality
+    document.querySelectorAll('.quantity-up').forEach(button => {
+        button.addEventListener('click', function() {
+            const courseId = this.getAttribute('data-course-id');
+            const input = document.querySelector(`.quantity-input[data-course-id="${courseId}"]`);
+            input.value = parseInt(input.value) + 1;
+            document.getElementById('cart-form').submit();
+        });
+    });
+    
+    document.querySelectorAll('.quantity-down').forEach(button => {
+        button.addEventListener('click', function() {
+            const courseId = this.getAttribute('data-course-id');
+            const input = document.querySelector(`.quantity-input[data-course-id="${courseId}"]`);
+            if (parseInt(input.value) > 1) {
+                input.value = parseInt(input.value) - 1;
+                document.getElementById('cart-form').submit();
+            }
+        });
+    });
+    
+    // Auto-submit when quantity input changes
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            if (parseInt(this.value) < 1) this.value = 1;
+            document.getElementById('cart-form').submit();
+        });
+    });
+});
+</script>
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
