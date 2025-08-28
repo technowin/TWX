@@ -294,7 +294,7 @@
                                                 <td>{{ item.component.get_purchase_type_display }}</td>
                                                 <td>{{ item.component.get_category_display }}</td>
                                                 <td>{{ item.component.unit_of_measure }}</td>
-                                                <td>{{ item.cost_subquery }}</td>
+                                                <td>{{ item.price }}</td>
                                                 <td>{{ item.cost }}</td>
                                             </tr>
                                             {% endfor %}
@@ -473,6 +473,11 @@
                                 <option value="">-- Select Supplier --</option>
                             </select>
                         </div>
+
+                        <div class="col-md-3" hidden>
+                            <label for="price" class="form-label">Price</label>
+                            <input type="text" class="form-control" id="price" name="price" required>
+                        </div>
                         
                         <div class="col-md-3">
                             <label for="position" class="form-label">Position</label>
@@ -550,6 +555,12 @@
                                 <option value="">-- Select Supplier --</option>
                             </select>
                         </div>
+
+                        <div class="col-md-3" hidden>
+                            <label for="price" class="form-label">Price</label>
+                            <input type="text" class="form-control" id="edit_price" name="price" required>
+                        </div>
+
 
                         <div class="col-md-3">
                             <label for="edit_position" class="form-label">Position</label>
@@ -764,102 +775,118 @@ $(document).ready(function() {
 
 
 <script>
-    $("#id_component").change(function () {
-        var componentId = $(this).val();
-        var supplierDropdown = $("#id_supplier");
-        supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+   $("#id_component").change(function () {
+    var componentId = $(this).val();
+    var supplierDropdown = $("#id_supplier");
+    supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
 
-        if (componentId) {
-            $.ajax({
-                url: "/get-suppliers/" + componentId + "/",
-                type: "GET",
-               success: function (data) {
-                    var supplierDropdown = $("#id_supplier");
-                    supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
-                    
-                    data.suppliers.forEach(function (supplier) {
-                        supplierDropdown.append(
-                            `<option value="${supplier.id}" data-cost="${supplier.cost}">
-                                ${supplier.name} (${supplier.cost})
-                            </option>`
-                        );
-                    });
+    if (componentId) {
+        $.ajax({
+            url: "/get-suppliers/" + componentId + "/",
+            type: "GET",
+            success: function (data) {
+                supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+                
+                data.suppliers.forEach(function (supplier, index) {
+                    supplierDropdown.append(
+                        `<option value="${supplier.id}" data-cost="${supplier.cost}">
+                            ${supplier.name} (${supplier.cost})
+                        </option>`
+                    );
+                });
+
+                // If suppliers are available, set price input with first supplier's cost
+                if (data.suppliers.length > 0) {
+                    $("#price").val(data.suppliers[0].cost);
+                } else {
+                    $("#price").val(""); // reset if no suppliers
                 }
+            }
+        });
+    } else {
+        $("#price").val(""); // reset if no component selected
+    }
+});
 
-            });
-        }
-    });
 </script>
 
 <script>
     $("#edit_component").change(function () {
-        var componentId = $(this).val();
-        var supplierDropdown = $("#edit_supplier");
-        supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+    var componentId = $(this).val();
+    var supplierDropdown = $("#edit_supplier");
+    supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
 
-        if (componentId) {
-            $.ajax({
-                url: "/get-suppliers/" + componentId + "/",
-                type: "GET",
-               success: function (data) {
-                    var supplierDropdown = $("#edit_supplier");
-                    supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
-                    
-                    data.suppliers.forEach(function (supplier) {
-                        supplierDropdown.append(
-                            `<option value="${supplier.id}" data-cost="${supplier.cost}">
-                                ${supplier.name} (${supplier.cost})
-                            </option>`
-                        );
-                    });
+    if (componentId) {
+        $.ajax({
+            url: "/get-suppliers/" + componentId + "/",
+            type: "GET",
+            success: function (data) {
+                supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+                
+                data.suppliers.forEach(function (supplier) {
+                    supplierDropdown.append(
+                        `<option value="${supplier.id}" data-cost="${supplier.cost}">
+                            ${supplier.name} (${supplier.cost})
+                        </option>`
+                    );
+                });
+
+                // If suppliers exist, set price input with the first supplier's cost
+                if (data.suppliers.length > 0) {
+                    $("#edit_price").val(data.suppliers[0].cost);
+                } else {
+                    $("#edit_price").val(""); // reset if no suppliers
                 }
+            }
+        });
+    } else {
+        $("#edit_price").val(""); // reset if no component selected
+    }
+});
 
-            });
-        }
-    });
 </script>
 
 <script>
- let supplierCost = 0;
+ let createsupplierCost = 0;
 
     // when supplier changes
     $("#id_supplier").change(function () {
-        supplierCost = $(this).find(":selected").data("cost") || 0;
-        calculateTotal();
+        createsupplierCost = $(this).find(":selected").data("cost") || 0;
+        calculateCreateTotal();
     });
 
     // when quantity changes
     $("#id_quantity").on("input", function () {
-        calculateTotal();
+        calculateCreateTotal();
     });
 
-    function calculateTotal() {
+    function calculateCreateTotal() {
         debugger;
-        let quantity = parseFloat($("#id_quantity").val()) || 0;
-        let total = supplierCost * quantity;
-        $("#id_cost").val(total.toFixed(2)); // 2 decimals
+        let createquantity = parseFloat($("#id_quantity").val()) || 0;
+        let createtotal = createsupplierCost * createquantity;
+        $("#id_cost").val(createtotal.toFixed(2)); // 2 decimals
     }
 </script>
 
 <script>
- let supplierCost = 0;
+ let EditsupplierCost = 0;
 
     // when supplier changes
     $("#edit_supplier").change(function () {
-        supplierCost = $(this).find(":selected").data("cost") || 0;
-        calculateTotal();
+        EditsupplierCost = $(this).find(":selected").data("cost") || 0;
+        calculateEditTotal();
     });
 
     // when quantity changes
     $("#edit_quantity").on("input", function () {
-        calculateTotal();
+        calculateEditTotal();
     });
 
-    function calculateTotal() {
+    function calculateEditTotal() {
         debugger;
-        let quantity = parseFloat($("#edit_quantity").val()) || 0;
-        let total = supplierCost * quantity;
-        $("#edit_cost").val(total.toFixed(2)); // 2 decimals
+        let editQuantity = parseFloat($("#edit_quantity").val()) || 0;
+        let editTotal = EditsupplierCost * editQuantity;
+        $("#edit_cost").val(editTotal.toFixed(2)); // 2 decimals
     }
 </script>
 

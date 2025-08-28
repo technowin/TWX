@@ -127,13 +127,13 @@ class InventoryTransaction(models.Model):
         ('adjustment', 'Adjustment'),
     ]
     
-    component = models.ForeignKey('Component', on_delete=models.PROTECT)  # Uses existing model
+    component = models.ForeignKey('Component', on_delete=models.CASCADE)  # Uses existing model
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     date = models.DateTimeField(auto_now_add=True)
     reference = models.CharField(max_length=100)  # PO#, MO#, etc.
     unit_cost = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
-    location = models.ForeignKey('InventoryLocation', on_delete=models.PROTECT, null=True, blank=True)  # Uses existing model
+    location = models.ForeignKey('InventoryLocation', on_delete=models.CASCADE, null=True, blank=True)  # Uses existing model
     
     class Meta:
         indexes = [
@@ -167,14 +167,14 @@ class MonthlyComponentDemand(models.Model):
 class PurchaseReceipt(models.Model):
     requisition = models.ForeignKey(
         'MaterialPlan.PurchaseRequisition',  # Explicit app_label.ModelName reference
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         verbose_name='Requisition'
     )
     actual_receipt_date = models.DateTimeField()
     quantity_received = models.DecimalField(max_digits=12, decimal_places=3)
     accepted_by = models.ForeignKey(
         CustomUser,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         verbose_name='Accepted By'
     )
     notes = models.TextField(blank=True)
@@ -230,6 +230,7 @@ class BOMItem(models.Model):
     bom = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, related_name='items')
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
     supplier =models.ForeignKey(Supplier, on_delete=models.CASCADE,null=True,blank=True)
+    price = models.DecimalField(null=True,blank=True,max_digits=10, decimal_places=2)
     cost = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
     reference_designators = models.CharField(max_length=200, blank=True)
@@ -348,14 +349,14 @@ class StockTransaction(models.Model):
         ('bom', 'BOM Allocation'),
     ]
     
-    component = models.ForeignKey(Component, on_delete=models.PROTECT, related_name='stock_transactions')
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, related_name='stock_transactions')
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     source_type = models.CharField(max_length=20, choices=SOURCE_TYPES, blank=True)
     source_reference = models.CharField(max_length=100, blank=True)  # PO#, MO#, BOM#, etc.
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
     unit_cost = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
-    location = models.ForeignKey(InventoryLocation, on_delete=models.PROTECT)
-    related_location = models.ForeignKey(InventoryLocation, on_delete=models.PROTECT, null=True, blank=True, 
+    location = models.ForeignKey(InventoryLocation, on_delete=models.CASCADE)
+    related_location = models.ForeignKey(InventoryLocation, on_delete=models.CASCADE, null=True, blank=True, 
                                         related_name='related_transfers')
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
@@ -411,7 +412,7 @@ class StockTake(models.Model):
         ('adjusted', 'Adjusted'),
     ]
     
-    location = models.ForeignKey(InventoryLocation, on_delete=models.PROTECT)
+    location = models.ForeignKey(InventoryLocation, on_delete=models.CASCADE)
     conducted_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='conducted_stocktakes')
     conducted_date = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
@@ -437,7 +438,7 @@ class StockTake(models.Model):
 
 class StockTakeItem(models.Model):
     stock_take = models.ForeignKey(StockTake, on_delete=models.CASCADE, related_name='items')
-    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    component = models.ForeignKey(Component, on_delete=models.CASCADE)
     expected_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
     counted_quantity = models.DecimalField(max_digits=12, decimal_places=3, default=0)
     expected_unit_cost = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)

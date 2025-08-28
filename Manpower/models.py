@@ -6,7 +6,7 @@ from MachinePlan.models import MachinePlanning, MachineScheduling, WorkCenter, R
 class Employee(models.Model):
     employee_code = models.CharField(max_length=10, unique=True, verbose_name="Employee ID")
     employee_name = models.CharField(max_length=100, verbose_name="Full Name")
-    work_center = models.ForeignKey(WorkCenter, on_delete=models.PROTECT, verbose_name="Primary Work Center")
+    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE, verbose_name="Primary Work Center")
     hire_date = models.DateField(verbose_name="Hire Date", null=True, blank=True)
     contact_number = models.CharField(max_length=15, blank=True, verbose_name="Contact Number")
     email = models.EmailField(blank=True, verbose_name="Email Address")
@@ -73,8 +73,8 @@ class Shift(models.Model):
 
 class LaborRequirement(models.Model):
     routing = models.ForeignKey(Routing, on_delete=models.CASCADE, related_name='labor_requirements')
-    schedule = models.ForeignKey(MachineScheduling, on_delete=models.PROTECT,null=True,blank=True )
-    skill = models.ForeignKey(Skill, on_delete=models.PROTECT, verbose_name="Required Skill")
+    schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE,null=True,blank=True )
+    skill = models.ForeignKey(Skill, on_delete=models.CASCADE, verbose_name="Required Skill")
     employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="Employees Needed")
     min_proficiency = models.ForeignKey(Proficeincy,on_delete=models.CASCADE, related_name='require_proficiency',null=True,blank=True)
     notes = models.TextField(blank=True, verbose_name="Additional Notes")
@@ -90,8 +90,8 @@ class LaborRequirement(models.Model):
 
 class LaborAssignment(models.Model):
     schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE, related_name='labor_assignments')
-    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, verbose_name="Assigned Employee",related_name='labor_assignments')
-    shift = models.ForeignKey(Shift, on_delete=models.PROTECT, verbose_name="Assigned Shift")
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name="Assigned Employee",related_name='labor_assignments')
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, verbose_name="Assigned Shift")
     date = models.DateField(verbose_name="Assignment Date")
     hours_allocated = models.DecimalField(
         max_digits=4,
@@ -139,7 +139,7 @@ class EmployeeAvailability(models.Model):
 class Attendance(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendances')
     date = models.DateField(verbose_name="Date")
-    shift = models.ForeignKey(Shift, on_delete=models.PROTECT, verbose_name="Shift")
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, verbose_name="Shift")
     clock_in = models.DateTimeField(null=True, blank=True, verbose_name="Clock In Time")
     clock_out = models.DateTimeField(null=True, blank=True, verbose_name="Clock Out Time")
     status = models.CharField(
