@@ -27,385 +27,151 @@
 {% endblock %}
 
 {% block content %}
-
-<div class="row mb-3">
-    <div class="col">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/mcp/dashboard/">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Machine Schedule List</li>
-            </ol>
-        </nav>
-    </div>
-    <div class="col-auto mt-2">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#planningModal">
-            <i class="bi bi-plus-circle"></i> Add Schedule
-        </button>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-week me-2"></i>Machine Tracking and Order</h2>
+    {% comment %} <a href="/mcp/machine-plans/create/">
+        <i class="bi bi-plus-circle me-1"></i>New Schedule
+    </a> {% endcomment %}
 </div>
 
-<div class="card">
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Filters</h5>
+    </div>
     <div class="card-body">
-
-        <div class="row mb-4">
-    <div class="col">
-        <h2>
-            <i class="fas fa-industry"></i>  Planning List
-        </h2>
-    </div>
-    
-</div>
-<div class="row mb-3">
-    <form method="get" id="filterForm">
-        <div class="row">
+        <form method="get" class="row g-3">
+           
             <div class="col-md-3">
-                <select class="form-select" name="machine" id="machineFilter">
+                <label for="machine" class="form-label">Machine</label>
+                <select name="machine" id="machine" class="form-select">
                     <option value="">All Machines</option>
                     {% for machine in machines %}
-                    <option value="{{ machine.id }}" {% if current_filters.machine == machine.id|stringformat:"s" %}selected{% endif %}>
-                        {{ machine.name }}
-                    </option>
+                    <option value="{{ machine.id }}" {% if request.GET.machine == machine.id|stringformat:"s" %}selected{% endif %}>{{ machine.name }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select" name="status" id="statusFilter">
-                    <option value="">All Statuses</option>
-                    {% for value, display in status_choices %}
-                    <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
-                        {{ display }}
-                    </option>
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ request.GET.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request.GET.end_date }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="{% url 'mcp:machine_planning_list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Schedule Table -->
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Scheduled Operations</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Production Order</th>
+                        <th>Component</th>
+                        <th>Operation</th>
+                        <th>Machine</th>
+                        <th>Scheduled Start</th>
+                        <th>Scheduled End</th>
+                        <th>Actual Start</th>
+                        <th>Actual End</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td>{{ schedule.production_order|default:"-" }}</td>
+                        <td>{{ schedule.component }}</td>
+                        <td>{{ schedule.routing.operation }}</td>
+                        <td>{{ schedule.machine.name }}</td>
+                        <td>{{ schedule.scheduled_start|date:"M d, Y H:i" }}</td>
+                        <td>{{ schedule.scheduled_end|date:"M d, Y H:i" }}</td>
+                        <td>{{ schedule.actual_start|date:"M d, Y H:i" }}</td>
+                        <td>{{ schedule.actual_end|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if schedule.status == 'COMPLETED' %}bg-success
+                                {% elif schedule.status == 'IN_PROGRESS' %}bg-primary
+                                {% elif schedule.status == 'CANCELLED' %}bg-danger
+                                {% else %}bg-secondary{% endif %} status-badge">
+                                {{ schedule.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'mcp:machine_planning_edit' schedule.pk %}" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'mcp:machine_scheduling_delete' schedule.pk %}" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4">No schedules found.</td>
+                    </tr>
                     {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3">
-                <input type="date" class="form-control" name="date" id="dateFilter" 
-                       value="{{ current_filters.date }}">
-            </div>
-            <div class="col-md-3">
-                <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
-            </div>
-        </div>
-    </form>
-</div>
-
-<div class="table-responsive">
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>Order</th>
-                <th>Component</th>
-                <th>Operation</th>
-                <th>Machine</th>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for plan in plans %}
-            <tr>
-                <td>{{ plan.production_order }}</td>
-                <td>{{ plan.component.name }}</td>
-                <td>{{ plan.operation.name }}</td>
-                <td>{{ plan.machine.name }}</td>
-                <td>{{ plan.scheduled_start|date:"Y-m-d H:i" }}</td>
-                <td>{{ plan.scheduled_end|date:"Y-m-d H:i" }}</td>
-                <td>
-                    <span class="badge rounded-pill 
-                        {% if plan.status == 'COMPLETED' %}bg-success
-                        {% elif plan.status == 'IN_PROGRESS' %}bg-primary
-                        {% elif plan.status == 'SCHEDULED' %}bg-info text-dark
-                        {% else %}bg-secondary
-                        {% endif %}">
-                        {{ plan.get_status_display }}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-warning" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#planningModal"
-                            data-id="{{ plan.id }}"
-                            data-production-order="{{ plan.production_order.id }}"
-                            data-component="{{ plan.component }}"
-                            data-operation="{{ plan.operation.id }}"
-                            data-machine="{{ plan.machine.id }}"
-                            data-status="{{ plan.status }}"
-                            data-scheduled-start="{{ plan.scheduled_start|date:'Y-m-d\TH:i' }}"
-                            data-scheduled-end="{{ plan.scheduled_end|date:'Y-m-d\TH:i' }}"
-                            data-actual-start="{% if plan.actual_start %}{{ plan.actual_start|date:'Y-m-d\TH:i' }}{% endif %}"
-                            data-actual-end="{% if plan.actual_end %}{{ plan.actual_end|date:'Y-m-d\TH:i' }}{% endif %}">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#deleteModal"
-                            data-id="{{ plan.id }}"
-                            data-name="{{ plan.production_order }} - {{ plan.operation }}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center py-4">No schedules found</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-</div>
-</div>
-
-{% include 'MachinePlan/pagination.html' %}
-
-<!-- Add/Edit Planning Modal -->
-<div class="modal fade" id="planningModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Schedule</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="{% url 'mcp:machine_planning_create' %}">
-                <div class="modal-body">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Production Order</label>
-                                <select name="production_order" class="form-select select2" required>
-                                    {% for order in production_orders %}
-                                    <option value="{{ order.id }}">{{ order.order_number }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Component</label>
-                                <select name="component" class="form-select select2" required>
-                                    {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Operation</label>
-                                <select name="operation" class="form-select select2" required>
-                                    {% for operation in operations %}
-                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Machine</label>
-                                <select name="machine" class="form-select select2" required>
-                                    {% for machine in machines %}
-                                    <option value="{{ machine.id }}">{{ machine.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-select" required>
-                                    {% for value, display in status_choices %}
-                                    <option value="{{ value }}">{{ display }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Scheduled Start</label>
-                                <input type="datetime-local" name="scheduled_start" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Scheduled End</label>
-                                <input type="datetime-local" name="scheduled_end" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Actual Start</label>
-                                <input type="datetime-local" name="actual_start" class="form-control">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Actual End</label>
-                                <input type="datetime-local" name="actual_end" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Delete schedule: <strong id="deleteName"></strong>?</p>
-                <p class="text-danger">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="" id="deleteForm">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Pagination -->
+{% if is_paginated %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+        </li>
+        {% endif %}
 
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+        {% endif %}
+        {% endfor %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2
-    $('.select2').select2({
-        width: '100%',
-        dropdownParent: $('#planningModal')
-    });
-
-    // Filter functionality
-    document.getElementById('machineFilter').addEventListener('change', function() {
-        updateFilters();
-    });
-    
-    document.getElementById('statusFilter').addEventListener('change', function() {
-        updateFilters();
-    });
-    
-    document.getElementById('dateFilter').addEventListener('change', function() {
-        updateFilters();
-    });
-    
-    function updateFilters() {
-        const machineId = document.getElementById('machineFilter').value;
-        const status = document.getElementById('statusFilter').value;
-        const date = document.getElementById('dateFilter').value;
-        
-        let url = '{% url "mcp:machine_planning_list" %}?';
-        if (machineId) url += `machine=${machineId}&`;
-        if (status) url += `status=${status}&`;
-        if (date) url += `date=${date}`;
-        
-        window.location.href = url;
-    }
-    
-    // Edit modal setup
-    const planningModal = document.getElementById('planningModal');
-    if (planningModal) {
-        planningModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const id = button.getAttribute('data-id');
-            
-            const form = planningModal.querySelector('form');
-            
-            if (id) {
-                // Edit mode
-                planningModal.querySelector('.modal-title').textContent = 'Edit Schedule';
-                form.action = `/mcp/machine-plans/${id}/edit/`;
-                
-                // Set form values
-                form.querySelector('[name="production_order"]').value = button.getAttribute('data-production-order');
-                form.querySelector('[name="component"]').value = button.getAttribute('data-component');
-                form.querySelector('[name="operation"]').value = button.getAttribute('data-operation');
-                form.querySelector('[name="machine"]').value = button.getAttribute('data-machine');
-                form.querySelector('[name="status"]').value = button.getAttribute('data-status');
-                form.querySelector('[name="scheduled_start"]').value = button.getAttribute('data-scheduled-start');
-                form.querySelector('[name="scheduled_end"]').value = button.getAttribute('data-scheduled-end');
-                form.querySelector('[name="actual_start"]').value = button.getAttribute('data-actual-start');
-                form.querySelector('[name="actual_end"]').value = button.getAttribute('data-actual-end');
-                
-                // Reinitialize Select2
-                $(form).find('.select2').select2({
-                    width: '100%',
-                    dropdownParent: $('#planningModal')
-                });
-            } else {
-                // Create mode
-                planningModal.querySelector('.modal-title').textContent = 'Add Schedule';
-                form.action = '{% url "mcp:machine_planning_create" %}';
-                form.reset();
-                
-                // Set default datetime values
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                
-                form.querySelector('[name="scheduled_start"]').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-                form.querySelector('[name="scheduled_end"]').value = `${year}-${month}-${day}T${String(now.getHours() + 1).padStart(2, '0')}:${minutes}`;
-            }
-        });
-    }
-    
-    // Delete modal setup
-    const deleteModal = document.getElementById('deleteModal');
-    if (deleteModal) {
-        deleteModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const id = button.getAttribute('data-id');
-            const name = button.getAttribute('data-name');
-            
-            const form = deleteModal.querySelector('form');
-            form.action = `/mcp/machine-plans/${id}/delete/`;
-            
-            document.getElementById('deleteName').textContent = name;
-        });
-    }
-});
-</script>
-
-<script>
-// Submit form when any filter changes
-document.getElementById('machineFilter').addEventListener('change', function() {
-    document.getElementById('filterForm').submit();
-});
-
-document.getElementById('statusFilter').addEventListener('change', function() {
-    document.getElementById('filterForm').submit();
-});
-
-document.getElementById('dateFilter').addEventListener('change', function() {
-    document.getElementById('filterForm').submit();
-});
-
-function resetFilters() {
-    // Reset all filter fields
-    document.getElementById('machineFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('dateFilter').value = '';
-    
-    // Submit the form
-    document.getElementById('filterForm').submit();
-}
-</script>
-{% endblock %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 
 {% block extra_javascript %}
+
 {% include "bootstrap/partials/syntax-highlight.html" %}
+
 <!-- Third party js -->
 <script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
 <script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
-<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
 <!-- Third party js ends -->
 
 <script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
@@ -417,4 +183,6 @@ function resetFilters() {
 
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
 {% endblock %}
