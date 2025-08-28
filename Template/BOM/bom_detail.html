@@ -133,7 +133,6 @@
                     {% empty %}
                         <p class="text-muted">No comments yet.</p>
                     {% endfor %}
-                    
                     <hr> {% endcomment %}
                     <form method="post" action="{% url 'add_comment' %}">
                         {% csrf_token %}
@@ -431,7 +430,6 @@
                         </div>
                     </div>
         </div>
-
     </div>
 </div>
 
