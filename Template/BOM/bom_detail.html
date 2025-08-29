@@ -299,7 +299,7 @@
                                             {% endfor %}
 
                                             <!-- Highlighted Total Row -->
-                                            <tr style="background-color:#f8f9fa; font-weight:bold;">
+                                            <tr style="font-weight:bold;">
                                                 <td colspan="9" class="text-end">Total BOM Cost:</td>
                                                 <td>{{ total_cost }}</td>
                                             </tr>
@@ -488,7 +488,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="id_quantity" class="form-label">Total Cost(Rs.)</label>
+                            <label for="id_quantity" class="form-label">Total Cost(₹)</label>
                             <input type="text"  class="form-control" id="id_cost" name="cost" required>
                         </div>
 
@@ -520,7 +520,7 @@
                 <h5 class="modal-title" id="editItemModalLabel">Edit BOM Item</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'edit_bom_item' 0 %}" id="editItemForm">
+            <form method="post" action="{% url 'edit_bom_item'  %}" id="editItemForm">
                 {% csrf_token %}
                 <input type="hidden" name="item_id" id="edit_item_id">
                 <div class="modal-body">
@@ -571,7 +571,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="edit_cost" class="form-label">Total Cost(Rs.)</label>
+                            <label for="edit_cost" class="form-label">Total Cost(₹)</label>
                             <input type="text"  class="form-control" id="edit_cost" name="cost" required>
                         </div>
                         
@@ -601,9 +601,17 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Part: <span id="componentPartNumber"></span></h5>
             <div>
-                <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#editItemModal" >
+                <!-- just one edit button -->
+                <button 
+                    type="button"
+                    class="btn btn-sm btn-primary edit-btn"
+                    data-id="{{ item.id }}"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#editItemModal">
                     <i class="bi bi-pencil"></i> Edit
                 </button>
+
+
                 <button class="btn btn-sm btn-secondary" id="viewDocs">
                     <i class="bi bi-file-earmark-text"></i> View Docs
                 </button>
@@ -886,6 +894,73 @@ $(document).ready(function() {
         let editTotal = EditsupplierCost * editQuantity;
         $("#edit_cost").val(editTotal.toFixed(2)); // 2 decimals
     }
+</script>
+
+<script>
+$(document).ready(function () {
+    console.log("Script loaded"); // check script runs
+
+    // When you click any BOM item row
+    $(document).on("click", ".bom-item", function () {
+        debugger;
+        let itemId = $(this).data("item-id");  
+        console.log("Selected BOM item:", itemId);
+
+        // Store itemId on the edit button
+        $(".edit-btn").attr("data-id", itemId);
+
+        // Highlight selected row
+        $(".bom-item").removeClass("active");
+        $(this).addClass("active");
+    });
+
+    // When modal is about to open
+    $('#editItemModal').on('show.bs.modal', function (event) {
+        debugger;
+        let button = $(event.relatedTarget);   // the clicked button
+        let itemId = button.data('id');        // get id
+        console.log("Opening modal for Item ID:", itemId);
+
+        let modal = $(this);
+        modal.find("form")[0].reset();  // clear form
+
+        if (!itemId) {
+            console.warn("No itemId found on button");
+            return;
+        }
+
+        // Call Django view to fetch item details
+        $.ajax({
+            url: "{% url 'get_bom_item' %}",
+            type: "GET",
+            data: { id: itemId },
+            success: function (response) {
+                console.log("AJAX success:", response);
+
+                // Populate modal fields with response data
+                modal.find('#edit_item_id').val(response.id);
+                modal.find('#edit_component').val(response.component_id);
+                modal.find('#edit_supplier').val(response.supplier_id);
+                modal.find('#edit_price').val(response.price);
+                modal.find('#edit_position').val(response.position);
+                modal.find('#edit_quantity').val(response.quantity);
+                modal.find('#edit_cost').val(response.cost);
+                modal.find('#edit_reference_designators').val(response.reference_designators);
+                modal.find('#edit_notes').val(response.notes);
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX error:", status, error);
+            }
+        });
+    });
+});
+
+document.getElementById("editItemForm").addEventListener("submit", function(e) {
+    debugger;
+    let itemId = document.getElementById("edit-item-id");
+    this.action = `item/${itemId}/edit/`;  // adjust URL to match your urls.py
+});
+
 </script>
 
 

@@ -88,7 +88,7 @@ class BOMDetailView(DetailView):
         
         # Get all BOM items and structure them hierarchically
         items = bom.items.all().order_by('sort_order')
-        context['total_cost'] = sum(item.cost for item in bom.items.all())
+        context['total_cost'] = sum(item.cost for item in bom.items.all()) or 0
         hierarchical_items = self.build_hierarchy(items)
 
         cost_subquery = ComponentSupplier.objects.filter(
@@ -913,6 +913,21 @@ class AddComponentSupplierView(CreateView):
     def get_success_url(self):
         return reverse('component_detail', kwargs={'pk': self.kwargs['pk']})
     
+class EditComponentSupplierView(UpdateView):
+    model = ComponentSupplier
+    form_class = ComponentSupplierForm
+    template_name = 'BOM/component_supplier_form.html'  # reuse the same template
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        component = self.object.component  # supplier is linked to component
+        messages.success(self.request, f"Supplier updated for {component.part_number} successfully.")
+        return response
+
+    def get_success_url(self):
+        # redirect back to the component detail page
+        return reverse('component_detail', kwargs={'pk': self.object.component.pk})
+    
 from django.http import JsonResponse
 from django.views import View
 from django.core.serializers import serialize
@@ -1633,3 +1648,23 @@ def component_upload_document(request, pk):
         "component": component,
         "document_form": form,
     })
+
+
+def get_bom_item(request):
+    item_id = request.GET.get("id")
+    try:
+        item = BOMItem.objects.get(id=item_id)
+        data = {
+            "id": item.id,
+            "component_id": item.component.id if item.component else None,
+            "supplier_id": item.supplier.id if item.supplier else None,
+            "price": item.price,
+            "position": item.position,
+            "quantity": item.quantity,
+            "cost": item.cost,
+            "reference_designators": item.reference_designators,
+            "notes": item.notes,
+        }
+        return JsonResponse(data)
+    except BOMItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)

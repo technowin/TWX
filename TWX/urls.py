@@ -106,6 +106,7 @@ urlpatterns = [
     path('components/new/',ComponentCreateView.as_view(), name='component_create'),
     path('components/<int:pk>/edit/',ComponentUpdateView.as_view(), name='component_update'),
     path('components/<int:pk>/add-supplier/',AddComponentSupplierView.as_view(), name='add_component_supplier'),
+    path("suppliers/<int:pk>/edit/", EditComponentSupplierView.as_view(), name="edit_component_supplier"),
     path('boms/<int:pk>/request-approval/',RequestBOMApprovalView.as_view(), name='request_bom_approval'),
 
     # path('<int:pk>/',BOMDetailView.as_view(), name='bom_detail'),
@@ -476,6 +477,8 @@ urlpatterns = [
     path("get-suppliers/<int:component_id>/", get_suppliers_by_component, name="get_suppliers_by_component"),
 
     path("components/<int:pk>/component_upload_document/", component_upload_document, name="component_upload_document"),
+
+    path("get_bom_item", get_bom_item, name="get_bom_item"),
 
 
 
