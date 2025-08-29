@@ -646,4 +646,4 @@ def stock_movement_list(request):
         'page_obj': page_obj,
         'movement_types': StockMovement.MOVEMENT_TYPES,
     }
-    return render(request, 'inventory/stock_movement_list.html', context)
+    return render(request, 'Inventory/stock_movement_list.html', context)
