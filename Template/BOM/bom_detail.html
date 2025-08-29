@@ -520,7 +520,7 @@
                 <h5 class="modal-title" id="editItemModalLabel">Edit BOM Item</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'edit_bom_item'  %}" id="editItemForm">
+            <form method="post" action="{% url 'edit_bom_item' 0 %}" id="editItemForm">
                 {% csrf_token %}
                 <input type="hidden" name="item_id" id="edit_item_id">
                 <div class="modal-body">
@@ -955,11 +955,7 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById("editItemForm").addEventListener("submit", function(e) {
-    debugger;
-    let itemId = document.getElementById("edit-item-id");
-    this.action = `item/${itemId}/edit/`;  // adjust URL to match your urls.py
-});
+
 
 </script>
 
