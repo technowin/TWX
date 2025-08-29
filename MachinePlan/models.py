@@ -36,7 +36,7 @@ class Machine(models.Model):
     
     machine_id = models.CharField(max_length=50, unique=True, verbose_name="Machine ID")
     name = models.CharField(max_length=100)
-    machine_type = models.ForeignKey(MachineType, on_delete=models.PROTECT)
+    machine_type = models.ForeignKey(MachineType, on_delete=models.CASCADE)
     work_center = models.ForeignKey('MachinePlan.WorkCenter', on_delete=models.CASCADE,null=True,blank=True)
     status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='OP')
     manufacturer = models.CharField(max_length=100, blank=True)
@@ -128,7 +128,7 @@ class WorkCenter(models.Model):
 
 class Routing(models.Model):
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
-    operation = models.ForeignKey(Operation, on_delete=models.PROTECT,null=True,blank=True)
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True,blank=True)
     sequence = models.PositiveIntegerField()
     work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)
@@ -150,10 +150,10 @@ class Routing(models.Model):
 
 class MachinePlanning(models.Model):
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True,blank=True)
-    component = models.ForeignKey(BOMHeader, on_delete=models.PROTECT, verbose_name="BOM Component")
-    operation = models.ForeignKey(Operation, on_delete=models.PROTECT,null=True,blank=True)
-    routing = models.ForeignKey(Routing, on_delete=models.PROTECT,null=True,blank=True)
-    machine = models.ForeignKey('Machine', on_delete=models.PROTECT,null=True,blank=True)
+    component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
+    routing = models.ForeignKey(Routing, on_delete=models.CASCADE,null=True,blank=True)
+    machine = models.ForeignKey('Machine', on_delete=models.CASCADE,null=True,blank=True)
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
     status = models.CharField(max_length=20, choices=[
@@ -177,10 +177,10 @@ class MachinePlanning(models.Model):
     
 class MachineScheduling(models.Model):
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
-    component = models.ForeignKey(BOMHeader, on_delete=models.PROTECT, verbose_name="BOM Component")
-    routing = models.ForeignKey(Routing, on_delete=models.PROTECT)
-    machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
-    work_center = models.ForeignKey(WorkCenter, on_delete=models.PROTECT)  # Added for direct access
+    component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
+    routing = models.ForeignKey(Routing, on_delete=models.CASCADE)
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)  # Added for direct access
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
     actual_start = models.DateTimeField(null=True, blank=True)

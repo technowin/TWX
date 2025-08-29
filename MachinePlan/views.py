@@ -249,14 +249,13 @@ class RoutingListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['components'] = BOMHeader.objects.all()
-        context['operation'] = Operation.objects.all()
+        context['operations'] = Operation.objects.all()
         context['work_centers'] = WorkCenter.objects.all()
         return context
 
 class RoutingCreateView(CreateView):
     model = Routing
     form_class = RoutingForm
-    template_name = 'MachinePlan/routing_form.html'
     success_url = reverse_lazy('mcp:routing_list')
 
     def form_valid(self, form):
@@ -285,81 +284,58 @@ class RoutingDeleteView(DeleteView):
 
 
 class MachinePlanningListView(ListView):
-    model = MachinePlanning
+    model = MachineScheduling
     template_name = 'MachinePlan/machine_planning_list.html'
-    context_object_name = 'plans'
-    paginate_by = 20  # Optional: add pagination
+    context_object_name = 'schedules'
+    paginate_by = 20
     
     def get_queryset(self):
-        queryset = super().get_queryset().select_related(
-            'production_order', 'component', 'operation', 'machine'
-        )
+        queryset = super().get_queryset()
         
-        # Get filter parameters from request
-        machine_filter = self.request.GET.get('machine')
-        status_filter = self.request.GET.get('status')
-        date_filter = self.request.GET.get('date')
-        
-        # Apply filters
-        if machine_filter:
-            queryset = queryset.filter(machine_id=machine_filter)
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        if date_filter:
-            queryset = queryset.filter(scheduled_start__date=date_filter)
-        
-        return queryset.order_by('scheduled_start')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['production_orders'] = ProductionOrder.objects.all()
-        context['components'] = BOMHeader.objects.all()
-        context['operation'] = Operation.objects.all()
-        context['machines'] = Machine.objects.all()
-        status_field = MachinePlanning._meta.get_field('status')
-        context['status_choices'] = status_field.choices
-        
-        # Preserve existing filter parameters in context
-        context['current_filters'] = {
-            'machine': self.request.GET.get('machine', ''),
-            'status': self.request.GET.get('status', ''),
-            'date': self.request.GET.get('date', ''),
-        }
-        return context
+        # Filter by status if provided
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+            
+        # Filter by machine if provided
+        machine_id = self.request.GET.get('machine')
+        if machine_id:
+            queryset = queryset.filter(machine_id=machine_id)
+            
+        # Filter by date range if provided
+        start_date = self.request.GET.get('start_date')
+        end_date = self.request.GET.get('end_date')
+        if start_date and end_date:
+            queryset = queryset.filter(
+                scheduled_start__date__gte=start_date,
+                scheduled_end__date__lte=end_date
+            )
+            
+        return queryset.select_related('component', 'routing', 'machine', 'work_center')
 
 class MachinePlanningCreateView(CreateView):
-    model = MachinePlanning
-    form_class = MachinePlanningForm
+    model = MachineScheduling
+    form_class = MachineTrackingForm
+    template_name = 'MachinePlan/machine_plainning_form.html'
     success_url = reverse_lazy('mcp:machine_planning_list')
     
     def form_valid(self, form):
-        response = super().form_valid(form)
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
-        messages.success(self.request, "Schedule created successfully!")
-        return response
-    
-    def form_invalid(self, form):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'errors': form.errors})
-        return super().form_invalid(form)
+        # Set work_center from routing before saving
+        if form.cleaned_data['routing']:
+            form.instance.work_center = form.cleaned_data['routing'].work_center
+        return super().form_valid(form)
 
 class MachinePlanningUpdateView(UpdateView):
-    model = MachinePlanning
-    form_class = MachinePlanningForm
-    success_url = reverse_lazy('mcp:machine_planning_list')
+    model = MachineScheduling
+    form_class = MachineTrackingForm
+    template_name = 'MachinePlan/machine_planning_form.html'
+    success_url = reverse_lazy('mcp:machine_scheduling_list')
     
     def form_valid(self, form):
-        response = super().form_valid(form)
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
-        messages.success(self.request, "Schedule updated successfully!")
-        return response
-    
-    def form_invalid(self, form):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'errors': form.errors})
-        return super().form_invalid(form)
+        # Set work_center from routing before saving
+        if form.cleaned_data['routing']:
+            form.instance.work_center = form.cleaned_data['routing'].work_center
+        return super().form_valid(form)
 
 class MachinePlanningDeleteView(DeleteView):
     model = MachinePlanning
@@ -729,3 +705,5 @@ def load_machines(request):
         return JsonResponse({'success': False, 'error': 'Routing not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
+    
+

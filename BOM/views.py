@@ -75,6 +75,7 @@ from django.db import models
 from django.db.models import Prefetch
 from .models import BOMHeader, BOMItem, Document
 from .forms import CommentForm, BOMRevisionForm
+from django.db.models import OuterRef, Subquery
 
 class BOMDetailView(DetailView):
     model = BOMHeader
@@ -87,7 +88,15 @@ class BOMDetailView(DetailView):
         
         # Get all BOM items and structure them hierarchically
         items = bom.items.all().order_by('sort_order')
+        context['total_cost'] = sum(item.cost for item in bom.items.all())
         hierarchical_items = self.build_hierarchy(items)
+
+        cost_subquery = ComponentSupplier.objects.filter(
+        component=OuterRef("component"),
+        supplier=OuterRef("supplier")
+        ).values("cost")[:1]
+
+        context['items'] = bom.items.all().annotate(supplier_cost=Subquery(cost_subquery))
         
         # Get related data
         context['hierarchical_items'] = hierarchical_items
@@ -537,13 +546,20 @@ class ComponentDetailView(DetailView):
         # Add forms for related models
         context['supplier_form'] = ComponentSupplierForm(initial={'component': component})
         context['document_form'] = DocumentForm(initial={'component': component, 'uploaded_by': self.request.user})
+
         
         # Get inventory summary
         context['inventory_summary'] = Inventory.objects.filter(component=component).select_related('location')
         
         # Get the unique BOMs where the component is used
+        # bom_ids = BOMItem.objects.filter(component=component).values_list('bom_id', flat=True).distinct()
+        # context['used_in_boms'] = BOMHeader.objects.filter(id__in=bom_ids)
+
+        # Instead of just getting BOMHeader objects, get the BOMItem objects
         bom_ids = BOMItem.objects.filter(component=component).values_list('bom_id', flat=True).distinct()
-        context['used_in_boms'] = BOMHeader.objects.filter(id__in=bom_ids)
+        bom_items = BOMItem.objects.filter(bom_id__in=bom_ids, component=component).select_related('bom')
+
+        context['used_in_boms'] = bom_items  # Now this contains BOMItem objects with quantity
 
         
         return context
@@ -1585,3 +1601,35 @@ class BOMInventoryAllocateView(View):
         
         messages.success(request, f'Inventory allocated successfully for BOM: {bom.name}')
         return redirect('bom_detail', pk=bom_id)
+    
+
+
+def get_suppliers_by_component(request, component_id):
+    suppliers = ComponentSupplier.objects.filter(component_id=component_id).select_related("supplier")
+    data = [
+        {
+            "id": cs.supplier.id,
+            "name": cs.supplier.name,   # adjust field name accordingly
+            "cost": cs.cost
+        }
+        for cs in suppliers
+    ]
+    return JsonResponse({"suppliers": data})
+
+def component_upload_document(request, pk):
+    component = get_object_or_404(Component, pk=pk)
+
+    if request.method == "POST":
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.component = component   # link document to component
+            document.save()
+            return redirect("component_detail", pk=component.pk)  # adjust to your detail page
+    else:
+        form = DocumentForm()
+
+    return render(request, "your_template.html", {
+        "component": component,
+        "document_form": form,
+    })

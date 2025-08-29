@@ -133,7 +133,6 @@
                     {% empty %}
                         <p class="text-muted">No comments yet.</p>
                     {% endfor %}
-                    
                     <hr> {% endcomment %}
                     <form method="post" action="{% url 'add_comment' %}">
                         {% csrf_token %}
@@ -279,7 +278,8 @@
                                                 <th>Purchase Type</th>
                                                 <th>Category</th>
                                                 <th>Unit</th>
-                                                <th>Cost</th>
+                                                <th>Price</th>
+                                                <th>Item Cost</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -293,10 +293,19 @@
                                                 <td>{{ item.component.get_purchase_type_display }}</td>
                                                 <td>{{ item.component.get_category_display }}</td>
                                                 <td>{{ item.component.unit_of_measure }}</td>
-                                                <td>${{ item.extended_cost|floatformat:2 }}</td>
+                                                <td>{{ item.price }}</td>
+                                                <td>{{ item.cost }}</td>
                                             </tr>
                                             {% endfor %}
+
+                                            <!-- Highlighted Total Row -->
+                                            <tr style="background-color:#f8f9fa; font-weight:bold;">
+                                                <td colspan="9" class="text-end">Total BOM Cost:</td>
+                                                <td>{{ total_cost }}</td>
+                                            </tr>
                                         </tbody>
+
+
                                     </table>
                                 </div>
                             </div>
@@ -421,11 +430,10 @@
                         </div>
                     </div>
         </div>
-
     </div>
 </div>
 
-<!-- Add Component Modal -->
+
 <div class="modal fade" id="addComponentModal" tabindex="-1" aria-labelledby="addComponentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -446,7 +454,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label for="id_component" class="form-label">Component</label>
                             <select class="form-select" id="id_component" name="component" required>
@@ -455,6 +463,18 @@
                                     <option value="{{ comp.id }}">{{ comp.part_number }} - {{ comp.description }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="id_supplier" class="form-label">Supplier</label>
+                            <select class="form-select" id="id_supplier" name="supplier" required>
+                                <option value="">-- Select Supplier --</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3" hidden>
+                            <label for="price" class="form-label">Price</label>
+                            <input type="text" class="form-control" id="price" name="price" required>
                         </div>
                         
                         <div class="col-md-3">
@@ -466,7 +486,12 @@
                             <label for="id_quantity" class="form-label">Quantity</label>
                             <input type="number" step="0.01" min="0.01" class="form-control" id="id_quantity" name="quantity" required>
                         </div>
-                        
+
+                        <div class="col-md-6">
+                            <label for="id_quantity" class="form-label">Total Cost(Rs.)</label>
+                            <input type="text"  class="form-control" id="id_cost" name="cost" required>
+                        </div>
+
                         <div class="col-md-6">
                             <label for="id_reference_designators" class="form-label">Reference Designators</label>
                             <input type="text" class="form-control" id="id_reference_designators" name="reference_designators">
@@ -487,38 +512,78 @@
     </div>
 </div>
 
+<!-- Updated Edit Item Modal with all fields and data population -->
 <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editItemModalLabel">Edit BOM Item</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'edit_bom_item' 0 %}">
+            <form method="post" action="{% url 'edit_bom_item' 0 %}" id="editItemForm">
                 {% csrf_token %}
                 <input type="hidden" name="item_id" id="edit_item_id">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="id_component" class="form-label">Component</label>
-                        <select class="form-select" id="id_component" name="component" required>
-                            {% for comp in components %}
-                                <option value="{{ comp.id }}">{{ comp.part_number }} - {{ comp.description }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="id_quantity" class="form-label">Quantity</label>
-                            <input type="number" step="0.01" min="0.01" class="form-control" id="id_quantity" name="quantity" required>
+                            <label for="edit_parent_item" class="form-label">Parent Item</label>
+                            <select class="form-select" id="edit_parent_item" name="parent_item">
+                                <option value="">-- Top Level --</option>
+                                {% for item in bom.items.all|natural_sort %}
+                                    <option value="{{ item.sort_order }}">{{ item.sort_order }}. {{ item.component.part_number }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
+                        
+                        
+
+                       <div class="col-md-6">
+                            <label for="edit_component" class="form-label">Component</label>
+                            <select class="form-select" id="edit_component" name="component" required>
+                                <option value="">-- Select Component --</option>
+                                {% for comp in components %}
+                                    <option value="{{ comp.id }}">{{ comp.part_number }} - {{ comp.description }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="col-md-6">
-                            <label for="id_reference_designators" class="form-label">Reference Designators</label>
-                            <input type="text" class="form-control" id="id_reference_designators" name="reference_designators">
+                            <label for="edit_supplier" class="form-label">Supplier</label>
+                            <select class="form-select" id="edit_supplier" name="supplier" required>
+                                <option value="">-- Select Supplier --</option>
+                            </select>
                         </div>
-                    </div>
-                    <div class="mt-3">
-                        <label for="id_notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="id_notes" name="notes" rows="3"></textarea>
+
+                        <div class="col-md-3" hidden>
+                            <label for="price" class="form-label">Price</label>
+                            <input type="text" class="form-control" id="edit_price" name="price" required>
+                        </div>
+
+
+                        <div class="col-md-3">
+                            <label for="edit_position" class="form-label">Position</label>
+                            <input type="number" class="form-control" id="edit_position" name="position" min="1" required>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="edit_quantity" class="form-label">Quantity</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="edit_quantity" name="quantity" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="edit_cost" class="form-label">Total Cost(Rs.)</label>
+                            <input type="text"  class="form-control" id="edit_cost" name="cost" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="edit_reference_designators" class="form-label">Reference Designators</label>
+                            <input type="text" class="form-control" id="edit_reference_designators" name="reference_designators">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="edit_notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="edit_notes" name="notes" rows="2"></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -707,7 +772,126 @@ $(document).ready(function() {
 </script>
 
 
-{% endblock %}
+<script>
+   $("#id_component").change(function () {
+    var componentId = $(this).val();
+    var supplierDropdown = $("#id_supplier");
+    supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+
+    if (componentId) {
+        $.ajax({
+            url: "/get-suppliers/" + componentId + "/",
+            type: "GET",
+            success: function (data) {
+                supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+                
+                data.suppliers.forEach(function (supplier, index) {
+                    supplierDropdown.append(
+                        `<option value="${supplier.id}" data-cost="${supplier.cost}">
+                            ${supplier.name} (${supplier.cost})
+                        </option>`
+                    );
+                });
+
+                // If suppliers are available, set price input with first supplier's cost
+                if (data.suppliers.length > 0) {
+                    $("#price").val(data.suppliers[0].cost);
+                } else {
+                    $("#price").val(""); // reset if no suppliers
+                }
+            }
+        });
+    } else {
+        $("#price").val(""); // reset if no component selected
+    }
+});
+
+</script>
+
+<script>
+    $("#edit_component").change(function () {
+    var componentId = $(this).val();
+    var supplierDropdown = $("#edit_supplier");
+    supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+
+    if (componentId) {
+        $.ajax({
+            url: "/get-suppliers/" + componentId + "/",
+            type: "GET",
+            success: function (data) {
+                supplierDropdown.empty().append('<option value="">-- Select Supplier --</option>');
+                
+                data.suppliers.forEach(function (supplier) {
+                    supplierDropdown.append(
+                        `<option value="${supplier.id}" data-cost="${supplier.cost}">
+                            ${supplier.name} (${supplier.cost})
+                        </option>`
+                    );
+                });
+
+                // If suppliers exist, set price input with the first supplier's cost
+                if (data.suppliers.length > 0) {
+                    $("#edit_price").val(data.suppliers[0].cost);
+                } else {
+                    $("#edit_price").val(""); // reset if no suppliers
+                }
+            }
+        });
+    } else {
+        $("#edit_price").val(""); // reset if no component selected
+    }
+});
+
+</script>
+
+<script>
+ let createsupplierCost = 0;
+
+    // when supplier changes
+    $("#id_supplier").change(function () {
+        createsupplierCost = $(this).find(":selected").data("cost") || 0;
+        calculateCreateTotal();
+    });
+
+    // when quantity changes
+    $("#id_quantity").on("input", function () {
+        calculateCreateTotal();
+    });
+
+    function calculateCreateTotal() {
+        debugger;
+        let createquantity = parseFloat($("#id_quantity").val()) || 0;
+        let createtotal = createsupplierCost * createquantity;
+        $("#id_cost").val(createtotal.toFixed(2)); // 2 decimals
+    }
+</script>
+
+<script>
+ let EditsupplierCost = 0;
+
+    // when supplier changes
+    $("#edit_supplier").change(function () {
+        EditsupplierCost = $(this).find(":selected").data("cost") || 0;
+        calculateEditTotal();
+    });
+
+    // when quantity changes
+    $("#edit_quantity").on("input", function () {
+        calculateEditTotal();
+    });
+
+    function calculateEditTotal() {
+        debugger;
+        let editQuantity = parseFloat($("#edit_quantity").val()) || 0;
+        let editTotal = EditsupplierCost * editQuantity;
+        $("#edit_cost").val(editTotal.toFixed(2)); // 2 decimals
+    }
+</script>
+
+
+
+
+
 
 
 
@@ -733,4 +917,5 @@ $(document).ready(function() {
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
 
+{% endblock %}
 {% endblock %}

@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 
 
 from .models import (
@@ -102,27 +103,31 @@ class MaterialPlanDetailView(DetailView):
     context_object_name = 'plan'
     
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        plan = self.get_object()
-        
-        # Get all plan items with their status
-        items = plan.items.all().select_related('component', 'supplier')
-        
-        # Get any shortage alerts for this plan
-        shortage_alerts = plan.alerts.filter(status='open')
-        
-        # Get purchase requisitions
-        purchase_requisitions = plan.purchase_requisitions.all().select_related(
-            'component', 'supplier'
-        )
-        
-        context.update({
-            'items': items,
-            'shortage_alerts': shortage_alerts,
-            'purchase_requisitions': purchase_requisitions,
-            'status_choices': MaterialPlanItem.ITEM_STATUS_CHOICES,
-        })
-        return context
+        try:
+            context = super().get_context_data(**kwargs)
+            plan = self.get_object()
+            
+            # Get all plan items with their status
+            items = plan.items.all().select_related('component', 'supplier')
+            
+            # Get any shortage alerts for this plan
+            shortage_alerts = plan.alerts.filter(status='open')
+            
+            # Get purchase requisitions
+            purchase_requisitions = plan.purchase_requisitions.all().select_related(
+                'component', 'supplier'
+            )
+            
+            context.update({
+                'items': items,
+                'shortage_alerts': shortage_alerts,
+                'purchase_requisitions': purchase_requisitions,
+                'status_choices': MaterialPlanItem.ITEM_STATUS_CHOICES,
+            })
+            return context
+        except Exception as e:
+                print(f"Error fetching form data: {e}")
+
 
 
 class MaterialPlanUpdateView(UpdateView):
@@ -236,7 +241,7 @@ class InventoryReservationView(View):
         
         if item.quantity_available <= 0:
             messages.error(request, "No available inventory to reserve.")
-            return redirect('/plan_detail', pk=plan.pk)
+            return redirect('plan_detail', pk=plan.pk)
         
         # Find available inventory
         available_inventory = Inventory.objects.filter(
@@ -251,15 +256,17 @@ class InventoryReservationView(View):
         
         try:
             with transaction.atomic():
+                quantity_to_reserve = Decimal(str(quantity_to_reserve))  # ensure Decimal
+
                 for inventory in available_inventory:
                     if quantity_to_reserve <= 0:
                         break
-                    
+
                     reservable = min(
-                        float(inventory.quantity_on_hand - inventory.quantity_allocated),
+                        inventory.quantity_on_hand - inventory.quantity_allocated,
                         quantity_to_reserve
                     )
-                    
+
                     if reservable > 0:
                         InventoryReservation.objects.create(
                             plan=plan,
@@ -267,25 +274,25 @@ class InventoryReservationView(View):
                             inventory=inventory,
                             quantity=reservable,
                         )
-                        
+
                         inventory.quantity_allocated += reservable
                         inventory.save()
-                        
+
                         quantity_to_reserve -= reservable
-                
+
                 item.quantity_reserved += (item.quantity_required - item.quantity_reserved - quantity_to_reserve)
                 if item.quantity_reserved >= item.quantity_required:
                     item.status = 'reserved'
                 else:
                     item.status = 'partially_fulfilled'
                 item.save()
-                
+
                 messages.success(request, f"Successfully reserved inventory for {item.component.part_number}.")
-        
+
         except Exception as e:
             messages.error(request, f"Error reserving inventory: {str(e)}")
-        
-        return redirect('/plan_detail', pk=plan.pk)
+
+        return redirect('plan_detail', pk=plan.pk)
 
 
 class MaterialShortageResolutionView(View):

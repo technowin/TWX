@@ -307,3 +307,53 @@ class MachineSchedulingForm(forms.ModelForm):
             )
         else:
             self.fields['machine'].queryset = Machine.objects.none()
+
+class MachineTrackingForm(forms.ModelForm):
+    class Meta:
+        model = MachineScheduling
+        fields = ['production_order', 'component', 'routing', 'machine', 
+                 'scheduled_start', 'scheduled_end', 'status','actual_start','actual_end','notes']
+        widgets = {
+            'scheduled_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'scheduled_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'actual_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'actual_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Set classes for all fields
+        for field_name, field in self.fields.items():
+            if field_name not in self.Meta.widgets:
+                field.widget.attrs.update({'class': 'form-control'})
+        
+        # Filter routings based on selected component
+        if 'component' in self.data:
+            try:
+                component_id = int(self.data.get('component'))
+                self.fields['routing'].queryset = Routing.objects.filter(component_id=component_id).order_by('sequence')
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            self.fields['routing'].queryset = self.instance.component.routing_set.order_by('sequence')
+        else:
+            self.fields['routing'].queryset = Routing.objects.none()
+        
+        # Filter machines based on work center from routing
+        if 'routing' in self.data:
+            try:
+                routing_id = int(self.data.get('routing'))
+                routing = Routing.objects.get(id=routing_id)
+                self.fields['machine'].queryset = Machine.objects.filter(
+                    work_center=routing.work_center
+                )
+            except (ValueError, TypeError, Routing.DoesNotExist):
+                pass
+        elif self.instance.pk and self.instance.routing:
+            self.fields['machine'].queryset = Machine.objects.filter(
+                work_center=self.instance.routing.work_center
+            )
+        else:
+            self.fields['machine'].queryset = Machine.objects.none()

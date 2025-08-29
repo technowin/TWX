@@ -93,10 +93,13 @@
                     <a href="{% url 'mcp:machine_update' machine.pk %}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i>
                     </a>
-                     <button onclick="confirmDelete('{% url 'mcp:machine_delete' machine.pk %}', '{{ machine.name }}')" 
+                    <button class="btn btn-outline-danger delete-btn" data-url="{% url 'mcp:machine_delete' machine.pk %}" data-name="{{ employee.employee_name }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                     {% comment %} <button onclick="confirmDelete('{% url 'mcp:machine_delete' machine.pk %}', '{{ machine.name }}')" 
                             class="btn btn-sm btn-danger">
                         <i class="bi bi-trash"></i>
-                    </button> 
+                    </button>  {% endcomment %}
                 </td>
             </tr>
             {% empty %}
@@ -140,118 +143,69 @@
 </div>
 
 
-{% block extra_javascript %}
 
-{% include "bootstrap/partials/syntax-highlight.html" %}
-
-<!-- Third party js -->
-<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
-<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
-    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
-<!-- Third party js ends -->
-
-<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
-
-<!-- Init js -->
-<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
-<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
-<!-- Init js end -->
-
-<!-- Selectize.js JS -->
-<script src="{% static 'js/selectize.min.js' %}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-{% endblock %}
 
 <script>
-        // Theme switching functionality
-        document.getElementById('themeSwitch').addEventListener('click', function() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-bs-theme', newTheme);
-            
-            // Update button icon
-            const icon = this.querySelector('i');
-            icon.className = newTheme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
-        });
+document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+        debugger;
+        e.preventDefault();
+        const name = this.getAttribute('data-name');
+        const url = this.getAttribute('data-url');
 
-        // CSRF token function (simulated for demo)
-        function getCookie(name) {
-            // This is a simplified version for demonstration
-            // In a real Django application, you would implement proper cookie parsing
-            return 'mock-csrf-token-for-demonstration';
-        }
-
-        // Delete confirmation function
-        function confirmDelete(machineId, machineName) {
-            const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
-            
-            Swal.fire({
-                title: 'Confirm Delete',
-                html: `Are you sure you want to delete <strong>${machineName}</strong>?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel',
-                background: theme === 'dark' ? '#343a40' : '#ffffff',
-                color: theme === 'dark' ? '#f8f9fa' : '#212529',
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                customClass: {
-                    popup: 'rounded-4 shadow',
-                    confirmButton: 'btn btn-danger px-4 py-2',
-                    cancelButton: 'btn btn-secondary px-4 py-2 ms-2'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Send delete request with machine ID
-                    const url = `/mcp/machine-delete/${machineId}/`;
-                    
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': getCookie('csrftoken'),
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ machine_id: machineId })
-                    }).then(response => {
-                        if (response.ok) {
-                            Swal.fire({
-                                title: 'Deleted!',
-                                text: `Machine ${machineName} has been deleted.`,
-                                icon: 'success',
-                                background: theme === 'dark' ? '#343a40' : '#ffffff',
-                                color: theme === 'dark' ? '#f8f9fa' : '#212529'
-                            }).then(() => {
-                                // In a real application, you might remove the element from DOM
-                                // or reload the page to see changes
-                                console.log(`Machine ${machineId} deleted successfully`);
-                                // For demo purposes, we'll just log to console
-                            });
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You are about to delete ${name}.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                console.log('Attempting to delete at URL:', url);
+                
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    data: {
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(data) {
+                        console.log('Delete response:', data);
+                        if (data.success) {
+                            // Simply redirect or reload without showing success message
+                            if (data.redirect_url) {
+                                window.location.href = data.redirect_url;
+                            } else {
+                                window.location.reload();
+                            }
                         } else {
-                            Swal.fire({
-                                title: 'Error!',
-                                text: 'Failed to delete machine.',
-                                icon: 'error',
-                                background: theme === 'dark' ? '#343a40' : '#ffffff',
-                                color: theme === 'dark' ? '#f8f9fa' : '#212529'
-                            });
+                            Swal.fire(
+                                'Error!',
+                                data.error || 'Deletion failed.',
+                                'error'
+                            );
                         }
-                    }).catch(error => {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'An error occurred while deleting.',
-                            icon: 'error',
-                            background: theme === 'dark' ? '#343a40' : '#ffffff',
-                            color: theme === 'dark' ? '#f8f9fa' : '#212529'
-                        });
-                    });
-                }
-            });
-        }
-
-
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Delete error:', error);
+                        Swal.fire(
+                            'Error!',
+                            'There was a problem with the request: ' + error,
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+<script>
 
 {% if messages %}
     document.addEventListener("DOMContentLoaded", function () {
@@ -274,5 +228,27 @@
     });
 {% endif %}
 </script>
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{% endblock %}
 
 {% endblock %}

@@ -1681,7 +1681,7 @@ class AdminDashboardView(TemplateView):
         admin_users = CustomUser.objects.filter(is_staff=True).count()
         
         # Monthly revenue (mock data)
-        monthly_revenue = [12000, 19000, 15000, 18000, 25000, 22000, 30000, 28000, 32000, 35000, 40000, 42000]
+        monthly_revenue = [12000, 19000, 15000, 18000, 25000, 22000, 30000, 28000, 32000, 35000, 40000, 420000]
         
         # Top courses by enrollment
         top_courses = Course.objects.annotate(
