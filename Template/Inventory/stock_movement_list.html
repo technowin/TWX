@@ -51,20 +51,19 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">All Stock Movements</h6>
-            <div>
-                <form method="get" class="form-inline">
-                    <select name="type" class="form-control form-control-sm mr-2">
-                        <option value="">All Types</option>
-                        {% for type_code, type_name in movement_types %}
-                        <option value="{{ type_code }}" {% if request.GET.type == type_code %}selected{% endif %}>
-                            {{ type_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
-                </form>
-            </div>
+            <form method="get" class="form-inline d-flex align-items-center">
+                <select name="type" class="form-control form-control-sm mr-2">
+                    <option value="">All Types</option>
+                    {% for type_code, type_name in movement_types %}
+                    <option value="{{ type_code }}" {% if request.GET.type == type_code %}selected{% endif %}>
+                        {{ type_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            </form>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover">
@@ -89,7 +88,7 @@
                                     {% if movement.product.images.first %}
                                     <img src="{{ movement.product.images.first.image.url }}" 
                                          class="product-image-thumb me-2" 
-                                         alt="{{ movement.product.name }}">
+                                         alt="{{ movement.product.name }}" style="width:50px;height:50px;">
                                     {% endif %}
                                     {{ movement.product.name }} ({{ movement.product.sku }})
                                 </div>
