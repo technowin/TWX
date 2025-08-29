@@ -72,7 +72,8 @@ def Login(request):
                 request.session.set_expiry(1209600)  # 2 weeks
             else:
                 request.session.set_expiry(0)  # Browser close
-            return redirect('workflow_module') 
+            # return redirect('workflow_module') 
+            return redirect('bom_dashboard') 
         else:
             messages.error(request, 'Invalid Credentials')
             return redirect("Login")
