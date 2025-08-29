@@ -721,9 +721,7 @@ def manpower_dashboard(request):
     ).filter(total_needed__gt=F('assigned'))
     
     # Current assignments - now properly linked through Routing
-    today_assignments = LaborAssignment.objects.filter(
-        date=today
-    ).select_related(
+    today_assignments = LaborAssignment.objects.select_related(
         'employee', 'shift', 'schedule',
     )[:5]  # Limit to 5 for the dashboard
     
