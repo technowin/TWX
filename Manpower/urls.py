@@ -67,5 +67,5 @@ urlpatterns = [
     path('skill-gaps/', views.skill_gaps_report, name='skill_gaps_report'),
     path('routing-assignments/<int:routing_id>/', views.routing_assignments, name='routing_assignments'),
 
-     path('api/employees/', views.get_employees_with_status, name='employee_api'),
+    path('api/employees/', views.get_employees_with_status, name='employee_api'),
 ]

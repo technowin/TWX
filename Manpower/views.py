@@ -299,7 +299,7 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         
         # Get filter parameters
         employee_filter = self.request.GET.get('employee')
-        date_filter = self.request.GET.get('date')
+        date_filter = self.request.GET.get('start_date')
         status_filter = self.request.GET.get('status')
         schedule_id = self.request.GET.get('schedule_id')
         
@@ -307,13 +307,13 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         if employee_filter:
             queryset = queryset.filter(employee__employee_name__icontains=employee_filter)
         if date_filter:
-            queryset = queryset.filter(date=date_filter)
+            queryset = queryset.filter(start_date=date_filter)
         if status_filter:
             queryset = queryset.filter(status=status_filter)
         if schedule_id:
             queryset = queryset.filter(schedule_id=schedule_id)
             
-        return queryset.order_by('-date')
+        return queryset.order_by('-start_date')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -321,7 +321,7 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         # Get unique values for filters
         context['unique_employees'] = Employee.objects.order_by('employee_name').values_list('employee_name', flat=True).distinct()
             
-        context['unique_dates'] = LaborAssignment.objects.all().order_by('-date').values_list('date', flat=True).distinct()
+        context['unique_dates'] = LaborAssignment.objects.all().order_by('-start_date').values_list('start_date', flat=True).distinct()
             
         context['status_choices'] = LaborAssignment._meta.get_field('status').choices
         
