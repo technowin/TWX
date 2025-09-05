@@ -81,18 +81,43 @@ class MaterialPlanCreateView(CreateView):
     model = MaterialPlan
     form_class = MaterialPlanForm
     template_name = 'MaterialPlan/plan_form.html'
-    
+
+    def get_initial(self):
+        initial = super().get_initial()
+
+        # Handle Production Order (dropdown expects pk)
+        po_order = self.request.GET.get('po_order')
+        if po_order:
+            try:
+                initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
+            except ProductionOrder.DoesNotExist:
+                pass
+
+        # Handle BOM (dropdown expects pk)
+        bom_header = self.request.GET.get('bom_header')
+        if bom_header:
+            try:
+                initial['bom'] = BOMHeader.objects.get(name=bom_header).pk
+            except BOMHeader.DoesNotExist:
+                pass
+
+        # Quantity (simple field → works directly)
+        initial['quantity'] = self.request.GET.get('quantity')
+
+        return initial
+
     def get_success_url(self):
-        return reverse_lazy('/plan_detail', kwargs={'pk': self.object.pk})
-    
+        # Use the named URL pattern (make sure you have it in urls.py as "plan_detail")
+        return reverse_lazy('plan_detail', kwargs={'pk': self.object.pk})
+
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         form.instance.version = 1
         response = super().form_valid(form)
-        
-        # After creating the plan, automatically explode the BOM and create plan items
+
+        # Auto-explode BOM after creating the plan
         self.object.calculate_requirements()
-        
+
         messages.success(self.request, "Material plan created successfully. BOM has been exploded.")
         return response
 
@@ -629,34 +654,47 @@ def shortage_detail(request, pk):
 
 
 def confirm_plan(request, pk):
-    # Get the plan object or return 404 if not found
     plan = get_object_or_404(MaterialPlan, pk=pk)
-    
-    # Check if user has permission to confirm this plan
+
+    # Check permission
     if not request.user.has_perm('production.change_machineplan'):
-        messages.error(request, "You don't have permission to confirm plans.")
+        messages.error(request, "You don't have permission to update plans.")
         return redirect('plan_detail', pk=pk)
-    
-    # Check if plan is in a state that can be confirmed
-    if plan.status != 'draft':
-        messages.error(request, f"Plan cannot be confirmed. Current status: {plan.get_status_display()}.")
-        return redirect('plan_detail', pk=pk)
-    
+
     try:
-        # Update the plan status to confirmed
-        plan.status = 'confirmed'
-        plan.confirmed_by = request.user
-        plan.confirmed_at = timezone.now()
-        plan.save()
-        
-        # Additional logic for reserving inventory, creating requisitions, etc.
-        # This would be implementation-specific
-        
-        messages.success(request, "Material plan has been successfully confirmed!")
-        
+        if plan.status == 'draft':
+            # ---- Confirm the plan ----
+            plan.status = 'confirmed'
+            plan.confirmed_by = request.user
+            plan.confirmed_at = timezone.now()
+            plan.save()
+
+            # (Optional: your inventory/reservation logic here)
+
+            messages.success(request, "Material plan has been successfully confirmed!")
+
+        elif plan.status == 'confirmed':
+            # ---- Execute the plan ----
+            plan.status = 'executed'
+            plan.executed_by = request.user
+            plan.executed_at = timezone.now()
+            plan.save()
+
+            # Update related Production Order status
+            from .models import ProductionOrder  # adjust import if needed
+
+            ProductionOrder.objects.filter(
+                id=plan.production_order_id,
+                bom_id=plan.bom_id
+            ).update(order_status=2)
+
+            messages.success(request, "Material plan has been executed and production order updated!")
+
+        else:
+            messages.error(request, f"Plan cannot be updated. Current status: {plan.get_status_display()}.")
+
     except Exception as e:
-        # Handle any errors that occur during confirmation
-        messages.error(request, f"Error confirming plan: {str(e)}")
+        messages.error(request, f"Error updating plan: {str(e)}")
     
     return redirect('plan_list')
 

@@ -29,9 +29,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-calendar-week me-2"></i>Machine Scheduling</h2>
-    <a href="/mcp/machine_scheduling/create/">
-        <i class="bi bi-plus-circle me-1"></i>New Schedule
-    </a>
+    {% with po=request.GET.po_order bom=request.GET.bom_header %}
+        <a href="{% url 'mcp:machine_scheduling_create' %}{% if po and bom %}?po_order={{ po }}&bom_header={{ bom }}{% endif %}">
+            <i class="bi bi-plus-circle me-1"></i> New Schedule
+        </a>
+    {% endwith %}
+
 </div>
 
 <!-- Filters -->
@@ -78,9 +81,10 @@
                 <thead class="table-light">
                     <tr>
                         <th>Production Order</th>
-                        <th>Component</th>
+                        <th>Bom Component</th>
                         <th>Operation</th>
                         <th>Machine</th>
+                        <th>Operation Sequence</th>
                         <th>Scheduled Start</th>
                         <th>Scheduled End</th>
                         <th>Status</th>
@@ -94,6 +98,7 @@
                         <td>{{ schedule.component }}</td>
                         <td>{{ schedule.routing.operation }}</td>
                         <td>{{ schedule.machine.name }}</td>
+                        <td>{{ schedule.seq }}</td>
                         <td>{{ schedule.scheduled_start|date:"M d, Y H:i" }}</td>
                         <td>{{ schedule.scheduled_end|date:"M d, Y H:i" }}</td>
                         <td>
@@ -118,7 +123,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4">No schedules found.</td>
+                        <td colspan="9" class="text-center py-4">No schedules found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

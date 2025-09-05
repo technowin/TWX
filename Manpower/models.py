@@ -92,7 +92,8 @@ class LaborAssignment(models.Model):
     schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE, related_name='labor_assignments')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name="Assigned Employee",related_name='labor_assignments')
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, verbose_name="Assigned Shift")
-    date = models.DateField(verbose_name="Assignment Date")
+    start_date = models.DateField(verbose_name="Start Assignment Date",null=True,blank=True)
+    end_date = models.DateField(verbose_name="End Assignment Date",null=True,blank=True)
     hours_allocated = models.DecimalField(
         max_digits=4,
         decimal_places=2,
@@ -116,10 +117,10 @@ class LaborAssignment(models.Model):
     class Meta:
         verbose_name = "Labor Assignment"
         verbose_name_plural = "Labor Assignments"
-        ordering = ['date', 'shift__start_time']
+        ordering = ['start_date', 'shift__start_time']
     
     def __str__(self):
-        return f"{self.employee} assigned to {self.schedule} on {self.date}"
+        return f"{self.employee} assigned to {self.schedule} on {self.start_date}"
 
 class EmployeeAvailability(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='availabilities')
