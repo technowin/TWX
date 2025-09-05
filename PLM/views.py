@@ -10,4 +10,4 @@ def plm_index(request):
     context = {
         "production_orders": production_orders
     }
-    return render(request, "plm/index.html", context)
+    return render(request, "PLM/index.html", context)
