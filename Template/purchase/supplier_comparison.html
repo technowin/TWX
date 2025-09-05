@@ -1,0 +1,158 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Supplier Comparison - {{ rfq.rfq_number }} - ERP System{% endblock %}
+
+{% block page_title %}Supplier Comparison: {{ rfq.rfq_number }}{% endblock %}
+
+{% block content %}
+    <form method="post">
+        {% csrf_token %}
+        
+        {% for component_id, component_data in comparison_data.items %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {{ component_data.component.part_number }} - {{ component_data.component.description }}
+                    <span class="badge bg-secondary">Qty: {{ component_data.quantity }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Total Price</th>
+                                <th>Lead Time (Days)</th>
+                                <th>Min Order Qty</th>
+                                <th>Validity (Days)</th>
+                                <th>Notes</th>
+                                <th>Award</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for supplier_id, supplier_data in component_data.suppliers.items %}
+                            <tr>
+                                <td>{{ supplier_data.supplier_name }}</td>
+                                <td class="text-end">{{ supplier_data.unit_price }}</td>
+                                <td class="text-end">{{ supplier_data.unit_price|multiply:component_data.quantity }}</td>
+                                <td>{{ supplier_data.lead_time_days }}</td>
+                                <td>{{ supplier_data.min_order_quantity }}</td>
+                                <td>{{ supplier_data.validity_days }}</td>
+                                <td>{{ supplier_data.notes|default:"-" }}</td>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="award_{{ component_id }}" 
+                                               value="{{ supplier_id }}"
+                                               {% for supplier in suppliers %}{% if supplier.supplier_id == supplier_id and supplier.status == 'awarded' %}checked{% endif %}{% endfor %}>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" class="btn btn-secondary">Back to RFQ</a>
+            <button type="submit" class="btn btn-primary">Save Awards</button>
+        </div>
+    </form>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    // Add a simple multiplication filter for Django templates
+    function multiply(value, arg) {
+        return value * arg;
+    }
+</script>
+
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

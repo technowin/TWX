@@ -1,0 +1,160 @@
+<!-- sales/invoice_pdf.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice {{ invoice.invoice_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .company-info {
+            text-align: right;
+        }
+        .invoice-info {
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals {
+            width: 50%;
+            margin-left: auto;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Your Company Name</h1>
+            <p>123 Company Address<br>City, State, ZIP<br>Phone: (123) 456-7890<br>Email: info@company.com</p>
+        </div>
+        <div class="company-info">
+            <h2>INVOICE</h2>
+            <p><strong>Invoice #:</strong> {{ invoice.invoice_number }}</p>
+            <p><strong>Date:</strong> {{ invoice.invoice_date }}</p>
+            <p><strong>Due Date:</strong> {{ invoice.due_date }}</p>
+        </div>
+    </div>
+
+    <div class="invoice-info">
+        <table>
+            <tr>
+                <th width="20%">To:</th>
+                <td>
+                    <strong>{{ invoice.sales_order.customer.name }}</strong><br>
+                    {% if invoice.sales_order.customer.contact_person %}{{ invoice.sales_order.customer.contact_person }}<br>{% endif %}
+                    {{ invoice.sales_order.customer.address|linebreaks }}
+                    {{ invoice.sales_order.customer.email }}<br>
+                    {{ invoice.sales_order.customer.phone }}
+                </td>
+            </tr>
+            <tr>
+                <th>Sales Order:</th>
+                <td>{{ invoice.sales_order.order_number }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="text-right">Quantity</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Tax Rate</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in invoice.sales_order.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>
+                        {% if item.item_type == 'part' %}
+                        {{ item.component.part_number }}
+                        {% else %}
+                        {{ item.bom.name }}
+                        {% endif %}
+                    </strong><br>
+                    {{ item.description }}
+                </td>
+                <td class="text-right">{{ item.quantity }}</td>
+                <td class="text-right">{{ item.unit_price }}</td>
+                <td class="text-right">{{ item.tax_rate }}%</td>
+                <td class="text-right">{{ item.line_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Subtotal:</strong></td>
+                <td class="text-right">{{ invoice.subtotal }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Tax:</strong></td>
+                <td class="text-right">{{ invoice.tax_amount }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Total:</strong></td>
+                <td class="text-right"><strong>{{ invoice.total_amount }}</strong></td>
+            </tr>
+            {% if invoice.amount_paid > 0 %}
+            <tr>
+                <td colspan="5" class="text-right"><strong>Amount Paid:</strong></td>
+                <td class="text-right">{{ invoice.amount_paid }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Amount Due:</strong></td>
+                <td class="text-right"><strong>{{ invoice.total_amount|subtract:invoice.amount_paid }}</strong></td>
+            </tr>
+            {% endif %}
+        </tfoot>
+    </table>
+
+    <div class="terms">
+        <h3>Payment Terms</h3>
+        <p>Payment is due within {{ invoice.sales_order.customer.payment_terms }}. Please make payment to the account details below.</p>
+        
+        <h3>Bank Details</h3>
+        <p>Bank: Your Bank Name<br>Account #: 123456789<br>Routing #: 987654321</p>
+        
+        {% if invoice.notes %}
+        <h3>Notes</h3>
+        <p>{{ invoice.notes|linebreaks }}</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>Thank you for your business! | {{ invoice.created_by }} | {{ invoice.created_date }}</p>
+    </div>
+</body>
+</html>

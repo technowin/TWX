@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Quotation {{ quotation.quotation_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .company-info {
+            text-align: right;
+        }
+        .quotation-info {
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals {
+            width: 50%;
+            margin-left: auto;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Your Company Name</h1>
+            <p>123 Company Address<br>City, State, ZIP<br>Phone: (123) 456-7890<br>Email: info@company.com</p>
+        </div>
+        <div class="company-info">
+            <h2>QUOTATION</h2>
+            <p><strong>Quotation #:</strong> {{ quotation.quotation_number }}</p>
+            <p><strong>Date:</strong> {{ quotation.quotation_date }}</p>
+            <p><strong>Expiry Date:</strong> {{ quotation.expiry_date }}</p>
+        </div>
+    </div>
+
+    <div class="quotation-info">
+        <table>
+            <tr>
+                <th width="20%">To:</th>
+                <td>
+                    <strong>{{ quotation.customer.name }}</strong><br>
+                    {% if quotation.customer.contact_person %}{{ quotation.customer.contact_person }}<br>{% endif %}
+                    {{ quotation.customer.address|linebreaks }}
+                    {{ quotation.customer.email }}<br>
+                    {{ quotation.customer.phone }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="text-right">Quantity</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Tax Rate</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in quotation.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>
+                        {% if item.item_type == 'part' %}
+                        {{ item.component.part_number }}
+                        {% else %}
+                        {{ item.bom.name }}
+                        {% endif %}
+                    </strong><br>
+                    {{ item.description }}
+                </td>
+                <td class="text-right">{{ item.quantity }}</td>
+                <td class="text-right">{{ item.unit_price }}</td>
+                <td class="text-right">{{ item.tax_rate }}%</td>
+                <td class="text-right">{{ item.line_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Subtotal:</strong></td>
+                <td class="text-right">{{ quotation.subtotal }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Tax:</strong></td>
+                <td class="text-right">{{ quotation.tax_amount }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Total:</strong></td>
+                <td class="text-right"><strong>{{ quotation.total_amount }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="terms">
+        <h3>Terms & Conditions</h3>
+        <p><strong>Payment Terms:</strong> {{ quotation.payment_terms }}</p>
+        {% if quotation.incoterms %}<p><strong>Incoterms:</strong> {{ quotation.incoterms }}</p>{% endif %}
+        {% if quotation.delivery_time %}<p><strong>Delivery Time:</strong> {{ quotation.delivery_time }}</p>{% endif %}
+        <p>This quotation is valid until {{ quotation.expiry_date }}. Prices are in {{ quotation.currency }}.</p>
+        
+        {% if quotation.notes %}
+        <h3>Notes</h3>
+        <p>{{ quotation.notes|linebreaks }}</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>Thank you for your business! | {{ quotation.created_by }} | {{ quotation.created_date }}</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Purchase Order {{ order.po_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .company-info {
+            text-align: right;
+        }
+        .order-info {
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals {
+            width: 50%;
+            margin-left: auto;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Your Company Name</h1>
+            <p>123 Company Address<br>City, State, ZIP<br>Phone: (123) 456-7890<br>Email: info@company.com</p>
+        </div>
+        <div class="company-info">
+            <h2>PURCHASE ORDER</h2>
+            <p><strong>PO #:</strong> {{ order.po_number }}</p>
+            <p><strong>Date:</strong> {{ order.order_date }}</p>
+            <p><strong>Delivery Date:</strong> {{ order.expected_delivery_date }}</p>
+        </div>
+    </div>
+
+    <div class="order-info">
+        <table>
+            <tr>
+                <th width="20%">To:</th>
+                <td>
+                    <strong>{{ order.supplier.name }}</strong><br>
+                    {% if order.supplier.contact_person %}{{ order.supplier.contact_person }}<br>{% endif %}
+                    {{ order.supplier.address|linebreaks }}
+                    {{ order.supplier.email }}<br>
+                    {{ order.supplier.phone }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="text-right">Quantity</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Tax Rate</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>{{ item.component.part_number }}</strong><br>
+                    {{ item.component.description }}
+                </td>
+                <td class="text-right">{{ item.quantity }}</td>
+                <td class="text-right">{{ item.unit_price }}</td>
+                <td class="text-right">{{ item.tax_rate }}%</td>
+                <td class="text-right">{{ item.line_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Subtotal:</strong></td>
+                <td class="text-right">{{ order.subtotal }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Tax:</strong></td>
+                <td class="text-right">{{ order.tax_amount }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right"><strong>Total:</strong></td>
+                <td class="text-right"><strong>{{ order.total_amount }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="terms">
+        <h3>Terms & Conditions</h3>
+        <p><strong>Payment Terms:</strong> {{ order.payment_terms }}</p>
+        <p><strong>Delivery:</strong> Goods must be delivered by {{ order.expected_delivery_date }}</p>
+        <p>All goods must meet our quality standards. Defective goods will be rejected and returned at supplier's expense.</p>
+        
+        {% if order.notes %}
+        <h3>Notes</h3>
+        <p>{{ order.notes|linebreaks }}</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>Thank you for your business! | {{ order.created_by }} | {{ order.created_date }}</p>
+    </div>
+</body>
+</html>
+

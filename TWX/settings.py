@@ -128,6 +128,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
+    "widget_tweaks"
 ]
 
 LOCAL_APPS = [
@@ -162,6 +163,7 @@ LOCAL_APPS = [
     'Checklist',
     'Inventory',
     'LMS',
+    'SalesPurchase',
     'PLM'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

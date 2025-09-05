@@ -1,0 +1,347 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+{% load widget_tweaks static %}
+
+{% block title %}{{ title }} - ERP System{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+
+
+{% block extra_js %}
+    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Handle dynamic formset
+            $('#add-item').click(function() {
+                const formCount = $('#id_items-TOTAL_FORMS').val();
+                const formPrefix = 'items-' + formCount + '-';
+                const newForm = $('.form-row:first').clone();
+                
+                // Update all field names and IDs
+                newForm.find(':input').each(function() {
+                    const name = $(this).attr('name').replace(/items-\d+-/, formPrefix);
+                    const id = $(this).attr('id').replace(/items-\d+-/, formPrefix);
+                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
+                });
+                
+                // Clear values
+                newForm.find('input, textarea').val('');
+                newForm.find('select').val('').trigger('change');
+                
+                // Remove error messages
+                newForm.find('.invalid-feedback').remove();
+                newForm.find('.is-invalid').removeClass('is-invalid');
+                
+                // Append to formset
+                $('#items-formset').append(newForm);
+                
+                // Update form count
+                $('#id_items-TOTAL_FORMS').val(parseInt(formCount) + 1);
+                
+                // Reinitialize Select2
+                newForm.find('.form-select').select2({
+                    theme: 'bootstrap-5'
+                });
+            });
+            
+            // Handle supplier formset
+            $('#add-supplier').click(function() {
+                const formCount = $('#id_suppliers-TOTAL_FORMS').val();
+                const formPrefix = 'suppliers-' + formCount + '-';
+                const newForm = $('.supplier-row:first').clone();
+                
+                // Update all field names and IDs
+                newForm.find(':input').each(function() {
+                    const name = $(this).attr('name').replace(/suppliers-\d+-/, formPrefix);
+                    const id = $(this).attr('id').replace(/suppliers-\d+-/, formPrefix);
+                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
+                });
+                
+                // Clear values
+                newForm.find('select').val('').trigger('change');
+                
+                // Remove error messages
+                newForm.find('.invalid-feedback').remove();
+                newForm.find('.is-invalid').removeClass('is-invalid');
+                
+                // Append to formset
+                $('#suppliers-formset').append(newForm);
+                
+                // Update form count
+                $('#id_suppliers-TOTAL_FORMS').val(parseInt(formCount) + 1);
+                
+                // Reinitialize Select2
+                newForm.find('.form-select').select2({
+                    theme: 'bootstrap-5'
+                });
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-section">
+                    <h5>Purchase RFQ Information</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.requisition.id_for_label }}" class="form-label">Requisition</label>
+                                {% render_field form.requisition class="form-select" %}
+                                {% if form.requisition.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.requisition.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                                {% render_field form.title class="form-control" %}
+                                {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.title.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {% render_field form.description class="form-control" rows="3" %}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.description.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {% render_field form.status class="form-select" %}
+                                {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.status.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h5>RFQ Items</h5>
+                    {{ formset.management_form }}
+                    <div id="items-formset">
+                        {% for form in formset %}
+                        <div class="form-row border-bottom pb-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div class="mb-3">
+                                        <label for="{{ form.component.id_for_label }}" class="form-label">Component</label>
+                                        {% render_field form.component class="form-select" %}
+                                        {% if form.component.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.component.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="{{ form.quantity.id_for_label }}" class="form-label">Quantity</label>
+                                        {% render_field form.quantity class="form-control" %}
+                                        {% if form.quantity.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.quantity.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ form.required_date.id_for_label }}" class="form-label">Required Date</label>
+                                        {% render_field form.required_date class="form-control" type="date" %}
+                                        {% if form.required_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.required_date.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.specifications.id_for_label }}" class="form-label">Specifications</label>
+                                {% render_field form.specifications class="form-control" rows="2" %}
+                                {% if form.specifications.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.specifications.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if form.DELETE %}
+                            <div class="form-check">
+                                {% render_field form.DELETE class="form-check-input" %}
+                                <label for="{{ form.DELETE.id_for_label }}" class="form-check-label">Delete</label>
+                            </div>
+                            {% endif %}
+                            
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-secondary" id="add-item">
+                        <i class="bi bi-plus"></i> Add Item
+                    </button>
+                </div>
+                
+                <div class="form-section">
+                    <h5>Suppliers</h5>
+                    {{ supplier_formset.management_form }}
+                    <div id="suppliers-formset">
+                        {% for form in supplier_formset %}
+                        <div class="supplier-row border-bottom pb-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-10">
+                                    <div class="mb-3">
+                                        <label for="{{ form.supplier.id_for_label }}" class="form-label">Supplier</label>
+                                        {% render_field form.supplier class="form-select" %}
+                                        {% if form.supplier.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.supplier.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    {% if form.DELETE %}
+                                    <div class="form-check mt-md-4 pt-md-3">
+                                        {% render_field form.DELETE class="form-check-input" %}
+                                        <label for="{{ form.DELETE.id_for_label }}" class="form-check-label">Delete</label>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-secondary" id="add-supplier">
+                        <i class="bi bi-plus"></i> Add Supplier
+                    </button>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'purchase_rfq_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Purchase RFQ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

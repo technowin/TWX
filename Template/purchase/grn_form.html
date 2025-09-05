@@ -1,0 +1,362 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+{% load widget_tweaks static %}
+
+{% block title %}{{ title }} - ERP System{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-section">
+                    <h5>GRN Information</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.purchase_order.id_for_label }}" class="form-label">Purchase Order</label>
+                                {% render_field form.purchase_order class="form-select" %}
+                                {% if form.purchase_order.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.purchase_order.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.received_date.id_for_label }}" class="form-label">Received Date</label>
+                                {% render_field form.received_date class="form-control" type="date" %}
+                                {% if form.received_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.received_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {% render_field form.status class="form-select" %}
+                                {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.status.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.received_by.id_for_label }}" class="form-label">Received By</label>
+                                {% render_field form.received_by class="form-select" %}
+                                {% if form.received_by.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.received_by.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.verified_by.id_for_label }}" class="form-label">Verified By</label>
+                                {% render_field form.verified_by class="form-select" %}
+                                {% if form.verified_by.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.verified_by.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                        {% render_field form.notes class="form-control" rows="3" %}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.notes.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h5>Received Items</h5>
+                    {{ formset.management_form }}
+                    <div id="items-formset">
+                        {% for form in formset %}
+                        <div class="form-row border-bottom pb-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ form.po_item.id_for_label }}" class="form-label">PO Item</label>
+                                        {% render_field form.po_item class="form-select po-item-select" %}
+                                        {% if form.po_item.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.po_item.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">Available Qty</label>
+                                        <div class="form-control-plaintext available-quantity text-end">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="{{ form.quantity_received.id_for_label }}" class="form-label">Qty Received</label>
+                                        {% render_field form.quantity_received class="form-control quantity-received-input" type="number" min="0" %}
+                                        {% if form.quantity_received.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.quantity_received.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="{{ form.quantity_accepted.id_for_label }}" class="form-label">Qty Accepted</label>
+                                        {% render_field form.quantity_accepted class="form-control quantity-accepted-input" type="number" min="0" %}
+                                        {% if form.quantity_accepted.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.quantity_accepted.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="{{ form.quality_status.id_for_label }}" class="form-label">Quality Status</label>
+                                        {% render_field form.quality_status class="form-select" %}
+                                        {% if form.quality_status.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.quality_status.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {% render_field form.notes class="form-control" rows="2" %}
+                                {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if form.DELETE %}
+                            <div class="form-check">
+                                {% render_field form.DELETE class="form-check-input" %}
+                                <label for="{{ form.DELETE.id_for_label }}" class="form-check-label">Delete</label>
+                            </div>
+                            {% endif %}
+                            
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-secondary" id="add-item">
+                        <i class="bi bi-plus"></i> Add Item
+                    </button>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'grn_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save GRN</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Handle dynamic formset
+            $('#add-item').click(function() {
+                const formCount = $('#id_items-TOTAL_FORMS').val();
+                const formPrefix = 'items-' + formCount + '-';
+                const newForm = $('.form-row:first').clone();
+                
+                // Update all field names and IDs
+                newForm.find(':input').each(function() {
+                    const name = $(this).attr('name').replace(/items-\d+-/, formPrefix);
+                    const id = $(this).attr('id').replace(/items-\d+-/, formPrefix);
+                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
+                });
+                
+                // Clear values
+                newForm.find('input').val('');
+                newForm.find('select').val('').trigger('change');
+                
+                // Remove error messages
+                newForm.find('.invalid-feedback').remove();
+                newForm.find('.is-invalid').removeClass('is-invalid');
+                
+                // Append to formset
+                $('#items-formset').append(newForm);
+                
+                // Update form count
+                $('#id_items-TOTAL_FORMS').val(parseInt(formCount) + 1);
+                
+                // Reinitialize Select2
+                newForm.find('.form-select').select2({
+                    theme: 'bootstrap-5'
+                });
+                
+                // Update available quantity when PO item is selected
+                newForm.find('.po-item-select').change(function() {
+                    const poItemId = $(this).val();
+                    const row = $(this).closest('.form-row');
+                    
+                    if (poItemId) {
+                        // Get the ordered quantity and received quantity
+                        const orderedQty = parseFloat($(this).find('option:selected').data('ordered')) || 0;
+                        const receivedQty = parseFloat($(this).find('option:selected').data('received')) || 0;
+                        const availableQty = orderedQty - receivedQty;
+                        
+                        // Set the max value for quantity received
+                        row.find('.quantity-received-input').attr('max', availableQty);
+                        row.find('.quantity-accepted-input').attr('max', availableQty);
+                        
+                        // Update the available quantity display
+                        row.find('.available-quantity').text(availableQty);
+                    }
+                });
+            });
+            
+            // Update available quantity when PO item is selected
+            $(document).on('change', '.po-item-select', function() {
+                const poItemId = $(this).val();
+                const row = $(this).closest('.form-row');
+                
+                if (poItemId) {
+                    // Get the ordered quantity and received quantity
+                    const orderedQty = parseFloat($(this).find('option:selected').data('ordered')) || 0;
+                    const receivedQty = parseFloat($(this).find('option:selected').data('received')) || 0;
+                    const availableQty = orderedQty - receivedQty;
+                    
+                    // Set the max value for quantity received
+                    row.find('.quantity-received-input').attr('max', availableQty);
+                    row.find('.quantity-accepted-input').attr('max', availableQty);
+                    
+                    // Update the available quantity display
+                    row.find('.available-quantity').text(availableQty);
+                }
+            });
+            
+            // Auto-set accepted quantity to received quantity when received quantity changes
+            $(document).on('change', '.quantity-received-input', function() {
+                const receivedQty = parseFloat($(this).val()) || 0;
+                const row = $(this).closest('.form-row');
+                row.find('.quantity-accepted-input').val(receivedQty);
+            });
+        });
+    </script>
+    
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

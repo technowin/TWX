@@ -226,6 +226,11 @@ def div(value, arg):
     except (ValueError, ZeroDivisionError, TypeError):
         return 0
     
+@register.filter
+def divide(value, arg):
+    """Divide value by arg"""
+    return value / arg if arg != 0 else 0
+
 
 @register.filter(name='add_class')
 def add_class(field, css_class):
@@ -247,3 +252,7 @@ def abs(value):
     except (ValueError, TypeError):
         return 0
 
+@register.filter
+def percentage(value, arg):
+    """Calculate percentage of value"""
+    return (value * arg) / 100

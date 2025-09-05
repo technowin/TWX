@@ -1,0 +1,479 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Dashboard - ERP System{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Alert Summary -->
+    {% if overdue_invoices > 0 or overdue_supplier_invoices > 0 or low_stock_items > 0 or pending_grns > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0"><i class="bi bi-exclamation-triangle"></i> Alerts & Notifications</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if overdue_invoices > 0 %}
+                        <div class="col-md-3">
+                            <div class="alert alert-danger">
+                                <i class="bi bi-clock-history"></i> 
+                                <strong>{{ overdue_invoices }}</strong> Overdue Invoice{{ overdue_invoices|pluralize }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if overdue_supplier_invoices > 0 %}
+                        <div class="col-md-3">
+                            <div class="alert alert-danger">
+                                <i class="bi bi-clock-history"></i> 
+                                <strong>{{ overdue_supplier_invoices }}</strong> Overdue Supplier Invoice{{ overdue_supplier_invoices|pluralize }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if low_stock_items > 0 %}
+                        <div class="col-md-3">
+                            <div class="alert alert-warning">
+                                <i class="bi bi-box"></i> 
+                                <strong>{{ low_stock_items }}</strong> Low Stock Item{{ low_stock_items|pluralize }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if pending_grns > 0 %}
+                        <div class="col-md-3">
+                            <div class="alert alert-info">
+                                <i class="bi bi-clipboard-check"></i> 
+                                <strong>{{ pending_grns }}</strong> Pending GRN{{ pending_grns|pluralize }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Sales Summary -->
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Customers</h5>
+                    <h2 class="card-text">{{ customer_count }}</h2>
+                    <a href="{% url 'customer_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">RFQs</h5>
+                    <h2 class="card-text">{{ rfq_count }}</h2>
+                    <a href="{% url 'rfq_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Quotations</h5>
+                    <h2 class="card-text">{{ quotation_count }}</h2>
+                    <a href="{% url 'quotation_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Sales Orders</h5>
+                    <h2 class="card-text">{{ sales_order_count }}</h2>
+                    <a href="{% url 'sales_order_list' %}" class="text-dark">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Purchase Summary -->
+         <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Suppliers</h5>
+                    <h2 class="card-text">{{ supplier_count }}</h2>
+                    <a href="{% url 'supplier_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Purchase RFQs</h5>
+                    <h2 class="card-text">{{ purchase_rfq_count }}</h2>
+                    <a href="{% url 'purchase_rfq_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Purchase Orders</h5>
+                    <h2 class="card-text">{{ purchase_order_count }}</h2>
+                    <a href="{% url 'purchase_order_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">GRNs</h5>
+                    <h2 class="card-text">{{ grn_count }}</h2>
+                    <a href="{% url 'grn_list' %}" class="text-white">View All</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 mb-4">
+            <div class="card bg-light text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Supplier Invoices</h5>
+                    <h2 class="card-text">{{ supplier_invoice_count }}</h2>
+                    <a href="{% url 'supplier_invoice_list' %}" class="text-dark">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Financial Summary -->
+        <div class="col-md-4 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Monthly Sales</h5>
+                    <h2 class="card-text">${{ monthly_sales }}</h2>
+                    <span>This Month</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Outstanding Invoices</h5>
+                    <h2 class="card-text">${{ outstanding_invoices }}</h2>
+                    <span>Past Due</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Monthly Purchases</h5>
+                    <h2 class="card-text">${{ monthly_purchases }}</h2>
+                    <span>This Month</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Activities -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent RFQs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>RFQ Number</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rfq in recent_rfqs %}
+                                <tr>
+                                    <td><a href="{% url 'rfq_detail' rfq.rfq_id %}">{{ rfq.rfq_number }}</a></td>
+                                    <td>{{ rfq.customer.name }}</td>
+                                    <td>{{ rfq.rfq_date }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'quoted' %}success{% else %}dark{% endif %}">
+                                            {{ rfq.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent RFQs</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Sales Orders</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td><a href="{% url 'sales_order_detail' order.order_id %}">{{ order.order_number }}</a></td>
+                                    <td>{{ order.customer.name }}</td>
+                                    <td>{{ order.order_date }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'draft' %}secondary{% elif order.status == 'confirmed' %}info{% elif order.status == 'in_progress' %}primary{% elif order.status == 'shipped' %}warning{% elif order.status == 'delivered' %}success{% else %}danger{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent sales orders</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Purchase Activities -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Purchase Orders</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>PO Number</th>
+                                    <th>Supplier</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for po in recent_purchase_orders %}
+                                <tr>
+                                    <td><a href="{% url 'purchase_order_detail' po.po_id %}">{{ po.po_number }}</a></td>
+                                    <td>{{ po.supplier.name }}</td>
+                                    <td>{{ po.order_date }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if po.status == 'draft' %}secondary{% elif po.status == 'issued' %}info{% elif po.status == 'partially_received' %}warning{% elif po.status == 'fully_received' %}success{% else %}danger{% endif %}">
+                                            {{ po.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent purchase orders</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent GRNs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>GRN Number</th>
+                                    <th>Supplier</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grn in recent_grns %}
+                                <tr>
+                                    <td><a href="{% url 'grn_detail' grn.grn_id %}">{{ grn.grn_number }}</a></td>
+                                    <td>{{ grn.purchase_order.supplier.name }}</td>
+                                    <td>{{ grn.received_date }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if grn.status == 'draft' %}secondary{% elif grn.status == 'received' %}info{% elif grn.status == 'verified' %}success{% else %}danger{% endif %}">
+                                            {{ grn.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent GRNs</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Invoices</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Invoice Number</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in recent_invoices %}
+                                <tr>
+                                    <td><a href="{% url 'invoice_detail' invoice.invoice_id %}">{{ invoice.invoice_number }}</a></td>
+                                    <td>{{ invoice.sales_order.customer.name }}</td>
+                                    <td>{{ invoice.invoice_date }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if invoice.status == 'draft' %}secondary{% elif invoice.status == 'issued' %}info{% elif invoice.status == 'partially_paid' %}warning{% elif invoice.status == 'paid' %}success{% else %}danger{% endif %}">
+                                            {{ invoice.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No recent invoices</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}
