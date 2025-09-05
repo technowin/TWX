@@ -4,13 +4,17 @@ import re
 from PIL import Image
 from pdf2image import convert_from_bytes
 import google.generativeai as genai
-
+# import vertexai
+# from vertexai.generative_models import GenerativeModel, Part
 class GeminiMetadataExtractor:
     def __init__(self):
         Image.MAX_IMAGE_PIXELS = 200000000  # Allow large images
+        # vertexai.init(project="powerful-lore-471112-k7", location="")
+
         api_key = "AIzaSyAJWKnoo45JeoQxcwD5R8RUatPUZmVhEMU"
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
+        # self.model = GenerativeModel('gemini-2.5-flash')
         self.prompt = """
             You are a highly intelligent document and image parser with web-assisted reasoning.
 
@@ -53,8 +57,7 @@ class GeminiMetadataExtractor:
                 fmt='jpeg',
                 thread_count=3
             )
-    
-            # Convert all images to bytes and open as PIL images
+
             image_list = []
             for image in images:
                 img_byte_arr = io.BytesIO()
@@ -62,11 +65,25 @@ class GeminiMetadataExtractor:
                 img_bytes = img_byte_arr.getvalue()
                 image_list.append(Image.open(io.BytesIO(img_bytes)))
     
-            # Single request with all images
             response = self.model.generate_content(
                 [self.prompt] + image_list,
                 generation_config={"temperature": 0.1}
             )
+
+            # Convert images into Vertex AI Parts
+            # image_parts = []
+            # for img in images:
+            #     img_byte_arr = io.BytesIO()
+            #     img.save(img_byte_arr, format="JPEG")
+            #     image_parts.append(
+            #         Part.from_data(mime_type="image/jpeg", data=img_byte_arr.getvalue())
+            #     )
+    
+            # # Single request with all images
+            # response = self.model.generate_content(
+            #     [self.prompt] + image_parts,
+            #     generation_config={"temperature": 0.1}
+            # )
     
             # Extract JSON from response
             try:
