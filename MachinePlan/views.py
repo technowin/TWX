@@ -310,6 +310,15 @@ class MachinePlanningListView(ListView):
                 scheduled_start__date__gte=start_date,
                 scheduled_end__date__lte=end_date
             )
+
+        po_number = self.request.GET.get('po_order')
+        if po_number:
+            queryset = queryset.filter(production_order__order_number=po_number)
+
+        bom_header = self.request.GET.get('bom_header')
+        if bom_header:
+            queryset = queryset.filter(production_order__bom__name=bom_header)
+            
             
         return queryset.select_related('component', 'routing', 'machine', 'work_center')
 

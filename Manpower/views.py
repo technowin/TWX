@@ -14,6 +14,10 @@ from django.db import models
 from django.db.models import Count, Sum, Case, When, IntegerField,F
 from django.utils import timezone
 import pandas as pd
+from django.db.models import Max
+
+
+from MaterialPlan.models import ProductionOrder
 
 
 from .models import (
@@ -299,51 +303,151 @@ class LaborAssignmentListView(LoginRequiredMixin, ListView):
         
         # Get filter parameters
         employee_filter = self.request.GET.get('employee')
-        date_filter = self.request.GET.get('date')
+        date_filter = self.request.GET.get('start_date')
         status_filter = self.request.GET.get('status')
         schedule_id = self.request.GET.get('schedule_id')
-        
+
+        # 🔹 New filters from button
+        po_order = self.request.GET.get('po_order')
+        bom_header = self.request.GET.get('bom_header')
+
         # Apply filters
         if employee_filter:
             queryset = queryset.filter(employee__employee_name__icontains=employee_filter)
         if date_filter:
-            queryset = queryset.filter(date=date_filter)
+            queryset = queryset.filter(start_date=date_filter)
         if status_filter:
             queryset = queryset.filter(status=status_filter)
         if schedule_id:
             queryset = queryset.filter(schedule_id=schedule_id)
-            
-        return queryset.order_by('-date')
+
+        # 🔹 Apply PO + BOM filters through schedule relation
+        if po_order:
+            queryset = queryset.filter(schedule__production_order__order_number=po_order)
+        if bom_header:
+            queryset = queryset.filter(schedule__component__name=bom_header)
+
+        return queryset.order_by('-start_date')
+
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Get unique values for filters
-        context['unique_employees'] = Employee.objects.order_by('employee_name').values_list('employee_name', flat=True).distinct()
-            
-        context['unique_dates'] = LaborAssignment.objects.all().order_by('-date').values_list('date', flat=True).distinct()
-            
+
+        # For filters
+        context['unique_employees'] = Employee.objects.order_by('employee_name') \
+            .values_list('employee_name', flat=True).distinct()
+        context['unique_dates'] = LaborAssignment.objects.all().order_by('-start_date') \
+            .values_list('start_date', flat=True).distinct()
         context['status_choices'] = LaborAssignment._meta.get_field('status').choices
-        
-        # Add schedule context if exists
+
+        # Add schedule if passed
         schedule_id = self.request.GET.get('schedule_id')
         if schedule_id:
             context['schedule'] = get_object_or_404(MachineScheduling, pk=schedule_id)
-            
+
+        # 🔹 Add PO + BOM back to context
+        context['po_order'] = self.request.GET.get('po_order')
+        context['bom_header'] = self.request.GET.get('bom_header')
+
         return context
+
 class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
     model = LaborAssignment
     form_class = LaborAssignmentForm
     template_name = 'Manpower/labor_assignment_form.html'
-    
+
     def get_object(self, queryset=None):
         try:
             return super().get_object(queryset)
         except AttributeError:
             return None
-    
+
+    def get_initial(self):
+        initial = super().get_initial()
+        po_order = self.request.GET.get("po_order")
+        bom_header = self.request.GET.get("bom_header")
+
+        if po_order and bom_header:
+            schedule = MachineScheduling.objects.filter(
+                production_order__order_number=po_order,
+                component__name=bom_header
+            ).first()
+            if schedule:
+                initial["schedule"] = schedule
+        return initial
+
+    def form_valid(self, form):
+        """Custom save logic"""
+        response = super().form_valid(form)
+
+        assignment = self.object
+        schedule = assignment.schedule
+        production_order = schedule.production_order
+
+        # get last seq for this production order
+        last_seq = MachineScheduling.objects.filter(
+            production_order=production_order
+        ).aggregate(Max("seq"))["seq__max"]
+
+        # if this assignment belongs to the last sequence
+        if schedule.seq == last_seq:
+            production_order.order_status = 4
+            production_order.save(update_fields=["order_status"])
+
+        return response
+
     def get_success_url(self):
-        return reverse_lazy('manpower:labor_assignment_list') + f"?schedule_id={self.object.schedule_id}"
+        index = self.request.GET.get("index")
+        if index == "1":
+            po_order = self.request.GET.get("po_order")
+            bom_header = self.request.GET.get("bom_header")
+            return (
+                reverse_lazy("manpower:labor_assignment_list")
+                + f"?po_order={po_order}&bom_header={bom_header}&index=1"
+            )
+        return reverse_lazy("manpower:labor_assignment_list") + f"?schedule_id={self.object.schedule_id}"
+
+
+# class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
+#     model = LaborAssignment
+#     form_class = LaborAssignmentForm
+#     template_name = 'Manpower/labor_assignment_form.html'
+
+#     def get_object(self, queryset=None):
+#         try:
+#             return super().get_object(queryset)
+#         except AttributeError:
+#             return None
+
+#     def get_initial(self):
+#         initial = super().get_initial()
+#         po_order = self.request.GET.get("po_order")
+#         bom_header = self.request.GET.get("bom_header")
+
+#         if po_order and bom_header:
+#             schedule = MachineScheduling.objects.filter(
+#                 production_order__order_number=po_order,
+#                 component__name=bom_header   # <-- change here
+#             ).first()
+#             if schedule:
+#                 initial["schedule"] = schedule
+#         return initial
+
+
+#     def get_success_url(self):
+#         index = self.request.GET.get("index")
+#         if index == "1":
+#             # redirect back with po + bom
+#             po_order = self.request.GET.get("po_order")
+#             bom_header = self.request.GET.get("bom_header")
+#             return (
+#                 reverse_lazy("manpower:labor_assignment_list")
+#                 + f"?po_order={po_order}&bom_header={bom_header}&index=1"
+#             )
+
+#         # fallback → use schedule_id
+#         return reverse_lazy("manpower:labor_assignment_list") + f"?schedule_id={self.object.schedule_id}"
+
 
 @require_POST
 @login_required

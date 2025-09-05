@@ -669,6 +669,11 @@ def confirm_plan(request, pk):
             plan.confirmed_at = timezone.now()
             plan.save()
 
+            ProductionOrder.objects.filter(
+                id=plan.production_order_id,
+                bom_id=plan.bom_id
+            ).update(order_status=2)
+
             # (Optional: your inventory/reservation logic here)
 
             messages.success(request, "Material plan has been successfully confirmed!")
@@ -681,12 +686,11 @@ def confirm_plan(request, pk):
             plan.save()
 
             # Update related Production Order status
-            from .models import ProductionOrder  # adjust import if needed
 
             ProductionOrder.objects.filter(
                 id=plan.production_order_id,
                 bom_id=plan.bom_id
-            ).update(order_status=2)
+            ).update(order_status=5)
 
             messages.success(request, "Material plan has been executed and production order updated!")
 
