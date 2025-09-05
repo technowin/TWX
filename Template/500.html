@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error (500) | {% if site_name %}{{ site_name }}{% else %}Your Application{% endif %}</title>
+    <style>
+        /* Base styles and reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 800px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Animated background elements */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            animation: pulse 15s infinite ease-in-out;
+        }
+        
+        .circle-1 {
+            width: 300px;
+            height: 300px;
+            top: -150px;
+            left: -150px;
+            animation-delay: 0s;
+        }
+        
+        .circle-2 {
+            width: 500px;
+            height: 500px;
+            bottom: -250px;
+            right: -250px;
+            animation-delay: -5s;
+        }
+        
+        .circle-3 {
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+        
+        /* Error code animation */
+        .error-code {
+            font-size: 8rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #727cf5, #414bc2ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            display: inline-block;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: glitch 5s infinite;
+        }
+        
+        .error-title {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #727cf5, #414bc2ff);
+            color: white;
+            box-shadow: 0 4px 15px #727cf5;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px #6c757d;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+        
+        /* Support section */
+        .support {
+            margin-top: 3rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 1s ease-in-out;
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.7;
+            }
+        }
+        
+        @keyframes glitch {
+            0% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(-2px, 2px);
+            }
+            40% {
+                transform: translate(-2px, -2px);
+            }
+            60% {
+                transform: translate(2px, 2px);
+            }
+            80% {
+                transform: translate(2px, -2px);
+            }
+            100% {
+                transform: translate(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Floating animation */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .error-code {
+                font-size: 5rem;
+            }
+            
+            .error-title {
+                font-size: 1.5rem;
+            }
+            
+            .error-message {
+                font-size: 1rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="bg-circle circle-1"></div>
+        <div class="bg-circle circle-2"></div>
+        <div class="bg-circle circle-3"></div>
+    </div>
+    
+    <div class="error-container">
+        <div class="error-code floating">500</div>
+        <h1 class="error-title">Oops! Something went wrong on our end</h1>
+        
+        <p class="error-message">
+            Our team has been notified and is working to fix the issue. Please try again later, 
+            or try one of the options below.
+        </p>
+        
+        <div class="action-buttons">
+            <a href="/" class="btn btn-primary">Go to Homepage</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+            <button onclick="location.reload()" class="btn btn-secondary">Try Again</button>
+        </div>
+        
+        <div class="support">
+            <h3>Need immediate assistance?</h3>
+            <p>Contact our support team at <strong>support@technowin.com</strong></p>
+        </div>
+    </div>
+
+    <script>
+        // Additional animation effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create additional floating particles
+            createParticles();
+            
+            // Add typewriter effect to error message
+            typewriterEffect();
+        });
+        
+        function createParticles() {
+            const bgAnimation = document.querySelector('.bg-animation');
+            const colors = ['rgba(255, 255, 255, 0.1)', 'rgba(255, 75, 43, 0.1)', 'rgba(255, 65, 108, 0.1)'];
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.style.position = 'absolute';
+                particle.style.width = Math.random() * 20 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.borderRadius = '50%';
+                particle.style.top = Math.random() * 100 + 'vh';
+                particle.style.left = Math.random() * 100 + 'vw';
+                
+                // Animation
+                particle.style.animation = `floatParticle ${Math.random() * 15 + 10}s infinite ease-in-out`;
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                
+                bgAnimation.appendChild(particle);
+            }
+            
+            // Add the keyframes dynamically
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes floatParticle {
+                    0%, 100% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+                    25% {
+                        transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(90deg);
+                    }
+                    50% {
+                        transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(180deg);
+                    }
+                    75% {
+                        transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) rotate(270deg);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        function typewriterEffect() {
+            const messageElement = document.querySelector('.error-message');
+            const originalText = messageElement.textContent;
+            messageElement.textContent = '';
+            
+            let i = 0;
+            const speed = 30; // typing speed in milliseconds
+            
+            function typeWriter() {
+                if (i < originalText.length) {
+                    messageElement.textContent += originalText.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, speed);
+                }
+            }
+            
+            // Start the typewriter effect after a short delay
+            setTimeout(typeWriter, 1000);
+        }
+    </script>
+</body>
+</html>
