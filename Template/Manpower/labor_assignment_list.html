@@ -39,9 +39,13 @@
     </div>
 
     <div class="col-auto mt-2">
-        <a href="{% url 'manpower:labor_assignment_create' %}{% if schedule %}?schedule_id={{ schedule.pk }}{% endif %}" class="btn btn-sm btn-outline-primary">
+       <{% with po=request.GET.po_order bom=request.GET.bom_header %}
+        <a href="{% url 'manpower:labor_assignment_create' %}{% if po and bom %}?po_order={{ po }}&bom_header={{ bom }}&index=1{% elif schedule %}?schedule_id={{ schedule.pk }}{% endif %}">
             <i class="fas fa-plus"></i> Add Assignment
         </a>
+    {% endwith %}
+
+
     </div>
 </div>
 
