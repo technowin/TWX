@@ -264,11 +264,12 @@ class MachineSchedulingForm(forms.ModelForm):
     class Meta:
         model = MachineScheduling
         fields = ['production_order', 'component', 'routing', 'machine', 
-                 'scheduled_start', 'scheduled_end', 'status', 'notes']
+                 'scheduled_start', 'scheduled_end', 'status', 'notes', 'seq']
         widgets = {
             'scheduled_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'scheduled_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'seq': forms.HiddenInput(), 
         }
 
     def __init__(self, *args, **kwargs):

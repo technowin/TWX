@@ -31,6 +31,7 @@ from Workflow.views import *
 from BOM.views import *
 from MaterialPlan.views import *
 from BookMetadata.views import *
+from PLM.views import *
 
 from Checklist.views import *
 from Inventory.views import *
@@ -479,6 +480,8 @@ urlpatterns = [
     path("components/<int:pk>/component_upload_document/", component_upload_document, name="component_upload_document"),
 
     path("get_bom_item", get_bom_item, name="get_bom_item"),
+
+    path("plm_index/", plm_index, name="plm_index"),
 
 
 

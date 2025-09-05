@@ -1,3 +1,4 @@
+from datetime import timezone
 from django.db import models
 
 # Create your models here.
@@ -6,6 +7,8 @@ from django.db import models
 from django.urls import reverse
 from BOM.models import BOMHeader
 from django.contrib.auth import get_user_model
+
+from MachinePlan.services import update_production_order_status
 
 CustomUser = get_user_model()
 
@@ -179,8 +182,9 @@ class MachineScheduling(models.Model):
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
     routing = models.ForeignKey(Routing, on_delete=models.CASCADE)
+    seq = models.TextField(null= True, blank=True)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
-    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)  # Added for direct access
+    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)  
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
     actual_start = models.DateTimeField(null=True, blank=True)
@@ -208,3 +212,4 @@ class MachineScheduling(models.Model):
         if self.routing and not self.work_center:
             self.work_center = self.routing.work_center
         super().save(*args, **kwargs)
+        update_production_order_status(self.production_order)

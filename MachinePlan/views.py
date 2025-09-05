@@ -557,20 +557,59 @@ class MachineSchedulingListView(ListView):
                 scheduled_start__date__gte=start_date,
                 scheduled_end__date__lte=end_date
             )
-            
+        
+        # ✅ Filter by PO number
+        po_number = self.request.GET.get('po_order')
+        if po_number:
+            queryset = queryset.filter(production_order__order_number=po_number)
+
+        bom_header = self.request.GET.get('bom_header')
+        if bom_header:
+            queryset = queryset.filter(production_order__bom__name=bom_header)
+
+        
+
         return queryset.select_related('component', 'routing', 'machine', 'work_center')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['machines'] = Machine.objects.all()
         context['status_choices'] = MachineScheduling._meta.get_field('status').choices
+
+        # Keep selected filters in context (for re-render in template)
+        context['selected_po'] = self.request.GET.get('po_number', '')
+        context['selected_component'] = self.request.GET.get('component_id', '')
+
         return context
+
 
 class MachineSchedulingCreateView(CreateView):
     model = MachineScheduling
     form_class = MachineSchedulingForm
     template_name = 'MachinePlan/machine_scheduling_form.html'
-    success_url = reverse_lazy('mcpmachine_scheduling_list')
+    success_url = reverse_lazy('mcp:machine_scheduling_list')
+
+    def get_initial(self):
+        initial = super().get_initial()
+
+        # Handle Production Order (dropdown expects pk)
+        po_order = self.request.GET.get('po_order')
+        if po_order:
+            try:
+                initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
+            except ProductionOrder.DoesNotExist:
+                pass
+
+        # Handle Component (dropdown expects pk)
+        component_name = self.request.GET.get('bom_header')
+        if component_name:
+            try:
+                initial['component'] = BOMHeader.objects.get(name=component_name).pk
+            except BOMHeader.DoesNotExist:
+                pass
+
+        return initial
+
     
     def form_valid(self, form):
         # Set work_center from routing before saving

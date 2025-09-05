@@ -6,6 +6,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from BOM.models import Component, BOMHeader, Supplier, ComponentSupplier, InventoryLocation, Inventory
 from django.db.models import Sum
+from decimal import Decimal
+
 
 User = get_user_model()
 
@@ -73,13 +75,22 @@ class MaterialPlan(models.Model):
                 )['total'] or 0
 
                 # Get preferred supplier (first approved supplier by cost)
-                preferred_supplier = bom_item.component.componentsupplier_set.filter(
+                preferred_supplier = bom_item.component.suppliers.filter(
                     is_approved=True
                 ).order_by('cost').first()
 
+                to_be_purchased = max(Decimal(0), required_qty - inventory_available) \
+                    if bom_item.component.purchase_type == 'Purchased' else Decimal(0)
+
+                to_be_manufactured = required_qty if bom_item.component.purchase_type == 'Manufactured' else Decimal(0)
+
+
+
                 # Calculate quantities needed
-                to_be_purchased = max(0, required_qty - inventory_available) if bom_item.component.purchase_type == 'Purchased' else 0
-                to_be_manufactured = required_qty if bom_item.component.purchase_type == 'Manufactured' else 0
+                to_be_purchased = max(Decimal(0), required_qty - inventory_available) \
+                    if bom_item.component.purchase_type == 'Purchased' else Decimal(0)
+
+                to_be_manufactured = required_qty if bom_item.component.purchase_type == 'Manufactured' else Decimal(0)
 
                 # Create MaterialPlanItem
                 plan_item = MaterialPlanItem.objects.create(
@@ -94,8 +105,6 @@ class MaterialPlan(models.Model):
                     lead_time_days=preferred_supplier.lead_time_days if preferred_supplier else 0,
                     supplier=preferred_supplier.supplier if preferred_supplier else None,
                     status='pending',
-                    level=level,
-                    parent_item=parent_item
                 )
 
                 # If component has its own BOM, explode it recursively
@@ -246,6 +255,7 @@ class ProductionOrder(models.Model):
     bom = models.ForeignKey(BOMHeader, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
     start_date = models.DateField()
+    order_status = models.ForeignKey("PLM.StatusAction", on_delete=models.CASCADE, null=True,blank=True)
     end_date = models.DateField()
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='planned')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_production_orders')

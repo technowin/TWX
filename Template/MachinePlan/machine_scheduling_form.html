@@ -75,13 +75,14 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.component.id_for_label }}" class="form-label">Component</label>
+                            <label for="{{ form.component.id_for_label }}" class="form-label">Bom Component</label>
                             {{ form.component }}
                             {% if form.component.errors %}
                             <div class="text-danger">{{ form.component.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
+
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -91,6 +92,7 @@
                             <div class="text-danger">{{ form.routing.errors }}</div>
                             {% endif %}
                         </div>
+                        <input type="hidden" id="id_seq" name="seq">
                         <div class="col-md-6">
                             <label for="{{ form.machine.id_for_label }}" class="form-label">Machine</label>
                             {{ form.machine }}
@@ -203,16 +205,20 @@
                                 var optionsHtml = '<option value="">---------</option>';
                                 
                                 $.each(response.routings, function(index, routing) {
-                                    optionsHtml += '<option value="' + routing.id + '" ' +
-                                                'data-work-center="' + routing.work_center_id + '" ' +
-                                                'data-setup-time="' + routing.setup_time + '" ' +
-                                                'data-run-time="' + routing.run_time_per_unit + '">' +
-                                                routing.operation_name + ' (Seq: ' + routing.sequence + ')' +
-                                                '</option>';
+                                   optionsHtml += '<option value="' + routing.id + '" ' +
+                                        'data-sequence="' + routing.sequence + '" ' +   // ✅ add this
+                                        'data-work-center="' + routing.work_center_id + '" ' +
+                                        'data-setup-time="' + routing.setup_time + '" ' +
+                                        'data-run-time="' + routing.run_time_per_unit + '">' +
+                                        routing.operation_name + ' (Seq: ' + routing.sequence + ')' +
+                                        '</option>';
+
                                 });
                                 
                                 // Update routing dropdown
                                 $("#id_routing").html(optionsHtml);
+
+                                
                                 
                                 // If there's only one routing, select it automatically
                                 if (response.count === 1) {
@@ -248,14 +254,25 @@
             });
         // When routing changes, load machines
 $("#id_routing").change(function() {
+    debugger;
     console.log("Routing changed");
     var routingId = $(this).val();
     console.log("Selected routing ID:", routingId);
-    
+
+    // ✅ Get selected option's sequence value and store in hidden input
+    var selectedOption = $("#id_routing option:selected");
+    var seq = selectedOption.data("sequence");  // assumes data-sequence is set when populating routings
+    console.log("Selected routing sequence:", seq);
+
+    if (seq) {
+        debugger;
+        $("#id_seq").val(seq);  // hidden input for seq
+    }
+
     if (routingId) {
         // Show loading state
         $("#id_machine").html('<option value="">Loading machines...</option>');
-        
+
         $.ajax({
             url: "/mcp/machine_scheduling/ajax/load-machines/",
             method: 'GET',
@@ -265,22 +282,29 @@ $("#id_routing").change(function() {
             dataType: 'json',
             success: function(response) {
                 console.log("Machines JSON response:", response);
-                
+
                 if (response.success && response.machines) {
                     console.log("Machines loaded successfully. Count:", response.count);
-                    
-                    // Build options HTML from JSON data
+
                     var optionsHtml = '<option value="">---------</option>';
-                    
+
                     $.each(response.machines, function(index, machine) {
-                        // Create display text - handle case where code might be empty
                         var displayText = machine.name;
                         if (machine.code) {
                             displayText += ' - ' + machine.code;
                         }
                         displayText += ' (Status: ' + machine.status + ')';
-                        
+
+                        // ✅ Apply conditional styling
+                        var cssClass = "";
+                        if (machine.status.toLowerCase() === "available") {
+                            cssClass = "text-success";
+                        } else if (machine.status.toLowerCase() === "busy") {
+                            cssClass = "text-danger";
+                        }
+
                         optionsHtml += '<option value="' + machine.id + '" ' +
+                                      'class="'  + '" ' + // apply color
                                       'data-status="' + machine.status + '" ' +
                                       'data-busy-until="' + (machine.busy_until || '') + '" ' +
                                       'data-next-available="' + (machine.next_available || '') + '" ' +
@@ -291,17 +315,14 @@ $("#id_routing").change(function() {
                                       displayText +
                                       '</option>';
                     });
-                    
-                    // Update machine dropdown
+
                     $("#id_machine").html(optionsHtml);
-                    
-                    // Show work center information
+
                     if (response.work_center) {
                         console.log("Work Center:", response.work_center.name);
-                        // You can display this information somewhere if needed
                         $('#work-center-info').text('Work Center: ' + response.work_center.name);
                     }
-                    
+
                 } else {
                     console.error("Error in response:", response.error);
                     $("#id_machine").html('<option value="">Error: ' + (response.error || 'Unknown error') + '</option>');
@@ -309,16 +330,7 @@ $("#id_routing").change(function() {
             },
             error: function(xhr, status, error) {
                 console.error("Error loading machines:", error);
-                console.error("Status:", status);
-                console.error("Response:", xhr.responseText);
-                
-                // Try to parse error response
-                try {
-                    var errorResponse = JSON.parse(xhr.responseText);
-                    $("#id_machine").html('<option value="">Error: ' + (errorResponse.error || 'Unknown error') + '</option>');
-                } catch (e) {
-                    $("#id_machine").html('<option value="">Error loading machines. Please try again.</option>');
-                }
+                $("#id_machine").html('<option value="">Error loading machines. Please try again.</option>');
             }
         });
     } else {
@@ -326,6 +338,7 @@ $("#id_routing").change(function() {
         $("#id_machine").html('<option value="">Select Routing First</option>');
     }
 });
+
         
         // If editing an existing instance, preload the dependent fields
         {% if form.instance.pk %}
@@ -352,6 +365,11 @@ $("#id_routing").change(function() {
                 }, 500);
             {% endif %}
         {% endif %}
+
+        if ($("#id_component").val()) {
+            console.log("Preselected component found:", $("#id_component").val());
+            $("#id_component").trigger('change');
+        }
     });
 </script>
 

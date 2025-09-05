@@ -45,9 +45,20 @@
             <a href="{% url 'plan_update' pk=plan.id %}" class="btn btn-sm btn-primary">
                 <i class="fas fa-edit"></i> Edit Plan
             </a>&nbsp;&nbsp;
-            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#confirmPlanModal">
-                <i class="fas fa-check"></i> Confirm Plan
-            </button>&nbsp;&nbsp;
+            {% if plan.status == "draft" %}
+                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#confirmPlanModal">
+                    <i class="fas fa-check"></i> Confirm Plan
+                </button>&nbsp;&nbsp;
+            {% elif plan.status == "confirmed" %}
+                <button class="btn btn-sm btn-danger"  data-bs-toggle="modal" data-bs-target="#confirmPlanModal">
+                    <i class="fas fa-check-circle"></i>  Execute Plan
+                </button>&nbsp;&nbsp;
+            {% elif plan.status == "executed" %}
+                <button class="btn btn-sm btn-success" disabled>
+                    <i class="fas fa-play"></i>  Executed
+                </button>&nbsp;&nbsp;
+            {% endif %}
+
             <a href="{% url 'plan_list' %}" class="btn btn-sm btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to List
             </a>
@@ -302,32 +313,59 @@
 </div>
 
 <!-- Confirm Plan Modal -->
- <div class="modal fade" id="confirmPlanModal" tabindex="-1" aria-labelledby="confirmPlanModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="confirmPlanModalLabel">Confirm Material Plan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
+<div class="modal fade" id="confirmPlanModal" tabindex="-1" aria-labelledby="confirmPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            
+            <!-- Header -->
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="confirmPlanModalLabel">
+                    {% if plan.status == 'draft' %}
+                        Confirm Material Plan
+                    {% elif plan.status == 'confirmed' %}
+                        Execute Material Plan
+                    {% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+                {% if plan.status == 'draft' %}
                     <p>Are you sure you want to confirm this material plan? This will:</p>
                     <ul>
                         <li>Reserve available inventory</li>
                         <li>Submit purchase requisitions for approval</li>
-                        <li>Mark the plan as confirmed</li>
+                        <li>Mark the plan as <strong>confirmed</strong></li>
                     </ul>
                     <p class="text-danger">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form method="post" action="{% url 'plan_confirm' pk=plan.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">Confirm Plan</button>
-                    </form>
-                </div>
+                {% elif plan.status == 'confirmed' %}
+                    <p>Are you sure you want to <strong>execute</strong> this material plan? Execution will:</p>
+                    <ul>
+                        <li>Release approved purchase orders to vendors</li>
+                        <li>Initiate production scheduling</li>
+                        <li>Mark the plan as <strong>executed</strong></li>
+                    </ul>
+                    <p class="text-danger">Once executed, the plan can no longer be modified.</p>
+                {% endif %}
             </div>
+
+            <!-- Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" 
+                      action="{% url 'plan_confirm' pk=plan.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        {% if plan.status == 'draft' %}Confirm Plan{% elif plan.status == 'confirmed' %}Execute Plan{% endif %}
+                    </button>
+                </form>
+            </div>
+
         </div>
     </div>
+</div>
+
 <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Get the modal and button elements

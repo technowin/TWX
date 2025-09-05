@@ -781,7 +781,7 @@ def daily_assignments(request, date):
 
 def skill_gaps_report(request):
     skill_gaps = LaborRequirement.objects.filter(
-        routing__production_orders__start_date__gte=timezone.now().date()
+        routing__production_order__start_date__gte=timezone.now().date()
     ).values('skill__skill_name', 'skill__skill_code').annotate(
         total_needed=Sum('employees_needed')
     )
