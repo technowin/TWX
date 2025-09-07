@@ -1,0 +1,638 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="card-title mb-0">{{ title }}</h5>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'sales_order_list' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="salesOrderForm">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Order Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="{{ form.customer.id_for_label }}" class="form-label">{{ form.customer.label }}</label>
+                                            {{ form.customer }}
+                                            {% if form.customer.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.customer.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if quotation %}
+                                        <div class="mb-3">
+                                            <label class="form-label">Quotation</label>
+                                            <input type="text" class="form-control" value="{{ quotation.quotation_number }}" readonly>
+                                            <input type="hidden" name="quotation" value="{{ quotation.quotation_id }}">
+                                        </div>
+                                        {% else %}
+                                        <div class="mb-3">
+                                            <label for="{{ form.quotation.id_for_label }}" class="form-label">{{ form.quotation.label }}</label>
+                                            {{ form.quotation }}
+                                            {% if form.quotation.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.quotation.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.customer_po_number.id_for_label }}" class="form-label">{{ form.customer_po_number.label }}</label>
+                                            {{ form.customer_po_number }}
+                                            {% if form.customer_po_number.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.customer_po_number.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.customer_po_file.id_for_label }}" class="form-label">{{ form.customer_po_file.label }}</label>
+                                            {{ form.customer_po_file }}
+                                            {% if form.customer_po_file.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.customer_po_file.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Dates & Terms</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="{{ form.order_date.id_for_label }}" class="form-label">{{ form.order_date.label }}</label>
+                                                {{ form.order_date }}
+                                                {% if form.order_date.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.order_date.errors }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="{{ form.delivery_date.id_for_label }}" class="form-label">{{ form.delivery_date.label }}</label>
+                                                {{ form.delivery_date }}
+                                                {% if form.delivery_date.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.delivery_date.errors }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.currency.id_for_label }}" class="form-label">{{ form.currency.label }}</label>
+                                            {{ form.currency }}
+                                            {% if form.currency.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.currency.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.payment_terms.id_for_label }}" class="form-label">{{ form.payment_terms.label }}</label>
+                                            {{ form.payment_terms }}
+                                            {% if form.payment_terms.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.payment_terms.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                                            {{ form.status }}
+                                            {% if form.status.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.status.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">Order Items</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="formset-container">
+                                    {{ formset.management_form }}
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table" id="items-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Type</th>
+                                                    <th>Item</th>
+                                                    <th>Description</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit Price</th>
+                                                    <th>Tax Rate (%)</th>
+                                                    <th>Line Total</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for form in formset %}
+                                                <tr class="formset-row" id="row-{{ forloop.counter0 }}">
+                                                    <td>
+                                                        {{ form.id }}
+                                                        {{ form.item_type }}
+                                                        {% if form.item_type.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ form.item_type.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <div class="component-field" style="display: {% if form.item_type.value == 'part' or not form.item_type.value %}block{% else %}none{% endif %};">
+                                                            {{ form.component }}
+                                                        </div>
+                                                        <div class="bom-field" style="display: {% if form.item_type.value == 'product' %}block{% else %}none{% endif %};">
+                                                            {{ form.bom }}
+                                                        </div>
+                                                        {% if form.component.errors or form.bom.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ form.component.errors }}{{ form.bom.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {{ form.description }}
+                                                        {% if form.description.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ form.description.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {{ form.quantity }}
+                                                        {% if form.quantity.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ form.quantity.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {{ form.unit_price }}
+                                                        {% if form.unit_price.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ form.unit_price.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {{ form.tax_rate }}
+                                                        {% if form.tax_rate.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ form.tax_rate.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="line-total">
+                                                        {% if form.line_total.value %}
+                                                            {{ form.line_total.value }}
+                                                        {% else %}
+                                                            0.00
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% comment %} {% if formset.can_delete %}
+                                                            {{ form.DELETE }}
+                                                        {% endif %} {% endcomment %}
+                                                        <button type="button" class="btn btn-sm btn-danger remove-row"><i class="bi bi-trash"></i></button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                                                    <td colspan="3" id="subtotal">0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="5" class="text-end fw-bold">Tax Amount:</td>
+                                                    <td colspan="3" id="tax-amount">0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="5" class="text-end fw-bold">Total Amount:</td>
+                                                    <td colspan="3" id="total-amount">0.00</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <button type="button" id="add-item" class="btn btn-sm btn-outline-primary mt-3">
+                                    <i class="bi bi-plus-circle"></i> Add Item
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">Additional Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                                    {{ form.notes }}
+                                    {% if form.notes.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.notes.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'sales_order_list' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Sales Order</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the correct management form field
+    function getTotalFormsField() {
+        // Try to find the management form field with the correct prefix
+        const managementForm = document.querySelector('input[name$="-TOTAL_FORMS"]');
+        if (managementForm) {
+            return managementForm;
+        }
+        
+        // If not found, create a fallback
+        console.error("Could not find management form field. Using fallback.");
+        const fallbackField = document.createElement('input');
+        fallbackField.type = 'hidden';
+        fallbackField.name = 'form-TOTAL_FORMS';
+        fallbackField.id = 'id_form-TOTAL_FORMS';
+        fallbackField.value = document.querySelectorAll('.formset-row').length;
+        document.getElementById('formset-container').appendChild(fallbackField);
+        return fallbackField;
+    }
+    
+    const totalFormsField = getTotalFormsField();
+    let formPrefix = totalFormsField.name.replace('-TOTAL_FORMS', '');
+    
+    // Toggle between component and BOM fields based on item type
+    function toggleItemFields(selectElement) {
+        const row = selectElement.closest('.formset-row');
+        const componentField = row.querySelector('.component-field');
+        const bomField = row.querySelector('.bom-field');
+        
+        if (selectElement.value === 'part') {
+            componentField.style.display = 'block';
+            bomField.style.display = 'none';
+            // Clear BOM field when switching to part
+            if (bomField.querySelector('select')) {
+                bomField.querySelector('select').value = '';
+            }
+        } else if (selectElement.value === 'product') {
+            componentField.style.display = 'none';
+            bomField.style.display = 'block';
+            // Clear component field when switching to product
+            if (componentField.querySelector('select')) {
+                componentField.querySelector('select').value = '';
+            }
+        }
+    }
+    
+    // Initialize item type toggles
+    document.querySelectorAll('.item-type-select').forEach(select => {
+        toggleItemFields(select);
+        select.addEventListener('change', function() {
+            toggleItemFields(this);
+        });
+    });
+    
+    // Calculate line total
+    function calculateLineTotal(row) {
+        const quantityInput = row.querySelector('input[name$="-quantity"]');
+        const unitPriceInput = row.querySelector('input[name$="-unit_price"]');
+        const taxRateInput = row.querySelector('input[name$="-tax_rate"]');
+        
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        const taxRate = parseFloat(taxRateInput.value) || 0;
+        
+        const lineTotal = quantity * unitPrice * (1 + taxRate / 100);
+        row.querySelector('.line-total').textContent = lineTotal.toFixed(2);
+        
+        return lineTotal;
+    }
+    
+    // Update all totals
+    function updateTotals() {
+        let subtotal = 0;
+        let taxAmount = 0;
+        
+        document.querySelectorAll('.formset-row').forEach(row => {
+            const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+            if (!deleteCheckbox || !deleteCheckbox.checked) {
+                const quantityInput = row.querySelector('input[name$="-quantity"]');
+                const unitPriceInput = row.querySelector('input[name$="-unit_price"]');
+                const taxRateInput = row.querySelector('input[name$="-tax_rate"]');
+                
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const unitPrice = parseFloat(unitPriceInput.value) || 0;
+                const taxRate = parseFloat(taxRateInput.value) || 0;
+                
+                subtotal += quantity * unitPrice;
+                taxAmount += quantity * unitPrice * (taxRate / 100);
+                
+                calculateLineTotal(row);
+            }
+        });
+        
+        document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+        document.getElementById('tax-amount').textContent = taxAmount.toFixed(2);
+        document.getElementById('total-amount').textContent = (subtotal + taxAmount).toFixed(2);
+    }
+    
+    // Add event listeners for quantity, unit price, and tax rate changes
+    document.querySelectorAll('input[name$="-quantity"], input[name$="-unit_price"], input[name$="-tax_rate"]').forEach(input => {
+        input.addEventListener('input', updateTotals);
+    });
+    
+    // Add new item row
+    document.getElementById('add-item').addEventListener('click', function() {
+        const formCount = parseInt(totalFormsField.value);
+        const newRow = document.createElement('tr');
+        newRow.className = 'formset-row';
+        newRow.id = `row-${formCount}`;
+        
+        newRow.innerHTML = `
+            <td>
+                <select name="${formPrefix}-${formCount}-item_type" class="form-select item-type-select" id="id_${formPrefix}-${formCount}-item_type">
+                    <option value="part">Part</option>
+                    <option value="product">Product</option>
+                </select>
+            </td>
+            <td>
+                <div class="component-field" style="display: block;">
+                    <select name="${formPrefix}-${formCount}-component" class="form-select component-select" id="id_${formPrefix}-${formCount}-component">
+                        <option value="">---------</option>
+                        {% for component in components %}
+                        <option value="{{ component.id }}">{{ component.part_number }} - {{ component.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="bom-field" style="display: none;">
+                    <select name="${formPrefix}-${formCount}-bom" class="form-select bom-select" id="id_${formPrefix}-${formCount}-bom">
+                        <option value="">---------</option>
+                        {% for bom in boms %}
+                        <option value="{{ bom.id }}">{{ bom.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </td>
+            <td>
+                <textarea name="${formPrefix}-${formCount}-description" class="form-control" rows="2" id="id_${formPrefix}-${formCount}-description"></textarea>
+            </td>
+            <td>
+                <input type="number" name="${formPrefix}-${formCount}-quantity" class="form-control" min="1" value="1" id="id_${formPrefix}-${formCount}-quantity">
+            </td>
+            <td>
+                <input type="number" name="${formPrefix}-${formCount}-unit_price" class="form-control" step="0.01" min="0" value="0.00" id="id_${formPrefix}-${formCount}-unit_price">
+            </td>
+            <td>
+                <input type="number" name="${formPrefix}-${formCount}-tax_rate" class="form-control" step="0.01" min="0" max="100" value="0.00" id="id_${formPrefix}-${formCount}-tax_rate">
+            </td>
+            <td class="line-total">0.00</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger remove-row"><i class="bi bi-trash"></i></button>
+            </td>
+        `;
+        
+        document.querySelector('#items-table tbody').appendChild(newRow);
+        totalFormsField.value = formCount + 1;
+        
+        // Initialize the new row
+        const select = newRow.querySelector('.item-type-select');
+        toggleItemFields(select);
+        select.addEventListener('change', function() {
+            toggleItemFields(this);
+        });
+        
+        newRow.querySelectorAll('input[name$="-quantity"], input[name$="-unit_price"], input[name$="-tax_rate"]').forEach(input => {
+            input.addEventListener('input', updateTotals);
+        });
+        
+        newRow.querySelector('.remove-row').addEventListener('click', function() {
+            // If this is an existing row (not newly added), mark it for deletion
+            const deleteInput = document.querySelector(`input[name="${formPrefix}-${formCount}-id"]`);
+            if (deleteInput) {
+                const deleteCheckbox = document.createElement('input');
+                deleteCheckbox.type = 'hidden';
+                deleteCheckbox.name = `${formPrefix}-${formCount}-DELETE`;
+                deleteCheckbox.value = 'on';
+                newRow.appendChild(deleteCheckbox);
+                newRow.style.display = 'none';
+            } else {
+                newRow.remove();
+            }
+            updateTotals();
+        });
+        
+        // Trigger update to calculate initial totals
+        updateTotals();
+    });
+    
+    // Remove row functionality
+    document.querySelectorAll('.remove-row').forEach(button => {
+        button.addEventListener('click', function() {
+            const row = this.closest('.formset-row');
+            const rowId = row.id.replace('row-', '');
+            
+            // If this is an existing row (has an ID input), mark it for deletion
+            const idInput = row.querySelector('input[name$="-id"]');
+            if (idInput && idInput.value) {
+                const deleteInput = document.createElement('input');
+                deleteInput.type = 'hidden';
+                deleteInput.name = `${formPrefix}-${rowId}-DELETE`;
+                deleteInput.value = 'on';
+                row.appendChild(deleteInput);
+                row.style.display = 'none';
+            } else {
+                row.remove();
+            }
+            updateTotals();
+        });
+    });
+    
+    // Initialize totals on page load
+    updateTotals();
+    
+    // Form validation
+    document.getElementById('salesOrderForm').addEventListener('submit', function(e) {
+        let isValid = true;
+        let errorMessage = '';
+        
+        // Check if at least one item exists
+        const itemRows = document.querySelectorAll('.formset-row');
+        let hasVisibleItems = false;
+        
+        itemRows.forEach(row => {
+            if (row.style.display !== 'none') {
+                hasVisibleItems = true;
+            }
+        });
+        
+        if (!hasVisibleItems) {
+            isValid = false;
+            errorMessage = 'Please add at least one item to the sales order.';
+        }
+        
+        // Validate delivery date is after order date
+        const orderDateInput = document.getElementById('id_order_date');
+        const deliveryDateInput = document.getElementById('id_delivery_date');
+        
+        if (orderDateInput && deliveryDateInput && orderDateInput.value && deliveryDateInput.value) {
+            const orderDate = new Date(orderDateInput.value);
+            const deliveryDate = new Date(deliveryDateInput.value);
+            
+            if (deliveryDate < orderDate) {
+                isValid = false;
+                errorMessage = 'Delivery date cannot be before order date.';
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert(errorMessage);
+        }
+    });
+});
+</script>
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

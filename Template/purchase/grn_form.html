@@ -133,7 +133,7 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label for="{{ form.po_item.id_for_label }}" class="form-label">PO Item</label>
-                                        {% render_field form.po_item class="form-select po-item-select" %}
+                                        {% comment %} {% render_field form.po_item class="form-select po-item-select" %} {% endcomment %}
                                         {% if form.po_item.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.po_item.errors }}

@@ -143,7 +143,8 @@
                 <div class="card-body">
                     <h5 class="card-title">Suppliers</h5>
                     <h2 class="card-text">{{ supplier_count }}</h2>
-                    <a href="{% url 'supplier_list' %}" class="text-white">View All</a>
+                    <a href="#" class="text-white">View All</a>
+                    {% comment %} {% url 'supplier_list' %} {% endcomment %}
                 </div>
             </div>
         </div>

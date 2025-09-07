@@ -327,98 +327,99 @@ urlpatterns = [
     # Customer URLs
     path('customers/', customer_list, name='customer_list'),
     path('customers/create/', customer_create, name='customer_create'),
-    path('customers/<uuid:pk>/edit/', customer_edit, name='customer_edit'),
-    path('customers/<uuid:pk>/', customer_detail, name='customer_detail'),
+    path('customers/<int:pk>/edit/', customer_edit, name='customer_edit'),
+    path('customers/<int:pk>/', customer_detail, name='customer_detail'),
     
      # Customer Pricing URLs
-    path('customers/<uuid:customer_id>/pricing/', customer_pricing_list, name='customer_pricing_list'),
-    path('customers/<uuid:customer_id>/pricing/create/', customer_pricing_create, name='customer_pricing_create'),
-    path('customer-pricing/<uuid:pk>/edit/', customer_pricing_edit, name='customer_pricing_edit'),
+    path('customers/<int:customer_id>/pricing/', customer_pricing_list, name='customer_pricing_list'),
+    path('customers/<int:customer_id>/pricing/create/', customer_pricing_create, name='customer_pricing_create'),
+    path('customer-pricing/<int:pk>/edit/', customer_pricing_edit, name='customer_pricing_edit'),
 
     # RFQ URLs
     path('rfqs/', rfq_list, name='rfq_list'),
     path('rfqs/create/', rfq_create, name='rfq_create'),
-    path('rfqs/<uuid:pk>/edit/', rfq_edit, name='rfq_edit'),
-    path('rfqs/<uuid:pk>/', rfq_detail, name='rfq_detail'),
-    path('rfqs/<uuid:pk>/clone/', rfq_clone, name='rfq_clone'),
+    path('rfqs/<int:pk>/edit/', rfq_edit, name='rfq_edit'),
+    path('rfqs/<int:pk>/', rfq_detail, name='rfq_detail'),
+    path('rfqs/<int:pk>/clone/', rfq_clone, name='rfq_clone'),
     
     # Quotation URLs
     path('quotations/', quotation_list, name='quotation_list'),
     path('quotations/create/', quotation_create, name='quotation_create'),
-    path('quotations/create-from-rfq/<uuid:rfq_id>/', quotation_from_rfq, name='quotation_from_rfq'),
-    path('quotations/<uuid:pk>/edit/', quotation_edit, name='quotation_edit'),
-    path('quotations/<uuid:pk>/', quotation_detail, name='quotation_detail'),
-    path('quotations/<uuid:pk>/pdf/', quotation_pdf, name='quotation_pdf'),
-    
+    path('quotations/create-from-rfq/<int:rfq_id>/', quotation_from_rfq, name='quotation_from_rfq'),
+    path('quotations/<int:pk>/edit/', quotation_edit, name='quotation_edit'),
+    path('quotations/<int:pk>/', quotation_detail, name='quotation_detail'),
+    path('quotations/<int:pk>/pdf/', quotation_pdf, name='quotation_pdf'),
+    path('calculate-price/', calculate_price, name='calculate_price'),
+
     # BOM URLs
-    path('bom/<uuid:bom_id>/clone/', bom_clone, name='bom_clone'),
-    path('bom/<uuid:bom_id>/calculate-cost/', calculate_bom_cost_ajax, name='calculate_bom_cost_ajax'),
+    path('bom/<int:bom_id>/clone/', bom_clone, name='bom_clone'),
+    path('bom/<int:bom_id>/calculate-cost/', calculate_bom_cost_ajax, name='calculate_bom_cost_ajax'),
 
     # Quotation with Variant BOM
-    path('rfqs/<uuid:rfq_id>/quotation-with-variant-bom/', quotation_with_variant_bom, name='quotation_with_variant_bom'),
+    path('rfqs/<int:rfq_id>/quotation-with-variant-bom/', quotation_with_variant_bom, name='quotation_with_variant_bom'),
 
     # Sales Order URLs
     path('sales-orders/', sales_order_list, name='sales_order_list'),
     path('sales-orders/create/', sales_order_create, name='sales_order_create'),
-    path('sales-orders/create-from-quotation/<uuid:quotation_id>/', sales_order_from_quotation, name='sales_order_from_quotation'),
-    path('sales-orders/<uuid:pk>/edit/', sales_order_edit, name='sales_order_edit'),
-    path('sales-orders/<uuid:pk>/', sales_order_detail, name='sales_order_detail'),
+    path('sales-orders/create-from-quotation/<int:quotation_id>/', sales_order_from_quotation, name='sales_order_from_quotation'),
+    path('sales-orders/<int:pk>/edit/', sales_order_edit, name='sales_order_edit'),
+    path('sales-orders/<int:pk>/', sales_order_detail, name='sales_order_detail'),
     
     # Invoice URLs
     path('invoices/', invoice_list, name='invoice_list'),
     path('invoices/create/', invoice_create, name='invoice_create'),
-    path('invoices/create-from-sales-order/<uuid:order_id>/', invoice_from_sales_order, name='invoice_from_sales_order'),
-    path('invoices/<uuid:pk>/edit/', invoice_edit, name='invoice_edit'),
-    path('invoices/<uuid:pk>/', invoice_detail, name='invoice_detail'),
-    path('invoices/<uuid:pk>/pdf/', invoice_pdf, name='invoice_pdf'),
+    path('invoices/create-from-sales-order/<int:order_id>/', invoice_from_sales_order, name='invoice_from_sales_order'),
+    path('invoices/<int:pk>/edit/', invoice_edit, name='invoice_edit'),
+    path('invoices/<int:pk>/', invoice_detail, name='invoice_detail'),
+    path('invoices/<int:pk>/pdf/', invoice_pdf, name='invoice_pdf'),
     
     # Purchase RFQ URLs
     path('purchase-rfqs/', purchase_rfq_list, name='purchase_rfq_list'),
     path('purchase-rfqs/create/', purchase_rfq_create, name='purchase_rfq_create'),
-    path('purchase-rfqs/create-from-requisition/<uuid:requisition_id>/', purchase_rfq_from_requisition, name='purchase_rfq_from_requisition'),
-    path('purchase-rfqs/<uuid:pk>/edit/', purchase_rfq_edit, name='purchase_rfq_edit'),
-    path('purchase-rfqs/<uuid:pk>/', purchase_rfq_detail, name='purchase_rfq_detail'),
-    path('purchase-rfqs/<uuid:pk>/send/', purchase_rfq_send, name='purchase_rfq_send'),
+    path('purchase-rfqs/create-from-requisition/<int:requisition_id>/', purchase_rfq_from_requisition, name='purchase_rfq_from_requisition'),
+    path('purchase-rfqs/<int:pk>/edit/', purchase_rfq_edit, name='purchase_rfq_edit'),
+    path('purchase-rfqs/<int:pk>/', purchase_rfq_detail, name='purchase_rfq_detail'),
+    path('purchase-rfqs/<int:pk>/send/', purchase_rfq_send, name='purchase_rfq_send'),
      
     # Supplier Comparison URL
-    path('purchase-rfqs/<uuid:rfq_id>/comparison/', supplier_comparison, name='supplier_comparison'),
+    path('purchase-rfqs/<int:rfq_id>/comparison/', supplier_comparison, name='supplier_comparison'),
 
     # Purchase Order URLs
     path('purchase-orders/', purchase_order_list, name='purchase_order_list'),
     path('purchase-orders/create/', purchase_order_create, name='purchase_order_create'),
-    path('purchase-orders/create-from-rfq/<uuid:rfq_id>/', purchase_order_from_rfq, name='purchase_order_from_rfq'),
-    path('purchase-orders/<uuid:pk>/edit/', purchase_order_edit, name='purchase_order_edit'),
-    path('purchase-orders/<uuid:pk>/', purchase_order_detail, name='purchase_order_detail'),
-    path('purchase-orders/<uuid:pk>/pdf/', purchase_order_pdf, name='purchase_order_pdf'),
+    path('purchase-orders/create-from-rfq/<int:rfq_id>/', purchase_order_from_rfq, name='purchase_order_from_rfq'),
+    path('purchase-orders/<int:pk>/edit/', purchase_order_edit, name='purchase_order_edit'),
+    path('purchase-orders/<int:pk>/', purchase_order_detail, name='purchase_order_detail'),
+    path('purchase-orders/<int:pk>/pdf/', purchase_order_pdf, name='purchase_order_pdf'),
     
     # GRN URLs
     path('grns/', grn_list, name='grn_list'),
     path('grns/create/', grn_create, name='grn_create'),
-    path('grns/create-from-po/<uuid:po_id>/', grn_from_po, name='grn_from_po'),
-    path('grns/<uuid:pk>/edit/', grn_edit, name='grn_edit'),
-    path('grns/<uuid:pk>/', grn_detail, name='grn_detail'),
-    path('grns/<uuid:pk>/verify/', grn_verify, name='grn_verify'),
+    path('grns/create-from-po/<int:po_id>/', grn_from_po, name='grn_from_po'),
+    path('grns/<int:pk>/edit/', grn_edit, name='grn_edit'),
+    path('grns/<int:pk>/', grn_detail, name='grn_detail'),
+    path('grns/<int:pk>/verify/', grn_verify, name='grn_verify'),
     
     # Supplier Invoice URLs
     path('supplier-invoices/', supplier_invoice_list, name='supplier_invoice_list'),
     path('supplier-invoices/create/', supplier_invoice_create, name='supplier_invoice_create'),
-    path('supplier-invoices/create-from-grn/<uuid:grn_id>/', supplier_invoice_from_grn, name='supplier_invoice_from_grn'),
-    path('supplier-invoices/<uuid:pk>/edit/', supplier_invoice_edit, name='supplier_invoice_edit'),
-    path('supplier-invoices/<uuid:pk>/', supplier_invoice_detail, name='supplier_invoice_detail'),
+    path('supplier-invoices/create-from-grn/<int:grn_id>/', supplier_invoice_from_grn, name='supplier_invoice_from_grn'),
+    path('supplier-invoices/<int:pk>/edit/', supplier_invoice_edit, name='supplier_invoice_edit'),
+    path('supplier-invoices/<int:pk>/', supplier_invoice_detail, name='supplier_invoice_detail'),
     
     # AJAX URLs
-    path('ajax/component/<uuid:component_id>/', get_component_details, name='get_component_details'),
-    path('ajax/bom/<uuid:bom_id>/', get_bom_details, name='get_bom_details'),
-    path('ajax/customer-pricing/<uuid:customer_id>/<uuid:component_id>/', get_customer_pricing, name='get_customer_pricing'),
-    path('ajax/calculate-bom-cost/<uuid:bom_id>/', calculate_bom_cost, name='calculate_bom_cost'),
+    path('ajax/component/<int:component_id>/', get_component_details, name='get_component_details'),
+    path('ajax/bom/<int:bom_id>/', get_bom_details, name='get_bom_details'),
+    path('ajax/customer-pricing/<int:customer_id>/<int:component_id>/', get_customer_pricing, name='get_customer_pricing'),
+    path('ajax/calculate-bom-cost/<int:bom_id>/', calculate_bom_cost, name='calculate_bom_cost'),
 
      # File upload URLs
-    path('sales-orders/<uuid:order_id>/upload-po/', upload_customer_po, name='upload_customer_po'),
-    path('supplier-invoices/<uuid:invoice_id>/upload-invoice/', upload_supplier_invoice, name='upload_supplier_invoice'),
+    path('sales-orders/<int:order_id>/upload-po/', upload_customer_po, name='upload_customer_po'),
+    path('supplier-invoices/<int:invoice_id>/upload-invoice/', upload_supplier_invoice, name='upload_supplier_invoice'),
     
     # Payment URLs
-    path('invoices/<uuid:invoice_id>/mark-paid/', mark_invoice_paid, name='mark_invoice_paid'),
-    path('supplier-invoices/<uuid:invoice_id>/mark-paid/', mark_supplier_invoice_paid, name='mark_supplier_invoice_paid'),
+    path('invoices/<int:invoice_id>/mark-paid/', mark_invoice_paid, name='mark_invoice_paid'),
+    path('supplier-invoices/<int:invoice_id>/mark-paid/', mark_supplier_invoice_paid, name='mark_supplier_invoice_paid'),
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),

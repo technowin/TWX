@@ -7,7 +7,8 @@ from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from decimal import Decimal
 import json
-
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from BOM.models import * 
 from MaterialPlan.models import * 
@@ -266,8 +267,8 @@ def supplier_comparison(request, rfq_id):
         
         for key, value in request.POST.items():
             if key.startswith('award_'):
-                component_id = uuid.UUID(key.split('_')[1])
-                supplier_id = uuid.UUID(value)
+                component_id = key.split('_')[1]  
+                supplier_id = value
                 
                 if supplier_id not in awarded_suppliers:
                     awarded_suppliers[supplier_id] = []
@@ -603,6 +604,10 @@ def quotation_list(request):
 @login_required
 def quotation_create(request):
     try:
+        # Get components and BOMs for the form
+        components = Component.objects.all()
+        boms = BOMHeader.objects.all()
+
         if request.method == 'POST':
             form = QuotationForm(request.POST)
             formset = QuotationItemFormSet(request.POST)
@@ -626,6 +631,8 @@ def quotation_create(request):
         return render(request, 'sales/quotation_form.html', {
             'form': form, 
             'formset': formset,
+            'components': components,
+            'boms': boms,
             'title': 'Create Quotation'
         })
     
@@ -637,6 +644,11 @@ def quotation_create(request):
 def quotation_from_rfq(request, rfq_id):
     """Create quotation from RFQ with proper pricing calculation"""
     rfq = get_object_or_404(RFQ, pk=rfq_id)
+    
+    # Get components and BOMs for the form
+    components = Component.objects.all()
+    boms = BOMHeader.objects.all()
+    
     
     if not rfq.can_create_quotation:
         messages.error(request, 'Cannot create quotation from this RFQ.')
@@ -683,7 +695,7 @@ def quotation_from_rfq(request, rfq_id):
                 
                 elif rfq_item.item_type == 'product' and rfq_item.bom:
                     # Calculate price from BOM
-                    bom_cost = calculate_bom_cost(rfq_item.bom.bom_id)
+                    bom_cost = calculate_bom_cost(rfq_item.bom.id)
                     unit_price = bom_cost * Decimal('1.3')  # 30% markup
                 
                 line_total = unit_price * rfq_item.quantity
@@ -738,16 +750,24 @@ def quotation_from_rfq(request, rfq_id):
             'currency': rfq.currency,
             'payment_terms': rfq.customer.payment_terms,
         })
+        formset = QuotationItemFormSet()
     
     return render(request, 'sales/quotation_form.html', {
         'form': form,
+        'formset': formset,
         'rfq': rfq,
+        'components': components,
+        'boms': boms,
         'title': 'Create Quotation from RFQ'
     })
 
 @login_required
 def quotation_edit(request, pk):
     quotation = get_object_or_404(Quotation, pk=pk)
+     # Get components and BOMs for the form
+    components = Component.objects.all()
+    boms = BOMHeader.objects.all()
+
     if request.method == 'POST':
         form = QuotationForm(request.POST, instance=quotation)
         if form.is_valid():
@@ -767,6 +787,9 @@ def quotation_edit(request, pk):
     return render(request, 'sales/quotation_form.html', {
         'form': form, 
         'formset': formset,
+        'quotation': quotation,
+        'components': components,
+        'boms': boms,
         'title': 'Edit Quotation'
     })
 
@@ -824,7 +847,7 @@ def bom_clone(request, bom_id):
                 revision=1,
                 status='draft',
                 created_by=request.user,
-                parent_bom_id=original_bom.bom_id
+                parent_bom_id=original_bom.id
             )
             
             # Clone BOM items
@@ -841,7 +864,7 @@ def bom_clone(request, bom_id):
                 )
         
         messages.success(request, f'BOM {original_bom.name} cloned as {new_bom.name}.')
-        return redirect('bom_detail', pk=new_bom.bom_id)
+        return redirect('bom_detail', pk=new_bom.id)
     
     return render(request, 'sales/bom_clone.html', {'bom': original_bom})
 
@@ -869,7 +892,7 @@ def quotation_with_variant_bom(request, rfq_id):
             revision=1,
             status='draft',
             created_by=request.user,
-            parent_bom_id=original_bom.bom_id
+            parent_bom_id=original_bom.id
         )
         
         # Clone BOM items
@@ -899,7 +922,7 @@ def quotation_with_variant_bom(request, rfq_id):
         
         # Create quotation item for the variant BOM
         # Calculate price based on BOM cost
-        bom_cost = calculate_bom_cost(variant_bom.bom_id)
+        bom_cost = calculate_bom_cost(variant_bom.id)
         unit_price = bom_cost * Decimal('1.3')  # 30% markup
         
         QuotationItem.objects.create(
@@ -982,9 +1005,15 @@ def sales_order_create(request):
         form = SalesOrderForm()
         formset = SalesOrderItemFormSet()
     
+     # Get components and BOMs for the template
+    components = Component.objects.all()
+    boms = BOMHeader.objects.all()
+
     return render(request, 'sales/sales_order_form.html', {
         'form': form, 
         'formset': formset,
+        'components': components,
+        'boms': boms,
         'title': 'Create Sales Order'
     })
 
@@ -1046,10 +1075,17 @@ def sales_order_from_quotation(request, quotation_id):
             'currency': quotation.currency,
             'payment_terms': quotation.payment_terms,
         })
-    
+        
+    # Get components and BOMs for the template
+    components = Component.objects.all()
+    boms = BOMHeader.objects.all()
+    formset = SalesOrderItemFormSet()
     return render(request, 'sales/sales_order_form.html', {
         'form': form,
+        'formset': formset,
         'quotation': quotation,
+        'components': components,
+        'boms': boms,
         'title': 'Create Sales Order from Quotation'
     })
 
@@ -1072,9 +1108,15 @@ def sales_order_edit(request, pk):
         form = SalesOrderForm(instance=order)
         formset = SalesOrderItemFormSet(instance=order)
     
+    # Get components and BOMs for the template
+    components = Component.objects.all()
+    boms = BOMHeader.objects.all()
+
     return render(request, 'sales/sales_order_form.html', {
         'form': form, 
         'formset': formset,
+        'components': components,
+        'boms': boms,
         'title': 'Edit Sales Order'
     })
 
@@ -1119,17 +1161,26 @@ def invoice_list(request):
 def invoice_create(request):
     if request.method == 'POST':
         form = InvoiceForm(request.POST)
-        if form.is_valid():
+        item_formset = InvoiceItemFormSet(request.POST, instance=None)
+        
+        if form.is_valid() and item_formset.is_valid():
             invoice = form.save(commit=False)
             invoice.created_by = request.user
             invoice.save()
+            
+            # Save the formset
+            item_formset.instance = invoice
+            item_formset.save()
+            
             messages.success(request, 'Invoice created successfully.')
             return redirect('invoice_list')
     else:
         form = InvoiceForm()
+        item_formset = InvoiceItemFormSet(instance=None)
     
     return render(request, 'sales/invoice_form.html', {
         'form': form, 
+        'item_formset': item_formset,
         'title': 'Create Invoice'
     })
 
@@ -1144,16 +1195,22 @@ def invoice_from_sales_order(request, order_id):
     
     if request.method == 'POST':
         form = InvoiceForm(request.POST)
+        item_formset = InvoiceItemFormSet(request.POST, instance=None)
         
-        if form.is_valid():
+        if form.is_valid() and item_formset.is_valid():
             invoice = form.save(commit=False)
             invoice.sales_order = order
             invoice.created_by = request.user
+            invoice.save()
             
-            # Copy totals from sales order
-            invoice.subtotal = order.subtotal
-            invoice.tax_amount = order.tax_amount
-            invoice.total_amount = order.total_amount
+            # Save the formset
+            item_formset.instance = invoice
+            item_formset.save()
+            
+            # Recalculate totals based on items
+            invoice.subtotal = sum(item.quantity * item.unit_price for item in invoice.items.all())
+            invoice.tax_amount = sum(item.quantity * item.unit_price * item.tax_rate / 100 for item in invoice.items.all())
+            invoice.total_amount = invoice.subtotal + invoice.tax_amount
             invoice.save()
             
             messages.success(request, 'Invoice created successfully.')
@@ -1166,9 +1223,30 @@ def invoice_from_sales_order(request, order_id):
             'invoice_date': timezone.now().date(),
             'due_date': timezone.now().date() + timezone.timedelta(days=30),
         })
+        
+        # Prepopulate the formset with order items
+        initial_data = []
+        for order_item in order.items.all():
+            # Check if component exists before accessing it
+            component_value = order_item.component_id if order_item.component_id else None
+            bom_value = order_item.bom_id if order_item.bom_id else None
+            initial_data.append({
+                'sales_order_item': order_item,
+                'item_type': order_item.item_type,
+                'component': component_value,
+                'bom': bom_value,
+                'description': order_item.description,
+                'quantity': order_item.quantity,
+                'unit_price': order_item.unit_price,
+                'tax_rate': order_item.tax_rate,
+                'line_total': order_item.line_total,
+            })
+        
+        item_formset = InvoiceItemFormSet(initial=initial_data, instance=None)
     
     return render(request, 'sales/invoice_form.html', {
         'form': form,
+        'item_formset': item_formset,
         'order': order,
         'title': 'Create Invoice from Sales Order'
     })
@@ -1178,15 +1256,28 @@ def invoice_edit(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
-        if form.is_valid():
+        item_formset = InvoiceItemFormSet(request.POST, instance=invoice)
+        
+        if form.is_valid() and item_formset.is_valid():
             form.save()
+            item_formset.save()
+            
+            # Recalculate totals based on items
+            invoice.subtotal = sum(item.quantity * item.unit_price for item in invoice.items.all())
+            invoice.tax_amount = sum(item.quantity * item.unit_price * item.tax_rate / 100 for item in invoice.items.all())
+            invoice.total_amount = invoice.subtotal + invoice.tax_amount
+            invoice.save()
+            
             messages.success(request, 'Invoice updated successfully.')
             return redirect('invoice_list')
     else:
         form = InvoiceForm(instance=invoice)
+        item_formset = InvoiceItemFormSet(instance=invoice)
     
     return render(request, 'sales/invoice_form.html', {
         'form': form, 
+        'item_formset': item_formset,
+        'invoice': invoice,
         'title': 'Edit Invoice'
     })
 
@@ -1308,18 +1399,19 @@ def purchase_rfq_from_requisition(request, requisition_id):
     else:
         form = PurchaseRFQForm(initial={
             'requisition': requisition,
-            'title': f"RFQ for Requisition {requisition.requisition_id}",
+            'title': f"RFQ for Requisition {requisition.id}",
         })
         
         # Prepopulate items from requisition
         formset = PurchaseRFQItemFormSet(initial=[
             {
-                'component': item.component,
-                'quantity': item.quantity,
-                'required_date': item.required_date,
+                'component': req.component,
+                'quantity': req.quantity,
+                'required_date': req.required_by_date,
             }
-            for item in requisition.plan_item.all()
+            for req in requisition.plan.purchase_requisitions.all()
         ])
+
         
         supplier_formset = PurchaseRFQSupplierFormSet()
     
@@ -1490,7 +1582,7 @@ def purchase_order_from_rfq(request, rfq_id):
         # Prepopulate items from RFQ
         formset = PurchaseOrderItemFormSet(initial=[
             {
-                'component': item.component,
+                'component': item.component_id,
                 'quantity': item.quantity,
             }
             for item in rfq.items.all()
@@ -1639,14 +1731,15 @@ def grn_from_po(request, po_id):
         # Prepopulate items from PO
         formset = GRNItemFormSet(initial=[
             {
-                'po_item': item,
+                'po_item': item.pk,   # pass pk instead of object
                 'quantity_received': item.quantity - item.received_quantity,
                 'quantity_accepted': item.quantity - item.received_quantity,
                 'quality_status': 'accepted',
             }
             for item in po.items.all()
             if item.quantity > item.received_quantity
-        ])
+        ], form_kwargs={'purchase_order': po})
+
     
     return render(request, 'purchase/grn_form.html', {
         'form': form, 
@@ -1882,6 +1975,59 @@ def get_customer_pricing(request, customer_id, component_id):
     except CustomerPricing.DoesNotExist:
         data = {'exists': False}
         return JsonResponse(data)
+
+@csrf_exempt
+def calculate_price(request):
+    try:
+        data = json.loads(request.body)
+        item_type = data.get('item_type')
+        item_id = data.get('item_id')
+        customer_id = data.get('customer_id')
+        currency = data.get('currency', 'USD')
+                
+        customer = get_object_or_404(Customer, pk=customer_id)
+        unit_price = Decimal('0.00')
+        
+        if item_type == 'part':
+            component = get_object_or_404(Component, pk=item_id)
+            
+            # Try to get customer-specific pricing
+            try:
+                customer_pricing = CustomerPricing.objects.get(
+                    customer=customer,
+                    component=component,
+                    effective_date__lte=timezone.now().date(),
+                    expiry_date__gte=timezone.now().date()
+                )
+                unit_price = customer_pricing.price
+            except CustomerPricing.DoesNotExist:
+                # Get lowest supplier price with markup
+                supplier_price = ComponentSupplier.objects.filter(
+                    component=component,
+                    is_approved=True
+                ).order_by('cost').first()
+                
+                if supplier_price:
+                    unit_price = supplier_price.cost * Decimal('1.2')  # 20% markup
+                else:
+                    unit_price = Decimal('0.00')  # Default price
+        
+        elif item_type == 'product':
+            bom = get_object_or_404(BOMHeader, pk=item_id)
+            # Calculate price from BOM
+            bom_cost = calculate_bom_cost(bom.id)
+            unit_price = bom_cost * Decimal('1.3')  # 30% markup
+        
+        # Apply currency conversion if needed (you would implement this)
+        # unit_price = convert_currency(unit_price, 'USD', currency)
+        
+        return JsonResponse({
+            'unit_price': float(unit_price),
+            'currency': currency
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 @login_required
 def calculate_bom_cost(request, bom_id):

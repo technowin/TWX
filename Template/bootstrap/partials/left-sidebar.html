@@ -126,7 +126,7 @@
                 </li>
             {% endfor %}
             
-            {% comment %} <li class="nav-item">
+            <li class="nav-item">
                 <a class="nav-link" href="{% url 'sp_dashboard' %}">Dashboard</a>
             </li>
             <li class="nav-item dropdown">
@@ -164,13 +164,13 @@
               <ul>
                 <li><a href="/customers/">Customer List</a></li>
                 <li><a href="/customers/create/">Create Customer</a></li>
-                <li><a href="/customers/<uuid>/edit/">Edit Customer</a></li>
-                <li><a href="/customers/<uuid>/">Customer Detail</a></li>
+                <li><a href="/customers/1/edit/">Edit Customer</a></li>
+                <li><a href="/customers/1/">Customer Detail</a></li>
                 <li>Pricing
                   <ul>
-                    <li><a href="/customers/<uuid>/pricing/">Customer Pricing List</a></li>
-                    <li><a href="/customers/<uuid>/pricing/create/">Create Pricing</a></li>
-                    <li><a href="/customer-pricing/<uuid>/edit/">Edit Pricing</a></li>
+                    <li><a href="/customers/1/pricing/">Customer Pricing List</a></li>
+                    <li><a href="/customers/1/pricing/create/">Create Pricing</a></li>
+                    <li><a href="/customer-pricing/1/edit/">Edit Pricing</a></li>
                   </ul>
                 </li>
               </ul>
@@ -182,41 +182,41 @@
                   <ul>
                     <li><a href="/rfqs/">RFQ List</a></li>
                     <li><a href="/rfqs/create/">Create RFQ</a></li>
-                    <li><a href="/rfqs/<uuid>/edit/">Edit RFQ</a></li>
-                    <li><a href="/rfqs/<uuid>/">RFQ Detail</a></li>
-                    <li><a href="/rfqs/<uuid>/clone/">Clone RFQ</a></li>
+                    <li><a href="/rfqs/1/edit/">Edit RFQ</a></li>
+                    <li><a href="/rfqs/1/">RFQ Detail</a></li>
+                    <li><a href="/rfqs/1/clone/">Clone RFQ</a></li>
                   </ul>
                 </li>
                 <li>Quotations
                   <ul>
                     <li><a href="/quotations/">Quotation List</a></li>
                     <li><a href="/quotations/create/">Create Quotation</a></li>
-                    <li><a href="/quotations/create-from-rfq/<uuid>/">From RFQ</a></li>
-                    <li><a href="/quotations/<uuid>/edit/">Edit Quotation</a></li>
-                    <li><a href="/quotations/<uuid>/">Quotation Detail</a></li>
-                    <li><a href="/quotations/<uuid>/pdf/">Quotation PDF</a></li>
-                    <li><a href="/rfqs/<uuid>/quotation-with-variant-bom/">With Variant BOM</a></li>
+                    <li><a href="/quotations/create-from-rfq/1/">From RFQ</a></li>
+                    <li><a href="/quotations/1/edit/">Edit Quotation</a></li>
+                    <li><a href="/quotations/1/">Quotation Detail</a></li>
+                    <li><a href="/quotations/1/pdf/">Quotation PDF</a></li>
+                    <li><a href="/rfqs/1/quotation-with-variant-bom/">With Variant BOM</a></li>
                   </ul>
                 </li>
                 <li>Sales Orders
                   <ul>
                     <li><a href="/sales-orders/">Sales Order List</a></li>
                     <li><a href="/sales-orders/create/">Create Sales Order</a></li>
-                    <li><a href="/sales-orders/create-from-quotation/<uuid>/">From Quotation</a></li>
-                    <li><a href="/sales-orders/<uuid>/edit/">Edit Sales Order</a></li>
-                    <li><a href="/sales-orders/<uuid>/">Sales Order Detail</a></li>
-                    <li><a href="/sales-orders/<uuid>/upload-po/">Upload Customer PO</a></li>
+                    <li><a href="/sales-orders/create-from-quotation/1/">From Quotation</a></li>
+                    <li><a href="/sales-orders/1/edit/">Edit Sales Order</a></li>
+                    <li><a href="/sales-orders/1/">Sales Order Detail</a></li>
+                    <li><a href="/sales-orders/1/upload-po/">Upload Customer PO</a></li>
                   </ul>
                 </li>
                 <li>Invoices
                   <ul>
                     <li><a href="/invoices/">Invoice List</a></li>
                     <li><a href="/invoices/create/">Create Invoice</a></li>
-                    <li><a href="/invoices/create-from-sales-order/<uuid>/">From Sales Order</a></li>
-                    <li><a href="/invoices/<uuid>/edit/">Edit Invoice</a></li>
-                    <li><a href="/invoices/<uuid>/">Invoice Detail</a></li>
-                    <li><a href="/invoices/<uuid>/pdf/">Invoice PDF</a></li>
-                    <li><a href="/invoices/<uuid>/mark-paid/">Mark Paid</a></li>
+                    <li><a href="/invoices/create-from-sales-order/1/">From Sales Order</a></li>
+                    <li><a href="/invoices/1/edit/">Edit Invoice</a></li>
+                    <li><a href="/invoices/1/">Invoice Detail</a></li>
+                    <li><a href="/invoices/1/pdf/">Invoice PDF</a></li>
+                    <li><a href="/invoices/1/mark-paid/">Mark Paid</a></li>
                   </ul>
                 </li>
               </ul>
@@ -228,42 +228,42 @@
                   <ul>
                     <li><a href="/purchase-rfqs/">Purchase RFQ List</a></li>
                     <li><a href="/purchase-rfqs/create/">Create Purchase RFQ</a></li>
-                    <li><a href="/purchase-rfqs/create-from-requisition/<uuid>/">From Requisition</a></li>
-                    <li><a href="/purchase-rfqs/<uuid>/edit/">Edit Purchase RFQ</a></li>
-                    <li><a href="/purchase-rfqs/<uuid>/">Purchase RFQ Detail</a></li>
-                    <li><a href="/purchase-rfqs/<uuid>/send/">Send RFQ</a></li>
-                    <li><a href="/purchase-rfqs/<uuid>/comparison/">Supplier Comparison</a></li>
+                    <li><a href="/purchase-rfqs/create-from-requisition/1/">From Requisition</a></li>
+                    <li><a href="/purchase-rfqs/1/edit/">Edit Purchase RFQ</a></li>
+                    <li><a href="/purchase-rfqs/1/">Purchase RFQ Detail</a></li>
+                    <li><a href="/purchase-rfqs/1/send/">Send RFQ</a></li>
+                    <li><a href="/purchase-rfqs/1/comparison/">Supplier Comparison</a></li>
                   </ul>
                 </li>
                 <li>Orders
                   <ul>
                     <li><a href="/purchase-orders/">Purchase Order List</a></li>
                     <li><a href="/purchase-orders/create/">Create Purchase Order</a></li>
-                    <li><a href="/purchase-orders/create-from-rfq/<uuid>/">From RFQ</a></li>
-                    <li><a href="/purchase-orders/<uuid>/edit/">Edit Purchase Order</a></li>
-                    <li><a href="/purchase-orders/<uuid>/">Purchase Order Detail</a></li>
-                    <li><a href="/purchase-orders/<uuid>/pdf/">Purchase Order PDF</a></li>
+                    <li><a href="/purchase-orders/create-from-rfq/1/">From RFQ</a></li>
+                    <li><a href="/purchase-orders/1/edit/">Edit Purchase Order</a></li>
+                    <li><a href="/purchase-orders/1/">Purchase Order Detail</a></li>
+                    <li><a href="/purchase-orders/1/pdf/">Purchase Order PDF</a></li>
                   </ul>
                 </li>
                 <li>GRN
                   <ul>
                     <li><a href="/grns/">GRN List</a></li>
                     <li><a href="/grns/create/">Create GRN</a></li>
-                    <li><a href="/grns/create-from-po/<uuid>/">From PO</a></li>
-                    <li><a href="/grns/<uuid>/edit/">Edit GRN</a></li>
-                    <li><a href="/grns/<uuid>/">GRN Detail</a></li>
-                    <li><a href="/grns/<uuid>/verify/">Verify GRN</a></li>
+                    <li><a href="/grns/create-from-po/1/">From PO</a></li>
+                    <li><a href="/grns/1/edit/">Edit GRN</a></li>
+                    <li><a href="/grns/1/">GRN Detail</a></li>
+                    <li><a href="/grns/1/verify/">Verify GRN</a></li>
                   </ul>
                 </li>
                 <li>Supplier Invoices
                   <ul>
                     <li><a href="/supplier-invoices/">Supplier Invoice List</a></li>
                     <li><a href="/supplier-invoices/create/">Create Supplier Invoice</a></li>
-                    <li><a href="/supplier-invoices/create-from-grn/<uuid>/">From GRN</a></li>
-                    <li><a href="/supplier-invoices/<uuid>/edit/">Edit Supplier Invoice</a></li>
-                    <li><a href="/supplier-invoices/<uuid>/">Supplier Invoice Detail</a></li>
-                    <li><a href="/supplier-invoices/<uuid>/upload-invoice/">Upload Invoice</a></li>
-                    <li><a href="/supplier-invoices/<uuid>/mark-paid/">Mark Paid</a></li>
+                    <li><a href="/supplier-invoices/create-from-grn/1/">From GRN</a></li>
+                    <li><a href="/supplier-invoices/1/edit/">Edit Supplier Invoice</a></li>
+                    <li><a href="/supplier-invoices/1/">Supplier Invoice Detail</a></li>
+                    <li><a href="/supplier-invoices/1/upload-invoice/">Upload Invoice</a></li>
+                    <li><a href="/supplier-invoices/1/mark-paid/">Mark Paid</a></li>
                   </ul>
                 </li>
               </ul>
@@ -273,20 +273,20 @@
               <ul>
                 <li>BOM
                   <ul>
-                    <li><a href="/bom/<uuid>/clone/">Clone BOM</a></li>
-                    <li><a href="/bom/<uuid>/calculate-cost/">Calculate BOM Cost (AJAX)</a></li>
+                    <li><a href="/bom/7/clone/">Clone BOM</a></li>
+                    <li><a href="/bom/7/calculate-cost/">Calculate BOM Cost (AJAX)</a></li>
                   </ul>
                 </li>
                 <li>AJAX APIs
                   <ul>
-                    <li><a href="/ajax/component/<uuid>/">Component Details</a></li>
-                    <li><a href="/ajax/bom/<uuid>/">BOM Details</a></li>
-                    <li><a href="/ajax/customer-pricing/<uuid>/<uuid>/">Customer Pricing</a></li>
-                    <li><a href="/ajax/calculate-bom-cost/<uuid>/">Calculate BOM Cost</a></li>
+                    <li><a href="/ajax/component/1/">Component Details</a></li>
+                    <li><a href="/ajax/bom/1/">BOM Details</a></li>
+                    <li><a href="/ajax/customer-pricing/1/1/">Customer Pricing</a></li>
+                    <li><a href="/ajax/calculate-bom-cost/1/">Calculate BOM Cost</a></li>
                   </ul>
                 </li>
               </ul>
-            </li> {% endcomment %}
+            </li>
 
 
             <li class="side-nav-title">Technowin Xperience</li>

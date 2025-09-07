@@ -10,6 +10,21 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils import timezone
 
+CURRENCY_CHOICES = (
+        ('USD', 'USD - US Dollar'),
+        ('EUR', 'EUR - Euro'),
+        ('GBP', 'GBP - British Pound'),
+        ('JPY', 'JPY - Japanese Yen'),
+        ('CAD', 'CAD - Canadian Dollar'),
+        ('AUD', 'AUD - Australian Dollar'),
+        ('CHF', 'CHF - Swiss Franc'),
+        ('CNY', 'CNY - Chinese Yuan'),
+        ('INR', 'INR - Indian Rupee'),
+        ('SGD', 'SGD - Singapore Dollar'),
+        ('AED', 'AED - UAE Dirham'),
+        ('SAR', 'SAR - Saudi Riyal'),
+    )
+
 # Sales Models
 class Customer(models.Model):
     CUSTOMER_TYPES = (
@@ -17,7 +32,7 @@ class Customer(models.Model):
         ('business', 'Business'),
     )
     
-    customer_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    customer_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=20, choices=CUSTOMER_TYPES, default='business')
     contact_person = models.CharField(max_length=100, blank=True, null=True)
@@ -26,7 +41,7 @@ class Customer(models.Model):
     address = models.TextField()
     tax_id = models.CharField(max_length=50, blank=True, null=True)
     payment_terms = models.CharField(max_length=100, default='Net 30')
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
     notes = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='customers_created')
     created_date = models.DateTimeField(auto_now_add=True)
@@ -36,7 +51,7 @@ class Customer(models.Model):
         return self.name
 
 class CustomerPricing(models.Model):
-    pricing_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pricing_id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='pricing_records')
     component = models.ForeignKey(Component, on_delete=models.CASCADE, null=True, blank=True)
     bom = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, null=True, blank=True)
@@ -65,7 +80,7 @@ class RFQ(models.Model):
         ('closed', 'Closed'),
     )
     
-    rfq_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rfq_id = models.AutoField(primary_key=True)
     rfq_number = models.CharField(max_length=50, unique=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='rfqs')
     contact_person = models.CharField(max_length=100)
@@ -73,7 +88,7 @@ class RFQ(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     rfq_date = models.DateField()
     required_by_date = models.DateField()
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
     status = models.CharField(max_length=20, choices=RFQ_STATUS, default='draft')
     notes = models.TextField(blank=True, null=True)
     attachment = models.FileField(upload_to='rfq_attachments/', blank=True, null=True)
@@ -114,7 +129,7 @@ class RFQItem(models.Model):
         ('product', 'Product'),
     )
     
-    item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    item_id = models.AutoField(primary_key=True)
     rfq = models.ForeignKey(RFQ, on_delete=models.CASCADE, related_name='items')
     item_type = models.CharField(max_length=20, choices=ITEM_TYPE)
     component = models.ForeignKey(Component, on_delete=models.CASCADE, null=True, blank=True)
@@ -140,13 +155,13 @@ class Quotation(models.Model):
         ('expired', 'Expired'),
     )
     
-    quotation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    quotation_id = models.AutoField(primary_key=True)
     quotation_number = models.CharField(max_length=50, unique=True)
     rfq = models.ForeignKey(RFQ, on_delete=models.CASCADE, null=True, blank=True, related_name='rfq_quotations')
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='customer_quotations')
     quotation_date = models.DateField()
     expiry_date = models.DateField()
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD') 
     status = models.CharField(max_length=20, choices=QUOTATION_STATUS, default='draft')
     payment_terms = models.CharField(max_length=100, default='Net 30')
     incoterms = models.CharField(max_length=50, blank=True, null=True)
@@ -187,7 +202,7 @@ class Quotation(models.Model):
         return self.quotation_number
 
 class QuotationItem(models.Model):
-    item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    item_id = models.AutoField(primary_key=True)
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='items')
     rfq_item = models.ForeignKey(RFQItem, on_delete=models.SET_NULL, null=True, blank=True)
     item_type = models.CharField(max_length=20, choices=RFQItem.ITEM_TYPE)
@@ -224,7 +239,7 @@ class SalesOrder(models.Model):
         ('cancelled', 'Cancelled'),
     )
     
-    order_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order_id = models.AutoField(primary_key=True)
     order_number = models.CharField(max_length=50, unique=True)
     quotation = models.ForeignKey(Quotation, on_delete=models.SET_NULL, null=True, blank=True, related_name='quotation_sales_orders')
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='customer_sales_orders')
@@ -232,7 +247,7 @@ class SalesOrder(models.Model):
     customer_po_file = models.FileField(upload_to='customer_po/', blank=True, null=True)
     order_date = models.DateField()
     delivery_date = models.DateField()
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='draft')
     payment_terms = models.CharField(max_length=100, default='Net 30')
     notes = models.TextField(blank=True, null=True)
@@ -274,7 +289,7 @@ class SalesOrder(models.Model):
         return self.order_number
 
 class SalesOrderItem(models.Model):
-    item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    item_id = models.AutoField(primary_key=True)
     sales_order = models.ForeignKey(SalesOrder, on_delete=models.CASCADE, related_name='items')
     quotation_item = models.ForeignKey(QuotationItem, on_delete=models.SET_NULL, null=True, blank=True)
     item_type = models.CharField(max_length=20, choices=RFQItem.ITEM_TYPE)
@@ -310,7 +325,7 @@ class Invoice(models.Model):
         ('cancelled', 'Cancelled'),
     )
     
-    invoice_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice_id = models.AutoField(primary_key=True)
     invoice_number = models.CharField(max_length=50, unique=True)
     sales_order = models.ForeignKey(SalesOrder, on_delete=models.CASCADE, related_name='invoices')
     invoice_date = models.DateField()
@@ -355,7 +370,36 @@ class Invoice(models.Model):
     
     def __str__(self):
         return self.invoice_number
-
+    
+    
+class InvoiceItem(models.Model):
+    item_id = models.AutoField(primary_key=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='items')
+    sales_order_item = models.ForeignKey(SalesOrderItem, on_delete=models.SET_NULL, null=True, blank=True)
+    item_type = models.CharField(max_length=20, choices=RFQItem.ITEM_TYPE)
+    component = models.ForeignKey(Component, on_delete=models.SET_NULL, null=True, blank=True)
+    bom = models.ForeignKey(BOMHeader, on_delete=models.SET_NULL, null=True, blank=True)
+    description = models.TextField()
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    
+    def save(self, *args, **kwargs):
+        self.line_total = self.quantity * self.unit_price * (1 + self.tax_rate / 100)
+        super().save(*args, **kwargs)
+        
+        # Update invoice totals
+        invoice = self.invoice
+        items = invoice.items.all()
+        invoice.subtotal = sum(item.quantity * item.unit_price for item in items)
+        invoice.tax_amount = sum(item.quantity * item.unit_price * item.tax_rate / 100 for item in items)
+        invoice.total_amount = invoice.subtotal + invoice.tax_amount
+        invoice.save()
+    
+    def __str__(self):
+        return f"{self.invoice.invoice_number} - Item"
+    
 # Purchase Models
 class PurchaseRFQ(models.Model):
     RFQ_STATUS = (
@@ -365,7 +409,7 @@ class PurchaseRFQ(models.Model):
         ('closed', 'Closed'),
     )
     
-    rfq_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rfq_id = models.AutoField(primary_key=True)
     rfq_number = models.CharField(max_length=50, unique=True)
     requisition = models.ForeignKey(PurchaseRequisition, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_rfqs')
     title = models.CharField(max_length=200)
@@ -389,7 +433,7 @@ class PurchaseRFQ(models.Model):
         return self.rfq_number
 
 class PurchaseRFQItem(models.Model):
-    item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    item_id = models.AutoField(primary_key=True)
     rfq = models.ForeignKey(PurchaseRFQ, on_delete=models.CASCADE, related_name='items')
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -400,7 +444,7 @@ class PurchaseRFQItem(models.Model):
         return f"{self.rfq.rfq_number} - {self.component.part_number}"
 
 class PurchaseRFQSupplier(models.Model):
-    rfq_supplier_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rfq_supplier_id = models.AutoField(primary_key=True)
     rfq = models.ForeignKey(PurchaseRFQ, on_delete=models.CASCADE, related_name='suppliers')
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
     sent_date = models.DateTimeField(blank=True, null=True)
@@ -414,7 +458,7 @@ class PurchaseRFQSupplier(models.Model):
         return f"{self.rfq.rfq_number} - {self.supplier.name}"
 
 class SupplierResponse(models.Model):
-    response_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    response_id = models.AutoField(primary_key=True)
     rfq_supplier = models.ForeignKey(PurchaseRFQSupplier, on_delete=models.CASCADE, related_name='responses')
     rfq_item = models.ForeignKey(PurchaseRFQItem, on_delete=models.CASCADE)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
@@ -438,7 +482,7 @@ class PurchaseOrder(models.Model):
         ('cancelled', 'Cancelled'),
     )
     
-    po_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    po_id = models.AutoField(primary_key=True)
     po_number = models.CharField(max_length=50, unique=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
     rfq = models.ForeignKey(PurchaseRFQ, on_delete=models.SET_NULL, null=True, blank=True)
@@ -481,7 +525,7 @@ class PurchaseOrder(models.Model):
         return self.po_number
 
 class PurchaseOrderItem(models.Model):
-    item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    item_id = models.AutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -513,7 +557,7 @@ class GoodsReceivedNote(models.Model):
         ('rejected', 'Rejected'),
     )
     
-    grn_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    grn_id = models.AutoField(primary_key=True)
     grn_number = models.CharField(max_length=50, unique=True)
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='purchase_order_grns')
     received_date = models.DateField()
@@ -545,7 +589,7 @@ class GoodsReceivedNote(models.Model):
         return self.grn_number
 
 class GRNItem(models.Model):
-    item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    item_id = models.AutoField(primary_key=True)
     grn = models.ForeignKey(GoodsReceivedNote, on_delete=models.CASCADE, related_name='items')
     po_item = models.ForeignKey(PurchaseOrderItem, on_delete=models.CASCADE)
     quantity_received = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -592,7 +636,7 @@ class SupplierInvoice(models.Model):
         ('cancelled', 'Cancelled'),
     )
     
-    invoice_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice_id = models.AutoField(primary_key=True)
     invoice_number = models.CharField(max_length=100)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='invoices')
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_order_invoices')

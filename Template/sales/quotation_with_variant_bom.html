@@ -40,37 +40,6 @@
 
 {% block page_title %}Create Quotation with Variant BOM{% endblock %}
 
-
-
-{% block extra_js %}
-    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            // Load BOM details when selected
-            $('#id_bom').change(function() {
-                const bomId = $(this).val();
-                if (bomId) {
-                    $.ajax({
-                        url: "{% url 'calculate_bom_cost_ajax' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', bomId),
-                        success: function(data) {
-                            $('#bom-cost').text(data.cost);
-                            $('#bom-selling-price').text(data.selling_price);
-                        }
-                    });
-                } else {
-                    $('#bom-cost').text('0.00');
-                    $('#bom-selling-price').text('0.00');
-                }
-            });
-        });
-    </script>
-{% endblock %}
-
 {% block content %}
     <div class="card">
         <div class="card-body">
@@ -86,7 +55,7 @@
                                 <select name="bom_id" id="id_bom" class="form-select" required>
                                     <option value="">Select a BOM</option>
                                     {% for bom in boms %}
-                                    <option value="{{ bom.bom_id }}">{{ bom.name }} - {{ bom.description }}</option>
+                                    <option value="{{ bom.id }}">{{ bom.name }} - {{ bom.description }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -166,6 +135,35 @@
     });
   </script>
 {% endif %}
+
+ <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Load BOM details when selected
+            $('#id_bom').change(function() {
+                debugger;
+                const bomId = $(this).val();
+                if (bomId) {
+                    $.ajax({
+                        url: "{% url 'calculate_bom_cost_ajax' '0' %}".replace('0', bomId),
+                        success: function(data) {
+                            debugger;
+                            $('#bom-cost').text(data.cost);
+                            $('#bom-selling-price').text(data.selling_price);
+                        }
+                    });
+                } else {
+                    $('#bom-cost').text('0.00');
+                    $('#bom-selling-price').text('0.00');
+                }
+            });
+        });
+    </script>
 
 {% endblock %}
 

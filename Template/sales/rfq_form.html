@@ -78,7 +78,7 @@
                 
                 if (componentId) {
                     $.ajax({
-                        url: "{% url 'get_component_details' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', componentId),
+                        url: "{% url 'get_component_details' 0 %}".replace('0', componentId),
                         success: function(data) {
                             row.find('textarea[name$="-description"]').val(data.description);
                         }
@@ -93,7 +93,7 @@
                 
                 if (bomId) {
                     $.ajax({
-                        url: "{% url 'get_bom_details' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', bomId),
+                        url: "{% url 'get_bom_details' '0' %}".replace('0', bomId),
                         success: function(data) {
                             row.find('textarea[name$="-description"]').val(data.description);
                         }
@@ -441,10 +441,10 @@
             $(template).find('.component-select').change(function() {
                 const componentId = $(this).val();
                 const row = $(this).closest('.form-row');
-                
+
                 if (componentId) {
                     $.ajax({
-                        url: "{% url 'get_component_details' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', componentId),
+                        url: "{% url 'get_component_details' 0 %}".replace('0', componentId),
                         success: function(data) {
                             row.find('textarea[name$="-description"]').val(data.description);
                         }
@@ -458,7 +458,7 @@
                 
                 if (bomId) {
                     $.ajax({
-                        url: "{% url 'get_bom_details' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', bomId),
+                        url: "{% url 'get_bom_details' '0' %}".replace('0', bomId),
                         success: function(data) {
                             row.find('textarea[name$="-description"]').val(data.description);
                         }

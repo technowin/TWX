@@ -1,0 +1,795 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+    .item-row {
+        background-color: var(--bs-light);
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid var(--bs-border-color);
+    }
+    .calculation-row {
+        font-weight: bold;
+        background-color: var(--bs-info-bg-subtle);
+    }
+    .required-label:after {
+        content: " *";
+        color: var(--bs-danger);
+    }
+    .dynamic-price {
+        background-color: var(--bs-success-bg-subtle);
+    }
+</style>
+
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{{ title }}</h3>
+                    <div class="card-tools">
+                        <a href="{% url 'quotation_list' %}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <form method="post" id="quotationForm">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.customer.id_for_label }}" class="{% if form.customer.field.required %}required-label{% endif %}">Customer</label>
+                                    {{ form.customer }}
+                                    {% if form.customer.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.customer.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.quotation_date.id_for_label }}" class="{% if form.quotation_date.field.required %}required-label{% endif %}">Quotation Date</label>
+                                    {{ form.quotation_date }}
+                                    {% if form.quotation_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.quotation_date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">        
+                                <div class="form-group">
+                                    <label for="{{ form.expiry_date.id_for_label }}" class="{% if form.expiry_date.field.required %}required-label{% endif %}">Expiry Date</label>
+                                    {{ form.expiry_date }}
+                                    {% if form.expiry_date.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.expiry_date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.currency.id_for_label }}" class="{% if form.currency.field.required %}required-label{% endif %}">Currency</label>
+                                    {{ form.currency }}
+                                    {% if form.currency.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.currency.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.status.id_for_label }}" class="{% if form.status.field.required %}required-label{% endif %}">Status</label>
+                                    {{ form.status }}
+                                    {% if form.status.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.status.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.payment_terms.id_for_label }}" class="{% if form.payment_terms.field.required %}required-label{% endif %}">Payment Terms</label>
+                                    {{ form.payment_terms }}
+                                    {% if form.payment_terms.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.payment_terms.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">    
+                                <div class="form-group">
+                                    <label for="{{ form.incoterms.id_for_label }}">Incoterms</label>
+                                    {{ form.incoterms }}
+                                    {% if form.incoterms.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.incoterms.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.delivery_time.id_for_label }}">Delivery Time</label>
+                                    {{ form.delivery_time }}
+                                    {% if form.delivery_time.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.delivery_time.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="{{ form.notes.id_for_label }}">Notes</label>
+                                    {{ form.notes }}
+                                    {% if form.notes.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.notes.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h4 class="mb-3">Quotation Items</h4>
+                        
+                        {{ formset.management_form }}
+                        <div id="items-formset">
+                            {% for form in formset %}
+                                <div class="item-row" id="item-{{ forloop.counter0 }}">
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="{{ form.item_type.id_for_label }}" class="{% if form.item_type.field.required %}required-label{% endif %}">Item Type</label>
+                                                {{ form.item_type }}
+                                                {% if form.item_type.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.item_type.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 component-selector">
+                                            <div class="form-group component-field" style="display: {% if form.item_type.value == 'part' or not form.item_type.value %}block{% else %}none{% endif %};">
+                                                <label for="{{ form.component.id_for_label }}" class="{% if form.component.field.required %}required-label{% endif %}">Component</label>
+                                                {{ form.component }}
+                                                {% if form.component.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.component.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="form-group bom-field" style="display: {% if form.item_type.value == 'product' %}block{% else %}none{% endif %};">
+                                                <label for="{{ form.bom.id_for_label }}" class="{% if form.bom.field.required %}required-label{% endif %}">BOM/Product</label>
+                                                {{ form.bom }}
+                                                {% if form.bom.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.bom.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-1">
+                                            {% if formset.can_delete %}
+                                                <div class="form-group">
+                                                    <label>Delete</label>
+                                                    {{ form.DELETE }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div class="form-group">
+                                                <label for="{{ form.description.id_for_label }}" class="{% if form.description.field.required %}required-label{% endif %}">Description</label>
+                                                {{ form.description }}
+                                                {% if form.description.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.description.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <div class="form-group">
+                                                <label for="{{ form.quantity.id_for_label }}" class="{% if form.quantity.field.required %}required-label{% endif %}">Quantity</label>
+                                                {{ form.quantity }}
+                                                {% if form.quantity.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.quantity.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <div class="form-group">
+                                                <label for="{{ form.unit_price.id_for_label }}" class="{% if form.unit_price.field.required %}required-label{% endif %}">Unit Price</label>
+                                                {{ form.unit_price }}
+                                                {% if form.unit_price.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.unit_price.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-2 offset-md-8">
+                                            <div class="form-group">
+                                                <label for="{{ form.tax_rate.id_for_label }}" class="{% if form.tax_rate.field.required %}required-label{% endif %}">Tax Rate (%)</label>
+                                                {{ form.tax_rate }}
+                                                {% if form.tax_rate.errors %}
+                                                    <div class="text-danger">
+                                                        {% for error in form.tax_rate.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <div class="form-group">
+                                                <label>Line Total</label>
+                                                <input type="text" class="form-control line-total" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <button type="button" id="add-item" class="btn btn-sm btn-primary mt-3">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                        
+                        <hr>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-6 offset-md-6">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <tr>
+                                            <td class="text-end">Subtotal:</td>
+                                            <td class="text-end" id="subtotal">0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-end">Tax Amount:</td>
+                                            <td class="text-end" id="tax-amount">0.00</td>
+                                        </tr>
+                                        <tr class="calculation-row">
+                                            <td class="text-end">Total Amount:</td>
+                                            <td class="text-end" id="total-amount">0.00</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Quotation
+                        </button>
+                        <a href="{% url 'quotation_list' %}" class="btn btn-secondary">Cancel</a>
+                        
+                        {% if quotation and quotation.quotation_id %}
+                        <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-info">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize variables
+        const formsetDiv = document.getElementById('items-formset');
+        const addButton = document.getElementById('add-item');
+        const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+        let formCount = parseInt(totalForms.value);
+        
+        // Create a template for new items if none exist
+        function createEmptyItemTemplate() {
+            return `
+                <div class="item-row">
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Item Type</label>
+                                <select name="items-__prefix__-item_type" class="form-select item-type-select">
+                                    <option value="part">Part</option>
+                                    <option value="product">Product</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 component-selector">
+                            <div class="form-group component-field">
+                                <label>Component</label>
+                                <select name="items-__prefix__-component" class="form-select component-select">
+                                    <option value="">---------</option>
+                                    {% for component in components %}
+                                    <option value="{{ component.id }}">{{ component.part_number }} - {{ component.description }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="form-group bom-field" style="display: none;">
+                                <label>BOM/Product</label>
+                                <select name="items-__prefix__-bom" class="form-select bom-select">
+                                    <option value="">---------</option>
+                                    {% for bom in boms %}
+                                    <option value="{{ bom.id }}">{{ bom.name }} - {{ bom.description }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-1">
+                            <div class="form-group">
+                                <label>Delete</label>
+                                <input type="checkbox" name="items-__prefix__-DELETE">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea name="items-__prefix__-description" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" name="items-__prefix__-quantity" class="form-control" value="1" min="1">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Unit Price</label>
+                                <input type="number" name="items-__prefix__-unit_price" class="form-control" value="0.00" step="0.01" min="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-2 offset-md-8">
+                            <div class="form-group">
+                                <label>Tax Rate (%)</label>
+                                <input type="number" name="items-__prefix__-tax_rate" class="form-control" value="0.00" step="0.01" min="0">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Line Total</label>
+                                <input type="text" class="form-control line-total" readonly value="0.00">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add new item form
+        addButton.addEventListener('click', function() {
+            const newIndex = formCount;
+            let newFormHtml;
+            
+            // Check if we have existing forms to clone
+            const existingForms = document.querySelectorAll('.item-row');
+            if (existingForms.length > 0) {
+                const newForm = existingForms[0].cloneNode(true);
+                
+                // Update all the names and IDs in the cloned form
+                newForm.innerHTML = newForm.innerHTML.replace(/items-\d+-/g, `items-${newIndex}-`);
+                newForm.innerHTML = newForm.innerHTML.replace(/items\.\d+\./g, `items.${newIndex}.`);
+                newForm.id = `item-${newIndex}`;
+                
+                // Clear values
+                newForm.querySelectorAll('input, select, textarea').forEach(function(field) {
+                    if (field.type !== 'hidden' && field.name !== 'DELETE') {
+                        if (field.type === 'checkbox' || field.type === 'radio') {
+                            field.checked = false;
+                        } else {
+                            field.value = '';
+                        }
+                    }
+                });
+                
+                // Reset display of component/BOM fields based on item type
+                const itemTypeSelect = newForm.querySelector('.item-type-select');
+                if (itemTypeSelect) {
+                    itemTypeSelect.value = 'part';
+                    toggleComponentBomFields(itemTypeSelect);
+                }
+                
+                // Add delete functionality
+                const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = false;
+                    deleteCheckbox.addEventListener('change', function() {
+                        newForm.style.display = this.checked ? 'none' : 'block';
+                        calculateTotals();
+                    });
+                }
+                
+                // Add event listeners for calculations
+                addCalculationListeners(newForm);
+                
+                // Append the new form
+                formsetDiv.appendChild(newForm);
+            } else {
+                // Create a new form from template
+                newFormHtml = createEmptyItemTemplate().replace(/__prefix__/g, newIndex);
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = newFormHtml;
+                const newForm = tempDiv.firstElementChild;
+                newForm.id = `item-${newIndex}`;
+                
+                // Add event listeners for calculations
+                addCalculationListeners(newForm);
+                
+                // Append the new form
+                formsetDiv.appendChild(newForm);
+            }
+            
+            // Update form count
+            formCount++;
+            totalForms.value = formCount;
+        });
+        
+        // Toggle between component and BOM fields based on item type
+        function toggleComponentBomFields(selectElement) {
+            const parentRow = selectElement.closest('.item-row');
+            const componentField = parentRow.querySelector('.component-field');
+            const bomField = parentRow.querySelector('.bom-field');
+            
+            if (selectElement.value === 'part') {
+                componentField.style.display = 'block';
+                bomField.style.display = 'none';
+                // Clear BOM field
+                if (bomField.querySelector('select')) {
+                    bomField.querySelector('select').value = '';
+                }
+            } else if (selectElement.value === 'product') {
+                componentField.style.display = 'none';
+                bomField.style.display = 'block';
+                // Clear component field
+                if (componentField.querySelector('select')) {
+                    componentField.querySelector('select').value = '';
+                }
+            }
+            
+            calculateLineTotal(parentRow);
+            calculateTotals();
+        }
+        
+        // Add calculation event listeners to a form row
+        function addCalculationListeners(formRow) {
+            // Item type change
+            const itemTypeSelect = formRow.querySelector('.item-type-select');
+            if (itemTypeSelect) {
+                itemTypeSelect.addEventListener('change', function() {
+                    toggleComponentBomFields(this);
+                });
+            }
+            
+            // Quantity, unit price, and tax rate changes
+            const quantityInput = formRow.querySelector('input[name*="quantity"]');
+            const unitPriceInput = formRow.querySelector('input[name*="unit_price"]');
+            const taxRateInput = formRow.querySelector('input[name*="tax_rate"]');
+            
+            if (quantityInput) {
+                quantityInput.addEventListener('input', function() {
+                    calculateLineTotal(formRow);
+                    calculateTotals();
+                });
+            }
+            
+            if (unitPriceInput) {
+                unitPriceInput.addEventListener('input', function() {
+                    calculateLineTotal(formRow);
+                    calculateTotals();
+                });
+            }
+            
+            if (taxRateInput) {
+                taxRateInput.addEventListener('input', function() {
+                    calculateLineTotal(formRow);
+                    calculateTotals();
+                });
+            }
+            
+            // Component/BOM selection - auto-fill description and price if available
+            const componentSelect = formRow.querySelector('.component-select');
+            const bomSelect = formRow.querySelector('.bom-select');
+            const descriptionField = formRow.querySelector('textarea[name*="description"]');
+            const unitPriceField = formRow.querySelector('input[name*="unit_price"]');
+            
+            if (componentSelect) {
+                componentSelect.addEventListener('change', function() {
+                    if (this.value && descriptionField) {
+                        // In a real application, you would fetch component details via AJAX
+                        // For now, we'll just set a placeholder
+                        descriptionField.value = "" ;
+                        //descriptionField.value = "Component description for ID: " + this.value;
+                        
+                        // Try to get customer-specific pricing if we have a customer
+                        const customerId = document.getElementById('id_customer');
+                        if (customerId && customerId.value && unitPriceField) {
+                            // This would be an AJAX call in a real implementation
+                            // For demo purposes, we'll set a random price
+                            //unitPriceField.value = (Math.random() * 100 + 10).toFixed(2);
+                            calculateLineTotal(formRow);
+                            calculateTotals();
+                        }
+                    }
+                });
+            }
+            
+            if (bomSelect) {
+                bomSelect.addEventListener('change', function() {
+                    if (this.value && descriptionField) {
+                        // In a real application, you would fetch BOM details via AJAX
+                        descriptionField.value = "BOM description for ID: " + this.value;
+                        
+                        // Calculate BOM cost with markup
+                        const customerId = document.getElementById('id_customer');
+                        if (customerId && customerId.value && unitPriceField) {
+                            // This would be an AJAX call in a real implementation
+                            unitPriceField.value = (Math.random() * 500 + 50).toFixed(2);
+                            calculateLineTotal(formRow);
+                            calculateTotals();
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Calculate line total for a specific row
+        function calculateLineTotal(formRow) {
+            const quantityInput = formRow.querySelector('input[name*="quantity"]');
+            const unitPriceInput = formRow.querySelector('input[name*="unit_price"]');
+            const taxRateInput = formRow.querySelector('input[name*="tax_rate"]');
+            const lineTotalInput = formRow.querySelector('.line-total');
+            
+            if (!quantityInput || !unitPriceInput || !taxRateInput || !lineTotalInput) return 0;
+            
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+            const taxRate = parseFloat(taxRateInput.value) || 0;
+            
+            const lineTotal = quantity * unitPrice * (1 + taxRate / 100);
+            lineTotalInput.value = lineTotal.toFixed(2);
+            
+            return lineTotal;
+        }
+        
+        // Calculate all totals
+        function calculateTotals() {
+            let subtotal = 0;
+            let taxAmount = 0;
+            
+            document.querySelectorAll('.item-row').forEach(function(row) {
+                if (row.style.display !== 'none') {
+                    const quantityInput = row.querySelector('input[name*="quantity"]');
+                    const unitPriceInput = row.querySelector('input[name*="unit_price"]');
+                    const taxRateInput = row.querySelector('input[name*="tax_rate"]');
+                    
+                    if (!quantityInput || !unitPriceInput || !taxRateInput) return;
+                    
+                    const quantity = parseFloat(quantityInput.value) || 0;
+                    const unitPrice = parseFloat(unitPriceInput.value) || 0;
+                    const taxRate = parseFloat(taxRateInput.value) || 0;
+                    
+                    const lineSubtotal = quantity * unitPrice;
+                    const lineTax = lineSubtotal * (taxRate / 100);
+                    
+                    subtotal += lineSubtotal;
+                    taxAmount += lineTax;
+                }
+            });
+            
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+            document.getElementById('tax-amount').textContent = taxAmount.toFixed(2);
+            document.getElementById('total-amount').textContent = (subtotal + taxAmount).toFixed(2);
+        }
+        
+        // Initialize event listeners for existing forms
+        document.querySelectorAll('.item-row').forEach(function(row) {
+            addCalculationListeners(row);
+            
+            // Set up delete functionality
+            const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.addEventListener('change', function() {
+                    row.style.display = this.checked ? 'none' : 'block';
+                    calculateTotals();
+                });
+            }
+        });
+        
+        // Initial calculation
+        calculateTotals();
+        
+        // Customer change event - could be used to update pricing
+        const customerSelect = document.getElementById('id_customer');
+        if (customerSelect) {
+            customerSelect.addEventListener('change', function() {
+                // In a real application, you might want to update prices based on customer
+                document.querySelectorAll('.item-row').forEach(function(row) {
+                    calculateLineTotal(row);
+                });
+                calculateTotals();
+            });
+        }
+    });
+</script>
+
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}
