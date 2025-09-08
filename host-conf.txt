@@ -268,3 +268,7 @@ click on ok and restart Vscode
 
 
 pip install django-widget-tweaks
+
+pip install weasyprint
+
+https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
