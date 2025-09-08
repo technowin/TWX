@@ -1,0 +1,279 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Send Purchase RFQ - {{ rfq.rfq_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Send Purchase RFQ</h1>
+        <a href="{% url 'purchase_rfq_detail' pk=rfq.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to RFQ Details
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">RFQ Information</h6>
+            <span class="badge bg-{% if rfq.status == 'draft' %}warning{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'received' %}success{% else %}secondary{% endif %}">
+                {{ rfq.get_status_display }}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <p><strong>RFQ Number:</strong> {{ rfq.rfq_number }}</p>
+                    <p><strong>Title:</strong> {{ rfq.title }}</p>
+                    {% if rfq.requisition %}
+                    <p><strong>Requisition:</strong> {{ rfq.requisition.requisition_number }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Created By:</strong> {{ rfq.created_by.get_full_name|default:rfq.created_by.username }}</p>
+                    <p><strong>Created Date:</strong> {{ rfq.created_date|date:"M d, Y H:i" }}</p>
+                    <p><strong>Last Modified:</strong> {{ rfq.last_modified|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+            
+            {% if rfq.description %}
+            <div class="row">
+                <div class="col-12">
+                    <p><strong>Description:</strong></p>
+                    <div class="border rounded p-3 bg-light">
+                        {{ rfq.description|linebreaks }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">RFQ Items</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Part Number</th>
+                            <th>Component Name</th>
+                            <th>Quantity</th>
+                            <th>Required Date</th>
+                            <th>Specifications</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in rfq.items.all %}
+                        <tr>
+                            <td>{{ item.component.part_number }}</td>
+                            <td>{{ item.component.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.required_date|date:"M d, Y" }}</td>
+                            <td>{{ item.specifications|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No items added to this RFQ</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Suppliers</h6>
+        </div>
+        <div class="card-body">
+            {% if rfq.suppliers.all %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in rfq.suppliers.all %}
+                        <tr>
+                            <td>{{ supplier.supplier.name }}</td>
+                            <td>{{ supplier.supplier.contact_person|default:"-" }}</td>
+                            <td>{{ supplier.supplier.email|default:"-" }}</td>
+                            <td>{{ supplier.supplier.phone|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if supplier.status == 'pending' %}warning{% elif supplier.status == 'sent' %}info{% elif supplier.status == 'responded' %}success{% else %}secondary{% endif %}">
+                                    {{ supplier.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                No suppliers have been added to this RFQ. Please add suppliers before sending.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if rfq.suppliers.all %}
+    <div class="card shadow">
+        <div class="card-header py-3 bg-warning">
+            <h6 class="m-0 font-weight-bold text-dark">Send Confirmation</h6>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                This action will mark the RFQ as sent and record the sent date for all suppliers. 
+                Are you sure you want to proceed?
+            </div>
+            
+            <form method="post" id="sendRfqForm">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="message" class="form-label">Custom Message (Optional)</label>
+                    <textarea class="form-control" id="message" name="message" rows="4" 
+                              placeholder="Add a custom message to be included in the email to suppliers..."></textarea>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="confirmSend" required>
+                    <label class="form-check-label" for="confirmSend">
+                        I confirm that I want to send this RFQ to all selected suppliers
+                    </label>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'purchase_rfq_detail' pk=rfq.pk %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i> Send RFQ to Suppliers
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Cannot send RFQ without any suppliers. Please add suppliers to this RFQ first.
+    </div>
+    <div class="text-center mt-4">
+        <a href="{% url 'purchase_rfq_edit' pk=rfq.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i> Edit RFQ to Add Suppliers
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.getElementById('sendRfqForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (!document.getElementById('confirmSend').checked) {
+                    e.preventDefault();
+                    alert('Please confirm that you want to send this RFQ to suppliers.');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,492 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+{% load widget_tweaks static %}
+
+{% block title %}{{ title }} - ERP System{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+
+
+{% block extra_js %}
+    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Handle item type change
+            $('.item-type-select').change(function() {
+                const row = $(this).closest('.form-row');
+                const itemType = $(this).val();
+                
+                if (itemType === 'part') {
+                    row.find('.component-select').closest('.col').show();
+                    row.find('.bom-select').closest('.col').hide();
+                } else if (itemType === 'product') {
+                    row.find('.component-select').closest('.col').hide();
+                    row.find('.bom-select').closest('.col').show();
+                } else {
+                    row.find('.component-select').closest('.col').hide();
+                    row.find('.bom-select').closest('.col').hide();
+                }
+            });
+            
+            // Trigger change on page load
+            $('.item-type-select').trigger('change');
+            
+            // Get component details when component is selected
+            $('.component-select').change(function() {
+                const componentId = $(this).val();
+                const row = $(this).closest('.form-row');
+                
+                if (componentId) {
+                    $.ajax({
+                        url: "{% url 'get_component_details' 0 %}".replace('0', componentId),
+                        success: function(data) {
+                            row.find('textarea[name$="-description"]').val(data.description);
+                        }
+                    });
+                }
+            });
+            
+            // Get BOM details when BOM is selected
+            $('.bom-select').change(function() {
+                const bomId = $(this).val();
+                const row = $(this).closest('.form-row');
+                
+                if (bomId) {
+                    $.ajax({
+                        url: "{% url 'get_bom_details' '0' %}".replace('0', bomId),
+                        success: function(data) {
+                            row.find('textarea[name$="-description"]').val(data.description);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="form-section">
+                    <h5>RFQ Information</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.customer.id_for_label }}" class="form-label">Customer</label>
+                                {% render_field form.customer class="form-select" %}
+                                {% if form.customer.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.customer.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.rfq_date.id_for_label }}" class="form-label">RFQ Date</label>
+                                {% render_field form.rfq_date class="form-control" %}
+                                {% if form.rfq_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.rfq_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.contact_person.id_for_label }}" class="form-label">Contact Person</label>
+                                {% render_field form.contact_person class="form-control" %}
+                                {% if form.contact_person.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.contact_person.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.required_by_date.id_for_label }}" class="form-label">Required By Date</label>
+                                {% render_field form.required_by_date class="form-control" %}
+                                {% if form.required_by_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.required_by_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                {% render_field form.email class="form-control" %}
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                                {% render_field form.phone class="form-control" %}
+                                {% if form.phone.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.phone.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.currency.id_for_label }}" class="form-label">Currency</label>
+                                {% render_field form.currency class="form-select" %}
+                                {% if form.currency.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.currency.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {% render_field form.status class="form-select" %}
+                                {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.status.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.attachment.id_for_label }}" class="form-label">Attachment</label>
+                        {% render_field form.attachment class="form-control" %}
+                        {% if form.attachment.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.attachment.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                        {% render_field form.notes class="form-control" rows="3" %}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.notes.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h5>RFQ Items</h5>
+                    {{ formset.management_form }}
+                    <div id="items-formset">
+                        {% for form in formset %}
+                        <div class="form-row border-bottom pb-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="{{ form.item_type.id_for_label }}" class="form-label">Item Type</label>
+                                        {% render_field form.item_type class="form-select item-type-select" %}
+                                        {% if form.item_type.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.item_type.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 component-col">
+                                    <div class="mb-3">
+                                        <label for="{{ form.component.id_for_label }}" class="form-label">Component</label>
+                                        {% render_field form.component class="form-select component-select" %}
+                                        {% if form.component.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.component.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3 bom-col">
+                                    <div class="mb-3">
+                                        <label for="{{ form.bom.id_for_label }}" class="form-label">BOM</label>
+                                        {% render_field form.bom class="form-select bom-select" %}
+                                        {% if form.bom.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.bom.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="{{ form.quantity.id_for_label }}" class="form-label">Quantity</label>
+                                        {% render_field form.quantity class="form-control" %}
+                                        {% if form.quantity.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.quantity.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ form.target_price.id_for_label }}" class="form-label">Target Price</label>
+                                        {% render_field form.target_price class="form-control" %}
+                                        {% if form.target_price.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.target_price.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="{{ form.specifications.id_for_label }}" class="form-label">Specifications</label>
+                                        {% render_field form.specifications class="form-control" rows="2" %}
+                                        {% if form.specifications.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.specifications.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {% render_field form.notes class="form-control" rows="2" %}
+                                {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if form.DELETE %}
+                            <div class="form-check">
+                                {% render_field form.DELETE class="form-check-input" %}
+                                <label for="{{ form.DELETE.id_for_label }}" class="form-check-label">Delete</label>
+                            </div>
+                            {% endif %}
+                            
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-secondary" id="add-item">
+                        <i class="bi bi-plus"></i> Add Item
+                    </button>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'rfq_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save RFQ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+    <script>
+        // Add new item form
+        document.getElementById('add-item').addEventListener('click', function() {
+            const formCount = document.getElementById('id_items-TOTAL_FORMS');
+            const formCountValue = parseInt(formCount.value);
+            const formsetContainer = document.getElementById('items-formset');
+            
+            // Clone the first form (template)
+            const template = document.querySelector('.form-row').cloneNode(true);
+            
+            // Update all field names and IDs
+            template.querySelectorAll('input, select, textarea').forEach(function(input) {
+                const name = input.name.replace(/items-\d+-/, `items-${formCountValue}-`);
+                const id = input.id.replace(/items-\d+-/, `items-${formCountValue}-`);
+                
+                input.name = name;
+                input.id = id;
+                
+                // Clear values
+                if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                    input.value = '';
+                } else if (input.tagName === 'SELECT') {
+                    input.selectedIndex = 0;
+                }
+                
+                // Update labels
+                const label = template.querySelector(`label[for="${input.id}"]`);
+                if (label) {
+                    label.htmlFor = id;
+                }
+            });
+            
+            // Clear any error messages
+            template.querySelectorAll('.invalid-feedback').forEach(function(el) {
+                el.remove();
+            });
+            
+            // Append the new form
+            formsetContainer.appendChild(template);
+            
+            // Update form count
+            formCount.value = formCountValue + 1;
+            
+            // Reinitialize Select2 and event handlers
+            $(template).find('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            $(template).find('.item-type-select').change(function() {
+                const row = $(this).closest('.form-row');
+                const itemType = $(this).val();
+                
+                if (itemType === 'part') {
+                    row.find('.component-select').closest('.col').show();
+                    row.find('.bom-select').closest('.col').hide();
+                } else if (itemType === 'product') {
+                    row.find('.component-select').closest('.col').hide();
+                    row.find('.bom-select').closest('.col').show();
+                } else {
+                    row.find('.component-select').closest('.col').hide();
+                    row.find('.bom-select').closest('.col').hide();
+                }
+            }).trigger('change');
+            
+            $(template).find('.component-select').change(function() {
+                const componentId = $(this).val();
+                const row = $(this).closest('.form-row');
+
+                if (componentId) {
+                    $.ajax({
+                        url: "{% url 'get_component_details' 0 %}".replace('0', componentId),
+                        success: function(data) {
+                            row.find('textarea[name$="-description"]').val(data.description);
+                        }
+                    });
+                }
+            });
+            
+            $(template).find('.bom-select').change(function() {
+                const bomId = $(this).val();
+                const row = $(this).closest('.form-row');
+                
+                if (bomId) {
+                    $.ajax({
+                        url: "{% url 'get_bom_details' '0' %}".replace('0', bomId),
+                        success: function(data) {
+                            row.find('textarea[name$="-description"]').val(data.description);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

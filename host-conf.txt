@@ -196,6 +196,10 @@ python manage.py startapp LMS
 python manage.py makemigrations LMS
 python manage.py migrate LMS
 
+python manage.py startapp SalesPurchase
+python manage.py makemigrations SalesPurchase
+python manage.py migrate SalesPurchase
+
 curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"
@@ -261,3 +265,6 @@ in variable name put PYTHONDONTWRITEBYTECODE
 and in variable value put 1
 
 click on ok and restart Vscode
+
+
+pip install django-widget-tweaks
