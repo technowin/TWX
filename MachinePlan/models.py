@@ -202,7 +202,7 @@ class MachineScheduling(models.Model):
         ordering = ['scheduled_start']
     
     def __str__(self):
-        return f"{self.production_order} - {self.routing.operation} on {self.machine}"
+        return f"{self.production_order} - {self.routing.operation} on {self.machine} - {self.seq}"
     
     def get_absolute_url(self):
         return reverse('machine_scheduling_list')
