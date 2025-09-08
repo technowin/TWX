@@ -839,7 +839,7 @@ def manpower_dashboard(request):
     
     # Shift distribution - now considering Routing connections
     shift_distribution = LaborAssignment.objects.filter(
-        date__range=[start_of_week, end_of_week]
+        start_date__range=[start_of_week, end_of_week]
     ).values('shift__shift_name').annotate(
         total=Count('id')
     ).order_by('shift__start_time')
