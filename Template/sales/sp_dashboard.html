@@ -33,6 +33,19 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+.bg-purple {
+    background-color: #6f42c1 !important; /* deep purple */
+    color: #fff !important;
+}
+
+.bg-cyan {
+    background-color: #1c5ce7ff !important; /* cyan/blue-green */
+    color: #fff !important;
+}
+</style>
+
 {% endblock %}
 
 {% block title %}Dashboard - ERP System{% endblock %}
@@ -170,7 +183,7 @@
         </div>
         
         <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-dark text-white">
+            <div class="card bg-purple text-white">
                 <div class="card-body">
                     <h5 class="card-title">GRNs</h5>
                     <h2 class="card-text">{{ grn_count }}</h2>
@@ -180,11 +193,11 @@
         </div>
         
         <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-light text-dark">
+            <div class="card bg-cyan text-white">
                 <div class="card-body">
                     <h5 class="card-title">Supplier Invoices</h5>
                     <h2 class="card-text">{{ supplier_invoice_count }}</h2>
-                    <a href="{% url 'supplier_invoice_list' %}" class="text-dark">View All</a>
+                    <a href="{% url 'supplier_invoice_list' %}" class="text-white">View All</a>
                 </div>
             </div>
         </div>
