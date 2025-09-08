@@ -37,7 +37,7 @@
 
 {% block title %}Invoices - ERP System{% endblock %}
 
-{% block page_title %}Invoices{% endblock %}
+{% block page_title %}<h4>Invoices</h4>{% endblock %}
 
 {% block page_actions %}
     <a href="{% url 'invoice_create' %}" class="btn btn-primary">
@@ -51,7 +51,7 @@
             <form method="get" class="row g-3">
                 <div class="col-md-3">
                     <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select">
+                    <select name="status" id="statusf" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
                         <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
