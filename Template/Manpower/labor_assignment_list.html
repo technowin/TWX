@@ -39,7 +39,7 @@
     </div>
 
     <div class="col-auto mt-2">
-       <{% with po=request.GET.po_order bom=request.GET.bom_header %}
+       {% with po=request.GET.po_order bom=request.GET.bom_header %}
         <a href="{% url 'manpower:labor_assignment_create' %}{% if po and bom %}?po_order={{ po }}&bom_header={{ bom }}&index=1{% elif schedule %}?schedule_id={{ schedule.pk }}{% endif %}">
             <i class="fas fa-plus"></i> Add Assignment
         </a>
@@ -147,9 +147,14 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{% url 'manpower:labor_assignment_edit' assignment.pk %}" class="btn btn-outline-secondary">
+                                {% comment %} <a href="{% url 'manpower:labor_assignment_edit' assignment.pk %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-edit"></i>
+                                </a> {% endcomment %}
+                                <a href="{% url 'manpower:labor_assignment_edit' assignment.pk %}{% if po and bom %}?po_order={{ po }}&bom_header={{ bom }}&index=1{% elif schedule %}?schedule_id={{ schedule.pk }}{% endif %}" 
+                                    class="btn btn-outline-secondary">
                                     <i class="fas fa-edit"></i>
                                 </a>
+
                                 <button class="btn btn-outline-danger delete-btn" data-url="{% url 'manpower:labor_assignment_delete' assignment.pk %}" data-name="assignment for {{ assignment.employee.employee_name }} on {{ assignment.date|date:'Y-m-d' }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -158,7 +163,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center">No labor assignments found</td>
+                        <td colspan="8" class="text-center">No labor assignments found</td>
                     </tr>
                     {% endfor %}
                 </tbody>

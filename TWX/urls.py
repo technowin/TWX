@@ -137,6 +137,7 @@ urlpatterns = [
     # Material Plan CRUD
     path('plans/create/',MaterialPlanCreateView.as_view(), name='plan_create'),
     path('plans/<int:pk>/',MaterialPlanDetailView.as_view(), name='plan_detail'),
+    path('plan_detail/',MaterialPlanDetailViewIndex.as_view(), name='plan_detail_index'),
     path('plans/<int:pk>/update/',MaterialPlanUpdateView.as_view(), name='plan_update'),
     
     # Plan items
@@ -589,6 +590,10 @@ urlpatterns = [
     path("get_bom_item", get_bom_item, name="get_bom_item"),
 
     path("plm_index/", plm_index, name="plm_index"),
+
+    path("update_inventory/", update_inventory, name="update_inventory"),
+
+    path("generate_invoice/", generate_invoice, name="generate_invoice"),
 
 
 

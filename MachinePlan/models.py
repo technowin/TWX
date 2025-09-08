@@ -4,11 +4,13 @@ from django.db import models
 # Create your models here.
 # machineplan/models.py
 from django.db import models
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from BOM.models import BOMHeader
 from django.contrib.auth import get_user_model
 
 from MachinePlan.services import update_production_order_status
+from PLM.models import StatusAction
 
 CustomUser = get_user_model()
 
@@ -178,6 +180,8 @@ class MachinePlanning(models.Model):
     def get_absolute_url(self):
         return reverse('machine_planning_list')
     
+from django.utils.timezone import now
+    
 class MachineScheduling(models.Model):
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
@@ -208,8 +212,28 @@ class MachineScheduling(models.Model):
         return reverse('machine_scheduling_list')
     
     def save(self, *args, **kwargs):
-        # Automatically set work_center from routing
+    # Automatically set work_center from routing
         if self.routing and not self.work_center:
             self.work_center = self.routing.work_center
         super().save(*args, **kwargs)
+
+        # Call your existing logic
         update_production_order_status(self.production_order)
+
+        # --- NEW LOGIC ---
+        if self.production_order and self.component:
+            # Get the last (highest seq) schedule for this order+component
+            last_schedule = (
+                MachineScheduling.objects.filter(
+                    production_order=self.production_order,
+                    component=self.component
+                )
+                .order_by("-seq")  # highest seq
+                .first()
+            )
+
+            if last_schedule and last_schedule.actual_end:
+                # Check if last row's actual_end < now
+                if last_schedule.actual_end < now():
+                    self.production_order.order_status = get_object_or_404(StatusAction, id = 7)
+                    self.production_order.save(update_fields=["order_status"])

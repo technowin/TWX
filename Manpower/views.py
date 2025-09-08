@@ -18,6 +18,7 @@ from django.db.models import Max
 
 
 from MaterialPlan.models import ProductionOrder
+from PLM.models import StatusAction
 
 
 from .models import (
@@ -292,6 +293,7 @@ def delete_labor_requirement(request, pk):
     requirement.delete()
     messages.success(request, "Labor requirement has been deleted.")
     return JsonResponse({'success': True})
+
 class LaborAssignmentListView(LoginRequiredMixin, ListView):
     model = LaborAssignment
     template_name = 'Manpower/labor_assignment_list.html'
@@ -362,19 +364,25 @@ class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
         except AttributeError:
             return None
 
-    def get_initial(self):
-        initial = super().get_initial()
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+
         po_order = self.request.GET.get("po_order")
         bom_header = self.request.GET.get("bom_header")
 
         if po_order and bom_header:
-            schedule = MachineScheduling.objects.filter(
+            schedules = MachineScheduling.objects.filter(
                 production_order__order_number=po_order,
                 component__name=bom_header
-            ).first()
-            if schedule:
-                initial["schedule"] = schedule
-        return initial
+            )
+            if schedules.exists():
+                # Limit dropdown choices to only these schedules
+                form.fields["schedule"].queryset = schedules
+                # Optionally set the first one as initial
+                form.fields["schedule"].initial = schedules.first()
+
+        return form
+
 
     def form_valid(self, form):
         """Custom save logic"""
@@ -391,7 +399,7 @@ class LaborAssignmentCreateUpdateView(LoginRequiredMixin, UpdateView):
 
         # if this assignment belongs to the last sequence
         if schedule.seq == last_seq:
-            production_order.order_status = 4
+            production_order.order_status = get_object_or_404(StatusAction, id =4)
             production_order.save(update_fields=["order_status"])
 
         return response

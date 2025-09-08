@@ -592,6 +592,41 @@ class MachineSchedulingListView(ListView):
         return context
 
 
+# class MachineSchedulingCreateView(CreateView):
+#     model = MachineScheduling
+#     form_class = MachineSchedulingForm
+#     template_name = 'MachinePlan/machine_scheduling_form.html'
+#     success_url = reverse_lazy('mcp:machine_scheduling_list')
+
+#     def get_initial(self):
+#         initial = super().get_initial()
+
+#         # Handle Production Order (dropdown expects pk)
+#         po_order = self.request.GET.get('po_order')
+#         index= self.request.GET.get('index')
+#         if po_order:
+#             try:
+#                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
+#             except ProductionOrder.DoesNotExist:
+#                 pass
+
+#         # Handle Component (dropdown expects pk)
+#         component_name = self.request.GET.get('bom_header')
+#         if component_name:
+#             try:
+#                 initial['component'] = BOMHeader.objects.get(name=component_name).pk
+#             except BOMHeader.DoesNotExist:
+#                 pass
+
+#         return initial
+
+    
+#     def form_valid(self, form):
+#         # Set work_center from routing before saving
+#         if form.cleaned_data['routing']:
+#             form.instance.work_center = form.cleaned_data['routing'].work_center
+#         return super().form_valid(form)
+
 class MachineSchedulingCreateView(CreateView):
     model = MachineScheduling
     form_class = MachineSchedulingForm
@@ -603,6 +638,7 @@ class MachineSchedulingCreateView(CreateView):
 
         # Handle Production Order (dropdown expects pk)
         po_order = self.request.GET.get('po_order')
+        index = self.request.GET.get('index')
         if po_order:
             try:
                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
@@ -619,12 +655,22 @@ class MachineSchedulingCreateView(CreateView):
 
         return initial
 
-    
     def form_valid(self, form):
         # Set work_center from routing before saving
         if form.cleaned_data['routing']:
             form.instance.work_center = form.cleaned_data['routing'].work_center
         return super().form_valid(form)
+
+    def get_success_url(self):
+        index = self.request.GET.get('index')
+        po_order = self.request.GET.get('po_order')
+        bom_header = self.request.GET.get('bom_header')
+
+        if index == "1" and po_order and bom_header:
+            # ✅ Redirect with same params
+            return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
+        return super().get_success_url()
+
 
 class MachineSchedulingUpdateView(UpdateView):
     model = MachineScheduling

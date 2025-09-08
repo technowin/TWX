@@ -155,6 +155,46 @@ class MaterialPlanDetailView(DetailView):
 
 
 
+from django.http import Http404
+
+class MaterialPlanDetailViewIndex(DetailView):
+    model = MaterialPlan
+    template_name = 'MaterialPlan/plan_detail.html'
+    context_object_name = 'plan'
+
+    def get_object(self, queryset=None):
+        po_order = self.request.GET.get("po_order")
+        bom_header = self.request.GET.get("bom_header")
+
+        if not (po_order and bom_header):
+            raise Http404("Production order and component are required")
+
+        plan = MaterialPlan.objects.filter(
+            production_order__order_number=po_order,
+            bom__name=bom_header
+        ).first()
+
+        if not plan:
+            raise Http404("No MaterialPlan found for given criteria")
+
+        return plan
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        plan = self.object  # already set by get_object()
+
+        context.update({
+            "items": plan.items.all().select_related("component", "supplier"),
+            "shortage_alerts": plan.alerts.filter(status="open"),
+            "purchase_requisitions": plan.purchase_requisitions.all().select_related(
+                "component", "supplier"
+            ),
+            "status_choices": MaterialPlanItem.ITEM_STATUS_CHOICES,
+        })
+        return context
+
+
+
 class MaterialPlanUpdateView(UpdateView):
     model = MaterialPlan
     form_class = MaterialPlanForm
