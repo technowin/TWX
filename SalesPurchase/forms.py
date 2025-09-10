@@ -84,25 +84,25 @@ class CustomerPricingForm(BootstrapForm):
         effective_date = cleaned_data.get('effective_date')
         expiry_date = cleaned_data.get('expiry_date')
         price = cleaned_data.get('price')
-        
+
         # Validate that either component or BOM is selected, but not both
         if not component and not bom:
             raise ValidationError("Either component or BOM must be specified.")
-        
+
         if component and bom:
             raise ValidationError("Only one of component or BOM can be specified, not both.")
-        
+
         # Validate price
         if price is not None and price <= 0:
             raise ValidationError("Price must be greater than zero.")
-        
+
         # Validate date ranges
         if effective_date and effective_date < timezone.now().date():
             raise ValidationError("Effective date cannot be in the past.")
-        
+
         if expiry_date and effective_date and expiry_date <= effective_date:
             raise ValidationError("Expiry date must be after effective date.")
-        
+
         return cleaned_data
 
 # Sales Module Forms
@@ -123,19 +123,21 @@ class RFQForm(BootstrapForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'attachment': forms.FileInput(attrs={'class': 'form-control'}),
         }
-    
+
     def clean(self):
         cleaned_data = super().clean()
         rfq_date = cleaned_data.get('rfq_date')
         required_by_date = cleaned_data.get('required_by_date')
-        
+
         if rfq_date and required_by_date:
             if required_by_date < rfq_date:
-                raise ValidationError("Required by date cannot be before RFQ date.")
-            
-            if required_by_date < timezone.now().date():
-                raise ValidationError("Required by date cannot be in the past.")
-        
+                # raise ValidationError("Required by date cannot be before RFQ date.")
+                self.add_error('required_by_date', "Required by date cannot be before RFQ date.")
+
+            elif required_by_date < timezone.now().date():
+                # raise ValidationError("Required by date cannot be in the past.")
+                self.add_error('required_by_date', "Required by date cannot be in the past.")
+
         return cleaned_data
 
 class RFQItemForm(BootstrapForm):
