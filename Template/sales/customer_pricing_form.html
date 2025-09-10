@@ -40,46 +40,6 @@
 
 {% block page_title %}<h4>{{ title }}</h4>{% endblock %}
 
-
-
-{% block extra_js %}
-    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            // Toggle component/BOM fields based on selection
-            $('#id_component').change(function() {
-                if ($(this).val()) {
-                    $('#id_bom').val('').trigger('change');
-                    $('#id_bom').closest('.form-group').hide();
-                } else {
-                    $('#id_bom').closest('.form-group').show();
-                }
-            });
-            
-            $('#id_bom').change(function() {
-                if ($(this).val()) {
-                    $('#id_component').val('').trigger('change');
-                    $('#id_component').closest('.form-group').hide();
-                } else {
-                    $('#id_component').closest('.form-group').show();
-                }
-            });
-            
-            // Trigger change on page load
-            if ($('#id_component').val()) {
-                $('#id_bom').closest('.form-group').hide();
-            } else if ($('#id_bom').val()) {
-                $('#id_component').closest('.form-group').hide();
-            }
-        });
-    </script>
-{% endblock %}
-
 {% block content %}
     <div class="card">
         <div class="card-body">
@@ -184,7 +144,7 @@
         </div>
     </div>
 
-    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 {% if messages %}
@@ -210,6 +170,43 @@
   </script>
 {% endif %}
 
+
+    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Toggle component/BOM fields based on selection
+            $('#id_component').change(function() {
+                if ($(this).val()) {
+                    $('#id_bom').val('').trigger('change');
+                    $('#id_bom').closest('.form-group').hide();
+                } else {
+                    $('#id_bom').closest('.form-group').show();
+                }
+            });
+            
+            $('#id_bom').change(function() {
+                if ($(this).val()) {
+                    $('#id_component').val('').trigger('change');
+                    $('#id_component').closest('.form-group').hide();
+                } else {
+                    $('#id_component').closest('.form-group').show();
+                }
+            });
+            
+            // Trigger change on page load
+            if ($('#id_component').val()) {
+                $('#id_bom').closest('.form-group').hide();
+            } else if ($('#id_bom').val()) {
+                $('#id_component').closest('.form-group').hide();
+            }
+        });
+    </script>
+    
 {% endblock %}
 
 {% block extra_javascript %}
