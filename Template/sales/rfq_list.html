@@ -111,17 +111,17 @@
                             <td>{{ rfq.created_by }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'rfq_detail' rfq.rfq_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'rfq_detail' rfq.rfq_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{% url 'rfq_edit' rfq.rfq_id %}" class="btn btn-outline-secondary">
+                                    <a href="{% url 'rfq_edit' rfq.rfq_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="{% url 'rfq_clone' rfq.rfq_id %}" class="btn btn-outline-info">
+                                    <a href="{% url 'rfq_clone' rfq.rfq_id %}" class="btn btn-info">
                                         <i class="bi bi-copy"></i>
                                     </a>
                                     {% if rfq.status == 'draft' %}
-                                    <a href="{% url 'quotation_from_rfq' rfq.rfq_id %}" class="btn btn-outline-success">
+                                    <a href="{% url 'quotation_from_rfq' rfq.rfq_id %}" class="btn btn-success">
                                         <i class="bi bi-file-earmark-text"></i> Create Quote
                                     </a>
                                     {% endif %}

@@ -167,16 +167,29 @@ html[data-bs-theme=dark][data-topbar-color=dark] {
   --ct-dark-border-subtle: #a1a9b1;
   --ct-white-rgb: 255, 255, 255;
   --ct-black-rgb: 0, 0, 0;
-  --ct-font-sans-serif: "Nunito", sans-serif;
+  /* --ct-font-sans-serif: "Nunito", sans-serif;
   --ct-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --ct-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
   --ct-body-font-family: var(--ct-font-sans-serif);
   --ct-body-font-size: 0.9rem;
-  --ct-body-font-weight: 400;
-  --ct-body-line-height: 1.5;
-  --ct-body-color: #6c757d;
+  --ct-body-font-weight: 400; */
+
+  --ct-font-sans-serif: "Nunito", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ct-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --ct-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+
+  /* Body font */
+  --ct-body-font-family: var(--ct-font-sans-serif);
+  --ct-body-font-size: 1rem; /* 16px, more readable */
+  --ct-body-font-weight: 500; /* slightly bolder */
+  --ct-body-line-height: 1.6; /* balanced spacing */
+  --ct-body-color: #212529; /* dark grey for light mode */
+  --ct-body-bg: #ffffff;
+
+  /* --ct-body-line-height: 1.5; */
+  /* --ct-body-color: #6c757d; */
   --ct-body-color-rgb: 108, 117, 125;
-  --ct-body-bg: #fafbfe;
+  /* --ct-body-bg: #fafbfe; */
   --ct-body-bg-rgb: 250, 251, 254;
   --ct-emphasis-color: rgba(108, 117, 125, 0.75);
   --ct-emphasis-color-rgb: 108, 117, 125;
@@ -226,6 +239,8 @@ html[data-bs-theme=dark][data-topbar-color=dark] {
   --ct-body-color: #aab8c5;
   --ct-body-color-rgb: 170, 184, 197;
   --ct-body-bg: #343a40;
+   /* --ct-body-color: #f1f1f1; brighter for dark background */
+  --ct-body-bg: #121212;
   --ct-body-bg-rgb: 52, 58, 64;
   --ct-emphasis-color: #dee2e6;
   --ct-emphasis-color-rgb: 222, 226, 230;
