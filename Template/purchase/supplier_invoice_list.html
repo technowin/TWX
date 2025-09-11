@@ -44,6 +44,22 @@
         <h4><i class="bi bi-receipt-cutoff"></i> Supplier Invoices </h4>
         <a href="{% url 'supplier_invoice_create' %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-plus-circle"></i> New Supplier Invoice </a>
     </div>
+    <!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4><i class="bi bi-receipt-cutoff"></i> Supplier Invoices </h4>
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <a href="{% url 'supplier_invoice_create' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i> New Supplier Invoice
+                </a>&nbsp;&nbsp;&nbsp;
+                <a href="#" class="btn btn-sm btn-success" id="bulkPaymentBtn" target="_blank">
+                    <i class="bi bi-receipt"></i> Bulk Payment Invoice
+                </a>
+            </div>
+        </div>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -205,6 +221,120 @@
     });
 </script>
 
+
+<script>
+document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) {
+    e.preventDefault();
+
+    Swal.fire({
+        title: '<h3 class="text-success"><i class="bi bi-cloud-upload"></i> Bulk Payment Upload</h3>',
+        html: `
+            <form id="bulkPaymentForm" enctype="multipart/form-data">
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">Select File (Excel/CSV)</label>
+                    <input type="file" class="form-control" name="paymentFile" id="paymentFile" accept=".csv,.xlsx,.xls" required>
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">Payment Date</label>
+                    <input type="date" class="form-control" name="paymentDate" id="paymentDate" required>
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">Remarks</label>
+                    <textarea class="form-control" name="remarks" id="remarks" rows="2" placeholder="Optional"></textarea>
+                </div>
+            </form>
+            <div id="uploadProgress" class="progress mt-3 d-none">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width:0%">0%</div>
+            </div>
+        `,
+        width: 600,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-upload"></i> Upload',
+        cancelButtonText: 'Cancel',
+        customClass: {
+            confirmButton: 'btn btn-success px-4',
+            cancelButton: 'btn btn-secondary px-4'
+        },
+        buttonsStyling: false,
+        preConfirm: () => {
+            const fileInput = document.getElementById("paymentFile");
+            const dateInput = document.getElementById("paymentDate");
+
+            if (!fileInput.files.length) {
+                Swal.showValidationMessage("⚠️ Please select a file to upload.");
+                return false;
+            }
+            if (!dateInput.value) {
+                Swal.showValidationMessage("⚠️ Please select a payment date.");
+                return false;
+            }
+
+            // Return form data
+            return {
+                file: fileInput.files[0],
+                date: dateInput.value,
+                remarks: document.getElementById("remarks").value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let formData = new FormData();
+            formData.append("paymentFile", result.value.file);
+            formData.append("paymentDate", result.value.date);
+            formData.append("remarks", result.value.remarks);
+
+            // Show progress bar
+            document.getElementById("uploadProgress").classList.remove("d-none");
+
+            // Simulate AJAX upload
+            let progressBar = document.querySelector("#uploadProgress .progress-bar");
+            let progress = 0;
+            let uploadInterval = setInterval(() => {
+                progress += 20;
+                progressBar.style.width = progress + "%";
+                progressBar.textContent = progress + "%";
+
+                if (progress >= 100) {
+                    clearInterval(uploadInterval);
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "✅ Upload Successful!",
+                        text: "Your bulk payment file has been uploaded and processed.",
+                        confirmButtonText: "Done",
+                        confirmButtonColor: "#198754"
+                    });
+                }
+            }, 500);
+
+            // ---- Actual AJAX call example (replace with your backend endpoint) ----
+            /*
+            fetch("/upload-bulk-payment/", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                Swal.fire({
+                    icon: "success",
+                    title: "Upload Successful",
+                    text: data.message || "File uploaded successfully!"
+                });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Upload Failed",
+                    text: "Something went wrong. Please try again."
+                });
+            });
+            */
+        }
+    });
+});
+</script>
 
 {% endblock %}
 
