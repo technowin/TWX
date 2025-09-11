@@ -34,35 +34,6 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
 
-<style>
-/* SweetAlert2 theme override for Bootstrap 5 light/dark */
-.swal2-popup {
-    background-color: var(--bs-body-bg) !important;
-    color: var(--bs-body-color) !important;
-    border-radius: 1rem !important;
-    box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.3);
-}
-.swal2-title {
-    color: var(--bs-body-color) !important;
-}
-.swal2-html-container {
-    color: var(--bs-body-color) !important;
-}
-.swal2-input, 
-.swal2-textarea, 
-.swal2-select {
-    background-color: var(--bs-body-bg) !important;
-    color: var(--bs-body-color) !important;
-    border: 1px solid var(--bs-border-color) !important;
-}
-.swal2-input:focus,
-.swal2-textarea:focus {
-    border-color: var(--bs-primary) !important;
-    box-shadow: 0 0 0 .25rem rgba(var(--bs-primary-rgb), .25) !important;
-}
-</style>
-
-
 {% endblock %}
 
 {% block title %}Invoices - ERP System{% endblock %}
@@ -238,24 +209,10 @@
 {% endif %}
 
 <script>
-    // Set today's date as default for date filters
-    document.addEventListener('DOMContentLoaded', function() {
-        const today = new Date().toISOString().split('T')[0];
-        if (!document.getElementById('date_from').value) {
-            // Set date_from to first day of current month
-            const firstDay = new Date();
-            firstDay.setDate(1);
-            document.getElementById('date_from').value = firstDay.toISOString().split('T')[0];
-        }
-        if (!document.getElementById('date_to').value) {
-            document.getElementById('date_to').value = today;
-        }
-    });
-</script>
-
-<script>
-document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) {
+document.getElementById("bulkPaymentBtn").addEventListener("click", function (e) {
     e.preventDefault();
+
+    const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
 
     Swal.fire({
         title: '<h3 class="text-success"><i class="bi bi-cloud-upload"></i> Bulk Payment Upload</h3>',
@@ -264,11 +221,6 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
                 <div class="mb-3 text-start">
                     <label class="form-label fw-bold">Select File (Excel/CSV)</label>
                     <input type="file" class="form-control" name="paymentFile" id="paymentFile" accept=".csv,.xlsx,.xls" required>
-                </div>
-
-                <div class="mb-3 text-start">
-                    <label class="form-label fw-bold">Payment Date</label>
-                    <input type="date" class="form-control" name="paymentDate" id="paymentDate" required>
                 </div>
 
                 <div class="mb-3 text-start">
@@ -284,11 +236,18 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
         showCancelButton: true,
         confirmButtonText: '<i class="bi bi-upload"></i> Upload',
         cancelButtonText: 'Cancel',
+
+        // Theme-aware background & text
+        background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+        color: theme === "dark" ? "#f8f9fa" : "#212529",
+
         customClass: {
-            confirmButton: 'btn btn-success px-4',
-            cancelButton: 'btn btn-outline-secondary px-4'
+            popup: "rounded-4 shadow border-0",
+            confirmButton: "btn btn-success px-4 me-2",
+            cancelButton: "btn btn-outline-secondary px-4"
         },
         buttonsStyling: false,
+
         preConfirm: () => {
             const fileInput = document.getElementById("paymentFile");
             const dateInput = document.getElementById("paymentDate");
@@ -317,9 +276,9 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
 
             // Show progress bar
             document.getElementById("uploadProgress").classList.remove("d-none");
-
             let progressBar = document.querySelector("#uploadProgress .progress-bar");
             let progress = 0;
+
             let uploadInterval = setInterval(() => {
                 progress += 20;
                 progressBar.style.width = progress + "%";
@@ -331,13 +290,20 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
                         icon: "success",
                         title: "✅ Upload Successful!",
                         text: "Your bulk payment file has been uploaded and processed.",
+                        background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                        color: theme === "dark" ? "#f8f9fa" : "#212529",
                         confirmButtonText: "Done",
-                        confirmButtonColor: "#198754"
+                        confirmButtonColor: "#198754",
+                        customClass: {
+                            popup: "rounded-4 shadow border-0",
+                            confirmButton: "btn btn-success px-4"
+                        },
+                        buttonsStyling: false
                     });
                 }
             }, 500);
 
-            // Example AJAX (replace with real backend):
+            // Example AJAX (replace with real endpoint)
             /*
             fetch("/upload-bulk-payment/", {
                 method: "POST",
@@ -348,14 +314,18 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
                 Swal.fire({
                     icon: "success",
                     title: "Upload Successful",
-                    text: data.message || "File uploaded successfully!"
+                    text: data.message || "File uploaded successfully!",
+                    background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                    color: theme === "dark" ? "#f8f9fa" : "#212529"
                 });
             })
             .catch(err => {
                 Swal.fire({
                     icon: "error",
                     title: "Upload Failed",
-                    text: "Something went wrong. Please try again."
+                    text: "Something went wrong. Please try again.",
+                    background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                    color: theme === "dark" ? "#f8f9fa" : "#212529"
                 });
             });
             */
