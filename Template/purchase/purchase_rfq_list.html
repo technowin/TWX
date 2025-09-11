@@ -116,24 +116,24 @@
                             <td>{{ rfq.created_date }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{% url 'purchase_rfq_edit' rfq.rfq_id %}" class="btn btn-outline-secondary">
+                                    <a href="{% url 'purchase_rfq_edit' rfq.rfq_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if rfq.status == 'draft' %}
-                                    <a href="{% url 'purchase_rfq_send' rfq.rfq_id %}" class="btn btn-outline-success">
+                                    <a href="{% url 'purchase_rfq_send' rfq.rfq_id %}" class="btn btn-success">
                                         <i class="bi bi-send"></i> Send
                                     </a>
                                     {% endif %}
                                     {% if rfq.status == 'received' %}
-                                    <a href="/quotations/1/edit/" class="btn btn-outline-success">
+                                    <a href="/quotations/1/edit/" class="btn btn-success">
                                         <i class="bi bi-send"></i> Upload Quotation
                                     </a>
                                     {% endif %}
                                     {% if rfq.status == 'received' %}
-                                    <a href="{% url 'purchase_order_from_rfq' rfq.rfq_id %}" class="btn btn-outline-info">
+                                    <a href="{% url 'purchase_order_from_rfq' rfq.rfq_id %}" class="btn btn-info">
                                         <i class="bi bi-cart-check"></i> Create PO
                                     </a>
                                     {% endif %}

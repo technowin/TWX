@@ -113,17 +113,17 @@
                             <td>{{ quotation.created_by }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{% url 'quotation_edit' quotation.quotation_id %}" class="btn btn-outline-secondary">
+                                    <a href="{% url 'quotation_edit' quotation.quotation_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="{% url 'quotation_pdf' quotation.quotation_id %}" class="btn btn-outline-info" target="_blank">
+                                    <a href="{% url 'quotation_pdf' quotation.quotation_id %}" class="btn btn-info" target="_blank">
                                         <i class="bi bi-download"></i> PDF
                                     </a>
                                     {% if quotation.status == 'accepted' or quotation.status == 'sent' %}
-                                    <a href="{% url 'sales_order_from_quotation' quotation.quotation_id %}" class="btn btn-outline-success">
+                                    <a href="{% url 'sales_order_from_quotation' quotation.quotation_id %}" class="btn btn-success">
                                         <i class="bi bi-cart-check"></i> Create Order
                                     </a>
                                     {% endif %}

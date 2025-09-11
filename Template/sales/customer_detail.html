@@ -196,7 +196,7 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{% url 'rfq_detail' rfq.rfq_id %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'rfq_detail' rfq.rfq_id %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </td>
@@ -211,7 +211,7 @@
             </div>
             {% if customer.rfq_set.count > 5 %}
             <div class="text-center mt-3">
-                <a href="{% url 'rfq_list' %}?customer={{ customer.customer_id }}" class="btn btn-sm btn-outline-primary">
+                <a href="{% url 'rfq_list' %}?customer={{ customer.customer_id }}" class="btn btn-sm btn-primary">
                     View All RFQs
                 </a>
             </div>

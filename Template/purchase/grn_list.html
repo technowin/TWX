@@ -107,19 +107,19 @@
                             <td>{{ grn.verified_by|default:"-" }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'grn_detail' grn.grn_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'grn_detail' grn.grn_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{% url 'grn_edit' grn.grn_id %}" class="btn btn-outline-secondary">
+                                    <a href="{% url 'grn_edit' grn.grn_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if grn.status == 'received' %}
-                                    <a href="{% url 'grn_verify' grn.grn_id %}" class="btn btn-outline-success">
+                                    <a href="{% url 'grn_verify' grn.grn_id %}" class="btn btn-success">
                                         <i class="bi bi-check-circle"></i> Verify
                                     </a>
                                     {% endif %}
                                     {% if grn.status == 'received' or grn.status == 'verified' %}
-                                    <a href="{% url 'supplier_invoice_from_grn' grn.grn_id %}" class="btn btn-outline-info">
+                                    <a href="{% url 'supplier_invoice_from_grn' grn.grn_id %}" class="btn btn-info">
                                         <i class="bi bi-receipt"></i> Create Invoice
                                     </a>
                                     {% endif %}

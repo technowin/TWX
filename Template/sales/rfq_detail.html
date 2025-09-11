@@ -147,7 +147,7 @@
             <h5 class="card-title mb-0">Attachment</h5>
         </div>
         <div class="card-body">
-            <a href="{{ rfq.attachment.url }}" class="btn btn-outline-primary" target="_blank">
+            <a href="{{ rfq.attachment.url }}" class="btn btn-primary" target="_blank">
                 <i class="bi bi-download"></i> Download Attachment
             </a>
         </div>
@@ -248,7 +248,7 @@
                             </td>
                             <td class="text-end">{{ quotation.total_amount }}</td>
                             <td>
-                                <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </td>

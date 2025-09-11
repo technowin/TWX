@@ -80,7 +80,7 @@
                         <tr>
                             <th>Customer PO File</th>
                             <td>
-                                <a href="{{ order.customer_po_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ order.customer_po_file.url }}" target="_blank" class="btn btn-sm btn-primary">
                                     <i class="bi bi-download"></i> Download
                                 </a>
                             </td>
@@ -249,7 +249,7 @@
                             <td class="text-end">{{ invoice.total_amount }}</td>
                             <td class="text-end">{{ invoice.amount_paid }}</td>
                             <td>
-                                <a href="{% url 'invoice_detail' invoice.invoice_id %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'invoice_detail' invoice.invoice_id %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </td>

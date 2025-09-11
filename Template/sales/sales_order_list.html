@@ -113,13 +113,13 @@
                             <td>{{ order.created_by }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'sales_order_detail' order.order_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'sales_order_detail' order.order_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{% url 'sales_order_edit' order.order_id %}" class="btn btn-outline-secondary">
+                                    <a href="{% url 'sales_order_edit' order.order_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="{% url 'invoice_from_sales_order' order.order_id %}" class="btn btn-outline-success">
+                                    <a href="{% url 'invoice_from_sales_order' order.order_id %}" class="btn btn-success">
                                         <i class="bi bi-receipt"></i> Create Invoice
                                     </a>
                                 </div>
