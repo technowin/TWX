@@ -37,25 +37,32 @@
 
 {% block title %}{{ rfq.rfq_number }} - ERP System{% endblock %}
 
-{% block page_title %}<h4>RFQ: {{ rfq.rfq_number }}</h4>{% endblock %}
-
-{% block page_actions %}
-    <div class="btn-group">
-        <a href="{% url 'rfq_edit' rfq.rfq_id %}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil"></i> Edit
-        </a>
-        <a href="{% url 'rfq_clone' rfq.rfq_id %}" class="btn btn-outline-info">
-            <i class="bi bi-copy"></i> Clone
-        </a>
-        {% if rfq.status == 'draft' %}
-        <a href="{% url 'quotation_from_rfq' rfq.rfq_id %}" class="btn btn-success">
-            <i class="bi bi-file-earmark-text"></i> Create Quote
-        </a>
-        {% endif %}
-    </div>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>RFQ: {{ rfq.rfq_number }}</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+    <!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>RFQ: {{ rfq.rfq_number }}</h4>
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <a href="{% url 'rfq_edit' rfq.rfq_id %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                &nbsp;&nbsp;&nbsp;
+                 <a href="{% url 'rfq_clone' rfq.rfq_id %}" class="btn btn-sm btn-info">
+                    <i class="bi bi-copy"></i> Clone
+                </a>
+                &nbsp;&nbsp;&nbsp;
+                {% if rfq.status == 'draft' %}
+                <a href="{% url 'quotation_from_rfq' rfq.rfq_id %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-file-earmark-text"></i> Create Quote
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-6">
             <div class="card mb-4">

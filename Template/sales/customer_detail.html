@@ -37,20 +37,26 @@
 
 {% block title %}{{ customer.name }} - ERP System{% endblock %}
 
-{% block page_title %}<h4>Customer: {{ customer.name }}</h4>{% endblock %}
-
-{% block page_actions %}
-    <div class="btn-group">
-        <a href="{% url 'customer_edit' customer.customer_id %}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil"></i> Edit
-        </a>
-        <a href="{% url 'rfq_create' %}?customer={{ customer.customer_id }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create RFQ
-        </a>
-    </div>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>Customer: {{ customer.name }}</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+    <!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>Customer: {{ customer.name }}</h4>
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <a href="{% url 'customer_edit' customer.customer_id %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                &nbsp;&nbsp;&nbsp;
+                <a href="{% url 'rfq_create' %}?customer={{ customer.customer_id }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create RFQ
+                </a>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-6">
             <div class="card mb-4">
