@@ -118,7 +118,7 @@
                         <tr>
                             <th>Status</th>
                             <td>
-                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'quoted' %}success{% else %}dark{% endif %}">
+                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'quoted' %}success{% else %}primary{% endif %}">
                                     {{ rfq.get_status_display }}
                                 </span>
                             </td>

@@ -108,7 +108,7 @@
                             <td>{{ rfq.rfq_number }}</td>
                             <td>{{ rfq.title }}</td>
                             <td>
-                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'received' %}success{% else %}dark{% endif %}">
+                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'received' %}success{% else %}primary{% endif %}">
                                     {{ rfq.get_status_display }}
                                 </span>
                             </td>
