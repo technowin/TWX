@@ -4,14 +4,17 @@ from itertools import count
 import json
 import traceback
 from django.contrib import messages
+from django.forms import inlineformset_factory
 from django.http import JsonResponse
 from django.db.models import Count, Q
+from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from Account.db_utils import callproc
 from BOM.models import Component
+from Manpower.models import Proficeincy,Skill
 from MaterialPlan.models import ProductionOrder
 from .models import *
 from  .forms import *
@@ -253,29 +256,79 @@ class RoutingListView(ListView):
         context['work_centers'] = WorkCenter.objects.all()
         return context
 
-class RoutingCreateView(CreateView):
-    model = Routing
-    form_class = RoutingForm
+class RoutingCreateView(View):
+    template_name = 'MachinePlan/routing_form.html'
     success_url = reverse_lazy('mcp:routing_list')
 
-    def form_valid(self, form):
-        # Save the form first
-        response = super().form_valid(form)
-        
-        # Update the work center's is_routing status
-        work_center = form.cleaned_data.get('work_center')
-        if work_center:
-            # Set is_routing to True for the selected work center
-            work_center.is_routing = True
-            work_center.save()
-            
-        return response
+    def get(self, request, *args, **kwargs):
+        context = {
+            'form': RoutingForm(),
+            'operations': Operation.objects.all(),
+            'work_centers': WorkCenter.objects.all(),
+            'proficiencies': Proficeincy.objects.all(),
+            'skills': Skill.objects.all(),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Common fields
+            name = request.POST.get("name")
+            component_id = request.POST.get("component")
+            notes = request.POST.get("notes")
+
+            # Step fields (lists)
+            operations = request.POST.getlist("operation[]")
+            work_centers = request.POST.getlist("work_center[]")
+            sequences = request.POST.getlist("sequence[]")
+            setup_times = request.POST.getlist("setup_time[]")
+            run_times = request.POST.getlist("run_time_per_unit[]")
+            skills = request.POST.getlist("skill[]")
+            employees_needed = request.POST.getlist("employees_needed[]")
+            proficiencies = request.POST.getlist("min_proficiency[]")
+
+            # Ensure at least one step row exists
+            if not operations:
+                messages.error(request, "Please add at least one routing step.")
+                return redirect(request.path)
+
+            for i in range(len(operations)):
+                routing = Routing.objects.create(
+                    name=name,
+                    component_id=component_id if component_id else None,
+                    notes=notes,
+                    operation_id=operations[i] if operations[i] else None,
+                    work_center_id=work_centers[i] if work_centers[i] else None,
+                    sequence=sequences[i] if sequences[i] else i + 1,
+                    setup_time=setup_times[i] if setup_times[i] else 0,
+                    run_time_per_unit=run_times[i] if run_times[i] else 0,
+                    skill_id=skills[i] if skills[i] else None,
+                    employees_needed=employees_needed[i] if employees_needed[i] else 1,
+                    min_proficiency_id=proficiencies[i] if proficiencies[i] else None,
+                )
+
+                # Update work center flag
+                if routing.work_center:
+                    routing.work_center.is_routing = True
+                    routing.work_center.save()
+
+            messages.success(request, "Routing created successfully!")
+            return redirect(self.success_url)
+
+        except Exception as e:
+            # Log or print for debugging
+            print("❌ Error in RoutingCreateView.post:", str(e))
+            messages.error(request, f"Error: {str(e)}")
+            return redirect(request.path)
+
+
 
 class RoutingUpdateView(UpdateView):
     model = Routing
     form_class = RoutingForm
-    template_name = 'MachinePlan/routing_form.html'
+    template_name = 'MachinePlan/routing_edit_form.html'
     success_url = reverse_lazy('mcp:routing_list')
+
 
 class RoutingDeleteView(DeleteView):
     model = Routing
@@ -538,27 +591,26 @@ def dashboard(request):
     return render(request, 'MachinePlan/dashboard.html', context)
 
 
-
-class MachineSchedulingListView(ListView):
-    model = MachineScheduling
+class MachineScheduleListView(ListView):
+    model = MachineSchedule
     template_name = 'MachinePlan/machine_scheduling_list.html'
     context_object_name = 'schedules'
     paginate_by = 20
-    
+
     def get_queryset(self):
         queryset = super().get_queryset()
-        
-        # Filter by status if provided
+
+        # Filter by status (from detail table)
         status = self.request.GET.get('status')
         if status:
-            queryset = queryset.filter(status=status)
-            
-        # Filter by machine if provided
+            queryset = queryset.filter(details__status=status)
+
+        # Filter by machine (from detail table)
         machine_id = self.request.GET.get('machine')
         if machine_id:
-            queryset = queryset.filter(machine_id=machine_id)
-            
-        # Filter by date range if provided
+            queryset = queryset.filter(details__machine_id=machine_id)
+
+        # Filter by date range (main schedule)
         start_date = self.request.GET.get('start_date')
         end_date = self.request.GET.get('end_date')
         if start_date and end_date:
@@ -566,86 +618,51 @@ class MachineSchedulingListView(ListView):
                 scheduled_start__date__gte=start_date,
                 scheduled_end__date__lte=end_date
             )
-        
-        # ✅ Filter by PO number
+
+        # Filter by PO number
         po_number = self.request.GET.get('po_order')
         if po_number:
             queryset = queryset.filter(production_order__order_number=po_number)
 
+        # Filter by BOM
         bom_header = self.request.GET.get('bom_header')
         if bom_header:
-            queryset = queryset.filter(production_order__bom__name=bom_header)
+            queryset = queryset.filter(component__name=bom_header)
 
-        
+        # ✅ distinct to avoid duplicates when joining details
+        return queryset.select_related('production_order', 'component').prefetch_related('details').distinct()
 
-        return queryset.select_related('component', 'routing', 'machine', 'work_center')
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['machines'] = Machine.objects.all()
-        context['status_choices'] = MachineScheduling._meta.get_field('status').choices
+        context['status_choices'] = MachineScheduleDetail._meta.get_field('status').choices
 
-        # Keep selected filters in context (for re-render in template)
-        context['selected_po'] = self.request.GET.get('po_number', '')
-        context['selected_component'] = self.request.GET.get('component_id', '')
+        # Keep selected filters
+        context['selected_po'] = self.request.GET.get('po_order', '')
+        context['selected_component'] = self.request.GET.get('bom_header', '')
 
         return context
 
 
-# class MachineSchedulingCreateView(CreateView):
-#     model = MachineScheduling
-#     form_class = MachineSchedulingForm
-#     template_name = 'MachinePlan/machine_scheduling_form.html'
-#     success_url = reverse_lazy('mcp:machine_scheduling_list')
-
-#     def get_initial(self):
-#         initial = super().get_initial()
-
-#         # Handle Production Order (dropdown expects pk)
-#         po_order = self.request.GET.get('po_order')
-#         index= self.request.GET.get('index')
-#         if po_order:
-#             try:
-#                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
-#             except ProductionOrder.DoesNotExist:
-#                 pass
-
-#         # Handle Component (dropdown expects pk)
-#         component_name = self.request.GET.get('bom_header')
-#         if component_name:
-#             try:
-#                 initial['component'] = BOMHeader.objects.get(name=component_name).pk
-#             except BOMHeader.DoesNotExist:
-#                 pass
-
-#         return initial
-
-    
-#     def form_valid(self, form):
-#         # Set work_center from routing before saving
-#         if form.cleaned_data['routing']:
-#             form.instance.work_center = form.cleaned_data['routing'].work_center
-#         return super().form_valid(form)
-
-class MachineSchedulingCreateView(CreateView):
-    model = MachineScheduling
-    form_class = MachineSchedulingForm
+# ---------------- CREATE VIEW ----------------
+class MachineScheduleCreateView(CreateView):
+    model = MachineSchedule
+    form_class = MachineScheduleForm
     template_name = 'MachinePlan/machine_scheduling_form.html'
     success_url = reverse_lazy('mcp:machine_scheduling_list')
 
     def get_initial(self):
         initial = super().get_initial()
 
-        # Handle Production Order (dropdown expects pk)
+        # Handle Production Order
         po_order = self.request.GET.get('po_order')
-        index = self.request.GET.get('index')
         if po_order:
             try:
                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
             except ProductionOrder.DoesNotExist:
                 pass
 
-        # Handle Component (dropdown expects pk)
+        # Handle Component
         component_name = self.request.GET.get('bom_header')
         if component_name:
             try:
@@ -655,22 +672,42 @@ class MachineSchedulingCreateView(CreateView):
 
         return initial
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        DetailFormset = inlineformset_factory(
+            MachineSchedule, MachineScheduleDetail,
+            form=MachineScheduleDetailForm,
+            extra=1, can_delete=True
+        )
+
+        if self.request.POST:
+            context['detail_formset'] = DetailFormset(self.request.POST)
+        else:
+            context['detail_formset'] = DetailFormset()
+
+        return context
+
     def form_valid(self, form):
-        # Set work_center from routing before saving
-        if form.cleaned_data['routing']:
-            form.instance.work_center = form.cleaned_data['routing'].work_center
+        context = self.get_context_data()
+        detail_formset = context['detail_formset']
+        self.object = form.save()
+
+        if detail_formset.is_valid():
+            detail_formset.instance = self.object
+            detail_formset.save()
+        else:
+            return self.form_invalid(form)
+
         return super().form_valid(form)
 
     def get_success_url(self):
-        index = self.request.GET.get('index')
         po_order = self.request.GET.get('po_order')
         bom_header = self.request.GET.get('bom_header')
+        index = self.request.GET.get('index')
 
         if index == "1" and po_order and bom_header:
-            # ✅ Redirect with same params
             return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
         return super().get_success_url()
-
 
 class MachineSchedulingUpdateView(UpdateView):
     model = MachineScheduling
@@ -800,4 +837,93 @@ def load_machines(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
     
+def get_routings(request, component_id):
+    component = get_object_or_404(BOMHeader, id=component_id)
 
+    # ✅ get production orders linked to component
+    production_orders = (
+        ProductionOrder.objects.filter(bom=component)
+        .select_related("order_status")
+    )
+
+    # ✅ fetch schedules for those production orders
+    schedules = (
+        MachineSchedule.objects.filter(
+            component=component,
+            production_order__in=production_orders
+        )
+        .prefetch_related("details", "production_order__order_status")
+    )
+
+    # build routing -> production orders map
+    routing_po_map = {}
+    routing_status_map = {}
+
+    for schedule in schedules:
+        po = schedule.production_order
+        if not po or not po.order_status:
+            continue
+
+        # ✅ assign status correctly
+        if po.order_status.id == 1:
+            po_status = "Unplanned"
+        elif 2 <= po.order_status.id <= 4:
+            po_status = "Planned"
+        elif 5 <= po.order_status.id <= 7:
+            po_status = "In Progress"
+        else:
+            po_status = "Completed"
+
+        for detail in schedule.details.all():
+            rid = detail.routing_id
+
+            # routing -> list of production orders (avoid duplicates)
+            if rid not in routing_po_map:
+                routing_po_map[rid] = []
+            if not any(x["production_order"] == str(po) for x in routing_po_map[rid]):
+                routing_po_map[rid].append({
+                    "production_order": str(po),
+                    "status": po_status,
+                })
+
+            # routing -> table status (use consistent rules)
+            routing_status_map[rid] = po_status
+
+    # ✅ get routings for this component
+    routings = Routing.objects.filter(component=component).select_related(
+        "operation", "work_center", "skill"
+    )
+
+    grouped = {}
+    for r in routings:
+        if r.name not in grouped:
+            grouped[r.name] = {
+                "rows": [],
+                "production_orders": []
+            }
+
+        # add production orders (above table section)
+        grouped[r.name]["production_orders"].extend(
+            routing_po_map.get(r.id, [])
+        )
+
+        # add routing detail rows (status consistent with po_status)
+        grouped[r.name]["rows"].append({
+            "id": r.id,
+            "sequence": r.sequence,
+            "operation_name": r.operation.name if r.operation else "",
+            "work_center": r.work_center.name if r.work_center else "",
+            "skill": r.skill.skill_name if r.skill else "",
+            "status": routing_status_map.get(r.id, "Pending"),
+        })
+
+    # convert to list of dicts
+    data = []
+    for name, details in grouped.items():
+        data.append({
+            "name": name,
+            "production_orders": details["production_orders"],  # ⬅️ new section
+            "rows": details["rows"]
+        })
+
+    return JsonResponse(data, safe=False)

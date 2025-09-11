@@ -26,7 +26,7 @@
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
-{% block content %}
+{% comment %} {% block content %}
 
 <div class="row mb-3">
     <div class="col">
@@ -371,6 +371,271 @@ $("#id_routing").change(function() {
             $("#id_component").trigger('change');
         }
     });
+</script> {% endcomment %}
+{% block content %}
+
+<div class="container-fluid">
+    <!-- Card 1: General Info -->
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">General Info</div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Schedule Name</label>
+                    {{ form.name }}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.production_order.id_for_label }}" class="form-label">Production Order</label>
+                    {{ form.production_order }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.component.id_for_label }}" class="form-label">Component</label>
+                    {{ form.component }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.scheduled_start.id_for_label }}" class="form-label">Scheduled Start</label>
+                    {{ form.scheduled_start }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.scheduled_end.id_for_label }}" class="form-label">Scheduled End</label>
+                    {{ form.scheduled_end }}
+                </div>
+            </div>
+            <!-- Button to load routings -->
+            <div class="row">
+                <div class="col-md-12 text-end">
+                    <button type="button" id="checkRoutingBtn" class="btn btn-success">
+                        Check Routings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Routing Tabs (hidden until button click) -->
+    <div id="routing-card" class="card mb-3 d-none">
+        <div class="card-header bg-info text-white">Routing & Operations</div>
+        <div class="card-body">
+            <!-- Tabs dynamically injected -->
+            <ul class="nav nav-tabs" id="routingTabs"></ul>
+            <div class="tab-content mt-3" id="routingContent"></div>
+        </div>
+    </div>
+
+    <!-- Card 3: Assignment Info -->
+    <div class="card mb-3" hidden>
+        <div class="card-header bg-secondary text-white">Assignment Info</div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.machine.id_for_label }}" class="form-label">Machine</label>
+                    {{ form.machine }}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ form.status }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="{{ form.employee.id_for_label }}" class="form-label">Assign Employees</label>
+                    {{ form.employee }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save/Cancel -->
+    <div class="d-flex justify-content-between mb-4">
+        <a href="{% url 'mcp:machine_scheduling_list' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Schedule</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const routingCard = document.getElementById("routing-card");
+    const routingTabs = document.getElementById("routingTabs");
+    const routingContent = document.getElementById("routingContent");
+
+    document.getElementById("checkRoutingBtn").addEventListener("click", function() {
+        const componentId = document.getElementById("id_component").value;
+        const startDate = document.getElementById("id_scheduled_start").value;
+        const endDate = document.getElementById("id_scheduled_end").value;
+
+        if (!componentId || !startDate || !endDate) {
+            alert("Please select component, start date, and end date first.");
+            return;
+        }
+
+        // ✅ Fetch data from Django view
+        // ✅ Fetch data from Django view
+    fetch(`/mcp/get_routings/${componentId}/?start_date=${startDate}&end_date=${endDate}`)
+        .then(response => response.json())
+        .then(data => {
+            routingTabs.innerHTML = "";
+            routingContent.innerHTML = "";
+
+            // ✅ Summary table HTML
+            let summaryHtml = `
+                <div class="card mb-3">
+                    <div class="card-header bg-dark text-white">Routing - Production Order Status</div>
+                    <div class="card-body">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Routing</th>
+                                    <th>Production Orders</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            data.forEach((routing, index) => {
+                let activeClass = index === 0 ? "active" : "";
+
+                // Tabs
+                routingTabs.innerHTML += `
+                    <li class="nav-item">
+                        <a class="nav-link ${activeClass}" data-bs-toggle="tab" href="#routing-${index}">
+                            ${routing.name}
+                        </a>
+                    </li>
+                `;
+
+                // ✅ Production Orders above routing table
+                let poHtml = "";
+                if (routing.production_orders && routing.production_orders.length > 0) {
+                    poHtml = `
+                        <div class="mb-3">
+                            <h6>Production Orders</h6>
+                            <ul class="list-group">
+                                ${routing.production_orders.map(po => `
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        ${po.production_order}
+                                        <span class="badge bg-${
+                                            po.status === "Planned" ? "success" : 
+                                            po.status === "Unplanned" ? "warning" : 
+                                            po.status === "In Progress" ? "primary" : 
+                                            po.status === "Completed" ? "info" : "secondary"
+                                        }">${po.status}</span>
+                                    </li>
+                                `).join("")}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // ✅ Routing rows (no status column inside table)
+                let rowsHtml = routing.rows.map(row => `
+                    <tr>
+                        <td>${row.operation_name}</td>
+                        <td>${row.sequence}</td>
+                        <td>${row.work_center}</td>
+                        <td>${row.skill}</td>
+                    </tr>
+                `).join("");
+
+                // ✅ Tab content
+                routingContent.innerHTML += `
+                    <div class="tab-pane fade ${activeClass ? 'show active' : ''}" id="routing-${index}">
+                        <div class="container-fluid">
+                            <h5>${routing.name}</h5>
+                            ${poHtml}
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Operation</th>
+                                        <th>Sequence</th>
+                                        <th>Work Center</th>
+                                        <th>Skill</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                // ✅ Add to summary table
+                let poSummary = (routing.production_orders && routing.production_orders.length > 0)
+                    ? routing.production_orders.map(po => `
+                        ${po.production_order} 
+                        <span class="badge bg-${
+                            po.status === "Planned" ? "success" : 
+                            po.status === "Unplanned" ? "warning" : 
+                            po.status === "In Progress" ? "primary" : "secondary"
+                        }">${po.status}</span>
+                    `).join("<br>")
+                    : "—";
+
+                summaryHtml += `
+                    <tr>
+                        <td>${routing.name}</td>
+                        <td>${poSummary}</td>
+                    </tr>
+                `;
+            });
+
+            summaryHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            // ✅ Insert summary table BEFORE tabs
+            routingCard.insertAdjacentHTML("afterbegin", summaryHtml);
+
+            routingCard.classList.remove("d-none");
+        })
+        .catch(error => {
+            console.error("Error fetching routings:", error);
+            alert("Something went wrong while fetching routings.");
+        });
+
+    });
+});
 </script>
+
+
+
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
+
+
 
 {% endblock %}
