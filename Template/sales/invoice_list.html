@@ -33,6 +33,36 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+/* SweetAlert2 theme override for Bootstrap 5 light/dark */
+.swal2-popup {
+    background-color: var(--bs-body-bg) !important;
+    color: var(--bs-body-color) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.3);
+}
+.swal2-title {
+    color: var(--bs-body-color) !important;
+}
+.swal2-html-container {
+    color: var(--bs-body-color) !important;
+}
+.swal2-input, 
+.swal2-textarea, 
+.swal2-select {
+    background-color: var(--bs-body-bg) !important;
+    color: var(--bs-body-color) !important;
+    border: 1px solid var(--bs-border-color) !important;
+}
+.swal2-input:focus,
+.swal2-textarea:focus {
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 0 0 .25rem rgba(var(--bs-primary-rgb), .25) !important;
+}
+</style>
+
+
 {% endblock %}
 
 {% block title %}Invoices - ERP System{% endblock %}
@@ -223,7 +253,6 @@
     });
 </script>
 
-
 <script>
 document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) {
     e.preventDefault();
@@ -257,7 +286,7 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
         cancelButtonText: 'Cancel',
         customClass: {
             confirmButton: 'btn btn-success px-4',
-            cancelButton: 'btn btn-secondary px-4'
+            cancelButton: 'btn btn-outline-secondary px-4'
         },
         buttonsStyling: false,
         preConfirm: () => {
@@ -273,7 +302,6 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
                 return false;
             }
 
-            // Return form data
             return {
                 file: fileInput.files[0],
                 date: dateInput.value,
@@ -290,7 +318,6 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
             // Show progress bar
             document.getElementById("uploadProgress").classList.remove("d-none");
 
-            // Simulate AJAX upload
             let progressBar = document.querySelector("#uploadProgress .progress-bar");
             let progress = 0;
             let uploadInterval = setInterval(() => {
@@ -300,7 +327,6 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
 
                 if (progress >= 100) {
                     clearInterval(uploadInterval);
-
                     Swal.fire({
                         icon: "success",
                         title: "✅ Upload Successful!",
@@ -311,7 +337,7 @@ document.getElementById("bulkPaymentBtn").addEventListener("click", function(e) 
                 }
             }, 500);
 
-            // ---- Actual AJAX call example (replace with your backend endpoint) ----
+            // Example AJAX (replace with real backend):
             /*
             fetch("/upload-bulk-payment/", {
                 method: "POST",
