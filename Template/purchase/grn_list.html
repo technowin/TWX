@@ -37,15 +37,14 @@
 
 {% block title %}GRNs - ERP System{% endblock %}
 
-{% block page_title %}<h4>Goods Received Notes</h4>{% endblock %}
-
-{% block page_actions %}
-    <a href="{% url 'grn_create' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New GRN
-    </a>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>Goods Received Notes</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-start justify-content-md-between align-items-center">
+        <h4><i class="bi bi-box-seam"></i> Goods Received Notes </h4>
+        <a href="{% url 'grn_create' %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-plus-circle"></i> New GRN</a>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -108,19 +107,21 @@
                             <td>{{ grn.verified_by|default:"-" }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'grn_detail' grn.grn_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'grn_detail' grn.grn_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{% url 'grn_edit' grn.grn_id %}" class="btn btn-outline-secondary">
+                                    </a>&nbsp;&nbsp;
+                                    <a href="{% url 'grn_edit' grn.grn_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if grn.status == 'received' %}
-                                    <a href="{% url 'grn_verify' grn.grn_id %}" class="btn btn-outline-success">
+                                    &nbsp;&nbsp;
+                                    <a href="{% url 'grn_verify' grn.grn_id %}" class="btn btn-success">
                                         <i class="bi bi-check-circle"></i> Verify
                                     </a>
                                     {% endif %}
                                     {% if grn.status == 'received' or grn.status == 'verified' %}
-                                    <a href="{% url 'supplier_invoice_from_grn' grn.grn_id %}" class="btn btn-outline-info">
+                                    &nbsp;&nbsp;
+                                    <a href="{% url 'supplier_invoice_from_grn' grn.grn_id %}" class="btn btn-info">
                                         <i class="bi bi-receipt"></i> Create Invoice
                                     </a>
                                     {% endif %}

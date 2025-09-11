@@ -37,17 +37,13 @@
 
 {% block title %}{{ invoice.invoice_number }} - ERP System{% endblock %}
 
-{% block page_title %}<h4>Supplier Invoice: {{ invoice.invoice_number }}</h4>{% endblock %}
-
-{% block page_actions %}
-    <div class="btn-group">
-        <a href="{% url 'supplier_invoice_edit' invoice.invoice_id %}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil"></i> Edit
-        </a>
-    </div>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>Supplier Invoice: {{ invoice.invoice_number }}</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-start justify-content-md-between align-items-center">
+        <h4><i class="bi bi-receipt-cutoff"></i> Supplier Invoice: {{ invoice.invoice_number }}</h4> </h4>
+        <a href="{% url 'supplier_invoice_edit' invoice.invoice_id %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-pencil"></i> Edit </a>
+    </div>
     <div class="row">
         <div class="col-md-6">
             <div class="card mb-4">
@@ -140,7 +136,7 @@
             <h5 class="card-title mb-0">Invoice File</h5>
         </div>
         <div class="card-body">
-            <a href="{{ invoice.invoice_file.url }}" class="btn btn-outline-primary" target="_blank">
+            <a href="{{ invoice.invoice_file.url }}" class="btn btn-primary" target="_blank">
                 <i class="bi bi-download"></i> Download Invoice File
             </a>
         </div>

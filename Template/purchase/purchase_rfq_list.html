@@ -37,15 +37,29 @@
 
 {% block title %}Purchase RFQs - ERP System{% endblock %}
 
-{% block page_title %}<h4>Purchase Request for Quotations</h4>{% endblock %}
-
-{% block page_actions %}
-    <a href="{% url 'purchase_rfq_create' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Purchase RFQ
-    </a>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>Purchase Request for Quotations</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+    {% comment %} <div class="card-header d-flex flex-wrap gap-2 justify-content-start justify-content-md-between align-items-center">
+        <h4><i class="bi bi-file-earmark-text"></i> Purchase Request for Quotations </h4>
+        <a href="{% url 'purchase_rfq_create' %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-plus-circle"></i> New Purchase RFQ </a>
+    </div> {% endcomment %}
+    <!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4><i class="bi bi-file-earmark-text"></i> Purchase Request for Quotations </h4>
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <a href="{% url 'purchase_rfq_create' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i> New Purchase RFQ
+                </a>&nbsp;&nbsp;&nbsp;
+                <a href="/quotations/create/" class="btn btn-sm btn-info" target="_blank">
+                    <i class="bi bi-receipt"></i> Create Quotation
+                </a>
+            </div>
+        </div>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -94,7 +108,7 @@
                             <td>{{ rfq.rfq_number }}</td>
                             <td>{{ rfq.title }}</td>
                             <td>
-                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'received' %}success{% else %}dark{% endif %}">
+                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'received' %}success{% else %}primary{% endif %}">
                                     {{ rfq.get_status_display }}
                                 </span>
                             </td>
@@ -102,19 +116,27 @@
                             <td>{{ rfq.created_date }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{% url 'purchase_rfq_edit' rfq.rfq_id %}" class="btn btn-outline-secondary">
+                                    </a>&nbsp;&nbsp;
+                                    <a href="{% url 'purchase_rfq_edit' rfq.rfq_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if rfq.status == 'draft' %}
-                                    <a href="{% url 'purchase_rfq_send' rfq.rfq_id %}" class="btn btn-outline-success">
+                                    &nbsp;&nbsp;
+                                    <a href="{% url 'purchase_rfq_send' rfq.rfq_id %}" class="btn btn-success">
                                         <i class="bi bi-send"></i> Send
                                     </a>
                                     {% endif %}
                                     {% if rfq.status == 'received' %}
-                                    <a href="{% url 'purchase_order_from_rfq' rfq.rfq_id %}" class="btn btn-outline-info">
+                                    &nbsp;&nbsp;
+                                    <a href="/quotations/1/edit/" class="btn btn-success">
+                                        <i class="bi bi-upload"></i> Upload Quotation
+                                    </a>
+                                    {% endif %}
+                                    {% if rfq.status == 'received' %}
+                                    &nbsp;&nbsp;
+                                    <a href="{% url 'purchase_order_from_rfq' rfq.rfq_id %}" class="btn btn-info">
                                         <i class="bi bi-cart-check"></i> Create PO
                                     </a>
                                     {% endif %}

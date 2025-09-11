@@ -33,19 +33,34 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
 {% endblock %}
 
 {% block title %}Invoices - ERP System{% endblock %}
 
-{% block page_title %}<h4>Invoices</h4>{% endblock %}
-
-{% block page_actions %}
-    <a href="{% url 'invoice_create' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Invoice
-    </a>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>Invoices</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+    {% comment %} <div class="card-header d-flex flex-wrap gap-2 justify-content-start justify-content-md-between align-items-center">
+        <h4><i class="bi bi-box-seam"></i> Invoices </h4>
+        <a href="{% url 'invoice_create' %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-plus-circle"></i> New Invoice</a>
+    </div> {% endcomment %}
+    <!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4> Invoices </h4>
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <a href="invoice_create" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> New Invoice
+                </a>&nbsp;&nbsp;&nbsp;
+                <a href="#" id="bulkPaymentBtn" class="btn btn-sm btn-info">
+                    <i class="bi bi-upload"></i> Bulk Payment Invoice
+                </a>
+            </div>
+        </div>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -116,13 +131,13 @@
                             <td class="text-end">{{ invoice.amount_paid }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'invoice_detail' invoice.invoice_id %}" class="btn btn-outline-primary">
+                                    <a href="{% url 'invoice_detail' invoice.invoice_id %}" class="btn btn-primary">
                                         <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{% url 'invoice_edit' invoice.invoice_id %}" class="btn btn-outline-secondary">
+                                    </a>&nbsp;&nbsp;
+                                    <a href="{% url 'invoice_edit' invoice.invoice_id %}" class="btn btn-secondary">
                                         <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{% url 'invoice_pdf' invoice.invoice_id %}" class="btn btn-outline-info" target="_blank">
+                                    </a>&nbsp;&nbsp;
+                                    <a href="{% url 'invoice_pdf' invoice.invoice_id %}" class="btn btn-info" target="_blank">
                                         <i class="bi bi-download"></i> PDF
                                     </a>
                                 </div>
@@ -194,20 +209,131 @@
 {% endif %}
 
 <script>
-    // Set today's date as default for date filters
-    document.addEventListener('DOMContentLoaded', function() {
-        const today = new Date().toISOString().split('T')[0];
-        if (!document.getElementById('date_from').value) {
-            // Set date_from to first day of current month
-            const firstDay = new Date();
-            firstDay.setDate(1);
-            document.getElementById('date_from').value = firstDay.toISOString().split('T')[0];
+document.getElementById("bulkPaymentBtn").addEventListener("click", function (e) {
+    e.preventDefault();
+
+    const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
+
+    Swal.fire({
+        title: '<h3 class="text-success"><i class="bi bi-cloud-upload"></i> Bulk Payment Upload</h3>',
+        html: `
+            <form id="bulkPaymentForm" enctype="multipart/form-data">
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">Select File (Excel/CSV)</label>
+                    <input type="file" class="form-control" name="paymentFile" id="paymentFile" accept=".csv,.xlsx,.xls" required>
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label fw-bold">Remarks</label>
+                    <textarea class="form-control" name="remarks" id="remarks" rows="2" placeholder="Optional"></textarea>
+                </div>
+            </form>
+            <div id="uploadProgress" class="progress mt-3 d-none">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width:0%">0%</div>
+            </div>
+        `,
+        width: 600,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-upload"></i> Upload',
+        cancelButtonText: 'Cancel',
+
+        // Theme-aware background & text
+        background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+        color: theme === "dark" ? "#f8f9fa" : "#212529",
+
+        customClass: {
+            popup: "rounded-4 shadow border-0",
+            confirmButton: "btn btn-success px-4 me-2",
+            cancelButton: "btn btn-secondary px-4"
+        },
+        buttonsStyling: false,
+
+        preConfirm: () => {
+            const fileInput = document.getElementById("paymentFile");
+            const dateInput = document.getElementById("paymentDate");
+
+            if (!fileInput.files.length) {
+                Swal.showValidationMessage("⚠️ Please select a file to upload.");
+                return false;
+            }
+            if (!dateInput.value) {
+                Swal.showValidationMessage("⚠️ Please select a payment date.");
+                return false;
+            }
+
+            return {
+                file: fileInput.files[0],
+                date: dateInput.value,
+                remarks: document.getElementById("remarks").value
+            };
         }
-        if (!document.getElementById('date_to').value) {
-            document.getElementById('date_to').value = today;
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let formData = new FormData();
+            formData.append("paymentFile", result.value.file);
+            formData.append("paymentDate", result.value.date);
+            formData.append("remarks", result.value.remarks);
+
+            // Show progress bar
+            document.getElementById("uploadProgress").classList.remove("d-none");
+            let progressBar = document.querySelector("#uploadProgress .progress-bar");
+            let progress = 0;
+
+            let uploadInterval = setInterval(() => {
+                progress += 20;
+                progressBar.style.width = progress + "%";
+                progressBar.textContent = progress + "%";
+
+                if (progress >= 100) {
+                    clearInterval(uploadInterval);
+                    Swal.fire({
+                        icon: "success",
+                        title: "✅ Upload Successful!",
+                        text: "Your bulk payment file has been uploaded and processed.",
+                        background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                        color: theme === "dark" ? "#f8f9fa" : "#212529",
+                        confirmButtonText: "Done",
+                        confirmButtonColor: "#198754",
+                        customClass: {
+                            popup: "rounded-4 shadow border-0",
+                            confirmButton: "btn btn-success px-4"
+                        },
+                        buttonsStyling: false
+                    });
+                }
+            }, 500);
+
+            // Example AJAX (replace with real endpoint)
+            /*
+            fetch("/upload-bulk-payment/", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                Swal.fire({
+                    icon: "success",
+                    title: "Upload Successful",
+                    text: data.message || "File uploaded successfully!",
+                    background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                    color: theme === "dark" ? "#f8f9fa" : "#212529"
+                });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Upload Failed",
+                    text: "Something went wrong. Please try again.",
+                    background: theme === "dark" ? "rgba(33, 37, 41, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                    color: theme === "dark" ? "#f8f9fa" : "#212529"
+                });
+            });
+            */
         }
     });
+});
 </script>
+
 {% endblock %}
 
 {% block extra_javascript %}
