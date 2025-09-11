@@ -39,9 +39,9 @@
         </nav>
     </div>
     <div class="col-auto mt-2">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoutingModal">
-            <i class="bi bi-plus-circle"></i> Add Routing
-        </button>
+            <a href="{% url 'mcp:routing_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Routing
+            </a>
     </div>
 </div>
 
@@ -60,6 +60,7 @@
     <table class="table table-hover">
         <thead>
             <tr>
+                <th>Name</th>
                 <th>BOM Component</th>
                 <th>Sequence</th>
                 <th>Operation</th>
@@ -72,6 +73,7 @@
         <tbody>
             {% for routing in routings %}
             <tr>
+                <td>{{ routing.name }}</td>
                 <td>{{ routing.component.name }}</td>
                 <td>{{ routing.sequence }}</td>
                 <td>{{ routing.operation.name }}</td>
@@ -79,19 +81,10 @@
                 <td>{{ routing.setup_time }} min</td>
                 <td>{{ routing.run_time_per_unit }} min/unit</td>
                 <td>
-                    <button class="btn btn-sm btn-warning" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#editRoutingModal"
-                            data-id="{{ routing.id }}"
-                            data-component="{{ routing.component.id }}"
-                            data-sequence="{{ routing.sequence }}"
-                            data-operation="{{ routing.operation.id }}"
-                            data-work-center="{{ routing.work_center.id }}"
-                            data-setup="{{ routing.setup_time }}"
-                            data-run-time="{{ routing.run_time_per_unit }}"
-                            data-notes="{{ routing.notes|default:'' }}">
+                    <a href="{% url 'mcp:routing_update' routing.id %}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i>
-                    </button>
+                    </a>
+
                     <button class="btn btn-sm btn-danger" 
                             data-bs-toggle="modal" 
                             data-bs-target="#deleteModal"
@@ -103,7 +96,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="text-center py-4">No routings found</td>
+                <td colspan="8" class="text-center py-4">No routings found</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -115,143 +108,6 @@
 
 {% include 'MachinePlan/pagination.html' %}
 
-<!-- Add Routing Modal -->
-<div class="modal fade" id="addRoutingModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add BOM Routing</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="{% url 'mcp:routing_create' %}">
-                <div class="modal-body">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Component</label>
-                                <select name="component" class="form-select" required>
-                                    {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Operation</label>
-                                <select name="operation" class="form-select" required>
-                                    {% for operation in operations %}
-                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Work Center</label>
-                                <select name="work_center" class="form-select" required>
-                                    {% for work_center in work_centers %}
-                                    <option value="{{ work_center.id }}">{{ work_center.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Sequence</label>
-                                <input type="number" name="sequence" class="form-control" min="1" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Setup Time (min)</label>
-                                <input type="number" name="setup_time" class="form-control" min="0" step="1" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Run Time (min/unit)</label>
-                                <input type="number" name="run_time_per_unit" class="form-control" min="0" step="1" required>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea name="notes" class="form-control" rows="2"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Routing Modal -->
-<div class="modal fade" id="editRoutingModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit BOM Routing</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="">
-                <div class="modal-body">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Component</label>
-                                <select name="component" class="form-select" required id="editComponent">
-                                    {% for component in components %}
-                                    <option value="{{ component.id }}">{{ component.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Operation</label>
-                                <select name="operation" class="form-select" required id="editOperation">
-                                    {% for operation in operations %}
-                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Work Center</label>
-                                <select name="work_center" class="form-select" required id="editWorkCenter">
-                                    {% for work_center in work_centers %}
-                                    <option value="{{ work_center.id }}">{{ work_center.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Sequence</label>
-                                <input type="number" name="sequence" class="form-control" min="1" required id="editSequence">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Setup Time (min)</label>
-                                <input type="number" name="setup_time" class="form-control" min="0" step="1" required id="editSetup">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Run Time (min/unit)</label>
-                                <input type="number" name="run_time_per_unit" class="form-control" min="0" step="1" required id="editRunTime">
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea name="notes" class="form-control" rows="2" id="editNotes"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Delete Confirmation Modal (same as in capabilities) -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">

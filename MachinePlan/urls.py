@@ -61,12 +61,14 @@ urlpatterns = [
     path('workcenters/<int:pk>/edit/', WorkCenterUpdateView.as_view(), name='workcenter_update'),
     path('workcenters/<int:pk>/delete/', WorkCenterDeleteView.as_view(), name='workcenter_delete'),
 
-    path('machine_scheduling/', MachineSchedulingListView.as_view(), name='machine_scheduling_list'),
-    path('machine_scheduling/create/', MachineSchedulingCreateView.as_view(), name='machine_scheduling_create'),
+    path('machine_scheduling/', MachineScheduleListView.as_view(), name='machine_scheduling_list'),
+    path('machine_scheduling/create/', MachineScheduleCreateView.as_view(), name='machine_scheduling_create'),
     path('machine_scheduling/<int:pk>/update/', MachineSchedulingUpdateView.as_view(), name='machine_scheduling_update'),
     path('machine_scheduling/<int:pk>/delete/', MachineSchedulingDeleteView.as_view(), name='machine_scheduling_delete'),
     path('machine_scheduling/ajax/load-routings/', load_routings, name='ajax_load_routings'),
     path('machine_scheduling/ajax/load-machines/', load_machines, name='ajax_load_machines'),
+
+    path("get_routings/<int:component_id>/",get_routings, name="get_routings"),
 
     path('dashboard/',dashboard, name='dashboard'),
 ]

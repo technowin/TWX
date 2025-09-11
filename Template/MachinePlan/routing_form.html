@@ -1,0 +1,222 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% csrf_token %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mcp:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mcp:routing_list' %}">Routing List</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {% if object %} Edit Routing {% else %} Add Routing {% endif %}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                {% if object %}<i class="bi bi-pencil"></i> Edit Routing
+                {% else %}<i class="bi bi-plus-circle"></i> Add Routing
+                {% endif %}
+            </h4>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Routing Name + Component -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        {{ form.name.label_tag }} {{ form.name }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.component.label_tag }} {{ form.component }}
+                    </div>
+                </div>
+
+                <!-- Repeatable Sections -->
+                <h5 class="mb-3">Routing Steps</h5>
+                <div id="routing-steps">
+                    <div class="routing-step border rounded p-3 mb-3 position-relative">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {{ form.operation.label_tag }} 
+                                <select name="operation[]" class="form-select" required >
+                                    <option value="">-- Select Operation -- </option>
+                                    {% for operation in operations %}
+                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.work_center.label_tag }}
+                                 
+                                <select name="work_center[]" class="form-select" required>
+                                    <option value="">-- Select Work Center -- </option>
+                                    {% for work_center in work_centers %}
+                                    <option value="{{ work_center.id }}">{{ work_center.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.sequence.label_tag }}
+                                <input type="number" name="sequence[]" class="form-control sequence-field" value="1" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.setup_time.label_tag }}
+                                <input type="number" name="setup_time[]" class="form-control" min="0" step="1" required>
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.run_time_per_unit.label_tag }}
+                                <input type="number" name="run_time_per_unit[]" class="form-control" min="0" step="1" required>
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.employees_needed.label_tag }}
+                                <input type="number" name="employees_needed[]" class="form-control" min="1" step="1" value="1">
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.skill.label_tag }}
+                                <select name="skill[]" class="form-select">
+                                     <option value="">-- Select Skill -- </option>
+                                    {% for skill in skills %}
+                                    <option value="{{ skill.id }}">{{ skill.skill_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.min_proficiency.label_tag }}
+                                <select name="min_proficiency[]" class="form-select">
+                                     <option value="">-- Select Proficiency -- </option>
+                                    {% for prof in proficiencies %}
+                                    <option value="{{ prof.id }}">{{ prof.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Remove Button -->
+                        <button type="button" class="btn btn-danger btn-sm remove-step position-absolute top-0 end-0 m-2" style="display:none;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add Step Button -->
+                <div class="mb-4">
+                    <button type="button" id="add-step" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> Add Step
+                    </button>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="mb-3">
+                    {{ form.notes.label_tag }} {{ form.notes }}
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{% url 'mcp:routing_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success">
+                        {% if object %} Update {% else %} Save {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Clone step block
+document.addEventListener("DOMContentLoaded", function() {
+    const stepsContainer = document.getElementById("routing-steps");
+    const addBtn = document.getElementById("add-step");
+
+    addBtn.addEventListener("click", function() {
+        const stepBlocks = stepsContainer.querySelectorAll(".routing-step");
+        const lastStep = stepBlocks[stepBlocks.length - 1];
+        const newStep = lastStep.cloneNode(true);
+
+        // Reset values
+        newStep.querySelectorAll("input, select").forEach(el => {
+            if (el.classList.contains("sequence-field")) {
+                el.value = stepBlocks.length + 1;
+            } else {
+                if (el.tagName === "SELECT") el.selectedIndex = 0;
+                if (el.tagName === "INPUT") el.value = "";
+            }
+        });
+
+        // Show remove button for cloned steps
+        newStep.querySelector(".remove-step").style.display = "block";
+
+        stepsContainer.appendChild(newStep);
+    });
+
+    // Event delegation for remove buttons
+    stepsContainer.addEventListener("click", function(e) {
+        if (e.target.closest(".remove-step")) {
+            const step = e.target.closest(".routing-step");
+            step.remove();
+
+            // Recalculate sequence numbers
+            stepsContainer.querySelectorAll(".sequence-field").forEach((seq, idx) => {
+                seq.value = idx + 1;
+            });
+        }
+    });
+});
+</script>
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
+{% endblock %}

@@ -10,7 +10,9 @@ from BOM.models import BOMHeader
 from django.contrib.auth import get_user_model
 
 from MachinePlan.services import update_production_order_status
+from Manpower.models import Employee, Shift
 from PLM.models import StatusAction
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 CustomUser = get_user_model()
 
@@ -131,24 +133,50 @@ class WorkCenter(models.Model):
     def __str__(self):
         return f"{self.code} - {self.name}"
 
+# class Routing(models.Model):
+#     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
+#     operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
+#     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True,blank=True)
+#     sequence = models.PositiveIntegerField()
+#     work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)
+#     setup_time = models.PositiveIntegerField(help_text="Setup time in minutes")
+#     run_time_per_unit = models.PositiveIntegerField(help_text="Run time per unit in minutes")
+#     notes = models.TextField(blank=True)
+    
+#     class Meta:
+#         unique_together = ('component', 'sequence')
+#         ordering = ['component', 'sequence']
+#         verbose_name = "BOM Routing"
+    
+#     def __str__(self):
+#         return f"{self.component} - {self.operation}"
+    
+#     def get_absolute_url(self):
+#         return reverse('routing_list')
+
 class Routing(models.Model):
+    name = models.TextField(null=True,blank=True)
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
-    operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
-    production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True,blank=True)
+    operation = models.ForeignKey( Operation, on_delete=models.CASCADE, null=True, blank=True)
+    production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True, blank=True)
     sequence = models.PositiveIntegerField()
     work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)
     setup_time = models.PositiveIntegerField(help_text="Setup time in minutes")
     run_time_per_unit = models.PositiveIntegerField(help_text="Run time per unit in minutes")
-    notes = models.TextField(blank=True)
-    
+    skill = models.ForeignKey('Manpower.Skill', on_delete=models.CASCADE, verbose_name="rou_Required Skill",null=True,blank=True)
+    employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="rou_Employees Needed",null=True,blank=True)
+    min_proficiency = models.ForeignKey('Manpower.Proficeincy', on_delete=models.CASCADE, related_name='rou_require_proficiency', null=True, blank=True)
+    notes = models.TextField(blank=True, verbose_name="Additional Notes")
+
     class Meta:
         unique_together = ('component', 'sequence')
         ordering = ['component', 'sequence']
         verbose_name = "BOM Routing"
-    
+        verbose_name_plural = "BOM Routings"
+
     def __str__(self):
-        return f"{self.component} - {self.operation}"
-    
+        return f"{self.name} "
+
     def get_absolute_url(self):
         return reverse('routing_list')
 
@@ -237,3 +265,92 @@ class MachineScheduling(models.Model):
                 if last_schedule.actual_end < now():
                     self.production_order.order_status = get_object_or_404(StatusAction, id = 7)
                     self.production_order.save(update_fields=["order_status"])
+
+
+class MachineSchedule(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Schedule Name", null=True, blank=True)
+    production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
+    component = models.ForeignKey('BOM.BOMHeader', on_delete=models.CASCADE, verbose_name="BOM Component")
+    
+    scheduled_start = models.DateTimeField()
+    scheduled_end = models.DateTimeField()
+    actual_start = models.DateTimeField(null=True, blank=True)
+    actual_end = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Machine Schedule"
+        ordering = ['scheduled_start']
+    
+    def __str__(self):
+        return f"{self.name} - {self.production_order} - {self.component}"
+    
+    def get_absolute_url(self):
+        return reverse('machine_schedule_list')
+
+
+# --- Detail table ---
+class MachineScheduleDetail(models.Model):
+    schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='details')
+    seq = models.TextField(null=True, blank=True)
+    routing = models.ForeignKey('MachinePlan.Routing', on_delete=models.CASCADE)
+    machine = models.ForeignKey('MachinePlan.Machine', on_delete=models.CASCADE)
+    work_center = models.ForeignKey('MachinePlan.WorkCenter', on_delete=models.CASCADE, null=True, blank=True)  
+    employee = models.TextField(verbose_name="Assigned Employee", null=True, blank=True)
+    shift = models.ForeignKey('Manpower.Shift', on_delete=models.CASCADE, null=True, blank=True)
+    hours_allocated = models.DecimalField(max_digits=4,decimal_places=2,validators=[MinValueValidator(0.25), MaxValueValidator(24)], verbose_name="Hours Allocated",null=True,blank=True )
+    scheduled_start = models.DateTimeField()
+    scheduled_end = models.DateTimeField()
+    actual_start = models.DateTimeField(null=True, blank=True)
+    actual_end = models.DateTimeField(null=True, blank=True)
+    
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('SCHEDULED', 'Scheduled'),
+            ('IN_PROGRESS', 'In Progress'),
+            ('COMPLETED', 'Completed'),
+            ('CANCELLED', 'Cancelled'),
+            ('ABSENT', 'Absent'),
+            ('REASSIGNED', 'Reassigned'),
+        ],
+        default='SCHEDULED'
+    )
+    
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Machine Schedule Detail"
+        ordering = ['scheduled_start']
+    
+    def __str__(self):
+        return f"{self.schedule.name} - {self.routing.operation} on {self.machine}"
+
+    def save(self, *args, **kwargs):
+        # --- AUTO SET WORK_CENTER FROM ROUTING ---
+        if self.routing and not self.work_center:
+            self.work_center = self.routing.work_center
+        
+        super().save(*args, **kwargs)
+
+        # --- UPDATE PRODUCTION ORDER STATUS ---
+        production_order = self.schedule.production_order
+        component = self.schedule.component
+
+        if production_order:
+            from .services import update_production_order_status  # adjust to your path
+            update_production_order_status(production_order)
+
+        # --- NEW LOGIC: Check last schedule for this production order & component ---
+        if production_order and component:
+            last_schedule = (
+                MachineScheduleDetail.objects.filter(
+                    schedule__production_order=production_order,
+                    schedule__component=component
+                )
+                .order_by("-seq")
+                .first()
+            )
+            if last_schedule and last_schedule.actual_end:
+                if last_schedule.actual_end < now():
+                    production_order.order_status = get_object_or_404(StatusAction, id=7)
+                    production_order.save(update_fields=["order_status"])

@@ -1,12 +1,12 @@
 # models.py
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from MachinePlan.models import MachinePlanning, MachineScheduling, WorkCenter, Routing
+# from MachinePlan.models import MachinePlanning, "MachinePlan.MachineScheduling", "MachinePlan.WorkCenter", "MachinePlan.Routing"
 
 class Employee(models.Model):
     employee_code = models.CharField(max_length=10, unique=True, verbose_name="Employee ID")
     employee_name = models.CharField(max_length=100, verbose_name="Full Name")
-    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE, verbose_name="Primary Work Center")
+    work_center = models.ForeignKey("MachinePlan.WorkCenter", on_delete=models.CASCADE, verbose_name="Primary Work Center")
     hire_date = models.DateField(verbose_name="Hire Date", null=True, blank=True)
     contact_number = models.CharField(max_length=15, blank=True, verbose_name="Contact Number")
     email = models.EmailField(blank=True, verbose_name="Email Address")
@@ -72,8 +72,8 @@ class Shift(models.Model):
         return f"{self.shift_code} - {self.shift_name} ({self.start_time.strftime('%H:%M')} to {self.end_time.strftime('%H:%M')})"
 
 class LaborRequirement(models.Model):
-    routing = models.ForeignKey(Routing, on_delete=models.CASCADE, related_name='labor_requirements')
-    schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE,null=True,blank=True )
+    routing = models.ForeignKey("MachinePlan.Routing", on_delete=models.CASCADE, related_name='labor_requirements')
+    schedule = models.ForeignKey("MachinePlan.MachineScheduling", on_delete=models.CASCADE,null=True,blank=True )
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE, verbose_name="Required Skill")
     employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="Employees Needed")
     min_proficiency = models.ForeignKey(Proficeincy,on_delete=models.CASCADE, related_name='require_proficiency',null=True,blank=True)
@@ -89,7 +89,7 @@ class LaborRequirement(models.Model):
         return f"{self.routing} requires {self.employees_needed} {self.skill})"
 
 class LaborAssignment(models.Model):
-    schedule = models.ForeignKey(MachineScheduling, on_delete=models.CASCADE, related_name='labor_assignments')
+    schedule = models.ForeignKey("MachinePlan.MachineScheduling", on_delete=models.CASCADE, related_name='labor_assignments')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name="Assigned Employee",related_name='labor_assignments')
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, verbose_name="Assigned Shift")
     start_date = models.DateField(verbose_name="Start Assignment Date",null=True,blank=True)

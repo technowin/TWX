@@ -128,9 +128,15 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
 class RoutingForm(forms.ModelForm):
     class Meta:
         model = Routing
-        fields = ['component', 'sequence', 'operation', 'work_center', 
-                 'setup_time', 'run_time_per_unit', 'notes']
+        fields = [
+            'name','component','sequence','operation','work_center','setup_time','run_time_per_unit',
+            'skill','employees_needed', 'min_proficiency','notes',
+        ]
         widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter routing name'
+            }),
             'component': forms.Select(attrs={'class': 'form-select'}),
             'operation': forms.Select(attrs={'class': 'form-select'}),
             'work_center': forms.Select(attrs={'class': 'form-select'}),
@@ -148,6 +154,13 @@ class RoutingForm(forms.ModelForm):
                 'min': 0,
                 'step': 1
             }),
+            'skill': forms.Select(attrs={'class': 'form-select'}),
+            'employees_needed': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+                'step': 1
+            }),
+            'min_proficiency': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
@@ -155,11 +168,15 @@ class RoutingForm(forms.ModelForm):
             }),
         }
         labels = {
-            'run_time_per_unit': 'Run Time (min/unit)'
+            'run_time_per_unit': 'Run Time (min/unit)',
+            'employees_needed': 'Employees Needed',
+            'skill': 'Required Skill',
+            'min_proficiency': 'Minimum Proficiency',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
 
 class MachinePlanningForm(forms.ModelForm):
     class Meta:
@@ -358,3 +375,71 @@ class MachineTrackingForm(forms.ModelForm):
             )
         else:
             self.fields['machine'].queryset = Machine.objects.none()
+
+class MachineScheduleForm(forms.ModelForm):
+    class Meta:
+        model = MachineSchedule
+        fields = [
+            'name',
+            'production_order',
+            'component',
+            'scheduled_start',
+            'scheduled_end',
+            'actual_start',
+            'actual_end',
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Schedule Name'}),
+            'production_order': forms.Select(attrs={'class': 'form-select'}),
+            'component': forms.Select(attrs={'class': 'form-select'}),
+            'scheduled_start': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'scheduled_end': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'actual_start': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'actual_end': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+        }
+
+
+# --- Detail Form ---
+class MachineScheduleDetailForm(forms.ModelForm):
+    class Meta:
+        model = MachineScheduleDetail
+        fields = [
+            'seq',
+            'routing',
+            'machine',
+            'work_center',
+            'employee',
+            'shift',
+            'hours_allocated',
+            'scheduled_start',
+            'scheduled_end',
+            'actual_start',
+            'actual_end',
+            'status',
+            'notes',
+        ]
+        widgets = {
+            'seq': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Sequence'}),
+            'routing': forms.Select(attrs={'class': 'form-select'}),
+            'machine': forms.Select(attrs={'class': 'form-select'}),
+            'work_center': forms.Select(attrs={'class': 'form-select'}),
+            'employee': forms.Select(attrs={'class': 'form-select'}),   # dropdown looks better
+            'shift': forms.Select(attrs={'class': 'form-select'}),
+            'hours_allocated': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Hours'}),
+            'scheduled_start': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'scheduled_end': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'actual_start': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'actual_end': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Add notes...'}),
+        }
+
+
+# --- Inline Formset for Detail Rows ---
+MachineScheduleDetailFormSet = forms.inlineformset_factory(
+    MachineSchedule,
+    MachineScheduleDetail,
+    form=MachineScheduleDetailForm,
+    extra=1,
+    can_delete=True
+)
