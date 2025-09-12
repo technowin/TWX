@@ -61,16 +61,28 @@
 
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-3">
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">{{ title }}</h3>
-                    <div class="card-tools">
-                        <a href="{% url 'quotation_list' %}" class="btn btn-sm btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to List
-                        </a>
+                 <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="card-title mb-0">
+                                {% if "Create" in title %}
+                                    <i class="bi bi-plus-circle"></i> {{ title }}
+                                {% elif "Edit" in title %}
+                                    <i class="bi bi-pencil-square"></i> {{ title }}
+                                {% else %}
+                                    {{ title }}
+                                {% endif %}
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'quotation_list' %}" class="btn btn-sm btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to List
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <form method="post" id="quotationForm">

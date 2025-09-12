@@ -38,7 +38,18 @@
 
 {% block title %}{{ title }} - ERP System{% endblock %}
 
-{% block page_title %}<h4>{{ title }}</h4>{% endblock %}
+{% block page_title %}
+    <h4>
+        {% if "Create" in title %}
+            <i class="bi bi-plus-circle"></i> {{ title }}
+        {% elif "Edit" in title %}
+            <i class="bi bi-pencil-square"></i> {{ title }}
+        {% else %}
+            {{ title }}
+        {% endif %}
+    </h4>
+{% endblock %}
+
 
 {% block content %}
     <div class="card">
