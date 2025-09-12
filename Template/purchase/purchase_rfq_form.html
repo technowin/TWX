@@ -38,86 +38,18 @@
 
 {% block title %}{{ title }} - ERP System{% endblock %}
 
-{% block page_title %}<h4>{{ title }}</h4>{% endblock %}
-
-
-
-{% block extra_js %}
-    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            // Handle dynamic formset
-            $('#add-item').click(function() {
-                const formCount = $('#id_items-TOTAL_FORMS').val();
-                const formPrefix = 'items-' + formCount + '-';
-                const newForm = $('.form-row:first').clone();
-                
-                // Update all field names and IDs
-                newForm.find(':input').each(function() {
-                    const name = $(this).attr('name').replace(/items-\d+-/, formPrefix);
-                    const id = $(this).attr('id').replace(/items-\d+-/, formPrefix);
-                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
-                });
-                
-                // Clear values
-                newForm.find('input, textarea').val('');
-                newForm.find('select').val('').trigger('change');
-                
-                // Remove error messages
-                newForm.find('.invalid-feedback').remove();
-                newForm.find('.is-invalid').removeClass('is-invalid');
-                
-                // Append to formset
-                $('#items-formset').append(newForm);
-                
-                // Update form count
-                $('#id_items-TOTAL_FORMS').val(parseInt(formCount) + 1);
-                
-                // Reinitialize Select2
-                newForm.find('.form-select').select2({
-                    theme: 'bootstrap-5'
-                });
-            });
-            
-            // Handle supplier formset
-            $('#add-supplier').click(function() {
-                const formCount = $('#id_suppliers-TOTAL_FORMS').val();
-                const formPrefix = 'suppliers-' + formCount + '-';
-                const newForm = $('.supplier-row:first').clone();
-                
-                // Update all field names and IDs
-                newForm.find(':input').each(function() {
-                    const name = $(this).attr('name').replace(/suppliers-\d+-/, formPrefix);
-                    const id = $(this).attr('id').replace(/suppliers-\d+-/, formPrefix);
-                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
-                });
-                
-                // Clear values
-                newForm.find('select').val('').trigger('change');
-                
-                // Remove error messages
-                newForm.find('.invalid-feedback').remove();
-                newForm.find('.is-invalid').removeClass('is-invalid');
-                
-                // Append to formset
-                $('#suppliers-formset').append(newForm);
-                
-                // Update form count
-                $('#id_suppliers-TOTAL_FORMS').val(parseInt(formCount) + 1);
-                
-                // Reinitialize Select2
-                newForm.find('.form-select').select2({
-                    theme: 'bootstrap-5'
-                });
-            });
-        });
-    </script>
+{% block page_title %}
+    <h4>
+        {% if "Create" in title %}
+            <i class="bi bi-plus-circle"></i> {{ title }}
+        {% elif "Edit" in title %}
+            <i class="bi bi-pencil-square"></i> {{ title }}
+        {% else %}
+            {{ title }}
+        {% endif %}
+    </h4>
 {% endblock %}
+
 
 {% block content %}
     <div class="card">
@@ -320,6 +252,82 @@
       {% endfor %}
     });
   </script>
+
+  <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Handle dynamic formset
+            $('#add-item').click(function() {
+                const formCount = $('#id_items-TOTAL_FORMS').val();
+                const formPrefix = 'items-' + formCount + '-';
+                const newForm = $('.form-row:first').clone();
+                
+                // Update all field names and IDs
+                newForm.find(':input').each(function() {
+                    const name = $(this).attr('name').replace(/items-\d+-/, formPrefix);
+                    const id = $(this).attr('id').replace(/items-\d+-/, formPrefix);
+                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
+                });
+                
+                // Clear values
+                newForm.find('input, textarea').val('');
+                newForm.find('select').val('').trigger('change');
+                
+                // Remove error messages
+                newForm.find('.invalid-feedback').remove();
+                newForm.find('.is-invalid').removeClass('is-invalid');
+                
+                // Append to formset
+                $('#items-formset').append(newForm);
+                
+                // Update form count
+                $('#id_items-TOTAL_FORMS').val(parseInt(formCount) + 1);
+                
+                // Reinitialize Select2
+                newForm.find('.form-select').select2({
+                    theme: 'bootstrap-5'
+                });
+            });
+            
+            // Handle supplier formset
+            $('#add-supplier').click(function() {
+                const formCount = $('#id_suppliers-TOTAL_FORMS').val();
+                const formPrefix = 'suppliers-' + formCount + '-';
+                const newForm = $('.supplier-row:first').clone();
+                
+                // Update all field names and IDs
+                newForm.find(':input').each(function() {
+                    const name = $(this).attr('name').replace(/suppliers-\d+-/, formPrefix);
+                    const id = $(this).attr('id').replace(/suppliers-\d+-/, formPrefix);
+                    $(this).attr({name: name, id: id}).val('').removeAttr('checked');
+                });
+                
+                // Clear values
+                newForm.find('select').val('').trigger('change');
+                
+                // Remove error messages
+                newForm.find('.invalid-feedback').remove();
+                newForm.find('.is-invalid').removeClass('is-invalid');
+                
+                // Append to formset
+                $('#suppliers-formset').append(newForm);
+                
+                // Update form count
+                $('#id_suppliers-TOTAL_FORMS').val(parseInt(formCount) + 1);
+                
+                // Reinitialize Select2
+                newForm.find('.form-select').select2({
+                    theme: 'bootstrap-5'
+                });
+            });
+        });
+    </script>
+    
 {% endif %}
 
 {% endblock %}

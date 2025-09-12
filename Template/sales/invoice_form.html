@@ -37,9 +37,20 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block page_title %}
+    <h4>
+        {% if "Create" in title %}
+            <i class="bi bi-plus-circle"></i> {{ title }}
+        {% elif "Edit" in title %}
+            <i class="bi bi-pencil-square"></i> {{ title }}
+        {% else %}
+            {{ title }}
+        {% endif %}
+    </h4>
+{% endblock %}
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
+    {% comment %} <div class="row">
         <div class="col-12">
             <div class="page-title-box">
                 <div class="page-title-right">
@@ -52,7 +63,7 @@
                 <h4 class="page-title">{{ title }}</h4>
             </div>
         </div>
-    </div>
+    </div> {% endcomment %}
 
     <div class="row">
         <div class="col-12">

@@ -38,47 +38,16 @@
 
 {% block title %}{{ title }} - ERP System{% endblock %}
 
-{% block page_title %}<h4>{{ title }}</h4>{% endblock %}
-
-
-
-{% block extra_js %}
-    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            // Calculate total amount when amount or tax changes
-            $('#id_amount, #id_tax_amount').on('input', function() {
-                const amount = parseFloat($('#id_amount').val()) || 0;
-                const taxAmount = parseFloat($('#id_tax_amount').val()) || 0;
-                const totalAmount = amount + taxAmount;
-                $('#id_total_amount').val(totalAmount.toFixed(2));
-            });
-            
-            // Auto-fill supplier when PO or GRN is selected
-            $('#id_purchase_order').change(function() {
-                const poId = $(this).val();
-                if (poId) {
-                    // In a real application, you would fetch the supplier via AJAX
-                    // For now, we'll just log it
-                    console.log('PO selected:', poId);
-                }
-            });
-            
-            $('#id_grn').change(function() {
-                const grnId = $(this).val();
-                if (grnId) {
-                    // In a real application, you would fetch the supplier via AJAX
-                    // For now, we'll just log it
-                    console.log('GRN selected:', grnId);
-                }
-            });
-        });
-    </script>
+{% block page_title %}
+    <h4>
+        {% if "Create" in title %}
+            <i class="bi bi-plus-circle"></i> {{ title }}
+        {% elif "Edit" in title %}
+            <i class="bi bi-pencil-square"></i> {{ title }}
+        {% else %}
+            {{ title }}
+        {% endif %}
+    </h4>
 {% endblock %}
 
 {% block content %}
@@ -268,6 +237,44 @@
       {% endfor %}
     });
   </script>
+
+   <script src="{% static 'js/vendor/select2.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5'
+            });
+            
+            // Calculate total amount when amount or tax changes
+            $('#id_amount, #id_tax_amount').on('input', function() {
+                const amount = parseFloat($('#id_amount').val()) || 0;
+                const taxAmount = parseFloat($('#id_tax_amount').val()) || 0;
+                const totalAmount = amount + taxAmount;
+                $('#id_total_amount').val(totalAmount.toFixed(2));
+            });
+            
+            // Auto-fill supplier when PO or GRN is selected
+            $('#id_purchase_order').change(function() {
+                const poId = $(this).val();
+                if (poId) {
+                    // In a real application, you would fetch the supplier via AJAX
+                    // For now, we'll just log it
+                    console.log('PO selected:', poId);
+                }
+            });
+            
+            $('#id_grn').change(function() {
+                const grnId = $(this).val();
+                if (grnId) {
+                    // In a real application, you would fetch the supplier via AJAX
+                    // For now, we'll just log it
+                    console.log('GRN selected:', grnId);
+                }
+            });
+        });
+    </script>
+    
 {% endif %}
 
 {% endblock %}
