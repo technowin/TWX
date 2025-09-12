@@ -14,7 +14,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 from Account.db_utils import callproc
 from BOM.models import Component
-from Manpower.models import Proficeincy,Skill
+from Manpower.models import EmployeeSkill, Proficeincy,Skill
 from MaterialPlan.models import ProductionOrder
 from .models import *
 from  .forms import *
@@ -645,69 +645,145 @@ class MachineScheduleListView(ListView):
 
 
 # ---------------- CREATE VIEW ----------------
-class MachineScheduleCreateView(CreateView):
-    model = MachineSchedule
-    form_class = MachineScheduleForm
-    template_name = 'MachinePlan/machine_scheduling_form.html'
-    success_url = reverse_lazy('mcp:machine_scheduling_list')
+# class MachineScheduleCreateView(CreateView):
+#     model = MachineSchedule
+#     form_class = MachineScheduleForm
+#     template_name = 'MachinePlan/machine_scheduling_form.html'
+#     success_url = reverse_lazy('mcp:machine_scheduling_list')
 
-    def get_initial(self):
-        initial = super().get_initial()
+#     def get_initial(self):
+#         initial = super().get_initial()
+#         po_order = self.request.GET.get('po_order')
+#         if po_order:
+#             try:
+#                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
+#             except ProductionOrder.DoesNotExist:
+#                 pass
 
-        # Handle Production Order
-        po_order = self.request.GET.get('po_order')
-        if po_order:
-            try:
-                initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
-            except ProductionOrder.DoesNotExist:
-                pass
+#         # Handle Component
+#         component_name = self.request.GET.get('bom_header')
+#         if component_name:
+#             try:
+#                 initial['component'] = BOMHeader.objects.get(name=component_name).pk
+#             except BOMHeader.DoesNotExist:
+#                 pass
 
-        # Handle Component
-        component_name = self.request.GET.get('bom_header')
-        if component_name:
-            try:
-                initial['component'] = BOMHeader.objects.get(name=component_name).pk
-            except BOMHeader.DoesNotExist:
-                pass
+#         return initial
 
-        return initial
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         DetailFormset = inlineformset_factory(
+#             MachineSchedule, MachineScheduleDetail,
+#             form=MachineScheduleDetailForm,
+#             extra=1, can_delete=True
+#         )
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        DetailFormset = inlineformset_factory(
-            MachineSchedule, MachineScheduleDetail,
-            form=MachineScheduleDetailForm,
-            extra=1, can_delete=True
-        )
+#         if self.request.POST:
+#             context['detail_formset'] = DetailFormset(self.request.POST)
+#         else:
+#             context['detail_formset'] = DetailFormset()
 
-        if self.request.POST:
-            context['detail_formset'] = DetailFormset(self.request.POST)
-        else:
-            context['detail_formset'] = DetailFormset()
+#         return context
 
-        return context
+#     def form_valid(self, form):
+#         context = self.get_context_data()
+#         detail_formset = context['detail_formset']
+#         self.object = form.save()
 
-    def form_valid(self, form):
-        context = self.get_context_data()
-        detail_formset = context['detail_formset']
-        self.object = form.save()
+#         if detail_formset.is_valid():
+#             detail_formset.instance = self.object
+#             detail_formset.save()
+#         else:
+#             return self.form_invalid(form)
 
-        if detail_formset.is_valid():
-            detail_formset.instance = self.object
-            detail_formset.save()
-        else:
-            return self.form_invalid(form)
+#         return super().form_valid(form)
 
-        return super().form_valid(form)
+#     def get_success_url(self):
+#         po_order = self.request.GET.get('po_order')
+#         bom_header = self.request.GET.get('bom_header')
+#         index = self.request.GET.get('index')
 
-    def get_success_url(self):
-        po_order = self.request.GET.get('po_order')
-        bom_header = self.request.GET.get('bom_header')
-        index = self.request.GET.get('index')
+#         if index == "1" and po_order and bom_header:
+#             return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
+#         return super().get_success_url()
 
-        if index == "1" and po_order and bom_header:
-            return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
-        return super().get_success_url()
+# class MachineScheduleCreateView(CreateView):
+#     model = MachineSchedule
+#     template_name = 'MachinePlan/machine_scheduling_form.html'
+#     success_url = reverse_lazy('mcp:machine_scheduling_list')
+
+#     def get_initial(self):
+#         initial = super().get_initial()
+#         po_order = self.request.GET.get('po_order')
+#         if po_order:
+#             try:
+#                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
+#             except ProductionOrder.DoesNotExist:
+#                 pass
+
+#         component_name = self.request.GET.get('bom_header')
+#         if component_name:
+#             try:
+#                 initial['component'] = BOMHeader.objects.get(name=component_name).pk
+#             except BOMHeader.DoesNotExist:
+#                 pass
+
+#         return initial
+
+#     def post(self, request, *args, **kwargs):
+#         from django.utils.dateparse import parse_datetime
+#         from django.db import transaction
+
+#         try:
+#             with transaction.atomic():
+#                 schedule = MachineSchedule.objects.create(
+#                     name=request.POST.get("name"),
+#                     production_order_id=request.POST.get("production_order"),
+#                     component_id=request.POST.get("component"),
+#                     scheduled_start=request.POST.get("scheduled_start"),
+#                     scheduled_end=request.POST.get("scheduled_end"),
+#                 )
+
+#                 # 2. Loop through detail rows
+#                 for key, value in request.POST.items():
+#                     if key.startswith("hours_"):
+#                         row_id = key.split("_")[1]
+
+#                         hours = request.POST.get(f"hours_{row_id}")
+#                         machine_id = request.POST.get(f"machine_{row_id}")
+#                         employee_ids = request.POST.getlist(f"employee_{row_id}")  # multi-select
+#                         start = parse_datetime(request.POST.get(f"start_{row_id}"))
+#                         end = parse_datetime(request.POST.get(f"end_{row_id}"))
+
+#                         if machine_id and employee_ids:
+#                             routing = Routing.objects.get(id=row_id)
+#                             MachineScheduleDetail.objects.create(
+#                                 schedule=schedule,
+#                                 seq=routing.sequence,
+#                                 routing=routing,
+#                                 machine_id=machine_id,
+#                                 work_center=routing.work_center,
+#                                 employee=",".join(employee_ids),  # storing CSV
+#                                 hours_allocated=hours or None,
+#                                 scheduled_start=start,
+#                                 scheduled_end=end,
+#                                 status="SCHEDULED",
+#                             )
+
+#             return redirect(self.get_success_url())
+
+#         except Exception as e:
+#             return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+#     def get_success_url(self):
+#         po_order = self.request.GET.get('po_order')
+#         bom_header = self.request.GET.get('bom_header')
+#         index = self.request.GET.get('index')
+
+#         if index == "1" and po_order and bom_header:
+#             return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
+#         return super().get_success_url()
+
 
 class MachineSchedulingUpdateView(UpdateView):
     model = MachineScheduling
@@ -912,7 +988,9 @@ def get_routings(request, component_id):
             "id": r.id,
             "sequence": r.sequence,
             "operation_name": r.operation.name if r.operation else "",
+            "employee_need": r.employees_needed if r.employees_needed else "",
             "work_center": r.work_center.name if r.work_center else "",
+            "min_proficiency": r.min_proficiency.name if r.min_proficiency else "",
             "skill": r.skill.skill_name if r.skill else "",
             "status": routing_status_map.get(r.id, "Pending"),
         })
@@ -927,3 +1005,106 @@ def get_routings(request, component_id):
         })
 
     return JsonResponse(data, safe=False)
+
+
+def get_assignment_data(request, routing_id):
+    """
+    Return machine and employee list for each routing row based on work_center and skill.
+    """
+    try:
+        routing = get_object_or_404(Routing, id=routing_id)
+
+        # Get all rows that belong to the same routing (same name)
+        rows = Routing.objects.filter(name=routing.name)
+
+        assignment_rows = []
+        for row in rows:
+            # Machines filtered by work_center
+            machines = Machine.objects.filter(
+                work_center=row.work_center
+            ).values("id", "name")
+
+            # Employees filtered by skill (and proficiency if required)
+            employees = EmployeeSkill.objects.filter(
+                skill=row.skill,proficiency= row.min_proficiency
+            ).select_related("employee")  # join to employee
+
+            employee_list = [
+                {
+                    "id": es.employee.id,
+                    "employee_name": es.employee.employee_name,
+                    "proficiency": es.proficiency.name
+                }
+                for es in employees
+            ]
+
+            assignment_rows.append({
+                "row_id": row.id,
+                "operation": row.operation.name if row.operation else "",   # ✅ clean operation
+                "skill": row.skill.skill_name if row.skill else "",        # ✅ clean skill
+                "sequence": row.sequence,
+                "machines": list(machines),
+                "employees": employee_list,
+            })
+
+        return JsonResponse({"rows": assignment_rows})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
+
+
+
+
+from django.utils.dateparse import parse_datetime
+
+
+class MachineScheduleCreateView(View):
+    template_name = "MachinePlan/machine_scheduling_form.html"
+
+    def get(self, request, *args, **kwargs):
+        context = {
+            "production_orders": ProductionOrder.objects.all(),
+            "components": BOMHeader.objects.all(),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # --- Save Master Schedule ---
+            schedule = MachineSchedule.objects.create(
+                name=request.POST.get("name"),
+                production_order_id=request.POST.get("production_order"),
+                component_id=request.POST.get("component"),
+                scheduled_start=parse_datetime(request.POST.get("scheduled_start")),
+                scheduled_end=parse_datetime(request.POST.get("scheduled_end")),
+            )
+
+            # --- Load assignments from JSON ---
+            assignments_json = request.POST.get("assignments_json")
+            if assignments_json:
+                assignments = json.loads(assignments_json)
+
+                for row in assignments:
+                    routing = Routing.objects.filter(id=row.get("row_id")).first()
+                    if not routing:
+                        continue
+
+                    MachineScheduleDetail.objects.create(
+                        schedule=schedule,
+                        seq=routing.sequence,
+                        routing=routing,
+                        machine_id=row.get("machine") or None,
+                        work_center=routing.work_center,
+                        employee=",".join(row.get("employees", [])),
+                        hours_allocated=row.get("hours") or None,
+                        scheduled_start=parse_datetime(row.get("start")),
+                        scheduled_end=parse_datetime(row.get("end")),
+                    )
+
+            return redirect(reverse("mcp:machine_scheduling_list"))
+
+        except Exception as e:
+            return render(request, self.template_name, {
+                "production_orders": ProductionOrder.objects.all(),
+                "components": BOMHeader.objects.all(),
+                "error": str(e)
+            })
