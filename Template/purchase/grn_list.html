@@ -47,7 +47,7 @@
     </div>
     <div class="card mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3">
+            <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label for="status" class="form-label">Status</label>
                     <select name="status" id="statusf" class="form-select">
@@ -65,9 +65,9 @@
                     <label for="date_to" class="form-label">Date To</label>
                     <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
                 </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="{% url 'grn_list' %}" class="btn btn-secondary">Clear</a>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Filter</button>
+                    <a href="{% url 'grn_list' %}" class="btn btn-secondary btn-sm"><i class="bi bi-x-circle"></i> Clear</a>
                 </div>
             </form>
         </div>
@@ -76,8 +76,8 @@
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>GRN Number</th>
                             <th>Purchase Order</th>
@@ -86,7 +86,7 @@
                             <th>Status</th>
                             <th>Received By</th>
                             <th>Verified By</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -94,35 +94,43 @@
                         <tr>
                             <td>{{ grn.grn_number }}</td>
                             <td>
-                                <a href="{% url 'purchase_order_detail' grn.purchase_order.po_id %}">{{ grn.purchase_order.po_number }}</a>
+                                <a href="{% url 'purchase_order_detail' grn.purchase_order.po_id %}">
+                                    {{ grn.purchase_order.po_number }}
+                                </a>
                             </td>
                             <td>{{ grn.purchase_order.supplier.name }}</td>
                             <td>{{ grn.received_date }}</td>
                             <td>
-                                <span class="badge bg-{% if grn.status == 'draft' %}secondary{% elif grn.status == 'received' %}info{% elif grn.status == 'verified' %}success{% else %}danger{% endif %}">
+                                <span class="badge
+                                    {% if grn.status == 'draft' %} bg-secondary
+                                    {% elif grn.status == 'received' %} bg-info
+                                    {% elif grn.status == 'verified' %} bg-success
+                                    {% else %} bg-danger {% endif %}">
                                     {{ grn.get_status_display }}
                                 </span>
                             </td>
                             <td>{{ grn.received_by|default:"-" }}</td>
                             <td>{{ grn.verified_by|default:"-" }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'grn_detail' grn.grn_id %}" class="btn btn-primary">
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <a href="{% url 'grn_detail' grn.grn_id %}" 
+                                       class="btn btn-primary" title="View">
                                         <i class="bi bi-eye"></i>
-                                    </a>&nbsp;&nbsp;
-                                    <a href="{% url 'grn_edit' grn.grn_id %}" class="btn btn-secondary">
+                                    </a>
+                                    <a href="{% url 'grn_edit' grn.grn_id %}" 
+                                       class="btn btn-secondary" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if grn.status == 'received' %}
-                                    &nbsp;&nbsp;
-                                    <a href="{% url 'grn_verify' grn.grn_id %}" class="btn btn-success">
-                                        <i class="bi bi-check-circle"></i> Verify
+                                    <a href="{% url 'grn_verify' grn.grn_id %}" 
+                                       class="btn btn-success" title="Verify">
+                                        <i class="bi bi-check-circle"></i>
                                     </a>
                                     {% endif %}
                                     {% if grn.status == 'received' or grn.status == 'verified' %}
-                                    &nbsp;&nbsp;
-                                    <a href="{% url 'supplier_invoice_from_grn' grn.grn_id %}" class="btn btn-info">
-                                        <i class="bi bi-receipt"></i> Create Invoice
+                                    <a href="{% url 'supplier_invoice_from_grn' grn.grn_id %}" 
+                                       class="btn btn-info" title="Create Invoice">
+                                        <i class="bi bi-receipt"></i>
                                     </a>
                                     {% endif %}
                                 </div>
@@ -130,12 +138,15 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center">No GRNs found.</td>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                No GRNs found.
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
             
             {% if is_paginated %}
             <nav aria-label="GRN pagination">
@@ -193,7 +204,7 @@
   </script>
 {% endif %}
 
-<script>
+{% comment %} <script>
     // Set today's date as default for date filters
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
@@ -207,7 +218,7 @@
             document.getElementById('date_to').value = today;
         }
     });
-</script>
+</script> {% endcomment %}
 {% endblock %}
 
 {% block extra_javascript %}

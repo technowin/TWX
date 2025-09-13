@@ -55,35 +55,48 @@
                     <i class="bi bi-pencil"></i> New Purchase RFQ
                 </a>&nbsp;&nbsp;&nbsp;
                 <a href="/quotations/create/" class="btn btn-sm btn-info" target="_blank">
-                    <i class="bi bi-receipt"></i> Create Quotation
+                    <i class="bi bi-receipt"></i> Add Quotation
                 </a>
             </div>
         </div>
     </div>
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <form method="get" class="row g-3">
+            <form method="get" class="row g-3 align-items-end">
+
+                <!-- Status -->
                 <div class="col-md-3">
                     <label for="status" class="form-label">Status</label>
-                    <select name="status" id="statusf" class="form-select">
+                    <select name="status" id="status_f" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
+
+                <!-- Date From -->
                 <div class="col-md-3">
                     <label for="date_from" class="form-label">Date From</label>
-                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from }}">
+                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from|default_if_none:'' }}">
                 </div>
+
+                <!-- Date To -->
                 <div class="col-md-3">
                     <label for="date_to" class="form-label">Date To</label>
-                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
+                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to|default_if_none:'' }}">
                 </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="{% url 'purchase_rfq_list' %}" class="btn btn-secondary">Clear</a>
+
+                <!-- Buttons -->
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a href="{% url 'purchase_rfq_list' %}" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
                 </div>
+
             </form>
         </div>
     </div>
@@ -91,15 +104,15 @@
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>RFQ Number</th>
                             <th>Title</th>
                             <th>Status</th>
                             <th>Created By</th>
                             <th>Created Date</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,49 +121,55 @@
                             <td>{{ rfq.rfq_number }}</td>
                             <td>{{ rfq.title }}</td>
                             <td>
-                                <span class="badge bg-{% if rfq.status == 'draft' %}secondary{% elif rfq.status == 'sent' %}info{% elif rfq.status == 'received' %}success{% else %}primary{% endif %}">
+                                <span class="badge 
+                                    {% if rfq.status == 'draft' %} bg-secondary
+                                    {% elif rfq.status == 'sent' %} bg-info
+                                    {% elif rfq.status == 'received' %} bg-success
+                                    {% else %} bg-primary
+                                    {% endif %}">
                                     {{ rfq.get_status_display }}
                                 </span>
                             </td>
                             <td>{{ rfq.created_by }}</td>
-                            <td>{{ rfq.created_date }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" class="btn btn-primary">
+                            <td>{{ rfq.created_date|date:"d M, Y" }}</td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <a href="{% url 'purchase_rfq_detail' rfq.rfq_id %}" 
+                                       class="btn btn-sm btn-primary" title="View">
                                         <i class="bi bi-eye"></i>
-                                    </a>&nbsp;&nbsp;
-                                    <a href="{% url 'purchase_rfq_edit' rfq.rfq_id %}" class="btn btn-secondary">
+                                    </a>
+                                    <a href="{% url 'purchase_rfq_edit' rfq.rfq_id %}" 
+                                       class="btn btn-sm btn-secondary" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% if rfq.status == 'draft' %}
-                                    &nbsp;&nbsp;
-                                    <a href="{% url 'purchase_rfq_send' rfq.rfq_id %}" class="btn btn-success">
-                                        <i class="bi bi-send"></i> Send
-                                    </a>
+                                        <a href="{% url 'purchase_rfq_send' rfq.rfq_id %}" 
+                                           class="btn btn-sm btn-success" title="Send RFQ">
+                                            <i class="bi bi-send"></i>
+                                        </a>
                                     {% endif %}
                                     {% if rfq.status == 'received' %}
-                                    &nbsp;&nbsp;
-                                    <a href="/quotations/1/edit/" class="btn btn-success">
-                                        <i class="bi bi-upload"></i> Upload Quotation
-                                    </a>
-                                    {% endif %}
-                                    {% if rfq.status == 'received' %}
-                                    &nbsp;&nbsp;
-                                    <a href="{% url 'purchase_order_from_rfq' rfq.rfq_id %}" class="btn btn-info">
-                                        <i class="bi bi-cart-check"></i> Create PO
-                                    </a>
+                                        <a href="/quotations/1/edit/" 
+                                           class="btn btn-sm btn-success" title="Upload Quotation">
+                                            <i class="bi bi-upload"></i>
+                                        </a>
+                                        <a href="{% url 'purchase_order_from_rfq' rfq.rfq_id %}" 
+                                           class="btn btn-sm btn-info" title="Create Purchase Order">
+                                            <i class="bi bi-cart-check"></i>
+                                        </a>
                                     {% endif %}
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center">No purchase RFQs found.</td>
+                            <td colspan="6" class="text-center text-muted">No purchase RFQs found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
             
             {% if is_paginated %}
             <nav aria-label="Purchase RFQ pagination">
@@ -208,7 +227,7 @@
   </script>
 {% endif %}
 
-<script>
+{% comment %} <script>
     // Set today's date as default for date filters
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
@@ -222,7 +241,7 @@
             document.getElementById('date_to').value = today;
         }
     });
-</script>
+</script> {% endcomment %}
 {% endblock %}
 
 {% block extra_javascript %}

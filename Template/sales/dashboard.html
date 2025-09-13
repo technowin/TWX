@@ -38,7 +38,7 @@
 
 {% block title %}Sales Dashboard - ERP System{% endblock %}
 
-{% block page_title %}<h4> <i class="bi bi-speedometer2"></i> Sales Dashboard</h4>{% endblock %}
+{% block page_title %}<h3> <i class="bi bi-speedometer2"></i> Sales Dashboard</h3>{% endblock %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
 {% block content %}
@@ -54,67 +54,87 @@
     color: #fff !important;
 }
 
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
 
 </style>
 <div class="dashboard-container">
     <!-- Summary Cards -->
     <div class="row">
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-primary text-white h-100">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-primary text-white mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Customers</h5>
+                            <h5 class="card-title"><strong>Customers</strong></h5>
                             <h2 class="card-text">{{ customer_count }}</h2>
                         </div>
-                        <i class="fas fa-users fa-2x opacity-50"></i>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
                     </div>
-                    <a href="{% url 'customer_list' %}" class="text-white stretched-link small">View All</a>
+                    {% comment %} <a href="{% url 'customer_list' %}" class="text-white stretched-link small">View All</a> {% endcomment %}
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'customer_list' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-info text-white h-100">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-info text-white mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">RFQs</h5>
+                            <h5 class="card-title"> <strong>RFQs</strong></h5>
                             <h2 class="card-text">{{ rfq_count }}</h2>
                         </div>
-                        <i class="fas fa-file-alt fa-2x opacity-50"></i>
+                        <i class="fas fa-file-alt fa-3x opacity-50"></i>
                     </div>
-                    <a href="{% url 'rfq_list' %}" class="text-white stretched-link small">View All</a>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'rfq_list' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-success text-white h-100">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-success text-white mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Quotations</h5>
-                            <h2 class="card-text">{{ quotation_count }}</h2>
+                            <h5 class="card-title"> <strong>Quotations</strong></h5>
+                            <h2 class="card-text">{{ rfq_count }}</h2>
                         </div>
-                        <i class="fas fa-file-contract fa-2x opacity-50"></i>
+                        <i class="fas fa-file-contract fa-3x opacity-50"></i>
                     </div>
-                    <a href="{% url 'quotation_list' %}" class="text-white stretched-link small">View All</a>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'quotation_list' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-warning text-cyan h-100">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-warning text-dark mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Sales Orders</h5>
+                            <h5 class="card-title"> <strong>Sales Orders</strong></h5>
                             <h2 class="card-text">{{ sales_order_count }}</h2>
                         </div>
-                        <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
+                        <i class="fas fa-shopping-cart fa-3x opacity-50"></i>
                     </div>
-                    <a href="{% url 'sales_order_list' %}" class="text-cyan stretched-link small">View All</a>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-dark stretched-link" href="{% url 'sales_order_list' %}">View All</a>
+                    <div class="small text-dark"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
@@ -122,17 +142,20 @@
     
     <!-- Financial Metrics -->
     <div class="row">
-        <div class="col-md-6 col-xl-3 mb-4">
-            <div class="card bg-danger text-white h-100">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-danger text-white mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title">Invoices</h5>
+                            <h5 class="card-title"> <strong>Invoices</strong></h5>
                             <h2 class="card-text">{{ invoice_count }}</h2>
                         </div>
-                        <i class="fas fa-file-invoice-dollar fa-2x opacity-50"></i>
+                        <i class="fas fa-file-invoice-dollar fa-3x opacity-50"></i>
                     </div>
-                    <a href="{% url 'invoice_list' %}" class="text-white stretched-link small">View All</a>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'invoice_list' %}">View All</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>

@@ -44,10 +44,10 @@
         <h4><i class="bi bi-receipt"></i> Sales Orders </h4>
         <a href="{% url 'sales_order_create' %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-plus-circle"></i> New Sales Order</a>
     </div>
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-3">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
                     <label for="status" class="form-label">Status</label>
                     <select name="status" id="statusf" class="form-select">
                         <option value="">All Statuses</option>
@@ -65,17 +65,22 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="date_from" class="form-label">Date From</label>
                     <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="date_to" class="form-label">Date To</label>
                     <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
                 </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="{% url 'sales_order_list' %}" class="btn btn-secondary">Clear</a>
+                <!-- Action Buttons -->
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a href="{% url 'sales_order_list' %}" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
                 </div>
             </form>
         </div>
@@ -84,8 +89,8 @@
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>Order Number</th>
                             <th>Customer</th>
@@ -94,7 +99,7 @@
                             <th>Status</th>
                             <th class="text-end">Total Amount</th>
                             <th>Created By</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,37 +107,47 @@
                         <tr>
                             <td>{{ order.order_number }}</td>
                             <td>{{ order.customer.name }}</td>
-                            <td>{{ order.order_date }}</td>
-                            <td>{{ order.delivery_date }}</td>
+                            <td>{{ order.order_date|date:"d M, Y" }}</td>
+                            <td>{{ order.delivery_date|date:"d M, Y" }}</td>
                             <td>
-                                <span class="badge bg-{% if order.status == 'draft' %}secondary{% elif order.status == 'confirmed' %}info{% elif order.status == 'in_progress' %}primary{% elif order.status == 'shipped' %}warning{% elif order.status == 'delivered' %}success{% else %}danger{% endif %}">
+                                <span class="badge 
+                                    {% if order.status == 'draft' %} bg-secondary
+                                    {% elif order.status == 'confirmed' %} bg-info
+                                    {% elif order.status == 'in_progress' %} bg-primary
+                                    {% elif order.status == 'shipped' %} bg-warning
+                                    {% elif order.status == 'delivered' %} bg-success
+                                    {% else %} bg-danger
+                                    {% endif %}">
                                     {{ order.get_status_display }}
                                 </span>
                             </td>
-                            <td class="text-end">{{ order.total_amount }}</td>
+                            <td class="text-end">
+                                {{ order.total_amount|floatformat:2 }}
+                            </td>
                             <td>{{ order.created_by }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'sales_order_detail' order.order_id %}" class="btn btn-primary">
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <a href="{% url 'sales_order_detail' order.order_id %}" class="btn btn-sm btn-primary" title="View">
                                         <i class="bi bi-eye"></i>
-                                    </a>&nbsp;&nbsp;
-                                    <a href="{% url 'sales_order_edit' order.order_id %}" class="btn btn-secondary">
+                                    </a>
+                                    <a href="{% url 'sales_order_edit' order.order_id %}" class="btn btn-sm btn-secondary" title="Edit">
                                         <i class="bi bi-pencil"></i>
-                                    </a>&nbsp;&nbsp;
-                                    <a href="{% url 'invoice_from_sales_order' order.order_id %}" class="btn btn-success">
-                                        <i class="bi bi-receipt"></i> Create Invoice
+                                    </a>
+                                    <a href="{% url 'invoice_from_sales_order' order.order_id %}" class="btn btn-sm btn-success" title="Create Invoice">
+                                        <i class="bi bi-receipt"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center">No sales orders found.</td>
+                            <td colspan="8" class="text-center text-muted">No sales orders found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
             
             {% if is_paginated %}
             <nav aria-label="Sales Order pagination">
@@ -190,7 +205,7 @@
   </script>
 {% endif %}
 
-<script>
+{% comment %} <script>
     // Set today's date as default for date filters
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
@@ -204,7 +219,7 @@
             document.getElementById('date_to').value = today;
         }
     });
-</script>
+</script> {% endcomment %}
 {% endblock %}
 
 {% block extra_javascript %}

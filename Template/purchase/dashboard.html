@@ -58,24 +58,24 @@
 {% block title %}Purchase Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-2">
     <!-- Header Section -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2">Purchase Dashboard</h1>
+        <h3 class="h3"><i class="bi-cart-check"></i> Purchase Dashboard</h3>
         <div>
             <span class="badge bg-info fs-6">{{ today|date:"F j, Y" }}</span>
         </div>
     </div>
 
     <!-- Summary Cards -->
-    <div class="row mb-4">
+    <div class="row mb-2">
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
             <div class="card bg-primary text-white h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-text mb-0">Suppliers</h6>
-                            <h3 class="card-title mb-0">{{ supplier_count }}</h3>
+                            <h6 class="card-title mb-0">Suppliers</h6>
+                            <h3 class="card-text mb-0">{{ supplier_count }}</h3>
                         </div>
                         <i class="fas fa-truck fa-2x opacity-50"></i>
                     </div>
@@ -93,8 +93,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-text mb-0">Purchase RFQs</h6>
-                            <h3 class="card-title mb-0">{{ purchase_rfq_count }}</h3>
+                            <h6 class="card-title mb-0">Purchase RFQs</h6>
+                            <h3 class="card-text mb-0">{{ purchase_rfq_count }}</h3>
                         </div>
                         <i class="fas fa-file-alt fa-2x opacity-50"></i>
                     </div>
@@ -111,8 +111,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-text mb-0">Purchase Orders</h6>
-                            <h3 class="card-title mb-0">{{ purchase_order_count }}</h3>
+                            <h6 class="card-title mb-0">Purchase Orders</h6>
+                            <h3 class="card-text mb-0">{{ purchase_order_count }}</h3>
                         </div>
                         <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
                     </div>
@@ -129,8 +129,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-text mb-0">GRNs</h6>
-                            <h3 class="card-title mb-0">{{ grn_count }}</h3>
+                            <h6 class="card-title mb-0">GRNs</h6>
+                            <h3 class="card-text mb-0">{{ grn_count }}</h3>
                         </div>
                         <i class="fas fa-clipboard-check fa-2x opacity-50"></i>
                     </div>
@@ -147,8 +147,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-text mb-0">Supplier Invoices</h6>
-                            <h3 class="card-title mb-0">{{ supplier_invoice_count }}</h3>
+                            <h6 class="card-title  mb-0">Supplier Invoices</h6>
+                            <h3 class="card-text mb-0">{{ supplier_invoice_count }}</h3>
                         </div>
                         <i class="fas fa-file-invoice-dollar fa-2x opacity-50"></i>
                     </div>
@@ -165,8 +165,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-text mb-0">Monthly Purchases</h6>
-                            <h3 class="card-title mb-0">${{ monthly_purchases|intcomma }}</h3>
+                            <h6 class="card-title mb-0">Monthly Purchases</h6>
+                            <h3 class="card-text mb-0">${{ monthly_purchases|intcomma }}</h3>
                         </div>
                         <i class="fas fa-chart-line fa-2x opacity-50"></i>
                     </div>
@@ -181,7 +181,7 @@
     </div>
 
     <!-- Metrics and Charts Row -->
-    <div class="row mb-4">
+    <div class="row mb-2">
         <!-- Pending Actions -->
         <div class="col-lg-6 mb-4">
             <div class="card h-100">

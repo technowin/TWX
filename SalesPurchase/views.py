@@ -208,6 +208,7 @@ def purchase_dashboard(request):
     ).filter(pending_qty__gt=0).count()
     
     context = {
+        'today': today,
         'supplier_count': supplier_count,
         'purchase_rfq_count': purchase_rfq_count,
         'purchase_order_count': purchase_order_count,
@@ -314,7 +315,7 @@ def customer_list(request):
     if customer_type:
         customers = customers.filter(type=customer_type)
     
-    paginator = Paginator(customers, 25)
+    paginator = Paginator(customers, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -445,7 +446,7 @@ def rfq_list(request):
     customers = Customer.objects.all()
     status_choices = RFQ.RFQ_STATUS
     
-    paginator = Paginator(rfqs, 25)
+    paginator = Paginator(rfqs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -589,7 +590,7 @@ def quotation_list(request):
     customers = Customer.objects.all()
     status_choices = Quotation.QUOTATION_STATUS
     
-    paginator = Paginator(quotations, 25)  # Show 25 quotations per page
+    paginator = Paginator(quotations, 10)  # Show 25 quotations per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -972,7 +973,7 @@ def sales_order_list(request):
     customers = Customer.objects.all()
     status_choices = SalesOrder.ORDER_STATUS
     
-    paginator = Paginator(orders, 25)  # Show 25 orders per page
+    paginator = Paginator(orders, 10)  # Show 25 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1146,7 +1147,7 @@ def invoice_list(request):
     
     status_choices = Invoice.INVOICE_STATUS
     
-    paginator = Paginator(invoices, 25)  # Show 25 invoices per page
+    paginator = Paginator(invoices, 10)  # Show 25 invoices per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1330,7 +1331,7 @@ def purchase_rfq_list(request):
     
     status_choices = PurchaseRFQ.RFQ_STATUS
     
-    paginator = Paginator(rfqs, 25)  # Show 25 RFQs per page
+    paginator = Paginator(rfqs, 10)  # Show 25 RFQs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1502,7 +1503,7 @@ def purchase_order_list(request):
     suppliers = Supplier.objects.all()
     status_choices = PurchaseOrder.PO_STATUS
     
-    paginator = Paginator(orders, 25)  # Show 25 orders per page
+    paginator = Paginator(orders, 10)  # Show 25 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1666,7 +1667,7 @@ def grn_list(request):
     
     status_choices = GoodsReceivedNote.GRN_STATUS
     
-    paginator = Paginator(grns, 25)  # Show 25 GRNs per page
+    paginator = Paginator(grns, 10)  # Show 25 GRNs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1833,7 +1834,7 @@ def supplier_invoice_list(request):
     suppliers = Supplier.objects.all()
     status_choices = SupplierInvoice.INVOICE_STATUS
     
-    paginator = Paginator(invoices, 25)  # Show 25 invoices per page
+    paginator = Paginator(invoices, 10)  # Show 25 invoices per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
