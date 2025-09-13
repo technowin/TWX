@@ -270,8 +270,8 @@ class MachineScheduling(models.Model):
 class MachineSchedule(models.Model):
     name = models.CharField(max_length=255, verbose_name="Schedule Name", null=True, blank=True)
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
+    routing = models.ForeignKey('MachinePlan.Routing', on_delete=models.CASCADE, null=True, blank=True)
     component = models.ForeignKey('BOM.BOMHeader', on_delete=models.CASCADE, verbose_name="BOM Component")
-    
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
     actual_start = models.DateTimeField(null=True, blank=True)

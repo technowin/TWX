@@ -69,6 +69,7 @@ urlpatterns = [
     path('machine_scheduling/ajax/load-machines/', load_machines, name='ajax_load_machines'),
 
     path("get_routings/<int:component_id>/",get_routings, name="get_routings"),
+    path("get_assignment_data/<int:routing_id>/",get_assignment_data, name="get_assignment_data"),
 
     path('dashboard/',dashboard, name='dashboard'),
 ]
