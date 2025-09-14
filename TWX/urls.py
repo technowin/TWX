@@ -385,6 +385,15 @@ urlpatterns = [
     # Supplier Comparison URL
     path('purchase-rfqs/<int:rfq_id>/comparison/', supplier_comparison, name='supplier_comparison'),
 
+    # Purchase Quotation URLs
+    path('purchase-quotations/', purchase_quotation_list, name='purchase_quotation_list'),
+    path('purchase-quotations/create/', purchase_quotation_create, name='purchase_quotation_create'),
+    path('purchase-quotations/create-from-rfq/<int:rfq_id>/', purchase_quotation_from_rfq, name='purchase_quotation_from_rfq'),
+    path('purchase-quotations/<int:pk>/edit/', purchase_quotation_edit, name='purchase_quotation_edit'),
+    path('purchase-quotations/<int:pk>/', purchase_quotation_detail, name='purchase_quotation_detail'),
+    path('purchase-quotations/<int:pk>/pdf/', purchase_quotation_pdf, name='purchase_quotation_pdf'),
+    path('purchase-quotations/<int:pk>/status/<str:status>/', update_quotation_status, name='update_purchase_quotation_status'),
+
     # Purchase Order URLs
     path('purchase-orders/', purchase_order_list, name='purchase_order_list'),
     path('purchase-orders/create/', purchase_order_create, name='purchase_order_create'),

@@ -1,0 +1,422 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Purchase Quotation - ERP System{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+        </div>
+    </div>
+
+    <form method="post" id="quotation-form">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h6 class="m-0 font-weight-bold">Quotation Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.supplier.id_for_label }}">Supplier</label>
+                                    {{ form.supplier }}
+                                    {% if form.supplier.errors %}
+                                    <div class="text-danger">{{ form.supplier.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.purchase_rfq.id_for_label }}">RFQ Reference</label>
+                                    {{ form.purchase_rfq }}
+                                    {% if form.purchase_rfq.errors %}
+                                    <div class="text-danger">{{ form.purchase_rfq.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.quotation_date.id_for_label }}">Quotation Date</label>
+                                    {{ form.quotation_date }}
+                                    {% if form.quotation_date.errors %}
+                                    <div class="text-danger">{{ form.quotation_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.expiry_date.id_for_label }}">Expiry Date</label>
+                                    {{ form.expiry_date }}
+                                    {% if form.expiry_date.errors %}
+                                    <div class="text-danger">{{ form.expiry_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.currency.id_for_label }}">Currency</label>
+                                    {{ form.currency }}
+                                    {% if form.currency.errors %}
+                                    <div class="text-danger">{{ form.currency.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.payment_terms.id_for_label }}">Payment Terms</label>
+                                    {{ form.payment_terms }}
+                                    {% if form.payment_terms.errors %}
+                                    <div class="text-danger">{{ form.payment_terms.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.incoterms.id_for_label }}">Incoterms</label>
+                                    {{ form.incoterms }}
+                                    {% if form.incoterms.errors %}
+                                    <div class="text-danger">{{ form.incoterms.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.delivery_time.id_for_label }}">Delivery Time</label>
+                                    {{ form.delivery_time }}
+                                    {% if form.delivery_time.errors %}
+                                    <div class="text-danger">{{ form.delivery_time.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.notes.id_for_label }}">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h6 class="m-0 font-weight-bold">Items</h6>
+                    </div>
+                    <div class="card-body">
+                        {{ formset.management_form }}
+                        <div id="items-formset">
+                            {% for item_form in formset %}
+                            <div class="item-form row mb-3 border-bottom pb-3">
+                                {% for hidden in item_form.hidden_fields %}
+                                {{ hidden }}
+                                {% endfor %}
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.component.id_for_label }}">Component</label>
+                                        {{ item_form.component }}
+                                        {% if item_form.component.errors %}
+                                        <div class="text-danger">{{ item_form.component.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.quantity.id_for_label }}">Quantity</label>
+                                        {{ item_form.quantity }}
+                                        {% if item_form.quantity.errors %}
+                                        <div class="text-danger">{{ item_form.quantity.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.unit_price.id_for_label }}">Unit Price</label>
+                                        {{ item_form.unit_price }}
+                                        {% if item_form.unit_price.errors %}
+                                        <div class="text-danger">{{ item_form.unit_price.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.tax_rate.id_for_label }}">Tax Rate (%)</label>
+                                        {{ item_form.tax_rate }}
+                                        {% if item_form.tax_rate.errors %}
+                                        <div class="text-danger">{{ item_form.tax_rate.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.lead_time.id_for_label }}">Lead Time (Days)</label>
+                                        {{ item_form.lead_time }}
+                                        {% if item_form.lead_time.errors %}
+                                        <div class="text-danger">{{ item_form.lead_time.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.description.id_for_label }}">Description</label>
+                                        {{ item_form.description }}
+                                        {% if item_form.description.errors %}
+                                        <div class="text-danger">{{ item_form.description.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="{{ item_form.notes.id_for_label }}">Item Notes</label>
+                                        {{ item_form.notes }}
+                                        {% if item_form.notes.errors %}
+                                        <div class="text-danger">{{ item_form.notes.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                {% if formset.can_delete %}
+                                <div class="col-md-12">
+                                    <div class="form-check">
+                                        {{ item_form.DELETE }}
+                                        <label class="form-check-label" for="{{ item_form.DELETE.id_for_label }}">Delete</label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <button type="button" id="add-item" class="btn btn-sm btn-primary mt-3">
+                            <i class="bi bi-plus-circle"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h6 class="m-0 font-weight-bold">Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.status.id_for_label }}">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                            <div class="text-danger">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="summary-card mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tax:</span>
+                                <span id="tax-amount">0.00</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total:</span>
+                                <span id="total-amount">0.00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Quotation</button>
+                            <a href="{% if quotation %}{% url 'purchase_quotation_detail' quotation.pk %}{% else %}{% url 'purchase_quotation_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate totals when form loads
+    calculateTotals();
+    
+    // Add event listeners to quantity, unit price, and tax rate fields
+    document.querySelectorAll('#items-formset input[type="number"]').forEach(input => {
+        input.addEventListener('input', calculateTotals);
+    });
+    
+    // Add new item form
+    document.getElementById('add-item').addEventListener('click', function() {
+        const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+        const formIdx = parseInt(totalForms.value);
+        const formsetContainer = document.getElementById('items-formset');
+        
+        // Clone the first form and update indices
+        const newForm = formsetContainer.querySelector('.item-form').cloneNode(true);
+        
+        // Update all field names and IDs
+        newForm.querySelectorAll('input, select, textarea').forEach(field => {
+            if (field.name) {
+                field.name = field.name.replace('-0-', `-${formIdx}-`);
+            }
+            if (field.id) {
+                field.id = field.id.replace('_0_', `_${formIdx}_`);
+            }
+            // Clear values
+            if (field.type !== 'hidden' && field.tagName !== 'SELECT') {
+                field.value = '';
+            }
+        });
+        
+        // Add delete checkbox if needed
+        if (newForm.querySelector('input[type="checkbox"][name$="-DELETE"]')) {
+            newForm.querySelector('input[type="checkbox"][name$="-DELETE"]').checked = false;
+        }
+        
+        // Add event listeners to new fields
+        newForm.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', calculateTotals);
+        });
+        
+        // Append the new form
+        formsetContainer.appendChild(newForm);
+        
+        // Update total form count
+        totalForms.value = formIdx + 1;
+    });
+    
+    function calculateTotals() {
+        let subtotal = 0;
+        let taxAmount = 0;
+        
+        document.querySelectorAll('.item-form').forEach(form => {
+            // Skip forms marked for deletion
+            if (form.querySelector('input[type="checkbox"][name$="-DELETE"]') && 
+                form.querySelector('input[type="checkbox"][name$="-DELETE"]').checked) {
+                return;
+            }
+            
+            const quantity = parseFloat(form.querySelector('input[name$="-quantity"]').value) || 0;
+            const unitPrice = parseFloat(form.querySelector('input[name$="-unit_price"]').value) || 0;
+            const taxRate = parseFloat(form.querySelector('input[name$="-tax_rate"]').value) || 0;
+            
+            const lineSubtotal = quantity * unitPrice;
+            const lineTax = lineSubtotal * (taxRate / 100);
+            
+            subtotal += lineSubtotal;
+            taxAmount += lineTax;
+        });
+        
+        // Update summary
+        document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+        document.getElementById('tax-amount').textContent = taxAmount.toFixed(2);
+        document.getElementById('total-amount').textContent = (subtotal + taxAmount).toFixed(2);
+    }
+});
+</script>
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+{% endblock %}

@@ -1635,6 +1635,242 @@ def purchase_rfq_send(request, pk):
     
     return render(request, 'purchase/purchase_rfq_send.html', {'rfq': rfq})
 
+
+@login_required
+def purchase_quotation_list(request):
+    quotations = PurchaseQuotation.objects.all().order_by('-created_date')
+    
+    # Filtering
+    status_filter = request.GET.get('status')
+    if status_filter:
+        quotations = quotations.filter(status=status_filter)
+    
+    supplier_filter = request.GET.get('supplier')
+    if supplier_filter:
+        quotations = quotations.filter(supplier_id=supplier_filter)
+    
+    context = {
+        'quotations': quotations,
+        'status_choices': PurchaseQuotation.QUOTATION_STATUS,
+        'suppliers': Supplier.objects.all(),
+    }
+    return render(request, 'purchase/purchase_quotation_list.html', context)
+
+@login_required
+def purchase_quotation_create(request):
+    if request.method == 'POST':
+        form = PurchaseQuotationForm(request.POST)
+        formset = PurchaseQuotationItemFormSet(request.POST, instance=PurchaseQuotation())
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                quotation = form.save(commit=False)
+                quotation.created_by = request.user
+                quotation.save()
+                
+                formset.instance = quotation
+                formset.save()
+                
+            messages.success(request, 'Purchase quotation created successfully!')
+            return redirect('purchase_quotation_detail', pk=quotation.pk)
+    else:
+        form = PurchaseQuotationForm()
+        formset = PurchaseQuotationItemFormSet(instance=PurchaseQuotation())
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'title': 'Create Purchase Quotation',
+    }
+    return render(request, 'purchase/purchase_quotation_form.html', context)
+
+@login_required
+def purchase_quotation_from_rfq(request, rfq_id):
+    rfq = get_object_or_404(PurchaseRFQ, pk=rfq_id)
+    
+    if request.method == 'POST':
+        form = PurchaseQuotationForm(request.POST)
+        formset = PurchaseQuotationItemFormSet(request.POST, instance=PurchaseQuotation())
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                quotation = form.save(commit=False)
+                quotation.created_by = request.user
+                quotation.purchase_rfq = rfq
+                quotation.save()
+                
+                formset.instance = quotation
+                formset.save()
+                
+            messages.success(request, 'Purchase quotation created successfully!')
+            return redirect('purchase_quotation_detail', pk=quotation.pk)
+    else:
+        # Pre-fill form with RFQ data
+        form = PurchaseQuotationForm(initial={
+            'supplier': rfq.supplier,
+            'currency': rfq.currency,
+            'payment_terms': rfq.payment_terms,
+        })
+        
+        # Create formset with RFQ items
+        quotation = PurchaseQuotation()
+        formset = PurchaseQuotationItemFormSet(instance=quotation)
+        
+        # Pre-fill formset data
+        for i, item in enumerate(rfq.items.all()):
+            if i < formset.total_form_count():
+                formset.forms[i].initial = {
+                    'rfq_item': item,
+                    'component': item.component,
+                    'description': item.component.description,
+                    'quantity': item.quantity,
+                }
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'rfq': rfq,
+        'title': f'Create Quotation from RFQ #{rfq.rfq_number}',
+    }
+    return render(request, 'purchase/purchase_quotation_form.html', context)
+
+@login_required
+def purchase_quotation_edit(request, pk):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    
+    if request.method == 'POST':
+        form = PurchaseQuotationForm(request.POST, instance=quotation)
+        formset = PurchaseQuotationItemFormSet(request.POST, instance=quotation)
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                form.save()
+                formset.save()
+                
+            messages.success(request, 'Purchase quotation updated successfully!')
+            return redirect('purchase_quotation_detail', pk=quotation.pk)
+    else:
+        form = PurchaseQuotationForm(instance=quotation)
+        formset = PurchaseQuotationItemFormSet(instance=quotation)
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'quotation': quotation,
+        'title': f'Edit Purchase Quotation #{quotation.quotation_number}',
+    }
+    return render(request, 'purchase/purchase_quotation_form.html', context)
+
+@login_required
+def purchase_quotation_detail(request, pk):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    context = {
+        'quotation': quotation,
+    }
+    return render(request, 'purchase/purchase_quotation_detail.html', context)
+
+from weasyprint import HTML, CSS
+
+@login_required
+def purchase_quotation_pdf(request, pk):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    
+    try:
+        # Render HTML template
+        html_string = render_to_string('purchase/purchase_quotation_pdf.html', {
+            'quotation': quotation,
+            'base_url': request.build_absolute_uri('/')[:-1]  # For loading static files
+        })
+        
+        # Generate PDF using WeasyPrint
+        html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+        
+        # Add CSS for better PDF styling
+        css = CSS(string='''
+            @page {
+                size: A4;
+                margin: 1cm;
+                @top-right {
+                    content: "Page " counter(page) " of " counter(pages);
+                    font-size: 10pt;
+                }
+            }
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+            }
+            .header {
+                border-bottom: 2px solid #333;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+            }
+            .company-info {
+                float: left;
+                width: 40%;
+            }
+            .quotation-info {
+                float: right;
+                width: 40%;
+                text-align: right;
+            }
+            .clear {
+                clear: both;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f5f5f5;
+                font-weight: bold;
+            }
+            .text-right {
+                text-align: right;
+            }
+            .total-row {
+                font-weight: bold;
+                background-color: #f9f9f9;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #ddd;
+                font-size: 9pt;
+            }
+        ''')
+        
+        # Generate PDF
+        pdf_file = html.write_pdf(stylesheets=[css])
+        
+        # Create HTTP response with PDF
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="purchase_quotation_{quotation.quotation_number}.pdf"'
+        
+        return response
+    
+    except Exception as e:
+        messages.error(request, f'Error generating PDF: {str(e)}')
+        return redirect('purchase_quotation_detail', pk=quotation.quotation_id)
+
+@login_required
+def update_quotation_status(request, pk, status):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    
+    if status in dict(PurchaseQuotation.QUOTATION_STATUS).keys():
+        quotation.status = status
+        quotation.save()
+        messages.success(request, f'Quotation status updated to {status}.')
+    else:
+        messages.error(request, 'Invalid status.')
+    
+    return redirect('purchase_quotation_detail', pk=quotation.pk)
+
 # Purchase Order Views
 @login_required
 def purchase_order_list(request):
