@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 from django.db.models import Sum
-
+# from SalesPurchase.views import get_component_max_price
 
 from Account.models import CustomUser
 
@@ -245,6 +245,14 @@ class BOMItem(models.Model):
     def __str__(self):
         return f"{self.quantity} x {self.component} in {self.bom}"
     
+    # def save(self, *args, **kwargs):
+    #     # Automatically set price and cost if not provided
+    #     if not self.price or not self.cost:
+    #         max_price = get_component_max_price(self.component)
+    #         self.price = max_price
+    #         self.cost = max_price
+    #     super().save(*args, **kwargs)
+
     @property
     def extended_cost(self):
         # Get the lowest cost from approved suppliers

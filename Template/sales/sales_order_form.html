@@ -200,117 +200,113 @@
                             <div class="card-body">
                                 <div id="formset-container">
                                     {{ formset.management_form }}
-                                    
+
                                     <div class="table-responsive">
-                                        <table class="table" id="items-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Type</th>
-                                                    <th>Item</th>
-                                                    <th>Description</th>
-                                                    <th>Quantity</th>
-                                                    <th>Unit Price</th>
-                                                    <th>Tax Rate (%)</th>
-                                                    <th>Line Total</th>
-                                                    <th>Action</th>
+                                        <table class="table table-sm table-bordered align-middle" id="items-table">
+                                            <thead class="table-light">
+                                                <tr class="text-center">
+                                                    <th style="width: 12%">Type</th>
+                                                    <th style="width: 20%">Item</th>
+                                                    <th style="width: 20%">Description</th>
+                                                    <th style="width: 10%">Quantity</th>
+                                                    <th style="width: 10%">Unit Price</th>
+                                                    <th style="width: 10%">Tax Rate (%)</th>
+                                                    <th style="width: 12%">Line Total</th>
+                                                    <th style="width: 7%">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% for form in formset %}
                                                 <tr class="formset-row" id="row-{{ forloop.counter0 }}">
+                                                    <!-- Render hidden fields (id, DELETE, etc.) -->
+                                                    {% for hidden in form.hidden_fields %}
+                                                        {{ hidden }}
+                                                    {% endfor %}
                                                     <td>
                                                         {{ form.id }}
                                                         {{ form.item_type }}
                                                         {% if form.item_type.errors %}
-                                                            <div class="invalid-feedback d-block">
-                                                                {{ form.item_type.errors }}
-                                                            </div>
+                                                            <div class="invalid-feedback d-block">{{ form.item_type.errors }}</div>
                                                         {% endif %}
                                                     </td>
                                                     <td>
-                                                        <div class="component-field" style="display: {% if form.item_type.value == 'part' or not form.item_type.value %}block{% else %}none{% endif %};">
+                                                        <!-- Component field (for part) -->
+                                                        <div class="component-field" {% if form.item_type.value != 'part' and form.item_type.value %}style="display:none;"{% endif %}>
                                                             {{ form.component }}
                                                         </div>
-                                                        <div class="bom-field" style="display: {% if form.item_type.value == 'product' %}block{% else %}none{% endif %};">
+                                                    
+                                                        <!-- BOM field (for product) -->
+                                                        <div class="bom-field" {% if form.item_type.value != 'product' %}style="display:none;"{% endif %}>
                                                             {{ form.bom }}
                                                         </div>
+                                                    
                                                         {% if form.component.errors or form.bom.errors %}
-                                                            <div class="invalid-feedback d-block">
-                                                                {{ form.component.errors }}{{ form.bom.errors }}
-                                                            </div>
+                                                            <div class="invalid-feedback d-block">{{ form.component.errors }}{{ form.bom.errors }}</div>
                                                         {% endif %}
                                                     </td>
                                                     <td>
                                                         {{ form.description }}
                                                         {% if form.description.errors %}
-                                                            <div class="invalid-feedback d-block">
-                                                                {{ form.description.errors }}
-                                                            </div>
+                                                            <div class="invalid-feedback d-block">{{ form.description.errors }}</div>
                                                         {% endif %}
                                                     </td>
-                                                    <td>
+                                                    <td class="text-center">
                                                         {{ form.quantity }}
                                                         {% if form.quantity.errors %}
-                                                            <div class="invalid-feedback d-block">
-                                                                {{ form.quantity.errors }}
-                                                            </div>
+                                                            <div class="invalid-feedback d-block">{{ form.quantity.errors }}</div>
                                                         {% endif %}
                                                     </td>
-                                                    <td>
+                                                    <td class="text-end">
                                                         {{ form.unit_price }}
                                                         {% if form.unit_price.errors %}
-                                                            <div class="invalid-feedback d-block">
-                                                                {{ form.unit_price.errors }}
-                                                            </div>
+                                                            <div class="invalid-feedback d-block">{{ form.unit_price.errors }}</div>
                                                         {% endif %}
                                                     </td>
-                                                    <td>
+                                                    <td class="text-center">
                                                         {{ form.tax_rate }}
                                                         {% if form.tax_rate.errors %}
-                                                            <div class="invalid-feedback d-block">
-                                                                {{ form.tax_rate.errors }}
-                                                            </div>
+                                                            <div class="invalid-feedback d-block">{{ form.tax_rate.errors }}</div>
                                                         {% endif %}
                                                     </td>
-                                                    <td class="line-total">
+                                                    <td class="line-total text-end">
                                                         {% if form.line_total.value %}
                                                             {{ form.line_total.value }}
                                                         {% else %}
                                                             0.00
                                                         {% endif %}
                                                     </td>
-                                                    <td>
-                                                        {% comment %} {% if formset.can_delete %}
-                                                            {{ form.DELETE }}
-                                                        {% endif %} {% endcomment %}
-                                                        <button type="button" class="btn btn-sm btn-danger remove-row"><i class="bi bi-trash"></i></button>
+                                                    <td class="text-center">
+                                                        <button type="button" class="btn btn-sm btn-danger remove-row">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
                                                     </td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>
-                                            <tfoot>
+                                            <tfoot class="table-light">
                                                 <tr>
-                                                    <td colspan="5" class="text-end fw-bold">Subtotal:</td>
-                                                    <td colspan="3" id="subtotal">0.00</td>
+                                                    <td colspan="6" class="text-end fw-bold">Subtotal:</td>
+                                                    <td colspan="2" id="subtotal" class="text-end">0.00</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="5" class="text-end fw-bold">Tax Amount:</td>
-                                                    <td colspan="3" id="tax-amount">0.00</td>
+                                                    <td colspan="6" class="text-end fw-bold">Tax Amount:</td>
+                                                    <td colspan="2" id="tax-amount" class="text-end">0.00</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="5" class="text-end fw-bold">Total Amount:</td>
-                                                    <td colspan="3" id="total-amount">0.00</td>
+                                                    <td colspan="6" class="text-end fw-bold">Total Amount:</td>
+                                                    <td colspan="2" id="total-amount" class="text-end">0.00</td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                     </div>
                                 </div>
-                                
+
                                 <button type="button" id="add-item" class="btn btn-sm btn-primary mt-3">
                                     <i class="bi bi-plus-circle"></i> Add Item
                                 </button>
                             </div>
                         </div>
+
                         
                         <div class="card mb-4">
                             <div class="card-header">
@@ -395,31 +391,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const row = selectElement.closest('.formset-row');
         const componentField = row.querySelector('.component-field');
         const bomField = row.querySelector('.bom-field');
-        
+        const componentSelect = componentField?.querySelector('select');
+        const bomSelect = bomField?.querySelector('select');
+    
         if (selectElement.value === 'part') {
             componentField.style.display = 'block';
             bomField.style.display = 'none';
-            // Clear BOM field when switching to part
-            if (bomField.querySelector('select')) {
-                bomField.querySelector('select').value = '';
-            }
+            if (bomSelect) bomSelect.value = ''; // clear product field
         } else if (selectElement.value === 'product') {
             componentField.style.display = 'none';
             bomField.style.display = 'block';
-            // Clear component field when switching to product
-            if (componentField.querySelector('select')) {
-                componentField.querySelector('select').value = '';
-            }
+            if (componentSelect) componentSelect.value = ''; // clear part field
+        } else {
+            // If no selection, hide both
+            componentField.style.display = 'none';
+            bomField.style.display = 'none';
+            if (componentSelect) componentSelect.value = '';
+            if (bomSelect) bomSelect.value = '';
         }
     }
     
-    // Initialize item type toggles
+    // Initialize on load
     document.querySelectorAll('.item-type-select').forEach(select => {
         toggleItemFields(select);
         select.addEventListener('change', function() {
             toggleItemFields(this);
         });
     });
+
     
     // Calculate line total
     function calculateLineTotal(row) {
@@ -471,55 +470,75 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add new item row
-    document.getElementById('add-item').addEventListener('click', function() {
+    document.getElementById('add-item').addEventListener('click', function () {
         const formCount = parseInt(totalFormsField.value);
         const newRow = document.createElement('tr');
         newRow.className = 'formset-row';
         newRow.id = `row-${formCount}`;
-        
+    
         newRow.innerHTML = `
             <td>
-                <select name="${formPrefix}-${formCount}-item_type" class="form-select item-type-select" id="id_${formPrefix}-${formCount}-item_type">
+                <select name="${formPrefix}-${formCount}-item_type" 
+                        class="form-select item-type-select" 
+                        id="id_${formPrefix}-${formCount}-item_type">
                     <option value="part">Part</option>
                     <option value="product">Product</option>
                 </select>
             </td>
             <td>
-                <div class="component-field" style="display: block;">
-                    <select name="${formPrefix}-${formCount}-component" class="form-select component-select" id="id_${formPrefix}-${formCount}-component">
+                <!-- Component field -->
+                <div class="component-field">
+                    <select name="${formPrefix}-${formCount}-component" 
+                            class="form-select component-select" 
+                            id="id_${formPrefix}-${formCount}-component">
                         <option value="">---------</option>
                         {% for component in components %}
-                        <option value="{{ component.id }}">{{ component.part_number }} - {{ component.name }}</option>
+                            <option value="{{ component.id }}">{{ component.part_number }} - {{ component.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="bom-field" style="display: none;">
-                    <select name="${formPrefix}-${formCount}-bom" class="form-select bom-select" id="id_${formPrefix}-${formCount}-bom">
+                
+                <!-- BOM field -->
+                <div class="bom-field d-none">
+                    <select name="${formPrefix}-${formCount}-bom" 
+                            class="form-select bom-select" 
+                            id="id_${formPrefix}-${formCount}-bom">
                         <option value="">---------</option>
                         {% for bom in boms %}
-                        <option value="{{ bom.id }}">{{ bom.name }}</option>
+                            <option value="{{ bom.id }}">{{ bom.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </td>
             <td>
-                <textarea name="${formPrefix}-${formCount}-description" class="form-control" rows="2" id="id_${formPrefix}-${formCount}-description"></textarea>
+                <textarea name="${formPrefix}-${formCount}-description" 
+                          class="form-control" rows="2" 
+                          id="id_${formPrefix}-${formCount}-description"></textarea>
             </td>
-            <td>
-                <input type="number" name="${formPrefix}-${formCount}-quantity" class="form-control" min="1" value="1" id="id_${formPrefix}-${formCount}-quantity">
+            <td class="text-center">
+                <input type="number" name="${formPrefix}-${formCount}-quantity" 
+                       class="form-control text-center" min="1" value="1" 
+                       id="id_${formPrefix}-${formCount}-quantity">
             </td>
-            <td>
-                <input type="number" name="${formPrefix}-${formCount}-unit_price" class="form-control" step="0.01" min="0" value="0.00" id="id_${formPrefix}-${formCount}-unit_price">
+            <td class="text-end">
+                <input type="number" name="${formPrefix}-${formCount}-unit_price" 
+                       class="form-control text-end" step="0.01" min="0" value="0.00" 
+                       id="id_${formPrefix}-${formCount}-unit_price">
             </td>
-            <td>
-                <input type="number" name="${formPrefix}-${formCount}-tax_rate" class="form-control" step="0.01" min="0" max="100" value="0.00" id="id_${formPrefix}-${formCount}-tax_rate">
+            <td class="text-center">
+                <input type="number" name="${formPrefix}-${formCount}-tax_rate" 
+                       class="form-control text-center" step="0.01" min="0" max="100" value="0.00" 
+                       id="id_${formPrefix}-${formCount}-tax_rate">
             </td>
-            <td class="line-total">0.00</td>
-            <td>
-                <button type="button" class="btn btn-sm btn-danger remove-row"><i class="bi bi-trash"></i></button>
+            <td class="line-total text-end">0.00</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-danger remove-row">
+                    <i class="bi bi-trash"></i>
+                </button>
             </td>
         `;
-        
+    
+        // Append new row to table body
         document.querySelector('#items-table tbody').appendChild(newRow);
         totalFormsField.value = formCount + 1;
         

@@ -210,7 +210,7 @@ class QuotationItemForm(BootstrapForm):
     class Meta:
         model = QuotationItem
         fields = '__all__'
-        exclude = ['item_id', 'line_total']
+        exclude = ['item_id']
         widgets = {
             'quotation': forms.HiddenInput(),
             'rfq_item': forms.HiddenInput(),

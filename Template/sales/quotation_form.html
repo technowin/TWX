@@ -350,7 +350,10 @@
                                         <div class="col-md-2">
                                             <div class="form-group">
                                                 <label>Line Total</label>
-                                                <input type="text" class="form-control line-total" readonly>
+                                                <input type="text" 
+                                                       class="form-control line-total" 
+                                                       readonly
+                                                       value="{% if form.line_total.value %}{{ form.line_total.value }}{% else %}0.00{% endif %}">
                                             </div>
                                         </div>
                                     </div>
@@ -432,6 +435,13 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+
+        // Function to check if at least one row is visible
+        function getVisibleRows() {
+            return Array.from(document.querySelectorAll('.item-row'))
+                .filter(row => row.style.display !== 'none');
+        }
+
         // Initialize variables
         const formsetDiv = document.getElementById('items-formset');
         const addButton = document.getElementById('add-item');
@@ -563,6 +573,21 @@
                 if (deleteCheckbox) {
                     deleteCheckbox.checked = false;
                     deleteCheckbox.addEventListener('change', function() {
+                        let visibleRows = getVisibleRows();
+                        if (this.checked && visibleRows.length === 1) {
+                            // Prevent deleting the last row
+                            this.checked = false;
+                            // Show SweetAlert warning
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Cannot Delete',
+                                text: 'At least one item is required in the Quotation.',
+                                confirmButtonColor: '#3085d6',
+                                confirmButtonText: 'OK'
+                            });
+                            return;
+                        }
+
                         newForm.style.display = this.checked ? 'none' : 'block';
                         calculateTotals();
                     });
@@ -666,7 +691,7 @@
                     if (this.value && descriptionField) {
                         // In a real application, you would fetch component details via AJAX
                         // For now, we'll just set a placeholder
-                        descriptionField.value = "" ;
+                        //descriptionField.value = "" ;
                         //descriptionField.value = "Component description for ID: " + this.value;
                         
                         // Try to get customer-specific pricing if we have a customer
@@ -686,13 +711,13 @@
                 bomSelect.addEventListener('change', function() {
                     if (this.value && descriptionField) {
                         // In a real application, you would fetch BOM details via AJAX
-                        descriptionField.value = "BOM description for ID: " + this.value;
+                        //descriptionField.value = "";
                         
                         // Calculate BOM cost with markup
                         const customerId = document.getElementById('id_customer');
                         if (customerId && customerId.value && unitPriceField) {
                             // This would be an AJAX call in a real implementation
-                            unitPriceField.value = (Math.random() * 500 + 50).toFixed(2);
+                            //unitPriceField.value = (Math.random() * 500 + 50).toFixed(2);
                             calculateLineTotal(formRow);
                             calculateTotals();
                         }
@@ -758,6 +783,21 @@
             const deleteCheckbox = row.querySelector('input[type="checkbox"][name*="DELETE"]');
             if (deleteCheckbox) {
                 deleteCheckbox.addEventListener('change', function() {
+                    let visibleRows = getVisibleRows();
+                    if (this.checked && visibleRows.length === 1) {
+                        // Prevent deleting the last row
+                        this.checked = false;
+                        // Show SweetAlert warning
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Cannot Delete',
+                            text: 'At least one item is required in the Quotation.',
+                            confirmButtonColor: '#3085d6',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+
                     row.style.display = this.checked ? 'none' : 'block';
                     calculateTotals();
                 });

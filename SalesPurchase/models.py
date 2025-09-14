@@ -201,6 +201,8 @@ class Quotation(models.Model):
     def __str__(self):
         return self.quotation_number
 
+from decimal import Decimal, ROUND_HALF_UP
+
 class QuotationItem(models.Model):
     item_id = models.AutoField(primary_key=True)
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='items')
@@ -215,19 +217,30 @@ class QuotationItem(models.Model):
     line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
     def save(self, *args, **kwargs):
-        self.line_total = self.quantity * self.unit_price * (1 + self.tax_rate / 100)
+        # Round to 2 decimals before saving
+        self.line_total = (
+            self.quantity * self.unit_price * (1 + self.tax_rate / 100)
+        ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
         super().save(*args, **kwargs)
         
-        # Update quotation totals
+        # Update quotation totals (rounded as well)
         quotation = self.quotation
         items = quotation.items.all()
-        quotation.subtotal = sum(item.quantity * item.unit_price for item in items)
-        quotation.tax_amount = sum(item.quantity * item.unit_price * item.tax_rate / 100 for item in items)
-        quotation.total_amount = quotation.subtotal + quotation.tax_amount
+        quotation.subtotal = sum(
+            (item.quantity * item.unit_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            for item in items
+        )
+        quotation.tax_amount = sum(
+            (item.quantity * item.unit_price * item.tax_rate / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            for item in items
+        )
+        quotation.total_amount = (quotation.subtotal + quotation.tax_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         quotation.save()
     
     def __str__(self):
         return f"{self.quotation.quotation_number} - Item"
+
 
 class SalesOrder(models.Model):
     ORDER_STATUS = (

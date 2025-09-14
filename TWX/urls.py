@@ -358,7 +358,7 @@ urlpatterns = [
 
     # Quotation with Variant BOM
     path('rfqs/<int:rfq_id>/quotation-with-variant-bom/', quotation_with_variant_bom, name='quotation_with_variant_bom'),
-
+    path('api/bom/<int:bom_id>/details/', bom_details_api, name='bom_details_api'),
     # Sales Order URLs
     path('sales-orders/', sales_order_list, name='sales_order_list'),
     path('sales-orders/create/', sales_order_create, name='sales_order_create'),
@@ -409,6 +409,7 @@ urlpatterns = [
     path('supplier-invoices/<int:pk>/', supplier_invoice_detail, name='supplier_invoice_detail'),
     
     # AJAX URLs
+    path('ajax/get-customer-details/<int:customer_id>/', get_customer_details, name='get_customer_details'),
     path('ajax/component/<int:component_id>/', get_component_details, name='get_component_details'),
     path('ajax/bom/<int:bom_id>/', get_bom_details, name='get_bom_details'),
     path('ajax/customer-pricing/<int:customer_id>/<int:component_id>/', get_customer_pricing, name='get_customer_pricing'),
