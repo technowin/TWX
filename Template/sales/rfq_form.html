@@ -33,6 +33,32 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+    .item-select-container select {
+        display: none;
+    }
+    .item-select-container select:first-child {
+        display: block;
+    }
+    .item-row {
+        transition: all 0.3s ease;
+    }
+    .item-row.deleting {
+        background-color: #ffe6e6;
+        opacity: 0.6;
+    }
+    .dynamic-formset-add {
+        margin-bottom: 15px;
+    }
+    #items-table th {
+        vertical-align: middle;
+    }
+    .remove-row-btn {
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+
 {% endblock %}
 {% load widget_tweaks static %}
 
@@ -50,315 +76,289 @@
     </h4>
 {% endblock %}
 
-
-
-{% block extra_js %}
-    <script src="{% static 'js/vendor/select2.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            // Handle item type change
-            $('.item-type-select').change(function() {
-                const row = $(this).closest('.form-row');
-                const itemType = $(this).val();
-                
-                if (itemType === 'part') {
-                    row.find('.component-select').closest('.col').show();
-                    row.find('.bom-select').closest('.col').hide();
-                } else if (itemType === 'product') {
-                    row.find('.component-select').closest('.col').hide();
-                    row.find('.bom-select').closest('.col').show();
-                } else {
-                    row.find('.component-select').closest('.col').hide();
-                    row.find('.bom-select').closest('.col').hide();
-                }
-            });
-            
-            // Trigger change on page load
-            $('.item-type-select').trigger('change');
-            
-            // Get component details when component is selected
-            $('.component-select').change(function() {
-                const componentId = $(this).val();
-                const row = $(this).closest('.form-row');
-                
-                if (componentId) {
-                    $.ajax({
-                        url: "{% url 'get_component_details' 0 %}".replace('0', componentId),
-                        success: function(data) {
-                            row.find('textarea[name$="-description"]').val(data.description);
-                        }
-                    });
-                }
-            });
-            
-            // Get BOM details when BOM is selected
-            $('.bom-select').change(function() {
-                const bomId = $(this).val();
-                const row = $(this).closest('.form-row');
-                
-                if (bomId) {
-                    $.ajax({
-                        url: "{% url 'get_bom_details' '0' %}".replace('0', bomId),
-                        success: function(data) {
-                            row.find('textarea[name$="-description"]').val(data.description);
-                        }
-                    });
-                }
-            });
-        });
-    </script>
-{% endblock %}
-
 {% block content %}
-    <div class="card">
-        <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
+<div class="container-fluid py-2">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
                 
-                <div class="form-section">
-                    <h5>RFQ Information</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.customer.id_for_label }}" class="form-label">Customer</label>
-                                {% render_field form.customer class="form-select" %}
-                                {% if form.customer.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.customer.errors }}
+                <form method="post" enctype="multipart/form-data" id="rfqForm">
+                    {% csrf_token %}
+                    
+                    <div class="card-body">
+                        <!-- RFQ Details Card -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">RFQ Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.customer.id_for_label }}" class="form-label">Customer *</label>
+                                            {{ form.customer }}
+                                            {% if form.customer.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.customer.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.rfq_date.id_for_label }}" class="form-label">RFQ Date *</label>
+                                            {{ form.rfq_date }}
+                                            {% if form.rfq_date.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.rfq_date.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.required_by_date.id_for_label }}" class="form-label">Required By Date *</label>
+                                            {{ form.required_by_date }}
+                                            {% if form.required_by_date.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.required_by_date.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
-                                {% endif %}
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.contact_person.id_for_label }}" class="form-label">Contact Person *</label>
+                                            {{ form.contact_person }}
+                                            {% if form.contact_person.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.contact_person.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.email.id_for_label }}" class="form-label">Email *</label>
+                                            {{ form.email }}
+                                            {% if form.email.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.email.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                                            {{ form.phone }}
+                                            {% if form.phone.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.phone.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.currency.id_for_label }}" class="form-label">Currency *</label>
+                                            {{ form.currency }}
+                                            {% if form.currency.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.currency.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                            {{ form.status }}
+                                            {% if form.status.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.status.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.attachment.id_for_label }}" class="form-label">Attachment</label>
+                                            {{ form.attachment }}
+                                            
+                                            {% if form.attachment.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.attachment.errors }}
+                                                </div>
+                                            {% endif %}
+                                            {% if form.instance.attachment %}
+                                            <div class="d-flex align-items-center mt-1 p-1">
+                                                <span class="badge bg-secondary me-2">
+                                                    <i class="fas fa-paperclip"></i>
+                                                </span>
+                                                <small class="text-truncate me-2" style="max-width: 200px;">
+                                                    {{ form.instance.attachment.name|cut:"rfq_attachments/" }}
+                                                </small>
+                                                <a href="{{ form.instance.attachment.url }}" download class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                    {{ form.notes }}
+                                    {% if form.notes.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.notes.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.rfq_date.id_for_label }}" class="form-label">RFQ Date</label>
-                                {% render_field form.rfq_date class="form-control" %}
-                                {% if form.rfq_date.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.rfq_date.errors }}
+                        
+                        <!-- RFQ Items Card -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">RFQ Items</h5>
+                                <button type="button" class="btn btn-sm btn-primary" id="add-item-btn">
+                                    <i class="fas fa-plus me-1"></i> Add Item
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="items-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 25%;">Item Type</th>
+                                                <th style="width: 25%;">Component / BOM</th>
+                                                <th style="width: 10%;">Quantity</th>
+                                                <th style="width: 15%;">Target Price</th>
+                                                <th style="width: 20%;">Specifications</th>
+                                                <th style="width: 5%;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="items-tbody">
+                                            {% for item_form in formset %}
+                                            <tr class="item-row" {% if item_form.instance.pk %}data-exists="true"{% endif %}>
+                                                {{ item_form.id }}  {# very important: keeps track of existing RFQItem PK #}
+                                                {% for hidden in item_form.hidden_fields %}
+                                                    {{ hidden }}
+                                                {% endfor %}
+                                                <td>
+                                                    {{ item_form.item_type }}
+                                                    {% if item_form.item_type.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ item_form.item_type.errors }}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="component-select-container" style="display: none;">
+                                                        {{ item_form.component }}
+                                                        {% if item_form.component.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ item_form.component.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="bom-select-container" style="display: none;">
+                                                        {{ item_form.bom }}
+                                                        {% if item_form.bom.errors %}
+                                                            <div class="invalid-feedback d-block">
+                                                                {{ item_form.bom.errors }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {{ item_form.quantity }}
+                                                    {% if item_form.quantity.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ item_form.quantity.errors }}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {{ item_form.target_price }}
+                                                    {% if item_form.target_price.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ item_form.target_price.errors }}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {{ item_form.specifications }}
+                                                    {% if item_form.specifications.errors %}
+                                                        <div class="invalid-feedback d-block">
+                                                            {{ item_form.specifications.errors }}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% comment %} {% if formset.can_delete %}
+                                                        {{ item_form.DELETE }}
+                                                    {% endif %} {% endcomment %}
+                                                    <button type="button" class="btn btn-sm btn-danger remove-row-btn" title="Remove">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                {% endif %}
+                                {{ formset.management_form }}
                             </div>
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.contact_person.id_for_label }}" class="form-label">Contact Person</label>
-                                {% render_field form.contact_person class="form-control" %}
-                                {% if form.contact_person.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.contact_person.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.required_by_date.id_for_label }}" class="form-label">Required By Date</label>
-                                {% render_field form.required_by_date class="form-control" %}
-                                {% if form.required_by_date.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.required_by_date.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-                                {% render_field form.email class="form-control" %}
-                                {% if form.email.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.email.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
-                                {% render_field form.phone class="form-control" %}
-                                {% if form.phone.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.phone.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.currency.id_for_label }}" class="form-label">Currency</label>
-                                {% render_field form.currency class="form-select" %}
-                                {% if form.currency.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.currency.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
-                                {% render_field form.status class="form-select" %}
-                                {% if form.status.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.status.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.attachment.id_for_label }}" class="form-label">Attachment</label>
-                        {% render_field form.attachment class="form-control" %}
-                        {% if form.attachment.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.attachment.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
-                        {% render_field form.notes class="form-control" rows="3" %}
-                        {% if form.notes.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.notes.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="form-section">
-                    <h5>RFQ Items</h5>
-                    {{ formset.management_form }}
-                    <div id="items-formset">
-                        {% for form in formset %}
-                        <div class="form-row border-bottom pb-3 mb-3">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="{{ form.item_type.id_for_label }}" class="form-label">Item Type</label>
-                                        {% render_field form.item_type class="form-select item-type-select" %}
-                                        {% if form.item_type.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.item_type.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-3 component-col">
-                                    <div class="mb-3">
-                                        <label for="{{ form.component.id_for_label }}" class="form-label">Component</label>
-                                        {% render_field form.component class="form-select component-select" %}
-                                        {% if form.component.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.component.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-3 bom-col">
-                                    <div class="mb-3">
-                                        <label for="{{ form.bom.id_for_label }}" class="form-label">BOM</label>
-                                        {% render_field form.bom class="form-select bom-select" %}
-                                        {% if form.bom.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.bom.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        <label for="{{ form.quantity.id_for_label }}" class="form-label">Quantity</label>
-                                        {% render_field form.quantity class="form-control" %}
-                                        {% if form.quantity.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.quantity.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label for="{{ form.target_price.id_for_label }}" class="form-label">Target Price</label>
-                                        {% render_field form.target_price class="form-control" %}
-                                        {% if form.target_price.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.target_price.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="mb-3">
-                                        <label for="{{ form.specifications.id_for_label }}" class="form-label">Specifications</label>
-                                        {% render_field form.specifications class="form-control" rows="2" %}
-                                        {% if form.specifications.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.specifications.errors }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
-                                {% render_field form.notes class="form-control" rows="2" %}
-                                {% if form.notes.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.notes.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                            
-                            {% if form.DELETE %}
-                            <div class="form-check">
-                                {% render_field form.DELETE class="form-check-input" %}
-                                <label for="{{ form.DELETE.id_for_label }}" class="form-check-label">Delete</label>
-                            </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            {% if "Clone" in title %}
+                                <button type="button" class="btn btn-info" id="save-draft-btn">
+                                    <i class="fas fa-save me-1"></i> Clone as Draft
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-info" id="save-draft-btn">
+                                    <i class="fas fa-save me-1"></i> Save as Draft
+                                </button>
                             {% endif %}
                             
-                            {% for hidden in form.hidden_fields %}
-                                {{ hidden }}
-                            {% endfor %}
+                            <div>
+                                <a href="{% url 'rfq_list' %}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times me-1"></i> Cancel
+                                </a>
+                                {% if "Clone" in title %}
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-1"></i> Clone RFQ
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-1"></i> Save RFQ
+                                    </button>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% endfor %}
                     </div>
-                    
-                    <button type="button" class="btn btn-secondary" id="add-item">
-                        <i class="bi bi-plus"></i> Add Item
-                    </button>
-                </div>
-                
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'rfq_list' %}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Save RFQ</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
+</div>
 
-    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 {% if messages %}
@@ -384,99 +384,223 @@
   </script>
 {% endif %}
 
-    <script>
-        // Add new item form
-        document.getElementById('add-item').addEventListener('click', function() {
-            const formCount = document.getElementById('id_items-TOTAL_FORMS');
-            const formCountValue = parseInt(formCount.value);
-            const formsetContainer = document.getElementById('items-formset');
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up date pickers
+        const rfqDateField = document.getElementById('{{ form.rfq_date.id_for_label }}');
+        const requiredByDateField = document.getElementById('{{ form.required_by_date.id_for_label }}');
+        
+        if (rfqDateField && !rfqDateField.value) {
+            rfqDateField.valueAsDate = new Date();
+        }
+        
+        if (requiredByDateField && !requiredByDateField.value) {
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            requiredByDateField.valueAsDate = nextWeek;
+        }
+        
+         // Toggle component/BOM fields based on item type
+        function toggleItemFields(row) {
+            const itemType = row.querySelector('select[name$="-item_type"]');
+            const componentField = row.querySelector('.component-select-container');
+            const bomField = row.querySelector('.bom-select-container');
             
-            // Clone the first form (template)
-            const template = document.querySelector('.form-row').cloneNode(true);
+            if (!itemType || !componentField || !bomField) return;
             
-            // Update all field names and IDs
-            template.querySelectorAll('input, select, textarea').forEach(function(input) {
-                const name = input.name.replace(/items-\d+-/, `items-${formCountValue}-`);
-                const id = input.id.replace(/items-\d+-/, `items-${formCountValue}-`);
-                
-                input.name = name;
-                input.id = id;
-                
-                // Clear values
-                if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
-                    input.value = '';
-                } else if (input.tagName === 'SELECT') {
-                    input.selectedIndex = 0;
+            function updateFields() {
+                if (itemType.value === 'part') {
+                    componentField.style.display = 'block';
+                    bomField.style.display = 'none';
+                    bomField.querySelector('select').disabled = true;
+                    componentField.querySelector('select').disabled = false;
+                } else if (itemType.value === 'product') {
+                    componentField.style.display = 'none';
+                    bomField.style.display = 'block';
+                    componentField.querySelector('select').disabled = true;
+                    bomField.querySelector('select').disabled = false;
+                } else {
+                    componentField.style.display = 'block';
+                    bomField.style.display = 'none';
                 }
-                
-                // Update labels
-                const label = template.querySelector(`label[for="${input.id}"]`);
-                if (label) {
-                    label.htmlFor = id;
+            }
+            
+            // Initial setup
+            updateFields();
+            
+            // Add event listener for changes
+            itemType.addEventListener('change', updateFields);
+        }
+        
+        // Set up all existing rows
+        document.querySelectorAll('.item-row').forEach(row => {
+            toggleItemFields(row);
+        });
+        
+        // Formset management
+        const formsetPrefix = '{{ formset.prefix }}';
+        const formContainer = document.getElementById('items-tbody');
+        const addButton = document.getElementById('add-item-btn');
+        const totalForms = document.getElementById('id_' + formsetPrefix + '-TOTAL_FORMS');
+        let formCount = parseInt(totalForms.value);
+        
+        // Add new item row
+        addButton.addEventListener('click', function() {
+            const newRow = document.querySelector('.item-row').cloneNode(true);
+            newRow.innerHTML = newRow.innerHTML.replace(/{{ formset.prefix }}-(\d+)-/g, formsetPrefix + '-' + formCount + '-');
+            newRow.innerHTML = newRow.innerHTML.replace(/hidden">\s*<input type="hidden" name=".+?-DELETE" id="id_.+?-DELETE">\s*<\/div>/g, 'hidden">');
+            
+            // Clear values
+            newRow.querySelectorAll('input, select, textarea').forEach(field => {
+                if (field.type !== 'hidden' && field.name.indexOf('-DELETE') === -1) {
+                    field.value = '';
                 }
             });
             
-            // Clear any error messages
-            template.querySelectorAll('.invalid-feedback').forEach(function(el) {
-                el.remove();
-            });
+            // Update delete checkbox
+            const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = false;
+            }
             
-            // Append the new form
-            formsetContainer.appendChild(template);
+            // Add remove button event
+            const removeBtn = newRow.querySelector('.remove-row-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    removeRow(this.closest('.item-row'));
+                });
+            }
+            
+            // Append to table
+            formContainer.appendChild(newRow);
+            
+            // Toggle fields for the new row
+            toggleItemFields(newRow);
             
             // Update form count
-            formCount.value = formCountValue + 1;
-            
-            // Reinitialize Select2 and event handlers
-            $(template).find('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            $(template).find('.item-type-select').change(function() {
-                const row = $(this).closest('.form-row');
-                const itemType = $(this).val();
-                
-                if (itemType === 'part') {
-                    row.find('.component-select').closest('.col').show();
-                    row.find('.bom-select').closest('.col').hide();
-                } else if (itemType === 'product') {
-                    row.find('.component-select').closest('.col').hide();
-                    row.find('.bom-select').closest('.col').show();
+            formCount++;
+            totalForms.value = formCount;
+        });
+        
+        // Remove row function
+        function removeRow(row) {
+            // Count visible rows (not marked for deletion)
+            const visibleRows = document.querySelectorAll('.item-row:not(.deleting)').length;
+    
+            // Check if this is the last row
+            if (visibleRows <= 1) {
+                // Show SweetAlert warning
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cannot Delete',
+                    text: 'At least one item is required in the RFQ.',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            const deleteField = row.querySelector('input[type="hidden"][name$="-DELETE"]');
+            if (deleteField) {
+                // If this is an existing record, mark for deletion
+                if (row.dataset.exists === 'true') {
+                    deleteField.value = 'on';
+                    row.classList.add('deleting');
+                    row.style.display = 'none'; // Hide but keep in form for submission
                 } else {
-                    row.find('.component-select').closest('.col').hide();
-                    row.find('.bom-select').closest('.col').hide();
+                    // If it's a new row, just remove it
+                    row.remove();
+                    formCount--;
+                    totalForms.value = formCount;
+                    
+                    // Renumber the forms
+                    renumberForms();
                 }
-            }).trigger('change');
-            
-            $(template).find('.component-select').change(function() {
-                const componentId = $(this).val();
-                const row = $(this).closest('.form-row');
-
-                if (componentId) {
-                    $.ajax({
-                        url: "{% url 'get_component_details' 0 %}".replace('0', componentId),
-                        success: function(data) {
-                            row.find('textarea[name$="-description"]').val(data.description);
-                        }
-                    });
-                }
-            });
-            
-            $(template).find('.bom-select').change(function() {
-                const bomId = $(this).val();
-                const row = $(this).closest('.form-row');
+            } else {
+                row.remove();
+                formCount--;
+                totalForms.value = formCount;
                 
-                if (bomId) {
-                    $.ajax({
-                        url: "{% url 'get_bom_details' '0' %}".replace('0', bomId),
-                        success: function(data) {
-                            row.find('textarea[name$="-description"]').val(data.description);
-                        }
-                    });
-                }
+                // Renumber the forms
+                renumberForms();
+            }
+        }
+        
+        // Add event listeners to existing remove buttons
+        document.querySelectorAll('.remove-row-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                removeRow(this.closest('.item-row'));
             });
         });
-    </script>
+        
+        // Renumber form indices
+        function renumberForms() {
+            let idx = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                if (row.style.display !== 'none') {
+                    row.querySelectorAll('input, select, textarea').forEach(field => {
+                        const name = field.name.replace(/{{ formset.prefix }}-(\d+)-/, formsetPrefix + '-' + idx + '-');
+                        field.name = name;
+                        
+                        const id = field.id.replace(/id_{{ formset.prefix }}-(\d+)-/, 'id_' + formsetPrefix + '-' + idx + '-');
+                        field.id = id;
+                    });
+                    idx++;
+                }
+            });
+            totalForms.value = idx;
+        }
+        
+        // Save as draft button
+        document.getElementById('save-draft-btn').addEventListener('click', function() {
+            document.getElementById('{{ form.status.id_for_label }}').value = 'draft';
+            document.getElementById('rfqForm').submit();
+        });
+        
+        // Auto-fill contact info when customer changes
+        const customerField = document.getElementById('{{ form.customer.id_for_label }}');
+        if (customerField) {
+            customerField.addEventListener('change', function() {
+                const customerId = this.value;
+                if (customerId) {
+                    // Fetch customer details via AJAX
+                    fetch(`/ajax/component/${customerId}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.getElementById('{{ form.contact_person.id_for_label }}').value = data.contact_person || '';
+                                document.getElementById('{{ form.email.id_for_label }}').value = data.email || '';
+                                document.getElementById('{{ form.phone.id_for_label }}').value = data.phone || '';
+                            }
+                        })
+                        .catch(error => console.error('Error fetching customer details:', error));
+                }
+            });
+        }
+        
+        // Auto-format Indian phone number
+        //const phoneField = document.getElementById('{{ form.phone.id_for_label }}');
+        //if (phoneField) {
+        //    phoneField.addEventListener('input', function(e) {
+        //        let value = e.target.value.replace(/\D/g, ''); // keep only digits
+        //    
+        //        // If number starts with 91 (country code), keep it
+        //        if (value.startsWith("91") && value.length > 10) {
+        //            value = "+" + value.slice(0, 2) + " " + value.slice(2, 7) + "-" + value.slice(7, 12);
+        //        } 
+        //        // Otherwise format as 10-digit Indian number
+        //        else {
+        //            value = value.slice(0, 10); // limit to 10 digits
+        //            if (value.length > 5) {
+        //                value = value.slice(0, 5) + "-" + value.slice(5);
+        //            }
+        //        }
+        //    
+        //        e.target.value = value;
+        //    });
+        //}
+
+    });
+</script>
 {% endblock %}
 
 {% block extra_javascript %}

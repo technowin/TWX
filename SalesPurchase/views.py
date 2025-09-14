@@ -869,84 +869,242 @@ def bom_clone(request, bom_id):
     
     return render(request, 'sales/bom_clone.html', {'bom': original_bom})
 
+# # Quotation with Variant BOM
+# @login_required
+# def quotation_with_variant_bom(request, rfq_id):
+#     rfq = get_object_or_404(RFQ, pk=rfq_id)
+    
+#     if request.method == 'POST':
+#         # Handle variant BOM creation and quotation
+#         bom_id = request.POST.get('bom_id')
+#         new_bom_name = request.POST.get('new_bom_name')
+#         new_bom_description = request.POST.get('new_bom_description')
+        
+#         if not bom_id:
+#             messages.error(request, 'Please select a BOM to clone.')
+#             return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+        
+#         original_bom = get_object_or_404(BOMHeader, pk=bom_id)
+        
+#         # Create variant BOM
+#         variant_bom = BOMHeader.objects.create(
+#             name=new_bom_name,
+#             description=new_bom_description or original_bom.description,
+#             revision=1,
+#             status='draft',
+#             created_by=request.user,
+#             parent_bom_id=original_bom.id
+#         )
+        
+#         # Clone BOM items
+#         for item in original_bom.items.all():
+#             BOMItem.objects.create(
+#                 bom=variant_bom,
+#                 component=item.component,
+#                 quantity=item.quantity,
+#                 reference_designators=item.reference_designators,
+#                 notes=item.notes,
+#                 sort_order=item.sort_order,
+#                 level=item.level,
+#                 position=item.position
+#             )
+        
+#         # Create quotation
+#         quotation = Quotation.objects.create(
+#             customer=rfq.customer,
+#             rfq=rfq,
+#             quotation_date=timezone.now().date(),
+#             expiry_date=timezone.now().date() + timezone.timedelta(days=30),
+#             currency=rfq.currency,
+#             status='draft',
+#             payment_terms=rfq.customer.payment_terms,
+#             created_by=request.user
+#         )
+        
+#         # Create quotation item for the variant BOM
+#         # Calculate price based on BOM cost
+#         bom_cost = calculate_bom_cost(variant_bom.id)
+#         unit_price = bom_cost * Decimal('1.3')  # 30% markup
+        
+#         QuotationItem.objects.create(
+#             quotation=quotation,
+#             item_type='product',
+#             bom=variant_bom,
+#             description=variant_bom.description,
+#             quantity=1,  # Default quantity, can be adjusted
+#             unit_price=unit_price,
+#             tax_rate=Decimal('10.00')  # Default tax rate
+#         )
+        
+#         messages.success(request, f'Variant BOM created and quotation generated successfully.')
+#         return redirect('quotation_detail', pk=quotation.quotation_id)
+    
+#     # Get all BOMs for selection
+#     boms = BOMHeader.objects.filter(status='approved')
+    
+#     return render(request, 'sales/quotation_with_variant_bom.html', {
+#         'rfq': rfq,
+#         'boms': boms
+#     })
+
+
 # Quotation with Variant BOM
+
+# views.py
+from decimal import Decimal
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+
 @login_required
 def quotation_with_variant_bom(request, rfq_id):
     rfq = get_object_or_404(RFQ, pk=rfq_id)
-    
+
     if request.method == 'POST':
-        # Handle variant BOM creation and quotation
-        bom_id = request.POST.get('bom_id')
-        new_bom_name = request.POST.get('new_bom_name')
-        new_bom_description = request.POST.get('new_bom_description')
-        
-        if not bom_id:
-            messages.error(request, 'Please select a BOM to clone.')
-            return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
-        
-        original_bom = get_object_or_404(BOMHeader, pk=bom_id)
-        
-        # Create variant BOM
-        variant_bom = BOMHeader.objects.create(
-            name=new_bom_name,
-            description=new_bom_description or original_bom.description,
-            revision=1,
-            status='draft',
-            created_by=request.user,
-            parent_bom_id=original_bom.id
-        )
-        
-        # Clone BOM items
-        for item in original_bom.items.all():
-            BOMItem.objects.create(
-                bom=variant_bom,
-                component=item.component,
-                quantity=item.quantity,
-                reference_designators=item.reference_designators,
-                notes=item.notes,
-                sort_order=item.sort_order,
-                level=item.level,
-                position=item.position
+        try:
+            # Handle variant BOM creation and quotation
+            bom_id = request.POST.get('bom_id')
+            new_bom_name = request.POST.get('new_bom_name')
+            new_bom_description = request.POST.get('new_bom_description')
+
+            if not bom_id:
+                messages.error(request, 'Please select a BOM to clone.')
+                return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+
+            if not new_bom_name:
+                messages.error(request, 'Variant BOM name is required.')
+                return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+
+            original_bom = get_object_or_404(BOMHeader, pk=bom_id)
+
+            # Create variant BOM
+            variant_bom = BOMHeader.objects.create(
+                name=new_bom_name,
+                description=new_bom_description or original_bom.description,
+                revision=1,
+                status='draft',
+                created_by=request.user,
+                parent_bom=original_bom
             )
-        
-        # Create quotation
-        quotation = Quotation.objects.create(
-            customer=rfq.customer,
-            rfq=rfq,
-            quotation_date=timezone.now().date(),
-            expiry_date=timezone.now().date() + timezone.timedelta(days=30),
-            currency=rfq.currency,
-            status='draft',
-            payment_terms=rfq.customer.payment_terms,
-            created_by=request.user
-        )
-        
-        # Create quotation item for the variant BOM
-        # Calculate price based on BOM cost
-        bom_cost = calculate_bom_cost(variant_bom.id)
-        unit_price = bom_cost * Decimal('1.3')  # 30% markup
-        
-        QuotationItem.objects.create(
-            quotation=quotation,
-            item_type='product',
-            bom=variant_bom,
-            description=variant_bom.description,
-            quantity=1,  # Default quantity, can be adjusted
-            unit_price=unit_price,
-            tax_rate=Decimal('10.00')  # Default tax rate
-        )
-        
-        messages.success(request, f'Variant BOM created and quotation generated successfully.')
-        return redirect('quotation_detail', pk=quotation.quotation_id)
-    
+
+            # Clone BOM items with pricing from ComponentSupplier
+            for item in original_bom.items.all():
+                max_price = get_component_max_price(item.component)  # external function
+
+                BOMItem.objects.create(
+                    bom=variant_bom,
+                    component=item.component,
+                    supplier=item.supplier,
+                    price=max_price,
+                    cost=max_price,  # Using price as cost for simplicity
+                    quantity=item.quantity,
+                    reference_designators=item.reference_designators,
+                    notes=item.notes,
+                    sort_order=item.sort_order,
+                    level=item.level,
+                    position=item.position
+                )
+
+            # Create quotation
+            quotation = Quotation.objects.create(
+                customer=rfq.customer,
+                rfq=rfq,
+                quotation_date=timezone.now().date(),
+                expiry_date=timezone.now().date() + timezone.timedelta(days=30),
+                currency=rfq.currency,
+                status='draft',
+                payment_terms=rfq.customer.payment_terms,
+                created_by=request.user
+            )
+
+            # Create quotation item for the variant BOM
+            bom_cost = calculate_bom_cost_vbom(variant_bom.id)  # external function
+            markup_percentage = Decimal('30.0')  # 30% markup
+            unit_price = bom_cost * (1 + markup_percentage / 100)
+
+            QuotationItem.objects.create(
+                quotation=quotation,
+                item_type='product',
+                bom=variant_bom,
+                description=variant_bom.description,
+                quantity=1,  # Default quantity
+                unit_price=unit_price,
+                tax_rate=Decimal('10.00')  # Default tax rate
+            )
+
+            messages.success(request, f'Variant BOM created and quotation generated successfully.')
+            return redirect('quotation_detail', pk=quotation.quotation_id)
+
+        except Exception as e:
+            logger.exception("Error while creating variant BOM and quotation")
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+
     # Get all BOMs for selection
     boms = BOMHeader.objects.filter(status='approved')
-    
+
     return render(request, 'sales/quotation_with_variant_bom.html', {
         'rfq': rfq,
         'boms': boms
     })
 
+def get_component_max_price(component):
+    """Get the maximum price from approved suppliers for a component"""
+    approved_suppliers = component.suppliers.filter(is_approved=True)
+    if approved_suppliers.exists():
+        return approved_suppliers.order_by('-cost').first().cost
+    return Decimal('0.00')
+
+def calculate_bom_cost_vbom(bom_id):
+    """Calculate the total cost of a BOM"""
+    bom = get_object_or_404(BOMHeader, pk=bom_id)
+    total_cost = Decimal('0.00')
+    
+    for item in bom.items.all():
+        if item.cost:
+            total_cost += item.quantity * item.cost
+        else:
+            # Fallback to component supplier pricing
+            max_price = get_component_max_price(item.component)
+            total_cost += item.quantity * max_price
+    
+    return total_cost
+
+
+def bom_details_api(request, bom_id):
+    try:
+        bom = BOMHeader.objects.get(pk=bom_id)
+        items_data = []
+        
+        for item in bom.items.all():
+            # Get max price from approved suppliers
+            max_price = get_component_max_price(item.component)
+            
+            items_data.append({
+                'part_number': item.component.part_number,
+                'description': item.component.description,
+                'category': item.component.category,
+                'quantity': float(item.quantity),
+                'unit_of_measure': item.component.unit_of_measure,
+                'max_price': float(max_price)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'bom': {
+                'name': bom.name,
+                'description': bom.description,
+                'revision': bom.revision,
+                'status': bom.status
+            },
+            'items': items_data
+        })
+    except BOMHeader.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'BOM not found'})
+    
 # Sales Order Views
 @login_required
 def sales_order_list(request):
@@ -1927,6 +2085,24 @@ def supplier_invoice_detail(request, pk):
     return render(request, 'purchase/supplier_invoice_detail.html', {'invoice': invoice})
 
 # AJAX Views
+
+@login_required
+def get_customer_details(request, customer_id):
+    """AJAX view to get customer details"""
+    try:
+        customer = Customer.objects.get(pk=customer_id)
+        data = {
+            'email': customer.email,
+            'phone': customer.phone,
+            'contact_person': customer.contact_person or '',
+            'address': customer.address,
+            'payment_terms': customer.payment_terms,
+            'currency': customer.currency,
+        }
+        return JsonResponse(data)
+    except Customer.DoesNotExist:
+        return JsonResponse({'error': 'Customer not found'}, status=404)
+    
 @login_required
 def get_component_details(request, component_id):
     """AJAX view to get component details"""

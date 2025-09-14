@@ -56,6 +56,12 @@
                 </a>
                 &nbsp;&nbsp;&nbsp;
                 {% if rfq.status == 'draft' %}
+                <a href="{% url 'quotation_with_variant_bom' rfq.pk %}" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-cube"></i> Create Variant BOM Quotation
+                </a>
+                {% endif %}
+                &nbsp;&nbsp;&nbsp;
+                {% if rfq.status == 'draft' %}
                 <a href="{% url 'quotation_from_rfq' rfq.rfq_id %}" class="btn btn-sm btn-success">
                     <i class="bi bi-file-earmark-text"></i> Create Quote
                 </a>
