@@ -596,8 +596,6 @@ class PurchaseOrder(models.Model):
     
     po_id = models.AutoField(primary_key=True)
     po_number = models.CharField(max_length=50, unique=True)
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
-    rfq = models.ForeignKey(PurchaseRFQ, on_delete=models.SET_NULL, null=True, blank=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='supplier_purchase_orders')
     rfq = models.ForeignKey(PurchaseRFQ, on_delete=models.SET_NULL, null=True, blank=True, related_name='rfq_purchase_orders')
     order_date = models.DateField()
