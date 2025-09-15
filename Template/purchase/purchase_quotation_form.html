@@ -146,6 +146,49 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-light py-3">
+                        <h5 class="m-0 font-weight-bold">Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.status.id_for_label }}">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                            <div class="text-danger">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="summary-card mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tax:</span>
+                                <span id="tax-amount">0.00</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total:</span>
+                                <span id="total-amount">0.00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Quotation</button>
+                            <a href="{% if quotation %}{% url 'purchase_quotation_detail' quotation.pk %}{% else %}{% url 'purchase_quotation_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
                 
                 <div class="card shadow mb-4">
                     <div class="card-header bg-light py-3">
@@ -249,43 +292,7 @@
                 </div>
             </div>
             
-            <div class="col-lg-4">
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-light py-3">
-                        <h5 class="m-0 font-weight-bold">Summary</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.status.id_for_label }}">Status</label>
-                            {{ form.status }}
-                            {% if form.status.errors %}
-                            <div class="text-danger">{{ form.status.errors }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="summary-card mb-4">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Subtotal:</span>
-                                <span id="subtotal">0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Tax:</span>
-                                <span id="tax-amount">0.00</span>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Total:</span>
-                                <span id="total-amount">0.00</span>
-                            </div>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Save Quotation</button>
-                            <a href="{% if quotation %}{% url 'purchase_quotation_detail' quotation.pk %}{% else %}{% url 'purchase_quotation_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            
         </div>
     </form>
 </div>
