@@ -168,6 +168,8 @@ urlpatterns = [
     path('<int:pk>/', BookDetailView.as_view(), name='book_detail'),
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
+    path("test-vertex-ai/", test_vertex_ai, name="test_vertex_ai"),
+
     
     # compliance checklist
     # path('compliance-checklist/', compliance_checklist, name='compliance_checklist'),

@@ -83,3 +83,34 @@ class BookUploadView(FormView):
         except Exception as e:
             form.add_error(None, str(e))
             return self.form_invalid(form)
+        
+
+# views.py
+from django.http import JsonResponse
+import vertexai
+from vertexai.generative_models import GenerativeModel
+
+def test_vertex_ai(request):
+    try:
+        # Initialize Vertex AI
+        vertexai.init(project="powerful-lore-471112-k7", location="us-central1")
+        
+        # Load Gemini model
+        model = GenerativeModel("gemini-1.5-flash")
+        
+        # Ask a test prompt
+        response = model.generate_content("Hello! Respond with a JSON object: {\"status\": \"ok\", \"message\": \"Vertex AI is working in production\"}")
+        
+        # Try parsing as JSON if possible
+        import json, re
+        try:
+            json_str = re.search(r"\{.*\}", response.text, re.DOTALL).group()
+            data = json.loads(json_str)
+        except Exception:
+            # Fallback to plain text if not JSON
+            data = {"status": "ok", "response": response.text}
+        
+        return JsonResponse(data, safe=False)
+    
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e)}, status=500)
