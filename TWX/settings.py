@@ -49,6 +49,8 @@ DATABASES = {
         'PORT': '3306',            
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+             "connection_timeout": 60,
+             "autocommit": True,
         },
     },
 }
@@ -172,6 +174,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # SESSION_ENGINE ="django.contrib.sessions.backends.signed_cookies"
 # SESSION_ENGINE ="django.contrib.sessions.backends.file"
 # SESSION_FILE_PATH=r"D:\PYTHON PROJECTS\mantra_io"
+from django.db import close_old_connections
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
