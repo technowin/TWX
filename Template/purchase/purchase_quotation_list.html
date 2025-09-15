@@ -53,14 +53,12 @@
     <div class="card shadow-sm">
         <div class="card-header bg-light py-3">
             <div class="row align-items-center">
-                <div class="col">
-                    <h6 class="mb-0 fw-bold">All Quotations</h6>
-                </div>
+                
                 <div class="col-auto">
                     <!-- Filter Form -->
                     <form method="get" class="row g-2 align-items-center">
                         <div class="col-auto">
-                            <select name="status" class="form-select form-select-sm">
+                            <select name="status" class="form-select form-select">
                                 <option value="">All Status</option>
                                 {% for value, label in status_choices %}
                                     <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
@@ -70,7 +68,7 @@
                             </select>
                         </div>
                         <div class="col-auto">
-                            <select name="supplier" class="form-select form-select-sm">
+                            <select name="supplier" class="form-select form-select">
                                 <option value="">All Suppliers</option>
                                 {% for supplier in suppliers %}
                                     <option value="{{ supplier.id }}" {% if request.GET.supplier == supplier.id|stringformat:"s" %}selected{% endif %}>
@@ -117,11 +115,21 @@
                                 </td>
                                 <td>{{ quotation.currency }} {{ quotation.total_amount }}</td>
                                 <td> <span class="badge bg-{% if quotation.status == 'accepted' %}success{% elif quotation.status == 'rejected' %}danger{% elif quotation.status == 'sent' %}primary{% elif quotation.status == 'received' %}info{% else %}secondary{% endif %}"> {{ quotation.get_status_display }} </span> </td>
+                               
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{% url 'purchase_quotation_detail' quotation.pk %}" class="btn btn-primary">View</a>&nbsp;&nbsp;
-                                        <a href="{% url 'purchase_quotation_edit' quotation.pk %}" class="btn btn-secondary">Edit</a>&nbsp;&nbsp;
-                                        <a href="{% url 'purchase_quotation_pdf' quotation.pk %}" class="btn btn-info">PDF</a>&nbsp;&nbsp;
+                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                        <a href="{% url 'purchase_quotation_detail' quotation.pk %}" 
+                                           class="btn btn-primary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'purchase_quotation_edit' quotation.pk %}" 
+                                           class="btn btn-secondary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'purchase_quotation_pdf' quotation.pk %}" 
+                                           class="btn btn-info" target="_blank" title="Download PDF">
+                                            <i class="bi bi-download"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
