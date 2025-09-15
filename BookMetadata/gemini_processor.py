@@ -1,7 +1,9 @@
 import io
 import json
 import re
+import traceback
 from PIL import Image
+from django.http import JsonResponse
 from pdf2image import convert_from_bytes
 # import google.generativeai as genai
 import vertexai
@@ -96,6 +98,9 @@ class GeminiMetadataExtractor:
                 raise Exception("Error parsing JSON from Gemini response.")
     
         except Exception as e:
-            # raise Exception(f"PDF processing error: {str(e)}")
-            raise 
+            return JsonResponse({
+                "success": False,
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
 
