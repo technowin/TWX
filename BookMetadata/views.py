@@ -93,7 +93,7 @@ from vertexai.generative_models import GenerativeModel
 def test_vertex_ai(request):
     try:
         # Initialize Vertex AI
-        vertexai.init(project="powerful-lore-471112-k7", location="us-central1")
+        vertexai.init(project="powerful-lore-471112-k7", location="")
         
         # Load Gemini model
         model = GenerativeModel("publishers/google/models/gemini-1.5-flash")
