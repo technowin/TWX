@@ -38,8 +38,8 @@ mimetypes.add_type("application/javascript", ".mjs")
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.mysql',
-        'ENGINE': 'mysql.connector.django',
+        'ENGINE': 'django.db.backends.mysql',
+        # 'ENGINE': 'mysql.connector.django',
         'NAME': 'twx_db',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
         'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
@@ -47,11 +47,10 @@ DATABASES = {
         # 'HOST': '13.232.86.95',       # IP FOR TEST
         'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-             "connection_timeout": 60,
-             "autocommit": True,
-        },
+        "OPTIONS": {
+             "charset": "utf8mb4",
+             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'"
+         }
     },
 }
 
@@ -174,9 +173,9 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # SESSION_ENGINE ="django.contrib.sessions.backends.signed_cookies"
 # SESSION_ENGINE ="django.contrib.sessions.backends.file"
 # SESSION_FILE_PATH=r"D:\PYTHON PROJECTS\mantra_io"
-from django.db import close_old_connections
 
 MIDDLEWARE = [
+    "Account.middleware.db_connection_middleware.DBConnectionMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
