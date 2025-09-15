@@ -96,5 +96,6 @@ class GeminiMetadataExtractor:
                 raise Exception("Error parsing JSON from Gemini response.")
     
         except Exception as e:
-            raise Exception(f"PDF processing error: {str(e)}")
+            # raise Exception(f"PDF processing error: {str(e)}")
+            raise 
 

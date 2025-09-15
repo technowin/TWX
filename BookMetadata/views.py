@@ -53,6 +53,7 @@ from django.core.files.base import ContentFile
 from .forms import BookUploadForm
 from .models import BookMetadata
 from .gemini_processor import GeminiMetadataExtractor
+import traceback
 
 class BookUploadView(FormView):
     template_name = 'BookMetadata/upload.html'
@@ -80,9 +81,15 @@ class BookUploadView(FormView):
             
             return super().form_valid(form)
         
+        # except Exception as e:
+        #     form.add_error(None, str(e))
+        #     return self.form_invalid(form)
         except Exception as e:
-            form.add_error(None, str(e))
-            return self.form_invalid(form)
+            return JsonResponse({
+                "success": False,
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
         
 
 # views.py
