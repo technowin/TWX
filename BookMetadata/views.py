@@ -93,11 +93,11 @@ from vertexai.generative_models import GenerativeModel
 def test_vertex_ai(request):
     try:
         # Initialize Vertex AI
-        vertexai.init(project="powerful-lore-471112-k7", location="")
+        vertexai.init(project="powerful-lore-471112-k7", location="us-central1")
         
         # Load Gemini model
-        model = GenerativeModel("publishers/google/models/gemini-1.5-flash")
-        
+        model = GenerativeModel("publishers/google/models/gemini-1.5-flash-001")
+
         # Ask a test prompt
         response = model.generate_content("Hello! Respond with a JSON object: {\"status\": \"ok\", \"message\": \"Vertex AI is working in production\"}")
         
