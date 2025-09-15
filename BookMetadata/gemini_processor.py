@@ -14,7 +14,9 @@ class GeminiMetadataExtractor:
         api_key = "AIzaSyAJWKnoo45JeoQxcwD5R8RUatPUZmVhEMU"
         # genai.configure(api_key=api_key)
         # self.model = genai.GenerativeModel('gemini-2.5-flash')
-        self.model = GenerativeModel('gemini-2.5-flash')
+        # self.model = GenerativeModel('gemini-2.5-flash')
+        self.model = GenerativeModel("publishers/google/models/gemini-2.5-flash")
+        
         self.prompt = """
             You are a highly intelligent document and image parser with web-assisted reasoning.
 
