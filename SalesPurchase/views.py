@@ -1,3 +1,4 @@
+import traceback
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
@@ -2563,3 +2564,174 @@ def mark_supplier_invoice_paid(request, invoice_id):
         return redirect('supplier_invoice_detail', pk=invoice.invoice_id)
     
     return render(request, 'purchase/mark_supplier_invoice_paid.html', {'invoice': invoice})
+
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
+import re
+
+def extract_invoice_data(pdf_file):
+
+    vertexai.init(project="powerful-lore-471112-k7", location="us-central1")
+
+    model = GenerativeModel("gemini-2.5-flash")
+
+    prompt = """
+    You are a highly intelligent document parser specializing in invoice data extraction.
+
+    I will provide you with a scanned PDF page of an invoice. Your task is to accurately extract all relevant data fields from this invoice. The data can be located anywhere on the page, including headers, tables, footers, or handwritten notes.
+
+    If any data field is unclear or missing from the image, use your trained knowledge to infer it as accurately as possible.
+
+    Required output format (JSON):
+    {
+      "invoice_number": "",
+      "invoice_date": "",
+      "due_date": "",
+      "supplier_name": "",
+      "customer_name": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "currency": "",
+      "line_items": [
+        {
+          "description": "",
+          "quantity": null,
+          "unit_price": null,
+          "total": null
+        }
+      ],
+      "notes": ""
+    }
+
+    Important Notes:
+    - Extract all available data from the invoice.
+    - If a field is not present in the invoice, leave its value as an empty string, null, or an empty list, as appropriate.
+    - Accurately parse numerical values for prices, quantities, and totals.
+    - Output should always be in English and in strict JSON format only (no extra text).
+    """
+
+    try:
+        pdf_part = Part.from_data(
+            mime_type="application/pdf",
+            data=pdf_file.read()
+        )
+
+        response = model.generate_content(
+            [prompt, pdf_part],
+            generation_config={"temperature": 0.1}
+        )
+
+        # Extract JSON from response
+        json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
+        data = json.loads(json_str)
+        return data
+
+    except (AttributeError, json.JSONDecodeError) as e:
+        return {
+            "success": False,
+            "error": "Error parsing JSON from Gemini response.",
+            "traceback": traceback.format_exc()
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+from django.views import View
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+
+# Update the InvoiceListView to pass status options
+class InvoiceListView(ListView):
+    model = Invoice_VAI
+    template_name = 'purchase/invoice_list.html'
+    context_object_name = 'invoices'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_options'] = Invoice_VAI.INVOICE_STATUS
+        return context
+    
+
+class InvoiceDetailView(DetailView):
+    model = Invoice_VAI
+    template_name = 'purchase/invoice_detail.html'
+    context_object_name = 'invoice'
+
+class InvoiceUploadView(View):
+    def get(self, request):
+        form = InvoiceUploadForm()
+        return render(request, 'purchase/upload_invoice.html', {'form': form})
+
+    def post(self, request):
+        form = InvoiceUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            pdf_file = request.FILES['invoice_file']
+            try:
+                extracted_data = extract_invoice_data(pdf_file)
+                if not extracted_data.get('success', True):
+                    return JsonResponse(extracted_data, status=500)
+
+                # Save data to Django models
+                try:
+                    invoice = Invoice_VAI(
+                        invoice_number=extracted_data.get('invoice_number'),
+                        invoice_date=extracted_data.get('invoice_date'),
+                        due_date=extracted_data.get('due_date'),
+                        total_amount=extracted_data.get('total_amount', 0),
+                        customer_name=extracted_data.get('customer_name'),
+                        vendor_name=extracted_data.get('supplier_name'),
+                    )
+                    invoice.save()
+
+                    for item_data in extracted_data.get('line_items', []):
+                        InvoiceItem_VAI.objects.create(
+                            invoice=invoice,
+                            description=item_data.get('description'),
+                            quantity=item_data.get('quantity', 0),
+                            price_per_unit=item_data.get('unit_price', 0),
+                            total=item_data.get('total', 0),
+                        )
+
+                    # return JsonResponse({
+                    #     "success": True,
+                    #     "message": "Invoice data extracted and saved successfully.",
+                    #     "invoice_id": invoice.invoice_id
+                    # })
+                    messages.success(request, 'Invoice uploaded and processed successfully.')
+                    return redirect('invoice_detail_vai', pk=invoice.invoice_id)
+
+                except Exception as e:
+                    return JsonResponse({
+                        "success": False,
+                        "error": "Error saving data to models.",
+                        "details": str(e),
+                        "traceback": traceback.format_exc()
+                    }, status=500)
+                
+            except Exception as e:
+                messages.error(request, f'Error processing invoice: {str(e)}')
+                return render(request, 'purchase/upload_invoice.html', {'form': form})
+        return render(request, 'purchase/upload_invoice.html', {'form': form})
+    
+def update_invoice_status(request, pk):
+    if request.method == 'POST' and request.is_ajax():
+        invoice = get_object_or_404(Invoice_VAI, pk=pk)
+        new_status = request.POST.get('status')
+        
+        if new_status in dict(Invoice_VAI.INVOICE_STATUS):
+            invoice.status = new_status
+            invoice.save()
+            return JsonResponse({'success': True, 'new_status': invoice.get_status_display()})
+    
+    return JsonResponse({'success': False})

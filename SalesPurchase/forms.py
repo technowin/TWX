@@ -750,3 +750,7 @@ class SupplierInvoiceForm(BootstrapForm):
         if total_amount < 0:
             raise ValidationError("Total amount cannot be negative.")
         return total_amount
+    
+
+class InvoiceUploadForm(forms.Form):
+    invoice_file = forms.FileField(label='Select a PDF invoice')

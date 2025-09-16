@@ -404,6 +404,12 @@ urlpatterns = [
     path('purchase-orders/<int:pk>/', purchase_order_detail, name='purchase_order_detail'),
     path('purchase-orders/<int:pk>/pdf/', purchase_order_pdf, name='purchase_order_pdf'),
     
+    # Vertex AI Invoice
+    path('invoice_list_vai/', InvoiceListView.as_view(), name='invoice_list_vai'),
+    path('invoice_upload_vai/', InvoiceUploadView.as_view(), name='invoice_upload_vai'),
+    path('invoice_detail_vai<int:pk>/', InvoiceDetailView.as_view(), name='invoice_detail_vai'),
+    path('<int:pk>/update_invoice_status_vai/', update_invoice_status, name='update_invoice_status_vai'),
+
     # GRN URLs
     path('grns/', grn_list, name='grn_list'),
     path('grns/create/', grn_create, name='grn_create'),
