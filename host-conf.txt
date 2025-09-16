@@ -272,3 +272,9 @@ pip install django-widget-tweaks
 pip install weasyprint
 
 https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+
+sudo vim /etc/systemd/system/gunicorn.service
+
+Environment="GOOGLE_APPLICATION_CREDENTIALS=/home/ubuntu/keys/my-django-vertexai-key.json"
+
+sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf
