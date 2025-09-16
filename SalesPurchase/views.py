@@ -208,6 +208,7 @@ def purchase_dashboard(request):
     ).filter(pending_qty__gt=0).count()
     
     context = {
+        'today': today,
         'supplier_count': supplier_count,
         'purchase_rfq_count': purchase_rfq_count,
         'purchase_order_count': purchase_order_count,
@@ -314,7 +315,7 @@ def customer_list(request):
     if customer_type:
         customers = customers.filter(type=customer_type)
     
-    paginator = Paginator(customers, 25)
+    paginator = Paginator(customers, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -445,7 +446,7 @@ def rfq_list(request):
     customers = Customer.objects.all()
     status_choices = RFQ.RFQ_STATUS
     
-    paginator = Paginator(rfqs, 25)
+    paginator = Paginator(rfqs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -589,7 +590,7 @@ def quotation_list(request):
     customers = Customer.objects.all()
     status_choices = Quotation.QUOTATION_STATUS
     
-    paginator = Paginator(quotations, 25)  # Show 25 quotations per page
+    paginator = Paginator(quotations, 10)  # Show 25 quotations per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -868,84 +869,242 @@ def bom_clone(request, bom_id):
     
     return render(request, 'sales/bom_clone.html', {'bom': original_bom})
 
+# # Quotation with Variant BOM
+# @login_required
+# def quotation_with_variant_bom(request, rfq_id):
+#     rfq = get_object_or_404(RFQ, pk=rfq_id)
+    
+#     if request.method == 'POST':
+#         # Handle variant BOM creation and quotation
+#         bom_id = request.POST.get('bom_id')
+#         new_bom_name = request.POST.get('new_bom_name')
+#         new_bom_description = request.POST.get('new_bom_description')
+        
+#         if not bom_id:
+#             messages.error(request, 'Please select a BOM to clone.')
+#             return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+        
+#         original_bom = get_object_or_404(BOMHeader, pk=bom_id)
+        
+#         # Create variant BOM
+#         variant_bom = BOMHeader.objects.create(
+#             name=new_bom_name,
+#             description=new_bom_description or original_bom.description,
+#             revision=1,
+#             status='draft',
+#             created_by=request.user,
+#             parent_bom_id=original_bom.id
+#         )
+        
+#         # Clone BOM items
+#         for item in original_bom.items.all():
+#             BOMItem.objects.create(
+#                 bom=variant_bom,
+#                 component=item.component,
+#                 quantity=item.quantity,
+#                 reference_designators=item.reference_designators,
+#                 notes=item.notes,
+#                 sort_order=item.sort_order,
+#                 level=item.level,
+#                 position=item.position
+#             )
+        
+#         # Create quotation
+#         quotation = Quotation.objects.create(
+#             customer=rfq.customer,
+#             rfq=rfq,
+#             quotation_date=timezone.now().date(),
+#             expiry_date=timezone.now().date() + timezone.timedelta(days=30),
+#             currency=rfq.currency,
+#             status='draft',
+#             payment_terms=rfq.customer.payment_terms,
+#             created_by=request.user
+#         )
+        
+#         # Create quotation item for the variant BOM
+#         # Calculate price based on BOM cost
+#         bom_cost = calculate_bom_cost(variant_bom.id)
+#         unit_price = bom_cost * Decimal('1.3')  # 30% markup
+        
+#         QuotationItem.objects.create(
+#             quotation=quotation,
+#             item_type='product',
+#             bom=variant_bom,
+#             description=variant_bom.description,
+#             quantity=1,  # Default quantity, can be adjusted
+#             unit_price=unit_price,
+#             tax_rate=Decimal('10.00')  # Default tax rate
+#         )
+        
+#         messages.success(request, f'Variant BOM created and quotation generated successfully.')
+#         return redirect('quotation_detail', pk=quotation.quotation_id)
+    
+#     # Get all BOMs for selection
+#     boms = BOMHeader.objects.filter(status='approved')
+    
+#     return render(request, 'sales/quotation_with_variant_bom.html', {
+#         'rfq': rfq,
+#         'boms': boms
+#     })
+
+
 # Quotation with Variant BOM
+
+# views.py
+from decimal import Decimal
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+
 @login_required
 def quotation_with_variant_bom(request, rfq_id):
     rfq = get_object_or_404(RFQ, pk=rfq_id)
-    
+
     if request.method == 'POST':
-        # Handle variant BOM creation and quotation
-        bom_id = request.POST.get('bom_id')
-        new_bom_name = request.POST.get('new_bom_name')
-        new_bom_description = request.POST.get('new_bom_description')
-        
-        if not bom_id:
-            messages.error(request, 'Please select a BOM to clone.')
-            return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
-        
-        original_bom = get_object_or_404(BOMHeader, pk=bom_id)
-        
-        # Create variant BOM
-        variant_bom = BOMHeader.objects.create(
-            name=new_bom_name,
-            description=new_bom_description or original_bom.description,
-            revision=1,
-            status='draft',
-            created_by=request.user,
-            parent_bom_id=original_bom.id
-        )
-        
-        # Clone BOM items
-        for item in original_bom.items.all():
-            BOMItem.objects.create(
-                bom=variant_bom,
-                component=item.component,
-                quantity=item.quantity,
-                reference_designators=item.reference_designators,
-                notes=item.notes,
-                sort_order=item.sort_order,
-                level=item.level,
-                position=item.position
+        try:
+            # Handle variant BOM creation and quotation
+            bom_id = request.POST.get('bom_id')
+            new_bom_name = request.POST.get('new_bom_name')
+            new_bom_description = request.POST.get('new_bom_description')
+
+            if not bom_id:
+                messages.error(request, 'Please select a BOM to clone.')
+                return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+
+            if not new_bom_name:
+                messages.error(request, 'Variant BOM name is required.')
+                return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+
+            original_bom = get_object_or_404(BOMHeader, pk=bom_id)
+
+            # Create variant BOM
+            variant_bom = BOMHeader.objects.create(
+                name=new_bom_name,
+                description=new_bom_description or original_bom.description,
+                revision=1,
+                status='draft',
+                created_by=request.user,
+                parent_bom=original_bom
             )
-        
-        # Create quotation
-        quotation = Quotation.objects.create(
-            customer=rfq.customer,
-            rfq=rfq,
-            quotation_date=timezone.now().date(),
-            expiry_date=timezone.now().date() + timezone.timedelta(days=30),
-            currency=rfq.currency,
-            status='draft',
-            payment_terms=rfq.customer.payment_terms,
-            created_by=request.user
-        )
-        
-        # Create quotation item for the variant BOM
-        # Calculate price based on BOM cost
-        bom_cost = calculate_bom_cost(variant_bom.id)
-        unit_price = bom_cost * Decimal('1.3')  # 30% markup
-        
-        QuotationItem.objects.create(
-            quotation=quotation,
-            item_type='product',
-            bom=variant_bom,
-            description=variant_bom.description,
-            quantity=1,  # Default quantity, can be adjusted
-            unit_price=unit_price,
-            tax_rate=Decimal('10.00')  # Default tax rate
-        )
-        
-        messages.success(request, f'Variant BOM created and quotation generated successfully.')
-        return redirect('quotation_detail', pk=quotation.quotation_id)
-    
+
+            # Clone BOM items with pricing from ComponentSupplier
+            for item in original_bom.items.all():
+                max_price = get_component_max_price(item.component)  # external function
+
+                BOMItem.objects.create(
+                    bom=variant_bom,
+                    component=item.component,
+                    supplier=item.supplier,
+                    price=max_price,
+                    cost=max_price,  # Using price as cost for simplicity
+                    quantity=item.quantity,
+                    reference_designators=item.reference_designators,
+                    notes=item.notes,
+                    sort_order=item.sort_order,
+                    level=item.level,
+                    position=item.position
+                )
+
+            # Create quotation
+            quotation = Quotation.objects.create(
+                customer=rfq.customer,
+                rfq=rfq,
+                quotation_date=timezone.now().date(),
+                expiry_date=timezone.now().date() + timezone.timedelta(days=30),
+                currency=rfq.currency,
+                status='draft',
+                payment_terms=rfq.customer.payment_terms,
+                created_by=request.user
+            )
+
+            # Create quotation item for the variant BOM
+            bom_cost = calculate_bom_cost_vbom(variant_bom.id)  # external function
+            markup_percentage = Decimal('30.0')  # 30% markup
+            unit_price = bom_cost * (1 + markup_percentage / 100)
+
+            QuotationItem.objects.create(
+                quotation=quotation,
+                item_type='product',
+                bom=variant_bom,
+                description=variant_bom.description,
+                quantity=1,  # Default quantity
+                unit_price=unit_price,
+                tax_rate=Decimal('10.00')  # Default tax rate
+            )
+
+            messages.success(request, f'Variant BOM created and quotation generated successfully.')
+            return redirect('quotation_detail', pk=quotation.quotation_id)
+
+        except Exception as e:
+            logger.exception("Error while creating variant BOM and quotation")
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('quotation_with_variant_bom', rfq_id=rfq_id)
+
     # Get all BOMs for selection
     boms = BOMHeader.objects.filter(status='approved')
-    
+
     return render(request, 'sales/quotation_with_variant_bom.html', {
         'rfq': rfq,
         'boms': boms
     })
 
+def get_component_max_price(component):
+    """Get the maximum price from approved suppliers for a component"""
+    approved_suppliers = component.suppliers.filter(is_approved=True)
+    if approved_suppliers.exists():
+        return approved_suppliers.order_by('-cost').first().cost
+    return Decimal('0.00')
+
+def calculate_bom_cost_vbom(bom_id):
+    """Calculate the total cost of a BOM"""
+    bom = get_object_or_404(BOMHeader, pk=bom_id)
+    total_cost = Decimal('0.00')
+    
+    for item in bom.items.all():
+        if item.cost:
+            total_cost += item.quantity * item.cost
+        else:
+            # Fallback to component supplier pricing
+            max_price = get_component_max_price(item.component)
+            total_cost += item.quantity * max_price
+    
+    return total_cost
+
+
+def bom_details_api(request, bom_id):
+    try:
+        bom = BOMHeader.objects.get(pk=bom_id)
+        items_data = []
+        
+        for item in bom.items.all():
+            # Get max price from approved suppliers
+            max_price = get_component_max_price(item.component)
+            
+            items_data.append({
+                'part_number': item.component.part_number,
+                'description': item.component.description,
+                'category': item.component.category,
+                'quantity': float(item.quantity),
+                'unit_of_measure': item.component.unit_of_measure,
+                'max_price': float(max_price)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'bom': {
+                'name': bom.name,
+                'description': bom.description,
+                'revision': bom.revision,
+                'status': bom.status
+            },
+            'items': items_data
+        })
+    except BOMHeader.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'BOM not found'})
+    
 # Sales Order Views
 @login_required
 def sales_order_list(request):
@@ -972,7 +1131,7 @@ def sales_order_list(request):
     customers = Customer.objects.all()
     status_choices = SalesOrder.ORDER_STATUS
     
-    paginator = Paginator(orders, 25)  # Show 25 orders per page
+    paginator = Paginator(orders, 10)  # Show 25 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1146,7 +1305,7 @@ def invoice_list(request):
     
     status_choices = Invoice.INVOICE_STATUS
     
-    paginator = Paginator(invoices, 25)  # Show 25 invoices per page
+    paginator = Paginator(invoices, 10)  # Show 25 invoices per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1330,7 +1489,7 @@ def purchase_rfq_list(request):
     
     status_choices = PurchaseRFQ.RFQ_STATUS
     
-    paginator = Paginator(rfqs, 25)  # Show 25 RFQs per page
+    paginator = Paginator(rfqs, 10)  # Show 25 RFQs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1476,6 +1635,242 @@ def purchase_rfq_send(request, pk):
     
     return render(request, 'purchase/purchase_rfq_send.html', {'rfq': rfq})
 
+
+@login_required
+def purchase_quotation_list(request):
+    quotations = PurchaseQuotation.objects.all().order_by('-created_date')
+    
+    # Filtering
+    status_filter = request.GET.get('status')
+    if status_filter:
+        quotations = quotations.filter(status=status_filter)
+    
+    supplier_filter = request.GET.get('supplier')
+    if supplier_filter:
+        quotations = quotations.filter(supplier_id=supplier_filter)
+    
+    context = {
+        'quotations': quotations,
+        'status_choices': PurchaseQuotation.QUOTATION_STATUS,
+        'suppliers': Supplier.objects.all(),
+    }
+    return render(request, 'purchase/purchase_quotation_list.html', context)
+
+@login_required
+def purchase_quotation_create(request):
+    if request.method == 'POST':
+        form = PurchaseQuotationForm(request.POST)
+        formset = PurchaseQuotationItemFormSet(request.POST, instance=PurchaseQuotation())
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                quotation = form.save(commit=False)
+                quotation.created_by = request.user
+                quotation.save()
+                
+                formset.instance = quotation
+                formset.save()
+                
+            messages.success(request, 'Purchase quotation created successfully!')
+            return redirect('purchase_quotation_detail', pk=quotation.pk)
+    else:
+        form = PurchaseQuotationForm()
+        formset = PurchaseQuotationItemFormSet(instance=PurchaseQuotation())
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'title': 'Create Purchase Quotation',
+    }
+    return render(request, 'purchase/purchase_quotation_form.html', context)
+
+@login_required
+def purchase_quotation_from_rfq(request, rfq_id):
+    rfq = get_object_or_404(PurchaseRFQ, pk=rfq_id)
+    
+    if request.method == 'POST':
+        form = PurchaseQuotationForm(request.POST)
+        formset = PurchaseQuotationItemFormSet(request.POST, instance=PurchaseQuotation())
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                quotation = form.save(commit=False)
+                quotation.created_by = request.user
+                quotation.purchase_rfq = rfq
+                quotation.save()
+                
+                formset.instance = quotation
+                formset.save()
+                
+            messages.success(request, 'Purchase quotation created successfully!')
+            return redirect('purchase_quotation_detail', pk=quotation.pk)
+    else:
+        # Pre-fill form with RFQ data
+        form = PurchaseQuotationForm(initial={
+            'supplier': rfq.supplier,
+            'currency': rfq.currency,
+            'payment_terms': rfq.payment_terms,
+        })
+        
+        # Create formset with RFQ items
+        quotation = PurchaseQuotation()
+        formset = PurchaseQuotationItemFormSet(instance=quotation)
+        
+        # Pre-fill formset data
+        for i, item in enumerate(rfq.items.all()):
+            if i < formset.total_form_count():
+                formset.forms[i].initial = {
+                    'rfq_item': item,
+                    'component': item.component,
+                    'description': item.component.description,
+                    'quantity': item.quantity,
+                }
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'rfq': rfq,
+        'title': f'Create Quotation from RFQ #{rfq.rfq_number}',
+    }
+    return render(request, 'purchase/purchase_quotation_form.html', context)
+
+@login_required
+def purchase_quotation_edit(request, pk):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    
+    if request.method == 'POST':
+        form = PurchaseQuotationForm(request.POST, instance=quotation)
+        formset = PurchaseQuotationItemFormSet(request.POST, instance=quotation)
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                form.save()
+                formset.save()
+                
+            messages.success(request, 'Purchase quotation updated successfully!')
+            return redirect('purchase_quotation_detail', pk=quotation.pk)
+    else:
+        form = PurchaseQuotationForm(instance=quotation)
+        formset = PurchaseQuotationItemFormSet(instance=quotation)
+    
+    context = {
+        'form': form,
+        'formset': formset,
+        'quotation': quotation,
+        'title': f'Edit Purchase Quotation #{quotation.quotation_number}',
+    }
+    return render(request, 'purchase/purchase_quotation_form.html', context)
+
+@login_required
+def purchase_quotation_detail(request, pk):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    context = {
+        'quotation': quotation,
+    }
+    return render(request, 'purchase/purchase_quotation_detail.html', context)
+
+from weasyprint import HTML, CSS
+
+@login_required
+def purchase_quotation_pdf(request, pk):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    
+    try:
+        # Render HTML template
+        html_string = render_to_string('purchase/purchase_quotation_pdf.html', {
+            'quotation': quotation,
+            'base_url': request.build_absolute_uri('/')[:-1]  # For loading static files
+        })
+        
+        # Generate PDF using WeasyPrint
+        html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+        
+        # Add CSS for better PDF styling
+        css = CSS(string='''
+            @page {
+                size: A4;
+                margin: 1cm;
+                @top-right {
+                    content: "Page " counter(page) " of " counter(pages);
+                    font-size: 10pt;
+                }
+            }
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+            }
+            .header {
+                border-bottom: 2px solid #333;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+            }
+            .company-info {
+                float: left;
+                width: 40%;
+            }
+            .quotation-info {
+                float: right;
+                width: 40%;
+                text-align: right;
+            }
+            .clear {
+                clear: both;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f5f5f5;
+                font-weight: bold;
+            }
+            .text-right {
+                text-align: right;
+            }
+            .total-row {
+                font-weight: bold;
+                background-color: #f9f9f9;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #ddd;
+                font-size: 9pt;
+            }
+        ''')
+        
+        # Generate PDF
+        pdf_file = html.write_pdf(stylesheets=[css])
+        
+        # Create HTTP response with PDF
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="purchase_quotation_{quotation.quotation_number}.pdf"'
+        
+        return response
+    
+    except Exception as e:
+        messages.error(request, f'Error generating PDF: {str(e)}')
+        return redirect('purchase_quotation_detail', pk=quotation.quotation_id)
+
+@login_required
+def update_quotation_status(request, pk, status):
+    quotation = get_object_or_404(PurchaseQuotation, pk=pk)
+    
+    if status in dict(PurchaseQuotation.QUOTATION_STATUS).keys():
+        quotation.status = status
+        quotation.save()
+        messages.success(request, f'Quotation status updated to {status}.')
+    else:
+        messages.error(request, 'Invalid status.')
+    
+    return redirect('purchase_quotation_detail', pk=quotation.pk)
+
 # Purchase Order Views
 @login_required
 def purchase_order_list(request):
@@ -1502,7 +1897,7 @@ def purchase_order_list(request):
     suppliers = Supplier.objects.all()
     status_choices = PurchaseOrder.PO_STATUS
     
-    paginator = Paginator(orders, 25)  # Show 25 orders per page
+    paginator = Paginator(orders, 10)  # Show 25 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1666,7 +2061,7 @@ def grn_list(request):
     
     status_choices = GoodsReceivedNote.GRN_STATUS
     
-    paginator = Paginator(grns, 25)  # Show 25 GRNs per page
+    paginator = Paginator(grns, 10)  # Show 25 GRNs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1833,7 +2228,7 @@ def supplier_invoice_list(request):
     suppliers = Supplier.objects.all()
     status_choices = SupplierInvoice.INVOICE_STATUS
     
-    paginator = Paginator(invoices, 25)  # Show 25 invoices per page
+    paginator = Paginator(invoices, 10)  # Show 25 invoices per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1926,6 +2321,24 @@ def supplier_invoice_detail(request, pk):
     return render(request, 'purchase/supplier_invoice_detail.html', {'invoice': invoice})
 
 # AJAX Views
+
+@login_required
+def get_customer_details(request, customer_id):
+    """AJAX view to get customer details"""
+    try:
+        customer = Customer.objects.get(pk=customer_id)
+        data = {
+            'email': customer.email,
+            'phone': customer.phone,
+            'contact_person': customer.contact_person or '',
+            'address': customer.address,
+            'payment_terms': customer.payment_terms,
+            'currency': customer.currency,
+        }
+        return JsonResponse(data)
+    except Customer.DoesNotExist:
+        return JsonResponse({'error': 'Customer not found'}, status=404)
+    
 @login_required
 def get_component_details(request, component_id):
     """AJAX view to get component details"""

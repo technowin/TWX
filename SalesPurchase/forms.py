@@ -210,7 +210,7 @@ class QuotationItemForm(BootstrapForm):
     class Meta:
         model = QuotationItem
         fields = '__all__'
-        exclude = ['item_id', 'line_total']
+        exclude = ['item_id']
         widgets = {
             'quotation': forms.HiddenInput(),
             'rfq_item': forms.HiddenInput(),
@@ -483,6 +483,81 @@ class SupplierResponseForm(BootstrapForm):
         if validity_days < 0:
             raise ValidationError("Validity days cannot be negative.")
         return validity_days
+
+class PurchaseQuotationForm(BootstrapForm):
+    class Meta:
+        model = PurchaseQuotation
+        fields = '__all__'
+        exclude = ['quotation_id', 'quotation_number', 'subtotal', 'tax_amount', 'total_amount', 'created_by', 'created_date', 'last_modified']
+        widgets = {
+            'purchase_rfq': forms.Select(attrs={'class': 'form-select'}),
+            'supplier': forms.Select(attrs={'class': 'form-select'}),
+            'quotation_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'expiry_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'currency': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'payment_terms': forms.TextInput(attrs={'class': 'form-control'}),
+            'incoterms': forms.TextInput(attrs={'class': 'form-control'}),
+            'delivery_time': forms.TextInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        quotation_date = cleaned_data.get('quotation_date')
+        expiry_date = cleaned_data.get('expiry_date')
+        
+        if quotation_date and expiry_date:
+            if expiry_date < quotation_date:
+                raise ValidationError("Expiry date cannot be before quotation date.")
+            
+            if expiry_date < timezone.now().date():
+                raise ValidationError("Expiry date cannot be in the past.")
+        
+        return cleaned_data
+
+class PurchaseQuotationItemForm(BootstrapForm):
+    class Meta:
+        model = PurchaseQuotationItem
+        fields = '__all__'
+        exclude = ['item_id']
+        widgets = {
+            'quotation': forms.HiddenInput(),
+            'rfq_item': forms.HiddenInput(),
+            'component': forms.Select(attrs={'class': 'form-select component-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'tax_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
+            'lead_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+    
+    def clean_quantity(self):
+        quantity = self.cleaned_data.get('quantity')
+        if quantity <= 0:
+            raise ValidationError("Quantity must be greater than zero.")
+        return quantity
+    
+    def clean_unit_price(self):
+        unit_price = self.cleaned_data.get('unit_price')
+        if unit_price <= 0:
+            raise ValidationError("Unit price must be greater than zero.")
+        return unit_price
+    
+    def clean_tax_rate(self):
+        tax_rate = self.cleaned_data.get('tax_rate')
+        if tax_rate < 0:
+            raise ValidationError("Tax rate cannot be negative.")
+        if tax_rate > 100:
+            raise ValidationError("Tax rate cannot exceed 100%.")
+        return tax_rate
+
+PurchaseQuotationItemFormSet = inlineformset_factory(
+    PurchaseQuotation, PurchaseQuotationItem, form=PurchaseQuotationItemForm,
+    extra=1, can_delete=True, can_order=False,
+    formset=RequiredInlineFormSet
+)
 
 class PurchaseOrderForm(BootstrapForm):
     class Meta:

@@ -47,9 +47,9 @@ DATABASES = {
         # 'HOST': '13.232.86.95',       # IP FOR TEST
         'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        "OPTIONS": {
+             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'"
+         }
     },
 }
 
@@ -174,6 +174,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # SESSION_FILE_PATH=r"D:\PYTHON PROJECTS\mantra_io"
 
 MIDDLEWARE = [
+    # "Account.middleware.db_connection_middleware.DBConnectionMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -41,76 +41,147 @@
 {% block page_title %}<h4><i class="bi bi-file-earmark-text"></i> Create Quotation with Variant BOM </h4>{% endblock %}
 
 {% block content %}
-    <div class="card">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="form-section">
-                    <h5>Select Base BOM</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_bom" class="form-label">Base BOM</label>
-                                <select name="bom_id" id="id_bom" class="form-select" required>
-                                    <option value="">Select a BOM</option>
-                                    {% for bom in boms %}
-                                    <option value="{{ bom.id }}">{{ bom.name }} - {{ bom.description }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Create Quotation with Variant BOM</h5>
+                            <p class="mb-0 text-sm">RFQ: {{ rfq.rfq_number }} - {{ rfq.customer.name }}</p>
                         </div>
+                        <a href="#" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to RFQ
+                        </a>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="card-title mb-0">BOM Cost Calculation</h6>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" id="variantBomForm">
+                        {% csrf_token %}
+                        
+                        <!-- BOM Selection Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-3"><i class="fas fa-cube me-2"></i>Select Base BOM</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="bom_id" class="form-label">Base BOM *</label>
+                                                    <select class="form-select" id="bom_id" name="bom_id" required>
+                                                        <option value="">Select a BOM to use as base</option>
+                                                        {% for bom in boms %}
+                                                        <option value="{{ bom.id }}" data-description="{{ bom.description }}">
+                                                            {{ bom.name }} (Rev: {{ bom.revision }})
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body py-2">
+                                                        <p class="mb-1"><strong>Selected BOM Details:</strong></p>
+                                                        <div id="bom-details">
+                                                            <p class="text-muted mb-0">Select a BOM to view details</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <table class="table table-sm">
-                                        <tr>
-                                            <th>Total Cost:</th>
-                                            <td id="bom-cost" class="text-end">0.00</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Selling Price (30% markup):</th>
-                                            <td id="bom-selling-price" class="text-end">0.00</td>
-                                        </tr>
-                                    </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Variant BOM Details -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-3"><i class="fas fa-clone me-2"></i>Variant BOM Details</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="new_bom_name" class="form-label">Variant BOM Name *</label>
+                                                    <input type="text" class="form-control" id="new_bom_name" name="new_bom_name" 
+                                                           placeholder="Enter variant BOM name" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="new_bom_description" class="form-label">Description</label>
+                                                    <textarea class="form-control" id="new_bom_description" name="new_bom_description" 
+                                                              rows="2" placeholder="Enter variant BOM description"></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="form-section">
-                    <h5>Variant BOM Details</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="new_bom_name" class="form-label">Variant BOM Name</label>
-                                <input type="text" name="new_bom_name" id="new_bom_name" class="form-control" required>
+                        
+                        <!-- BOM Items Preview -->
+                        <div class="row mb-4 d-none" id="bom-items-section">
+                            <div class="col-12">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-list me-2"></i>BOM Components
+                                    <small class="text-muted ms-2">(Prices will be calculated from approved suppliers)</small>
+                                </h5>
+                                <div class="card">
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-striped mb-0" id="bom-items-table">
+                                                <thead class="thead-light">
+                                                    <tr>
+                                                        <th>Part Number</th>
+                                                        <th>Description</th>
+                                                        <th>Category</th>
+                                                        <th>Qty</th>
+                                                        <th>Unit</th>
+                                                        <th>Max Price</th>
+                                                        <th>Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <!-- Will be populated by JavaScript -->
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="table-active">
+                                                        <td colspan="5" class="text-end fw-bold">Estimated BOM Cost:</td>
+                                                        <td colspan="2" class="fw-bold" id="bom-total-cost">$0.00</td>
+                                                    </tr>
+                                                    <tr class="table-info">
+                                                        <td colspan="5" class="text-end fw-bold">With 30% Markup:</td>
+                                                        <td colspan="2" class="fw-bold" id="bom-with-markup">$0.00</td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="new_bom_description" class="form-label">Description</label>
-                        <textarea name="new_bom_description" id="new_bom_description" class="form-control" rows="3"></textarea>
-                    </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-file-alt me-2"></i>Create Quotation with Variant BOM
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'rfq_detail' rfq.rfq_id %}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Create Variant BOM & Quotation</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
+</div>
 
-    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
 {% if messages %}
@@ -136,36 +207,105 @@
   </script>
 {% endif %}
 
- <script src="{% static 'js/vendor/select2.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            // Initialize Select2
-            $('.form-select').select2({
-                theme: 'bootstrap-5'
-            });
-            
-            // Load BOM details when selected
-            $('#id_bom').change(function() {
-                debugger;
-                const bomId = $(this).val();
-                if (bomId) {
-                    $.ajax({
-                        url: "{% url 'calculate_bom_cost_ajax' '0' %}".replace('0', bomId),
-                        success: function(data) {
-                            debugger;
-                            $('#bom-cost').text(data.cost);
-                            $('#bom-selling-price').text(data.selling_price);
-                        }
-                    });
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bomSelect = document.getElementById('bom_id');
+    const bomDetails = document.getElementById('bom-details');
+    const bomItemsSection = document.getElementById('bom-items-section');
+    const bomItemsTable = document.getElementById('bom-items-table');
+    const bomTotalCost = document.getElementById('bom-total-cost');
+    const bomWithMarkup = document.getElementById('bom-with-markup');
+    
+    // Fetch BOM details when selection changes
+    bomSelect.addEventListener('change', function() {
+        const bomId = this.value;
+        
+        if (!bomId) {
+            bomDetails.innerHTML = '<p class="text-muted mb-0">Select a BOM to view details</p>';
+            bomItemsSection.classList.add('d-none');
+            return;
+        }
+        
+        // Show loading state
+        bomDetails.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> Loading BOM details...</div>';
+        
+        // Fetch BOM details via AJAX
+        fetch(`/api/bom/${bomId}/details/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update BOM details
+                    bomDetails.innerHTML = `
+                        <p class="mb-1"><strong>Name:</strong> ${data.bom.name}</p>
+                        <p class="mb-1"><strong>Revision:</strong> ${data.bom.revision}</p>
+                        <p class="mb-1"><strong>Status:</strong> ${data.bom.status}</p>
+                        <p class="mb-0"><strong>Description:</strong> ${data.bom.description}</p>
+                    `;
+                    
+                    // Update BOM items table
+                    updateBomItemsTable(data.items);
+                    
+                    // Show the BOM items section
+                    bomItemsSection.classList.remove('d-none');
                 } else {
-                    $('#bom-cost').text('0.00');
-                    $('#bom-selling-price').text('0.00');
+                    bomDetails.innerHTML = '<p class="text-danger mb-0">Error loading BOM details</p>';
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                bomDetails.innerHTML = '<p class="text-danger mb-0">Error loading BOM details</p>';
             });
+    });
+    
+    function updateBomItemsTable(items) {
+        const tbody = bomItemsTable.querySelector('tbody');
+        tbody.innerHTML = '';
+        
+        let totalCost = 0;
+        
+        items.forEach(item => {
+            const itemTotal = item.quantity * item.max_price;
+            totalCost += itemTotal;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.part_number}</td>
+                <td>${item.description}</td>
+                <td>${item.category}</td>
+                <td>${item.quantity}</td>
+                <td>${item.unit_of_measure}</td>
+                <td>$${item.max_price.toFixed(2)}</td>
+                <td>$${itemTotal.toFixed(2)}</td>
+            `;
+            tbody.appendChild(row);
         });
-    </script>
-
+        
+        // Update totals
+        bomTotalCost.textContent = `$${totalCost.toFixed(2)}`;
+        bomWithMarkup.textContent = `$${(totalCost * 1.3).toFixed(2)}`;
+    }
+    
+    // Form validation
+    document.getElementById('variantBomForm').addEventListener('submit', function(e) {
+        const bomId = document.getElementById('bom_id').value;
+        const bomName = document.getElementById('new_bom_name').value;
+        
+        if (!bomId) {
+            e.preventDefault();
+            alert('Please select a base BOM.');
+            return;
+        }
+        
+        if (!bomName) {
+            e.preventDefault();
+            alert('Please enter a name for the variant BOM.');
+            return;
+        }
+    });
+});
+</script>
 {% endblock %}
+
 
 {% block extra_javascript %}
 

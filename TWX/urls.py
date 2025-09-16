@@ -168,6 +168,8 @@ urlpatterns = [
     path('<int:pk>/', BookDetailView.as_view(), name='book_detail'),
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
+    path("test-vertex-ai/", test_vertex_ai, name="test_vertex_ai"),
+
     
     # compliance checklist
     # path('compliance-checklist/', compliance_checklist, name='compliance_checklist'),
@@ -358,7 +360,7 @@ urlpatterns = [
 
     # Quotation with Variant BOM
     path('rfqs/<int:rfq_id>/quotation-with-variant-bom/', quotation_with_variant_bom, name='quotation_with_variant_bom'),
-
+    path('api/bom/<int:bom_id>/details/', bom_details_api, name='bom_details_api'),
     # Sales Order URLs
     path('sales-orders/', sales_order_list, name='sales_order_list'),
     path('sales-orders/create/', sales_order_create, name='sales_order_create'),
@@ -385,6 +387,15 @@ urlpatterns = [
     # Supplier Comparison URL
     path('purchase-rfqs/<int:rfq_id>/comparison/', supplier_comparison, name='supplier_comparison'),
 
+    # Purchase Quotation URLs
+    path('purchase-quotations/', purchase_quotation_list, name='purchase_quotation_list'),
+    path('purchase-quotations/create/', purchase_quotation_create, name='purchase_quotation_create'),
+    path('purchase-quotations/create-from-rfq/<int:rfq_id>/', purchase_quotation_from_rfq, name='purchase_quotation_from_rfq'),
+    path('purchase-quotations/<int:pk>/edit/', purchase_quotation_edit, name='purchase_quotation_edit'),
+    path('purchase-quotations/<int:pk>/', purchase_quotation_detail, name='purchase_quotation_detail'),
+    path('purchase-quotations/<int:pk>/pdf/', purchase_quotation_pdf, name='purchase_quotation_pdf'),
+    path('purchase-quotations/<int:pk>/status/<str:status>/', update_quotation_status, name='update_purchase_quotation_status'),
+
     # Purchase Order URLs
     path('purchase-orders/', purchase_order_list, name='purchase_order_list'),
     path('purchase-orders/create/', purchase_order_create, name='purchase_order_create'),
@@ -409,6 +420,7 @@ urlpatterns = [
     path('supplier-invoices/<int:pk>/', supplier_invoice_detail, name='supplier_invoice_detail'),
     
     # AJAX URLs
+    path('ajax/get-customer-details/<int:customer_id>/', get_customer_details, name='get_customer_details'),
     path('ajax/component/<int:component_id>/', get_component_details, name='get_component_details'),
     path('ajax/bom/<int:bom_id>/', get_bom_details, name='get_bom_details'),
     path('ajax/customer-pricing/<int:customer_id>/<int:component_id>/', get_customer_pricing, name='get_customer_pricing'),

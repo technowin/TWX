@@ -40,15 +40,24 @@
 {% comment %} {% block page_title %}<h4>Quotations</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
-    <div class="card-header d-flex flex-wrap gap-2 justify-content-start justify-content-md-between align-items-center">
-        <h4><i class="bi bi-file-earmark-text"></i> Quotations </h4>
-        <a href="{% url 'quotation_create' %}" class="btn btn-sm btn-primary mb-2 mt-2"><i class="bi bi-plus-circle"></i> New Quotation</a>
+    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 py-3">
+        <h4 class="mb-0 d-flex align-items-center">
+            <i class="bi bi-file-earmark-text me-2"></i>
+            Quotations
+        </h4>
+
+        <a href="{% url 'quotation_create' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> New Quotation
+        </a>
     </div>
-    <div class="card mb-4">
+
+    <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-3">
-                    <label for="status" class="form-label">Status</label>
+            <form method="get" class="row g-3 align-items-end">
+                
+                <!-- Status -->
+                <div class="col-md-2">
+                    <label for="statusf" class="form-label">Status</label>
                     <select name="status" id="statusf" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
@@ -56,36 +65,53 @@
                         {% endfor %}
                     </select>
                 </div>
+
+                <!-- Customer -->
                 <div class="col-md-3">
                     <label for="customer" class="form-label">Customer</label>
                     <select name="customer" id="customer" class="form-select">
                         <option value="">All Customers</option>
                         {% for customer in customers %}
-                        <option value="{{ customer.customer_id }}" {% if request.GET.customer == customer.customer_id|stringformat:"s" %}selected{% endif %}>{{ customer.name }}</option>
+                        <option value="{{ customer.customer_id }}" {% if request.GET.customer == customer.customer_id|stringformat:"s" %}selected{% endif %}>
+                            {{ customer.name }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+
+                <!-- Date From -->
+                <div class="col-md-2">
                     <label for="date_from" class="form-label">Date From</label>
                     <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from }}">
                 </div>
-                <div class="col-md-3">
+
+                <!-- Date To -->
+                <div class="col-md-2">
                     <label for="date_to" class="form-label">Date To</label>
                     <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
                 </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="{% url 'quotation_list' %}" class="btn btn-secondary">Clear</a>
+
+                <!-- Action Buttons -->
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a href="{% url 'quotation_list' %}" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
                 </div>
+               
             </form>
         </div>
     </div>
 
+
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>Quotation Number</th>
                             <th>Customer</th>
@@ -94,7 +120,7 @@
                             <th>Status</th>
                             <th class="text-end">Total Amount</th>
                             <th>Created By</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,30 +128,37 @@
                         <tr>
                             <td>{{ quotation.quotation_number }}</td>
                             <td>{{ quotation.customer.name }}</td>
-                            <td>{{ quotation.quotation_date }}</td>
-                            <td>{{ quotation.expiry_date }}</td>
+                            <td>{{ quotation.quotation_date|date:"d M, Y" }}</td>
+                            <td>{{ quotation.expiry_date|date:"d M, Y" }}</td>
                             <td>
-                                <span class="badge bg-{% if quotation.status == 'draft' %}secondary{% elif quotation.status == 'sent' %}info{% elif quotation.status == 'accepted' %}success{% elif quotation.status == 'rejected' %}danger{% else %}warning{% endif %}">
+                                <span class="badge 
+                                    {% if quotation.status == 'draft' %} bg-secondary
+                                    {% elif quotation.status == 'sent' %} bg-info
+                                    {% elif quotation.status == 'accepted' %} bg-success
+                                    {% elif quotation.status == 'rejected' %} bg-danger
+                                    {% else %} bg-warning
+                                    {% endif %}">
                                     {{ quotation.get_status_display }}
                                 </span>
                             </td>
-                            <td class="text-end">{{ quotation.total_amount }}</td>
+                            <td class="text-end">
+                                {{ quotation.total_amount|floatformat:2 }}
+                            </td>
                             <td>{{ quotation.created_by }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-primary">
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <a href="{% url 'quotation_detail' quotation.quotation_id %}" class="btn btn-sm btn-primary" title="View">
                                         <i class="bi bi-eye"></i>
-                                    </a>&nbsp;&nbsp;
-                                    <a href="{% url 'quotation_edit' quotation.quotation_id %}" class="btn btn-secondary">
+                                    </a>
+                                    <a href="{% url 'quotation_edit' quotation.quotation_id %}" class="btn btn-sm btn-secondary" title="Edit">
                                         <i class="bi bi-pencil"></i>
-                                    </a>&nbsp;&nbsp;
-                                    <a href="{% url 'quotation_pdf' quotation.quotation_id %}" class="btn btn-info" target="_blank">
-                                        <i class="bi bi-download"></i> PDF
+                                    </a>
+                                    <a href="{% url 'quotation_pdf' quotation.quotation_id %}" class="btn btn-sm btn-info" target="_blank" title="Download PDF">
+                                        <i class="bi bi-download"></i>
                                     </a>
                                     {% if quotation.status == 'accepted' or quotation.status == 'sent' %}
-                                    &nbsp;&nbsp;
-                                    <a href="{% url 'sales_order_from_quotation' quotation.quotation_id %}" class="btn btn-success">
-                                        <i class="bi bi-cart-check"></i> Create Order
+                                    <a href="{% url 'sales_order_from_quotation' quotation.quotation_id %}" class="btn btn-sm btn-success" title="Create Sales Order">
+                                        <i class="bi bi-cart-check"></i>
                                     </a>
                                     {% endif %}
                                 </div>
@@ -133,12 +166,13 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center">No quotations found.</td>
+                            <td colspan="8" class="text-center text-muted">No quotations found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
             
             {% if is_paginated %}
             <nav aria-label="Quotation pagination">
@@ -196,7 +230,7 @@
   </script>
 {% endif %}
 
-<script>
+{% comment %} <script>
     // Set today's date as default for date filters
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
@@ -210,7 +244,7 @@
             document.getElementById('date_to').value = today;
         }
     });
-</script>
+</script> {% endcomment %}
 {% endblock %}
 
 {% block extra_javascript %}

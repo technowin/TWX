@@ -1,20 +1,24 @@
 import io
 import json
 import re
-from PIL import Image
-from pdf2image import convert_from_bytes
-import google.generativeai as genai
-# import vertexai
-# from vertexai.generative_models import GenerativeModel, Part
+import traceback
+# from PIL import Image
+from django.http import JsonResponse
+# from pdf2image import convert_from_bytes
+# import google.generativeai as genai
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
 class GeminiMetadataExtractor:
     def __init__(self):
-        Image.MAX_IMAGE_PIXELS = 200000000  # Allow large images
-        # vertexai.init(project="powerful-lore-471112-k7", location="")
+        # Image.MAX_IMAGE_PIXELS = 200000000  # Allow large images
+        vertexai.init(project="powerful-lore-471112-k7", location="us-central1")
 
-        api_key = "AIzaSyAJWKnoo45JeoQxcwD5R8RUatPUZmVhEMU"
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        # api_key = "AIzaSyAJWKnoo45JeoQxcwD5R8RUatPUZmVhEMU"
+        # genai.configure(api_key=api_key)
+        # self.model = genai.GenerativeModel('gemini-2.5-flash')
         # self.model = GenerativeModel('gemini-2.5-flash')
+        self.model = GenerativeModel("gemini-2.5-flash")
+        
         self.prompt = """
             You are a highly intelligent document and image parser with web-assisted reasoning.
 
@@ -48,27 +52,27 @@ class GeminiMetadataExtractor:
 
     def extract_from_pdf(self, pdf_file, pages_to_process=3):
         try:
-            pdf_file.seek(0)
-            images = convert_from_bytes(
-                pdf_file.read(),
-                dpi=200,
-                first_page=1,
-                last_page=pages_to_process,
-                fmt='jpeg',
-                thread_count=3
-            )
+            # pdf_file.seek(0)
+            # images = convert_from_bytes(
+            #     pdf_file.read(),
+            #     dpi=200,
+            #     first_page=1,
+            #     last_page=pages_to_process,
+            #     fmt='jpeg',
+            #     thread_count=3
+            # )
 
-            image_list = []
-            for image in images:
-                img_byte_arr = io.BytesIO()
-                image.save(img_byte_arr, format='JPEG')
-                img_bytes = img_byte_arr.getvalue()
-                image_list.append(Image.open(io.BytesIO(img_bytes)))
+            # image_list = []
+            # for image in images:
+            #     img_byte_arr = io.BytesIO()
+            #     image.save(img_byte_arr, format='JPEG')
+            #     img_bytes = img_byte_arr.getvalue()
+            #     image_list.append(Image.open(io.BytesIO(img_bytes)))
     
-            response = self.model.generate_content(
-                [self.prompt] + image_list,
-                generation_config={"temperature": 0.1}
-            )
+            # response = self.model.generate_content(
+            #     [self.prompt] + image_list,
+            #     generation_config={"temperature": 0.1}
+            # )
 
             # Convert images into Vertex AI Parts
             # image_parts = []
@@ -84,7 +88,17 @@ class GeminiMetadataExtractor:
             #     [self.prompt] + image_parts,
             #     generation_config={"temperature": 0.1}
             # )
-    
+
+            pdf_part = Part.from_data(
+                mime_type="application/pdf",
+                data=pdf_file.read()
+            )
+
+            response = self.model.generate_content(
+                [self.prompt, pdf_part],
+                generation_config={"temperature": 0.1}
+            )
+
             # Extract JSON from response
             try:
                 json_str = re.search(r'\{.*\}', response.text, re.DOTALL).group()
@@ -94,5 +108,9 @@ class GeminiMetadataExtractor:
                 raise Exception("Error parsing JSON from Gemini response.")
     
         except Exception as e:
-            raise Exception(f"PDF processing error: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
 
