@@ -179,6 +179,45 @@ class Routing(models.Model):
 
     def get_absolute_url(self):
         return reverse('routing_list')
+    
+
+class RoutingMaster(models.Model):
+    name = models.TextField(null=True, blank=True)
+    component = models.ForeignKey('BOM.BOMHeader',on_delete=models.CASCADE,verbose_name="BOM Component")
+    notes = models.TextField(blank=True, verbose_name="Additional Notes")
+    created_at = models.DateTimeField(null=True,blank=True, auto_now_add=True)
+    created_by = models.ForeignKey('Account.CustomUser',on_delete=models.CASCADE,null=True, blank=True)
+    class Meta:
+        verbose_name = "BOM Routing"
+        verbose_name_plural = "BOM Routings"
+
+    def __str__(self):
+        return f"{self.name} - {self.component}"
+
+    def get_absolute_url(self):
+        return reverse('routing_list')
+
+
+class RoutingDetail(models.Model):
+    routing = models.ForeignKey( RoutingMaster,on_delete=models.CASCADE,related_name="details")
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
+    production_order = models.ForeignKey('MaterialPlan.ProductionOrder',on_delete=models.CASCADE,null=True,blank=True)
+    sequence = models.PositiveIntegerField()
+    work_center = models.ForeignKey(WorkCenter, on_delete=models.CASCADE)
+    setup_time = models.PositiveIntegerField(help_text="Setup time in minutes" ,null=True,blank=True)
+    run_time_per_unit = models.PositiveIntegerField(help_text="Run time per unit in minutes",null=True,blank=True)
+    skill = models.ForeignKey('Manpower.Skill',on_delete=models.CASCADE,verbose_name="Required Skill",null=True,blank=True)
+    employees_needed = models.PositiveSmallIntegerField(verbose_name="Employees Needed",null=True,blank=True)
+    min_proficiency = models.ForeignKey('Manpower.Proficeincy',on_delete=models.CASCADE,related_name='rout_require_proficiency',null=True,blank=True)
+
+    class Meta:
+        unique_together = ('routing', 'sequence')
+        ordering = ['routing', 'sequence']
+        verbose_name = "Routing Detail"
+        verbose_name_plural = "Routing Details"
+
+    def __str__(self):
+        return f"{self.routing.name} - Seq {self.sequence}"
 
 
 class MachinePlanning(models.Model):
@@ -274,6 +313,12 @@ class MachineSchedule(models.Model):
     component = models.ForeignKey('BOM.BOMHeader', on_delete=models.CASCADE, verbose_name="BOM Component")
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=[
+        ('SCHEDULED', 'Scheduled'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ], default='SCHEDULED')
     actual_start = models.DateTimeField(null=True, blank=True)
     actual_end = models.DateTimeField(null=True, blank=True)
     

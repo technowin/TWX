@@ -62,11 +62,8 @@
             <tr>
                 <th>Name</th>
                 <th>BOM Component</th>
-                <th>Sequence</th>
-                <th>Operation</th>
-                <th>Work Center</th>
-                <th>Setup Time</th>
-                <th>Run Time</th>
+                <th>Created_at</th>
+                <th>Created_by</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -75,13 +72,10 @@
             <tr>
                 <td>{{ routing.name }}</td>
                 <td>{{ routing.component.name }}</td>
-                <td>{{ routing.sequence }}</td>
-                <td>{{ routing.operation.name }}</td>
-                <td>{{ routing.work_center.name }}</td>
-                <td>{{ routing.setup_time }} min</td>
-                <td>{{ routing.run_time_per_unit }} min/unit</td>
+                <td>{{ routing.created_at }}</td>
+                <td>{{ routing.created_by }}</td>
                 <td>
-                    <a href="{% url 'mcp:routing_update' routing.id %}" class="btn btn-sm btn-warning">
+                    <a href="{% url 'mcp:routing_edit' routing.id %}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i>
                     </a>
 
