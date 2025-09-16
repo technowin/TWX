@@ -1,0 +1,71 @@
+
+pip install google-cloud-aiplatform
+
+pip install google-cloud-aiplatform --upgrade
+
+🔹 1. Create a Service Account in GCP
+
+Go to IAM & Admin → Service Accounts.
+https://console.cloud.google.com/iam-admin/serviceaccounts
+
+Click Create Service Account.
+
+Give it a name (e.g., django-vertexai).
+
+Assign roles:
+
+✅ Vertex AI User
+
+✅ Storage Object Viewer (if you plan to fetch files from GCS)
+
+✅ BigQuery User (only if needed)
+
+✅ Logs Writer (optional, for monitoring)
+
+🔹 2. Download the Service Account Key
+
+After creating the service account, click it.
+
+Go to Keys → Add Key → Create new key.
+
+Choose JSON and download it.
+
+You’ll get a file like: my-django-vertexai-key.json
+
+🔹 3. Copy Key to Your Server with path "home/ubuntu/keys/my-django-vertexai-key.json" 
+
+    Or directly upload with SFTP.
+
+Set permissions so only your app can read it:
+
+    chmod 600 /home/user/keys/my-django-vertexai-key.json
+
+4. Set Environment Variable
+
+On your server, edit your Gunicorn/Nginx environment.
+
+If using systemd service for Gunicorn (common case), edit:
+
+    sudo vim /etc/systemd/system/gunicorn.service
+
+Add inside [Service]:
+
+    Environment="GOOGLE_APPLICATION_CREDENTIALS=/home/ubuntu/keys/my-django-vertexai-key.json"
+
+
+sudo systemctl daemon-reexec
+sudo systemctl restart gunicorn
+
+🔹 5. Update Your Django Code
+
+import vertexai
+from vertexai.generative_models import GenerativeModel
+
+vertexai.init(project="YOUR_PROJECT_ID", location="us-central1")
+model = GenerativeModel("gemini-2.5-flash")
+resp = model.generate_content("Say hello from Vertex AI in production")
+print(resp.text)
+
+
+
+
