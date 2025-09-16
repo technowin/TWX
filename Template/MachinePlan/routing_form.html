@@ -52,96 +52,189 @@
         </div>
 
         <div class="card-body">
-            <form method="post">
+            <form method="post" action="{% if object %}{% url 'mcp:routing_edit' object.id %}{% else %}{% url 'mcp:routing_create' %}{% endif %}">
                 {% csrf_token %}
 
                 <!-- Routing Name + Component -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        {{ form.name.label_tag }} {{ form.name }}
+                        <label for="id_name">Routing Name</label>
+                            <input type="text" name="name" id="id_name" class="form-control"
+                                value="{% if object %}{{ object.name }}{% endif %}">
                     </div>
                     <div class="col-md-6">
-                        {{ form.component.label_tag }} {{ form.component }}
+                        <label for="id_component">Bom Component</label>
+                        <select name="component" id="id_component" class="form-select" required>
+                            <option value="">-- Select Component --</option>
+                            {% for comp in components %}
+                            <option value="{{ comp.id }}" {% if object and object.component.id == comp.id %}selected{% endif %}>
+                                {{ comp.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+
                     </div>
                 </div>
 
                 <!-- Repeatable Sections -->
-                <h5 class="mb-3">Routing Steps</h5>
-                <div id="routing-steps">
-                    <div class="routing-step border rounded p-3 mb-3 position-relative">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                {{ form.operation.label_tag }} 
-                                <select name="operation[]" class="form-select" required >
-                                    <option value="">-- Select Operation -- </option>
+                <!-- Repeatable Sections -->
+            <h5 class="mb-3">Routing Steps</h5>
+
+            <table class="table table-bordered" id="routing-steps-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Sequence</th>
+                        <th>Operation</th>
+                        <th>Work Center</th>
+                        <th>Employees Needed</th>
+                        <th>Skill</th>
+                        <th>Proficiency</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if details %}
+                        {% for step in details %}
+                            <tr>
+                                <!-- Sequence -->
+                                <td>
+                                    <input type="number" name="sequence[]" class="form-control sequence-field"
+                                        value="{{ step.sequence }}" readonly>
+                                </td>
+
+                                <!-- Operation -->
+                                <td>
+                                    <select name="operation[]" class="form-select" required>
+                                        <option value="">-- Select Operation --</option>
+                                        {% for operation in operations %}
+                                            <option value="{{ operation.id }}"
+                                                {% if step.operation and step.operation.id == operation.id %}selected{% endif %}>
+                                                {{ operation.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+
+                                <!-- Work Center -->
+                                <td>
+                                    <select name="work_center[]" class="form-select" required>
+                                        <option value="">-- Select Work Center --</option>
+                                        {% for wc in work_centers %}
+                                            <option value="{{ wc.id }}"
+                                                {% if step.work_center and step.work_center.id == wc.id %}selected{% endif %}>
+                                                {{ wc.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+
+                                <!-- Employees Needed -->
+                                <td>
+                                    <input type="number" name="employees_needed[]" class="form-control"
+                                        value="{{ step.employees_needed|default:1 }}">
+                                </td>
+
+                                <!-- Skill -->
+                                <td>
+                                    <select name="skill[]" class="form-select">
+                                        <option value="">-- Select Skill --</option>
+                                        {% for skill in skills %}
+                                            <option value="{{ skill.id }}"
+                                                {% if step.skill and step.skill.id == skill.id %}selected{% endif %}>
+                                                {{ skill.skill_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+
+                                <!-- Proficiency -->
+                                <td>
+                                    <select name="min_proficiency[]" class="form-select">
+                                        <option value="">-- Select Proficiency --</option>
+                                        {% for prof in proficiencies %}
+                                            <option value="{{ prof.id }}"
+                                                {% if step.min_proficiency and step.min_proficiency.id == prof.id %}selected{% endif %}>
+                                                {{ prof.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+
+                                <!-- Action -->
+                                <td>
+                                    <button type="button" class="btn btn-danger btn-sm remove-step">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Default first row -->
+                        <tr>
+                            <td><input type="number" name="sequence[]" class="form-control sequence-field" value="1" readonly></td>
+
+                            <td>
+                                <select name="operation[]" class="form-select" required>
+                                    <option value="">-- Select Operation --</option>
                                     {% for operation in operations %}
-                                    <option value="{{ operation.id }}">{{ operation.name }}</option>
+                                        <option value="{{ operation.id }}">{{ operation.name }}</option>
                                     {% endfor %}
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                {{ form.work_center.label_tag }}
-                                 
+                            </td>
+
+                            <td>
                                 <select name="work_center[]" class="form-select" required>
-                                    <option value="">-- Select Work Center -- </option>
-                                    {% for work_center in work_centers %}
-                                    <option value="{{ work_center.id }}">{{ work_center.name }}</option>
+                                    <option value="">-- Select Work Center --</option>
+                                    {% for wc in work_centers %}
+                                        <option value="{{ wc.id }}">{{ wc.name }}</option>
                                     {% endfor %}
                                 </select>
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.sequence.label_tag }}
-                                <input type="number" name="sequence[]" class="form-control sequence-field" value="1" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.setup_time.label_tag }}
-                                <input type="number" name="setup_time[]" class="form-control" min="0" step="1" required>
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.run_time_per_unit.label_tag }}
-                                <input type="number" name="run_time_per_unit[]" class="form-control" min="0" step="1" required>
-                            </div>
-                            <div class="col-md-3">
-                                {{ form.employees_needed.label_tag }}
-                                <input type="number" name="employees_needed[]" class="form-control" min="1" step="1" value="1">
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.skill.label_tag }}
+                            </td>
+
+                            <td><input type="number" name="employees_needed[]" class="form-control"></td>
+
+                            <td>
                                 <select name="skill[]" class="form-select">
-                                     <option value="">-- Select Skill -- </option>
+                                    <option value="">-- Select Skill --</option>
                                     {% for skill in skills %}
-                                    <option value="{{ skill.id }}">{{ skill.skill_name }}</option>
+                                        <option value="{{ skill.id }}">{{ skill.skill_name }}</option>
                                     {% endfor %}
                                 </select>
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.min_proficiency.label_tag }}
+                            </td>
+
+                            <td>
                                 <select name="min_proficiency[]" class="form-select">
-                                     <option value="">-- Select Proficiency -- </option>
+                                    <option value="">-- Select Proficiency --</option>
                                     {% for prof in proficiencies %}
-                                    <option value="{{ prof.id }}">{{ prof.name }}</option>
+                                        <option value="{{ prof.id }}">{{ prof.name }}</option>
                                     {% endfor %}
                                 </select>
-                            </div>
-                        </div>
+                            </td>
 
-                        <!-- Remove Button -->
-                        <button type="button" class="btn btn-danger btn-sm remove-step position-absolute top-0 end-0 m-2" style="display:none;">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-                </div>
+                            <td>
+                                <!-- First row cannot be deleted -->
+                                <button type="button" class="btn btn-danger btn-sm remove-step" style="display:none;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
 
-                <!-- Add Step Button -->
-                <div class="mb-4">
-                    <button type="button" id="add-step" class="btn btn-outline-primary">
-                        <i class="bi bi-plus-lg"></i> Add Step
-                    </button>
-                </div>
+            <!-- Add Step Button -->
+            <div class="mb-3">
+                <button type="button" id="add-step" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-lg"></i> Add Step
+                </button>
+            </div>
+
 
                 <!-- Additional Notes -->
                 <div class="mb-3">
-                    {{ form.notes.label_tag }} {{ form.notes }}
+                     <label for="id_notes">Notes(If any)</label>
+                     <textarea name="notes" type = "text" class="form-control"
+                       value="{% if object %}{{ object.notes }}{% endif %}"></textarea>
                 </div>
 
                 <div class="mt-4 d-flex justify-content-between">
@@ -196,6 +289,53 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let tableBody = document.querySelector("#routing-steps-table tbody");
+    let addBtn = document.querySelector("#add-step");
+
+    function updateSequences() {
+        let rows = tableBody.querySelectorAll("tr");
+        rows.forEach((row, index) => {
+            row.querySelector(".sequence-field").value = index + 1;
+        });
+    }
+
+    addBtn.addEventListener("click", function () {
+        let newRow = tableBody.querySelector("tr").cloneNode(true);
+
+        // Reset values
+        newRow.querySelectorAll("input, select").forEach(el => {
+            if (el.tagName === "INPUT") {
+                el.value = el.type === "number" ? (el.name.includes("employees_needed") ? 0 : "") : "";
+            } else {
+                el.selectedIndex = 0;
+            }
+        });
+
+        // Show delete button for cloned rows
+        newRow.querySelector(".remove-step").style.display = "inline-block";
+
+        tableBody.appendChild(newRow);
+        updateSequences();
+    });
+
+    tableBody.addEventListener("click", function (e) {
+        if (e.target.closest(".remove-step")) {
+            let row = e.target.closest("tr");
+            if (tableBody.querySelectorAll("tr").length > 1) {
+                row.remove();
+                updateSequences();
+            }
+        }
+    });
+
+    // Run once on page load
+    updateSequences();
+});
+</script>
+
 
 
 {% block extra_javascript %}

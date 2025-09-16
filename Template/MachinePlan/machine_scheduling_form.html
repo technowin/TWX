@@ -38,21 +38,25 @@
     <div class="container-fluid">
     <!-- Card 1: General Info -->
     <div class="card mb-3">
-        <form method="post"  id="scheduleForm" action="{% url 'mcp:machine_scheduling_create' %}">
+        <form method="post" id="scheduleForm" action="{% if schedule %}{% url 'mcp:machine_scheduling_update' schedule.id %}{% else %}{% url 'mcp:machine_scheduling_create' %}{% endif %}">
+
             {% csrf_token %}
             <div class="card-header bg-primary text-white">General Info</div>
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="id_name" class="form-label">Schedule Name</label>
-                        <input type="text" id="id_name" name="name" class="form-control" placeholder="Enter Schedule Name">
+                        <input type="text" id="id_name" name="name" class="form-control"
+                            value="{{ schedule.name|default:'' }}" placeholder="Enter Schedule Name">
                     </div>
                     <div class="col-md-6">
                         <label for="id_production_order" class="form-label">Production Order</label>
                         <select id="id_production_order" name="production_order" class="form-select">
                             <option value="">-- Select Production Order --</option>
                             {% for po in production_orders %}
-                                <option value="{{ po.id }}">{{ po.order_number }}</option>
+                                <option value="{{ po.id }}" {% if schedule.production_order_id == po.id %}selected{% endif %}>
+                                    {{ po.order_number }}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -64,17 +68,29 @@
                         <select id="id_component" name="component" class="form-select">
                             <option value="">-- Select Component --</option>
                             {% for comp in components %}
-                                <option value="{{ comp.id }}">{{ comp.name }}</option>
+                                <option value="{{ comp.id }}" {% if schedule.component_id == comp.id %}selected{% endif %}>
+                                    {{ comp.name }}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label for="id_scheduled_start" class="form-label">Scheduled Start</label>
-                        <input type="datetime-local" id="id_scheduled_start" name="scheduled_start" class="form-control">
+                        <input type="datetime-local" id="id_scheduled_start" name="scheduled_start"
+                            class="form-control"
+                            {% if schedule.scheduled_start %}
+                                value="{{ schedule.scheduled_start|date:'Y-m-d\\TH:i' }}"
+                            {% endif %}>
+
                     </div>
                     <div class="col-md-3">
                         <label for="id_scheduled_end" class="form-label">Scheduled End</label>
-                        <input type="datetime-local" id="id_scheduled_end" name="scheduled_end" class="form-control">
+                        <input type="datetime-local" id="id_scheduled_end" name="scheduled_end"
+                            class="form-control"
+                            {% if schedule.scheduled_end %}
+                                value="{{ schedule.scheduled_end|date:'Y-m-d\\TH:i' }}"
+                            {% endif %}>
+
                     </div>
                 </div>
 
@@ -99,7 +115,7 @@
 
                    <div id="productionOrdersWrapper"></div>
 
-                    <input type="hidden" id="assignments_json" name="assignments_json" />
+                   <input type="hidden" id="assignments_json" name="assignments_json" value="{{ assignments_json|default:'[]' }}">
             </div>
         </div>
 
@@ -351,6 +367,52 @@ document.getElementById("scheduleForm").addEventListener("submit", function(e) {
     });
 
     document.getElementById("assignments_json").value = JSON.stringify(assignments);
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    let preAssignments = [];
+    try {
+        preAssignments = JSON.parse(document.getElementById("assignments_json").value);
+    } catch(e) { preAssignments = []; }
+
+    if (preAssignments.length > 0) {
+        const componentId = document.getElementById("id_component").value;
+        const startDate = document.getElementById("id_scheduled_start").value;
+        const endDate = document.getElementById("id_scheduled_end").value;
+
+        if (componentId && startDate && endDate) {
+            document.getElementById("checkRoutingBtn").click();
+
+            // wait fetch, then inject assignments
+            setTimeout(() => {
+                preAssignments.forEach(assignment => {
+                    let chk = document.querySelector(`.toggle-assignment[data-routing-id='${assignment.row_id}']`);
+                    if (chk) {
+                        chk.checked = true;
+                        chk.dispatchEvent(new Event("change"));
+
+                        setTimeout(() => {
+                            let row = document.querySelector(`[name='hours_${assignment.row_id}']`)?.closest("tr");
+                            if (row) {
+                                row.querySelector(`[name='hours_${assignment.row_id}']`).value = assignment.hours || "";
+                                row.querySelector(`[name='machine_${assignment.row_id}']`).value = assignment.machine || "";
+                                let empSelect = row.querySelector(`[name='employee_${assignment.row_id}[]']`);
+                                if (empSelect) {
+                                    Array.from(empSelect.options).forEach(opt => {
+                                        if (assignment.employees.includes(opt.value)) {
+                                            opt.selected = true;
+                                        }
+                                    });
+                                }
+                                row.querySelector(`[name='start_${assignment.row_id}']`).value = assignment.start || "";
+                                row.querySelector(`[name='end_${assignment.row_id}']`).value = assignment.end || "";
+                            }
+                        }, 600);
+                    }
+                });
+            }, 1200);
+        }
+    }
 });
 
 

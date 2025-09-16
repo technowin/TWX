@@ -23,6 +23,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.template.loader import render_to_string
 
+from django.utils.dateparse import parse_datetime
+
 class MachineTypeListView(ListView):
     model = MachineType
     template_name = 'MachinePlan/machine_type_list.html'
@@ -240,20 +242,18 @@ class MaintenanceScheduleDeleteView( DeleteView):
 
 
 class RoutingListView(ListView):
-    model = Routing
+    model = RoutingMaster
     template_name = 'MachinePlan/routing_list.html'
     context_object_name = 'routings'
     paginate_by = 20
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.select_related('component', 'work_center')
+        return queryset.select_related('component')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['components'] = BOMHeader.objects.all()
-        context['operations'] = Operation.objects.all()
-        context['work_centers'] = WorkCenter.objects.all()
         return context
 
 class RoutingCreateView(View):
@@ -263,6 +263,7 @@ class RoutingCreateView(View):
     def get(self, request, *args, **kwargs):
         context = {
             'form': RoutingForm(),
+            'components': BOMHeader.objects.all(),
             'operations': Operation.objects.all(),
             'work_centers': WorkCenter.objects.all(),
             'proficiencies': Proficeincy.objects.all(),
@@ -785,17 +786,17 @@ class MachineScheduleListView(ListView):
 #         return super().get_success_url()
 
 
-class MachineSchedulingUpdateView(UpdateView):
-    model = MachineScheduling
-    form_class = MachineSchedulingForm
-    template_name = 'MachinePlan/machine_scheduling_form.html'
-    success_url = reverse_lazy('mcp:machine_scheduling_list')
+# class MachineSchedulingUpdateView(UpdateView):
+#     model = MachineScheduling
+#     form_class = MachineSchedulingForm
+#     template_name = 'MachinePlan/machine_scheduling_form.html'
+#     success_url = reverse_lazy('mcp:machine_scheduling_list')
     
-    def form_valid(self, form):
-        # Set work_center from routing before saving
-        if form.cleaned_data['routing']:
-            form.instance.work_center = form.cleaned_data['routing'].work_center
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         # Set work_center from routing before saving
+#         if form.cleaned_data['routing']:
+#             form.instance.work_center = form.cleaned_data['routing'].work_center
+#         return super().form_valid(form)
 
 class MachineSchedulingDeleteView(DeleteView):
     model = MachineScheduling
@@ -1054,9 +1055,6 @@ def get_assignment_data(request, routing_id):
 
 
 
-from django.utils.dateparse import parse_datetime
-
-
 class MachineScheduleCreateView(View):
     template_name = "MachinePlan/machine_scheduling_form.html"
 
@@ -1108,3 +1106,146 @@ class MachineScheduleCreateView(View):
                 "components": BOMHeader.objects.all(),
                 "error": str(e)
             })
+        
+class MachineScheduleUpdateView(View):
+
+    template_name = "MachinePlan/machine_scheduling_form.html"
+
+    def get(self, request, pk, *args, **kwargs):
+        try:
+            schedule = get_object_or_404(MachineSchedule, pk=pk)
+
+            # Load details already saved
+            details = schedule.details.select_related("routing", "work_center")
+
+            # Prepare assignments JSON (so JS can reuse it)
+            pre_assignments = []
+            for d in details:
+                pre_assignments.append({
+                    "row_id": d.routing.id,
+                    "hours": float(d.hours_allocated) if d.hours_allocated is not None else None,
+                    "machine": d.machine_id,
+                    "employees": d.employee.split(",") if d.employee else [],
+                    "start": d.scheduled_start.isoformat() if d.scheduled_start else None,
+                    "end": d.scheduled_end.isoformat() if d.scheduled_end else None,
+                })
+
+            context = {
+                "schedule": schedule,
+                "production_orders": ProductionOrder.objects.all(),
+                "components": BOMHeader.objects.all(),
+                "assignments_json": json.dumps(pre_assignments),  # ✅ pass to JS
+            }
+            return render(request, self.template_name, context)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
+
+    def post(self, request, pk, *args, **kwargs):
+        schedule = get_object_or_404(MachineSchedule, pk=pk)
+        try:
+            # --- Update Master Schedule ---
+            schedule.name = request.POST.get("name")
+            schedule.production_order_id = request.POST.get("production_order")
+            schedule.component_id = request.POST.get("component")
+            schedule.scheduled_start = parse_datetime(request.POST.get("scheduled_start"))
+            schedule.scheduled_end = parse_datetime(request.POST.get("scheduled_end"))
+            schedule.save()
+
+            # --- Update details ---
+            schedule.details.all().delete()  # clear old assignments
+            assignments_json = request.POST.get("assignments_json")
+
+            if assignments_json:
+                assignments = json.loads(assignments_json)
+                for row in assignments:
+                    routing = Routing.objects.filter(id=row.get("row_id")).first()
+                    if not routing:
+                        continue
+
+                    MachineScheduleDetail.objects.create(
+                        schedule=schedule,
+                        seq=routing.sequence,
+                        routing=routing,
+                        machine_id=row.get("machine") or None,
+                        work_center=routing.work_center,
+                        employee=",".join(row.get("employees", [])),
+                        hours_allocated=row.get("hours") or None,
+                        scheduled_start=parse_datetime(row.get("start")),
+                        scheduled_end=parse_datetime(row.get("end")),
+                    )
+
+            return redirect(reverse("mcp:machine_scheduling_list"))
+
+        except Exception as e:
+            return render(request, self.template_name, {
+                "schedule": schedule,
+                "production_orders": ProductionOrder.objects.all(),
+                "components": BOMHeader.objects.all(),
+                "assignments_json": request.POST.get("assignments_json", "[]"),
+                "error": str(e),
+            })
+
+def routing_create(request, pk=None):
+    """
+    Handles both create and edit (if pk is given)
+    """
+    routing = get_object_or_404(RoutingMaster, pk=pk) if pk else None
+
+    if request.method == "POST":
+        # Save Routing Master (header)
+        name = request.POST.get("name")
+        component_id = request.POST.get("component")
+        notes = request.POST.get("notes")
+
+        component = BOMHeader.objects.get(id=component_id)
+
+        if routing:  # Edit mode
+            routing.name = name
+            routing.component = component
+            routing.notes = notes
+            routing.created_by = get_object_or_404(CustomUser, id =  request.session.get('user_id', ''))
+            routing.save()
+            # Clear old details (replace with new)
+            routing.details.all().delete()
+        else:  # Create mode
+            routing = RoutingMaster.objects.create(
+                name=name,
+                component=component,
+                notes=notes,
+                created_by = get_object_or_404(CustomUser, id =  request.session.get('user_id', ''))
+            )
+
+        # Save Routing Details
+        operations = request.POST.getlist("operation[]")
+        work_centers = request.POST.getlist("work_center[]")
+        sequences = request.POST.getlist("sequence[]")
+        employees_needed = request.POST.getlist("employees_needed[]")
+        skills = request.POST.getlist("skill[]")
+        proficiencies = request.POST.getlist("min_proficiency[]")
+
+        for i in range(len(sequences)):
+            RoutingDetail.objects.create(
+                routing=routing,
+                sequence=sequences[i],
+                operation=Operation.objects.get(id=operations[i]) if operations[i] else None,
+                work_center=WorkCenter.objects.get(id=work_centers[i]) if work_centers[i] else None,
+                employees_needed=employees_needed[i],
+                skill=Skill.objects.get(id=skills[i]) if skills[i] else None,
+                min_proficiency=Proficeincy.objects.get(id=proficiencies[i]) if proficiencies[i] else None,
+            )
+
+        return redirect("mcp:routing_list")
+
+    # -----------------------------
+    # GET request → open form
+    # -----------------------------
+    context = {
+        "object": routing,  # RoutingMaster (None in create, filled in edit)
+        "details": routing.details.all() if routing else [],  # Pre-fill RoutingDetails
+        "operations": Operation.objects.all(),
+        "work_centers": WorkCenter.objects.all(),
+        "skills": Skill.objects.all(),
+        "proficiencies": Proficeincy.objects.all(),
+        "components": BOMHeader.objects.all(),
+    }
+    return render(request, "MachinePlan/routing_form.html", context)

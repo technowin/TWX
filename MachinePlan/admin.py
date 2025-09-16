@@ -55,13 +55,13 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
-@admin.register(Routing)
-class RoutingAdmin(admin.ModelAdmin):
-    list_display = ['component', 'sequence', 'operation', 'work_center', 
-                   'setup_time', 'run_time_per_unit']
-    list_filter = ['work_center', 'operation']
-    search_fields = ['component__part_number', 'operation__name']
-    ordering = ['component', 'sequence']
+# @admin.register(Routing)
+# class RoutingAdmin(admin.ModelAdmin):
+#     list_display = ['component', 'sequence', 'operation', 'work_center', 
+#                    'setup_time', 'run_time_per_unit']
+#     list_filter = ['work_center', 'operation']
+#     search_fields = ['component__part_number', 'operation__name']
+#     ordering = ['component', 'sequence']
 
 
 @admin.register(Operation)

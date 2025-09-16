@@ -40,7 +40,8 @@ urlpatterns = [
     path('maintenance/<int:pk>/delete/', MaintenanceScheduleDeleteView.as_view(), name='maintenance_schedule_delete'),
 
     path('routings/', RoutingListView.as_view(), name='routing_list'),
-    path('routings/add/', RoutingCreateView.as_view(), name='routing_create'),
+    path('routings/add/', routing_create, name='routing_create'),
+    path('routings<int:pk>/edit/', routing_create, name='routing_edit'),
     path('routings/<int:pk>/edit/', RoutingUpdateView.as_view(), name='routing_update'),
     path('routings/<int:pk>/delete/', RoutingDeleteView.as_view(), name='routing_delete'),
     path('routings/<int:pk>/delete/', RoutingDeleteView.as_view(), name='routing_delete'),
@@ -63,7 +64,7 @@ urlpatterns = [
 
     path('machine_scheduling/', MachineScheduleListView.as_view(), name='machine_scheduling_list'),
     path('machine_scheduling/create/', MachineScheduleCreateView.as_view(), name='machine_scheduling_create'),
-    path('machine_scheduling/<int:pk>/update/', MachineSchedulingUpdateView.as_view(), name='machine_scheduling_update'),
+    path('machine_scheduling/<int:pk>/update/', MachineScheduleUpdateView.as_view(), name='machine_scheduling_update'),
     path('machine_scheduling/<int:pk>/delete/', MachineSchedulingDeleteView.as_view(), name='machine_scheduling_delete'),
     path('machine_scheduling/ajax/load-routings/', load_routings, name='ajax_load_routings'),
     path('machine_scheduling/ajax/load-machines/', load_machines, name='ajax_load_machines'),
