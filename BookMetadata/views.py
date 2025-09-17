@@ -7,12 +7,59 @@ from .models import BookMetadata
 from .forms import BookMetadataForm
 from BookMetadata import models
 
+
+import mysql.connector
+import pyodbc
+
+def copy_users_mysql_to_mssql():
+    try:
+        # --- MySQL connection ---
+        mysql_conn = mysql.connector.connect(
+            host="13.232.86.95",
+            user="root",
+            password="Mysql_MH-047319",
+            database="twx_db"
+        )
+        mysql_cursor = mysql_conn.cursor()
+
+        # --- MSSQL connection ---
+        mssql_conn = pyodbc.connect(
+            "DRIVER={ODBC Driver 18 for SQL Server};"
+            "SERVER=52.172.154.80;"
+            "DATABASE=ESIC;"
+            "UID=sa;"
+            "PWD=ecNlWdur7HpKyZ8zTuLz;"
+            "Encrypt=no;"   # For dev/test; enable TLS in production
+        )
+        mssql_cursor = mssql_conn.cursor()
+
+        # --- Copy first 10 rows ---
+        mysql_cursor.execute("SELECT full_name, email, phone FROM users LIMIT 10")
+        rows = mysql_cursor.fetchall()
+
+        insert_sql = "INSERT INTO test_users (full_name, email, phone) VALUES (?, ?, ?)"
+        for row in rows:
+            mssql_cursor.execute(insert_sql, row)
+
+        mssql_conn.commit()
+
+        print("✅ Data copied successfully")
+
+    except Exception as e:
+        print("❌ Error:", e)
+
+    finally:
+        if mysql_conn.is_connected():
+            mysql_conn.close()
+        mssql_conn.close()
+
+
 class BookListView(ListView):
     model = BookMetadata
     template_name = 'BookMetadata/book_list.html'
     context_object_name = 'books'
     paginate_by = 20
-    
+    copy_users_mysql_to_mssql()
     def get_queryset(self):
         queryset = super().get_queryset()
         search_query = self.request.GET.get('search', '')
@@ -122,48 +169,3 @@ def test_vertex_ai(request):
     except Exception as e:
         return JsonResponse({"status": "error", "error": str(e)}, status=500)
 
-
-import mysql.connector
-import pyodbc
-
-def copy_users_mysql_to_mssql():
-    try:
-        # --- MySQL connection ---
-        mysql_conn = mysql.connector.connect(
-            host="13.232.86.95",
-            user="root",
-            password="Mysql_MH-047319",
-            database="twx_db"
-        )
-        mysql_cursor = mysql_conn.cursor()
-
-        # --- MSSQL connection ---
-        mssql_conn = pyodbc.connect(
-            "DRIVER={ODBC Driver 18 for SQL Server};"
-            "SERVER=52.172.154.80;"
-            "DATABASE=ESIC;"
-            "UID=sa;"
-            "PWD=ecNlWdur7HpKyZ8zTuLz;"
-            "Encrypt=no;"   # For dev/test; enable TLS in production
-        )
-        mssql_cursor = mssql_conn.cursor()
-
-        # --- Copy first 10 rows ---
-        mysql_cursor.execute("SELECT full_name, email, phone FROM users LIMIT 10")
-        rows = mysql_cursor.fetchall()
-
-        insert_sql = "INSERT INTO test_users (full_name, email, phone) VALUES (?, ?, ?)"
-        for row in rows:
-            mssql_cursor.execute(insert_sql, row)
-
-        mssql_conn.commit()
-
-        print("✅ Data copied successfully")
-
-    except Exception as e:
-        print("❌ Error:", e)
-
-    finally:
-        if mysql_conn.is_connected():
-            mysql_conn.close()
-        mssql_conn.close()
