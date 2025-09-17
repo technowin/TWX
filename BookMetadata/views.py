@@ -129,7 +129,7 @@ import pyodbc
 def copy_users_mysql_to_mssql():
     # --- MySQL connection ---
     mysql_conn = mysql.connector.connect(
-        host="13.232.86.95",
+        host="127.0.0.1",
         user="root",
         password="Mysql_MH-047319",
         database="twx_db"
