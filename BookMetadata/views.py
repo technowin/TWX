@@ -168,3 +168,11 @@ def copy_users_mysql_to_mssql():
         if mysql_conn.is_connected():
             mysql_conn.close()
         mssql_conn.close()
+
+
+def copy_users_view(request):
+    try:
+        message = copy_users_mysql_to_mssql()
+        return JsonResponse({"status": "success", "message": message})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

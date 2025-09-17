@@ -169,7 +169,7 @@ urlpatterns = [
     path('<int:pk>/edit/', BookUpdateView.as_view(), name='book_update'),
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
     path("test-vertex-ai/", test_vertex_ai, name="test_vertex_ai"),
-    path("copy_users_mysql_to_mssql/", copy_users_mysql_to_mssql, name="copy_users_mysql_to_mssql"),
+    path("copy_users_mysql_to_mssql/", copy_users_view, name="copy_users"),
 
     
     # compliance checklist
