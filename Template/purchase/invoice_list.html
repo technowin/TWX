@@ -93,7 +93,7 @@
                                 <td>{{ invoice.invoice_number|default:"N/A" }}</td>
                                 <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
                                 <td>{{ invoice.customer_name|default:"N/A" }}</td>
-                                <td>${{ invoice.total_amount }}</td>
+                                <td>₹{{ invoice.total_amount }}</td>
                                 <td>
                                     <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'issued' %}primary{% elif invoice.status == 'partially_paid' %}warning{% elif invoice.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
                                         {{ invoice.get_status_display }}
