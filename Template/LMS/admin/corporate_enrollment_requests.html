@@ -50,7 +50,7 @@
             <form method="get" class="row g-3">
                 <div class="col-md-4">
                     <label for="status" class="form-label">Status</label>
-                    <select id="status" name="status" class="form-select">
+                    <select id="statusf" name="status" class="form-select">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
                             <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>

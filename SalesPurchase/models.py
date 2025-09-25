@@ -772,3 +772,52 @@ class SupplierInvoice(models.Model):
     
     def __str__(self):
         return f"{self.invoice_number} - {self.supplier.name}"
+    
+
+# models.py
+from django.db import models
+import uuid
+from decimal import Decimal
+
+class Invoice_VAI(models.Model):
+    INVOICE_STATUS = (
+        ('draft', 'Draft'),
+        ('issued', 'Issued'),
+        ('partially_paid', 'Partially Paid'),
+        ('paid', 'Paid'),
+        ('cancelled', 'Cancelled'),
+    )
+
+    invoice_id = models.AutoField(primary_key=True)
+    invoice_number = models.TextField(null=True, blank=True)
+    invoice_date = models.TextField(null=True, blank=True)
+    due_date = models.TextField(null=True, blank=True)  # Added due date
+    total_amount = models.TextField(null=True, blank=True)
+    customer_name = models.TextField( null=True, blank=True)
+    customer_address = models.TextField(null=True, blank=True)
+    vendor_name = models.TextField( null=True, blank=True)
+    vendor_address = models.TextField(null=True, blank=True)
+    status = models.TextField(max_length=20, choices=INVOICE_STATUS, default='draft')
+    
+    created_date = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.invoice_number or str(self.invoice_id)
+    
+
+class InvoiceItem_VAI(models.Model):
+    invoice = models.ForeignKey(Invoice_VAI, on_delete=models.CASCADE, related_name='line_items')
+    description = models.TextField(null=True, blank=True)
+    quantity = models.TextField(null=True, blank=True)
+    price_per_unit = models.TextField(null=True, blank=True)
+    total = models.TextField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate total before saving
+        self.total = Decimal(self.quantity) * Decimal(self.price_per_unit)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.description} ({self.quantity})"
+    
