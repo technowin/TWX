@@ -65,6 +65,7 @@
                 <th>Code</th>
                 <th>Name</th>
                 <th>Description</th>
+                <th>Created by</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -74,6 +75,7 @@
                 <td>{{ workcenter.code }}</td>
                 <td>{{ workcenter.name }}</td>
                 <td>{{ workcenter.description|truncatechars:50 }}</td>
+                <td>{{ workcenter.created_by }}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" 
                             data-bs-toggle="modal" 

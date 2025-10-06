@@ -549,8 +549,8 @@ urlpatterns = [
 
 
     # MachinePlan
-    path('mcp/', include('MachinePlan.urls', namespace='mcp')),
-    path('manpower/', include('Manpower.urls', namespace='manpower')),
+    path('mcp/', include('MachinePlanning.urls', namespace='mcp')),
+    path('manpower/', include('ManpowerPlan.urls', namespace='manpower')),
     path('convert-input/', convert_input_view, name='convert_input'),
 
     # path('get_faq_answer', get_faq_answer, name='get_faq_answer'),
