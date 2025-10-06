@@ -1,0 +1,257 @@
+{% extends 'applications/application_wizard.html' %}
+{% load static %}
+
+{% block step_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-hospital"></i>
+            Step 6: Internship Training Details
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Provide details of your internship training completed after medical graduation.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Hospital/Institution Name *</label>
+                    <input type="text" class="form-control" name="institution_name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Address *</label>
+                    <input type="text" class="form-control" name="institution_address" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">City *</label>
+                    <input type="text" class="form-control" name="institution_city" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">State *</label>
+                    <input type="text" class="form-control" name="institution_state" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Country *</label>
+                    <input type="text" class="form-control" name="institution_country" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Is this institution recognized by MCI/NMC? *</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="mci_recognized" id="mci_yes" value="yes" required>
+                        <label class="form-check-label" for="mci_yes">Yes</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="mci_recognized" id="mci_no" value="no">
+                        <label class="form-check-label" for="mci_no">No</label>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Recognition Number (if applicable)</label>
+                    <input type="text" class="form-control" name="recognition_number">
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Internship Duration</h6>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Start Date *</label>
+                    <input type="date" class="form-control" name="internship_start" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">End Date *</label>
+                    <input type="date" class="form-control" name="internship_end" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Total Duration (Days) *</label>
+                    <input type="number" class="form-control" name="total_duration" value="365" readonly>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Department-wise Rotation</h6>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered" id="rotationTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Department</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration (Days)</th>
+                            <th>Days Present</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <select class="form-select form-select-sm" name="dept_1_name" required>
+                                    <option value="">Select Department</option>
+                                    <option value="medicine">Medicine</option>
+                                    <option value="surgery">Surgery</option>
+                                    <option value="pediatrics">Pediatrics</option>
+                                    <option value="obgyn">OB-GYN</option>
+                                    <option value="orthopedics">Orthopedics</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="date" class="form-control form-control-sm" name="dept_1_start" required>
+                            </td>
+                            <td>
+                                <input type="date" class="form-control form-control-sm" name="dept_1_end" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="dept_1_duration" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="dept_1_present" required>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled>
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <button type="button" id="addRotation" class="btn btn-outline-success btn-sm mb-4">
+                <i class="bi bi-plus-circle"></i> Add Department Rotation
+            </button>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Total Days Present *</label>
+                    <input type="number" class="form-control" name="total_days_present" required 
+                           min="0" max="365">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Leave Taken (Days)</label>
+                    <input type="number" class="form-control" name="leave_taken" value="0">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Internship Completion Certificate Number *</label>
+                    <input type="text" class="form-control" name="certificate_number" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Remarks (if any)</label>
+                    <textarea class="form-control" name="internship_remarks" rows="3"></textarea>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'application_step' application.application_id 5 %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Previous
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Save & Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let rotationCount = 1;
+    
+    document.getElementById('addRotation').addEventListener('click', function() {
+        rotationCount++;
+        const table = document.getElementById('rotationTable').getElementsByTagName('tbody')[0];
+        const newRow = table.insertRow();
+        
+        newRow.innerHTML = `
+            <td>
+                <select class="form-select form-select-sm" name="dept_${rotationCount}_name" required>
+                    <option value="">Select Department</option>
+                    <option value="medicine">Medicine</option>
+                    <option value="surgery">Surgery</option>
+                    <option value="pediatrics">Pediatrics</option>
+                    <option value="obgyn">OB-GYN</option>
+                    <option value="orthopedics">Orthopedics</option>
+                    <option value="other">Other</option>
+                </select>
+            </td>
+            <td>
+                <input type="date" class="form-control form-control-sm" name="dept_${rotationCount}_start" required>
+            </td>
+            <td>
+                <input type="date" class="form-control form-control-sm" name="dept_${rotationCount}_end" required>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm" name="dept_${rotationCount}_duration" required>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm" name="dept_${rotationCount}_present" required>
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-rotation">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        newRow.querySelector('.remove-rotation').addEventListener('click', function() {
+            newRow.remove();
+        });
+        
+        // Auto-calculate duration when dates change
+        const startInput = newRow.querySelector('input[name$="_start"]');
+        const endInput = newRow.querySelector('input[name$="_end"]');
+        const durationInput = newRow.querySelector('input[name$="_duration"]');
+        
+        function calculateDuration() {
+            if (startInput.value && endInput.value) {
+                const start = new Date(startInput.value);
+                const end = new Date(endInput.value);
+                const duration = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                durationInput.value = duration > 0 ? duration : 0;
+            }
+        }
+        
+        startInput.addEventListener('change', calculateDuration);
+        endInput.addEventListener('change', calculateDuration);
+    });
+    
+    // Calculate total duration for internship
+    const startDateInput = document.querySelector('input[name="internship_start"]');
+    const endDateInput = document.querySelector('input[name="internship_end"]');
+    const totalDurationInput = document.querySelector('input[name="total_duration"]');
+    
+    function calculateTotalDuration() {
+        if (startDateInput.value && endDateInput.value) {
+            const start = new Date(startDateInput.value);
+            const end = new Date(endDateInput.value);
+            const duration = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            totalDurationInput.value = duration > 0 ? duration : 365;
+        }
+    }
+    
+    startDateInput.addEventListener('change', calculateTotalDuration);
+    endDateInput.addEventListener('change', calculateTotalDuration);
+});
+</script>
+{% endblock %}

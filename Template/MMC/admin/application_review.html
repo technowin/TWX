@@ -1,0 +1,448 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-clipboard-check"></i>
+            Application Review
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'admin_applications' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Applications
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Application Details -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Application Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th>Application ID:</th>
+                                    <td>{{ application.application_id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Type:</th>
+                                    <td>{{ application.get_application_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Submitted:</th>
+                                    <td>{{ application.submitted_date|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Current Status:</th>
+                                    <td>
+                                        <span class="badge bg-{% if application.status == 'approved' %}success{% elif application.status == 'rejected' %}danger{% elif application.status == 'submitted' %}warning{% else %}secondary{% endif %}">
+                                            {{ application.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th>RMP Name:</th>
+                                    <td>{{ application.rmp.full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>MMC Number:</th>
+                                    <td>{{ application.rmp.mmc_registration_number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email:</th>
+                                    <td>{{ application.rmp.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Mobile:</th>
+                                    <td>{{ application.rmp.mobile }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Steps Progress -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Application Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for step in steps %}
+                        <div class="timeline-item {% if step.is_completed %}completed{% endif %}">
+                            <div class="timeline-marker">
+                                {% if step.is_completed %}
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                {% else %}
+                                <i class="bi bi-circle text-muted"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Step {{ step.step_number }}: {{ step.step_name|title }}</h6>
+                                <small class="text-muted">
+                                    {% if step.is_completed %}
+                                    Completed on {{ step.completed_date|date:"M d, Y H:i" }}
+                                    {% else %}
+                                    Pending
+                                    {% endif %}
+                                </small>
+                                {% if step.notes %}
+                                <div class="mt-1">
+                                    <small class="text-muted"><strong>Notes:</strong> {{ step.notes }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Review -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Uploaded Documents</h5>
+                </div>
+                <div class="card-body">
+                    {% if documents %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Document Type</th>
+                                    <th>File</th>
+                                    <th>Uploaded</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td>{{ document.get_document_type_display }}</td>
+                                    <td>
+                                        <a href="{{ document.document_file.url }}" target="_blank" class="text-decoration-none">
+                                            <i class="bi bi-file-earmark"></i> View Document
+                                        </a>
+                                    </td>
+                                    <td>{{ document.uploaded_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if document.is_verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if not document.is_verified %}
+                                            <button class="btn btn-outline-success btn-sm" 
+                                                    onclick="verifyDocument({{ document.id }})">
+                                                <i class="bi bi-check"></i> Verify
+                                            </button>
+                                            {% endif %}
+                                            <a href="{{ document.document_file.url }}" 
+                                               class="btn btn-outline-primary btn-sm" target="_blank">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No documents uploaded.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Actions -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0 text-white">Review Actions</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Application Status *</label>
+                            {{ form.status }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Assign To</label>
+                            {{ form.assigned_to }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Review Notes</label>
+                            {{ form.review_notes }}
+                            <div class="form-text">Provide detailed notes about your review decision.</div>
+                        </div>
+                        
+                        <div id="rejectionReason" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Rejection Reason *</label>
+                                {{ form.rejection_reason }}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Update Review
+                            </button>
+                            <button type="button" class="btn btn-outline-success" 
+                                    onclick="approveApplication()">
+                                <i class="bi bi-check-lg"></i> Quick Approve
+                            </button>
+                            <button type="button" class="btn btn-outline-danger"
+                                    onclick="rejectApplication()">
+                                <i class="bi bi-x-circle"></i> Quick Reject
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Application Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Documents Uploaded:</span>
+                        <strong>{{ documents|length }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Verified Documents:</span>
+                        <strong>{{ documents|length|default:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Steps Completed:</span>
+                        <strong>{{ steps|length|default:0 }}/10</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Payment Status:</span>
+                        <strong>
+                            {% if application.payment_status %}
+                            <span class="badge bg-success">Paid</span>
+                            {% else %}
+                            <span class="badge bg-danger">Pending</span>
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action History -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Action History</h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong>Submitted:</strong><br>
+                            {{ application.submitted_date|timesince }} ago
+                        </div>
+                        {% if application.assigned_to %}
+                        <div class="mb-2">
+                            <strong>Assigned to:</strong><br>
+                            {{ application.assigned_to.get_full_name }}
+                        </div>
+                        {% endif %}
+                        {% if application.approved_by %}
+                        <div class="mb-2">
+                            <strong>Approved by:</strong><br>
+                            {{ application.approved_by.get_full_name }}<br>
+                            <small>{{ application.approval_date|timesince }} ago</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('id_status');
+    const rejectionReason = document.getElementById('rejectionReason');
+    
+    function toggleRejectionReason() {
+        if (statusSelect.value === 'rejected') {
+            rejectionReason.style.display = 'block';
+        } else {
+            rejectionReason.style.display = 'none';
+        }
+    }
+    
+    statusSelect.addEventListener('change', toggleRejectionReason);
+    toggleRejectionReason(); // Initial check
+});
+
+function approveApplication() {
+    document.getElementById('id_status').value = 'approved';
+    document.querySelector('form').submit();
+}
+
+function rejectApplication() {
+    document.getElementById('id_status').value = 'rejected';
+    document.getElementById('rejectionReason').style.display = 'block';
+    // Focus on rejection reason field
+    document.getElementById('id_rejection_reason').focus();
+}
+
+function verifyDocument(documentId) {
+    if (confirm('Mark this document as verified?')) {
+        fetch(`/api/documents/${documentId}/verify/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error verifying document');
+            }
+        });
+    }
+}
+
+// Timeline styles
+const style = document.createElement('style');
+style.textContent = `
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    .timeline-item {
+        position: relative;
+        padding: 0.5rem 0;
+        border-left: 2px solid #dee2e6;
+    }
+    .timeline-item.completed {
+        border-left-color: #198754;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: -1rem;
+        top: 0.75rem;
+        background: white;
+    }
+    .timeline-content {
+        margin-left: 1rem;
+    }
+    .timeline-item:last-child {
+        border-left: 2px solid transparent;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

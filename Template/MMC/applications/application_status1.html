@@ -1,0 +1,467 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+.progress-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 10px 0;
+    border-left: 2px solid #dee2e6;
+}
+
+.timeline-item.completed {
+    border-left-color: #28a745;
+}
+
+.timeline-item:last-child {
+    border-left: 2px solid transparent;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 15px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dee2e6;
+    border: 3px solid white;
+}
+
+.timeline-item.completed .timeline-marker {
+    background: #28a745;
+}
+
+.timeline-content {
+    margin-left: 10px;
+}
+</style>
+
+{% endblock %}
+
+{% block title %}Application Status - {{ application.application_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Application Header -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="card-title mb-0 text-white">
+                        <i class="bi bi-file-earmark-text"></i>
+                        Application Status: {{ application.get_application_type_display }}
+                    </h4>
+                    <p class="text-white-50 mb-0">Application ID: {{ application.application_id }}</p>
+                </div>
+                <div class="col-auto">
+                    {% if application.is_urgent %}
+                    <span class="badge bg-danger">Urgent Processing</span>
+                    {% endif %}
+                    <span class="badge bg-light text-dark">
+                        Submitted: {{ application.submission_date|date:"d M Y" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Status Overview -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Application Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <div class="mb-3">
+                                <div class="display-6 fw-bold text-{% if application.status == 'APPROVED' %}success{% elif application.status == 'REJECTED' %}danger{% elif application.status == 'SUBMITTED' %}primary{% else %}warning{% endif %}">
+                                    {{ application.get_status_display }}
+                                </div>
+                                <small class="text-muted">Current Status</small>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <!-- Progress Timeline -->
+                            <div class="progress-timeline">
+                                <div class="timeline-item {% if application.status != 'DRAFT' %}completed{% endif %}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6>Application Created</h6>
+                                        <p class="text-muted mb-0">{{ application.application_date|date:"d M Y H:i" }}</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item {% if application.status in ['SUBMITTED','UNDER_REVIEW','APPROVED','REJECTED','COMPLETED'] %}completed{% endif %}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6>Application Submitted</h6>
+                                        <p class="text-muted mb-0">
+                                            {% if application.submission_date %}
+                                            {{ application.submission_date|date:"d M Y H:i" }}
+                                            {% else %}
+                                            Pending
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item {% if application.status in ['UNDER_REVIEW','APPROVED','REJECTED','COMPLETED'] %}completed{% endif %}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6>Under Review</h6>
+                                        <p class="text-muted mb-0">
+                                            {% if application.status in ['UNDER_REVIEW','APPROVED','REJECTED','COMPLETED'] %}
+                                            Being reviewed by MMC
+                                            {% else %}
+                                            Waiting for review
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item {% if application.status in ['APPROVED','REJECTED','COMPLETED'] %}completed{% endif %}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6>Decision Made</h6>
+                                        <p class="text-muted mb-0">
+                                            {% if application.verification_date %}
+                                            {{ application.verification_date|date:"d M Y H:i" }}
+                                            {% else %}
+                                            Pending
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item {% if application.status == 'COMPLETED' %}completed{% endif %}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6>Completed</h6>
+                                        <p class="text-muted mb-0">
+                                            {% if application.certificate_generated %}
+                                            Certificate Issued
+                                            {% else %}
+                                            Finalizing
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Application Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Application Type:</th>
+                                    <td>{{ application.get_application_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Application ID:</th>
+                                    <td>{{ application.application_id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Submitted Date:</th>
+                                    <td>
+                                        {% if application.submission_date %}
+                                        {{ application.submission_date|date:"d M Y H:i" }}
+                                        {% else %}
+                                        <span class="text-muted">Not submitted</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Current Step:</th>
+                                    <td>{{ application.current_step }} of 9</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Payment Status:</th>
+                                    <td>
+                                        {% if application.payment_status %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Payment Amount:</th>
+                                    <td>₹{{ application.payment_amount|default:"0.00" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Expected Completion:</th>
+                                    <td>
+                                        {% if application.expected_completion_date %}
+                                        {{ application.expected_completion_date|date:"d M Y" }}
+                                        {% else %}
+                                        <span class="text-muted">Not set</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Certificate Generated:</th>
+                                    <td>
+                                        {% if application.certificate_generated %}
+                                        <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verification Tasks -->
+            {% if verification_tasks %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Verification Tasks</h5>
+                </div>
+                <div class="card-body">
+                    {% for task in verification_tasks %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h6>Task #{{ forloop.counter }}</h6>
+                                    <p class="mb-1"><strong>Assigned To:</strong> {{ task.assigned_to.get_full_name }}</p>
+                                    <p class="mb-1"><strong>Due Date:</strong> {{ task.due_date|date:"d M Y H:i" }}</p>
+                                    <p class="mb-1"><strong>Status:</strong> 
+                                        <span class="badge bg-{% if task.status == 'COMPLETED' %}success{% elif task.status == 'IN_PROGRESS' %}warning{% elif task.is_overdue %}danger{% else %}primary{% endif %}">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                    </p>
+                                    {% if task.notes %}
+                                    <p class="mb-0"><strong>Notes:</strong> {{ task.notes }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if task.completed_date %}
+                                    <p class="text-success mb-0">
+                                        <i class="bi bi-check-circle"></i> Completed<br>
+                                        <small>{{ task.completed_date|date:"d M Y" }}</small>
+                                    </p>
+                                    {% elif task.is_overdue %}
+                                    <p class="text-danger mb-0">
+                                        <i class="bi bi-exclamation-triangle"></i> Overdue
+                                    </p>
+                                    {% else %}
+                                    <p class="text-warning mb-0">
+                                        <i class="bi bi-clock"></i> In Progress
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Actions Panel -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if application.status == 'DRAFT' %}
+                    <a href="{% url 'application_wizard_step' application.application_id application.current_step %}" 
+                       class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-pencil"></i> Continue Application
+                    </a>
+                    {% endif %}
+
+                    {% if not application.payment_status and application.status != 'DRAFT' %}
+                    <a href="{% url 'payment_page' application.application_id %}" 
+                       class="btn btn-warning w-100 mb-2">
+                        <i class="bi bi-credit-card"></i> Make Payment
+                    </a>
+                    {% endif %}
+
+                    {% if application.certificate_generated %}
+                    <a href="{% url 'generate_certificate' application.certificate_number %}" 
+                       class="btn btn-success w-100 mb-2">
+                        <i class="bi bi-download"></i> Download Certificate
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'application_list' %}" class="btn btn-outline-secondary w-100 mb-2">
+                        <i class="bi bi-arrow-left"></i> Back to Applications
+                    </a>
+                </div>
+            </div>
+
+            <!-- Documents Panel -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Uploaded Documents</h5>
+                </div>
+                <div class="card-body">
+                    {% if documents %}
+                    <div class="list-group list-group-flush">
+                        {% for document in documents %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ document.get_document_type_display }}</h6>
+                                    <small class="text-muted">
+                                        {{ document.uploaded_at|date:"d M Y" }} • 
+                                        {{ document.get_file_size_display }}
+                                    </small>
+                                </div>
+                                <div>
+                                    {% if document.is_verified %}
+                                    <span class="badge bg-success" title="Verified">
+                                        <i class="bi bi-check-circle"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning" title="Pending Verification">
+                                        <i class="bi bi-clock"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No documents uploaded yet</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            {% if payments %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Payment History</h5>
+                </div>
+                <div class="card-body">
+                    {% for payment in payments %}
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">₹{{ payment.amount }}</span>
+                            <span class="badge bg-{% if payment.status == 'SUCCESS' %}success{% else %}warning{% endif %}">
+                                {{ payment.get_status_display }}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            {{ payment.payment_date|date:"d M Y H:i" }}<br>
+                            Ref: {{ payment.transaction_id }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

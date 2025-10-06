@@ -1,0 +1,358 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-graph-up"></i>
+            AI Performance Insights
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshInsights()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Performance Score Card -->
+    {% if ai_score %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">{{ ai_score.overall_score }}/100</h2>
+                    <p class="card-text">Overall Score</p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: {{ ai_score.overall_score }}%"
+                             aria-valuenow="{{ ai_score.overall_score }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h2 class="card-title text-success">{{ ai_score.cpd_score }}/100</h2>
+                    <p class="card-text">CPD Performance</p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ ai_score.cpd_score }}%"
+                             aria-valuenow="{{ ai_score.cpd_score }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h2 class="card-title text-warning">{{ ai_score.compliance_score }}/100</h2>
+                    <p class="card-text">Compliance</p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             style="width: {{ ai_score.compliance_score }}%"
+                             aria-valuenow="{{ ai_score.compliance_score }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h2 class="card-title text-info">{{ ai_score.patient_care_score }}/100</h2>
+                    <p class="card-text">Patient Care</p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             style="width: {{ ai_score.patient_care_score }}%"
+                             aria-valuenow="{{ ai_score.patient_care_score }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        AI performance scoring is being calculated. Check back later for insights.
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- AI Insights -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightbulb"></i> Personalized Insights
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if insights %}
+                    <div class="insights-list">
+                        {% for insight in insights %}
+                        <div class="insight-item mb-3 p-3 border rounded {% if insight.severity == 'high' %}border-danger{% elif insight.severity == 'medium' %}border-warning{% else %}border-info{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="bi bi-{% if insight.insight_type == 'performance' %}graph-up{% elif insight.insight_type == 'compliance' %}shield-exclamation{% elif insight.insight_type == 'cpd' %}award{% else %}exclamation-triangle{% endif %} text-{% if insight.severity == 'high' %}danger{% elif insight.severity == 'medium' %}warning{% else %}info{% endif %}"></i>
+                                        {{ insight.title }}
+                                    </h6>
+                                    <p class="mb-2 text-muted">{{ insight.description }}</p>
+                                    
+                                    {% if insight.action_items %}
+                                    <div class="action-items">
+                                        <strong>Recommended Actions:</strong>
+                                        <ul class="mb-0 mt-1">
+                                            {% for action in insight.action_items %}
+                                            <li>{{ action }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-{% if insight.severity == 'high' %}danger{% elif insight.severity == 'medium' %}warning{% else %}info{% endif %}">
+                                    {{ insight.get_severity_display }}
+                                </span>
+                            </div>
+                            <div class="text-end mt-2">
+                                <small class="text-muted">Generated: {{ insight.generated_date|timesince }} ago</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-robot fs-1 text-muted"></i>
+                        <h5 class="text-muted mt-3">No Insights Available</h5>
+                        <p class="text-muted">AI insights will appear here as we analyze your professional activities.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Predictive Alerts -->
+            {% if alerts %}
+            <div class="card mt-4">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0 text-white">
+                        <i class="bi bi-bell"></i> Predictive Alerts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for alert in alerts %}
+                    <div class="alert alert-warning alert-dismissible fade show mb-2" role="alert">
+                        <i class="bi bi-{% if alert.alert_type == 'renewal' %}calendar-exclamation{% elif alert.alert_type == 'cpd_deficit' %}exclamation-triangle{% else %}clock{% endif %} me-2"></i>
+                        <strong>{{ alert.get_alert_type_display }}:</strong> {{ alert.message }}
+                        <small class="text-muted d-block mt-1">
+                            Predicted date: {{ alert.predicted_date|date:"M d, Y" }} 
+                            • Confidence: {{ alert.confidence_score|floatformat:2 }}
+                        </small>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="dismissAlert({{ alert.id }})"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Performance Comparison -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bar-chart"></i> Performance Trends
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="bi bi-graph-up-arrow fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Performance analytics and comparison charts will be displayed here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightning"></i> Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'cpd_programs' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-award"></i> Improve CPD Score
+                        </a>
+                        <a href="{% url 'application_list' %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-check-circle"></i> Check Compliance
+                        </a>
+                        <a href="#" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-download"></i> Download Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Peer Comparison -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-people"></i> Peer Comparison
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-3">
+                        <div class="mb-3">
+                            <h4 class="text-primary">{{ ai_score.overall_score|default:0 }}</h4>
+                            <small class="text-muted">Your Score</small>
+                        </div>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-primary" style="width: {{ ai_score.overall_score|default:0 }}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Average: 72</span>
+                            <span>Top 10%: 88+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+function refreshInsights() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Refreshing...';
+    
+    // Simulate API call
+    setTimeout(() => {
+        location.reload();
+    }, 2000);
+}
+
+function dismissAlert(alertId) {
+    // In a real implementation, this would make an API call to dismiss the alert
+    console.log('Dismissing alert:', alertId);
+    
+    fetch('/api/alerts/dismiss/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({alert_id: alertId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            event.target.closest('.alert').remove();
+        }
+    });
+}
+
+// Add spinning animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

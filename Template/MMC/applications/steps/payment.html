@@ -1,0 +1,331 @@
+{% extends 'applications/application_wizard.html' %}
+{% load static %}
+
+{% block step_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-credit-card"></i>
+            Step 10: Payment
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i>
+            <strong>Congratulations!</strong> You have completed all application steps. 
+            Please proceed with the payment to submit your application.
+        </div>
+        
+        <!-- Application Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Application Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <th>Application ID:</th>
+                                <td>{{ application.application_id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Application Type:</th>
+                                <td>{{ application.get_application_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Applicant Name:</th>
+                                <td>{{ application.rmp.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>MMC Number:</th>
+                                <td>{{ application.rmp.mmc_registration_number }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <th>Submitted Date:</th>
+                                <td>{{ application.submitted_date|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Current Status:</th>
+                                <td>
+                                    <span class="badge bg-warning">Pending Payment</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Steps Completed:</th>
+                                <td>9/10</td>
+                            </tr>
+                            <tr>
+                                <th>Documents Uploaded:</th>
+                                <td>{{ application.documents.count }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Fee Structure -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Fee Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Application Fee - {{ application.get_application_type_display }}</td>
+                                    <td class="text-end">{{ application.fee_amount }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Processing Charges</td>
+                                    <td class="text-end">100.00</td>
+                                </tr>
+                                <tr>
+                                    <td>GST (18%)</td>
+                                    <td class="text-end">
+                                        {% widthratio application.fee_amount|add:100 1 18 as gst %}
+                                        {{ gst }}
+                                    </td>
+                                </tr>
+                                <tr class="table-active fw-bold">
+                                    <td>Total Amount Payable</td>
+                                    <td class="text-end">
+                                        {% widthratio application.fee_amount|add:100 1 118 as total %}
+                                        ₹{{ total }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4 class="text-primary">₹{{ application.fee_amount }}</h4>
+                                <p class="text-muted mb-0">Application Fee</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Methods -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Select Payment Method</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" id="paymentForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Online Payment -->
+                            <div class="card mb-3 border-primary">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" 
+                                               id="online_payment" value="online" checked>
+                                        <label class="form-check-label fw-bold" for="online_payment">
+                                            <i class="bi bi-credit-card-2-front text-primary"></i>
+                                            Online Payment
+                                        </label>
+                                    </div>
+                                    <p class="small text-muted mb-0 mt-2">
+                                        Pay securely using Credit/Debit Card, Net Banking, UPI, or Wallet
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Gateway Options -->
+                            <div id="onlineOptions">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Payment Gateway</label>
+                                    <select class="form-select" name="payment_gateway">
+                                        <option value="razorpay">Razorpay</option>
+                                        <option value="paytm">PayTM</option>
+                                        <option value="ccavenue">CCAvenue</option>
+                                        <option value="instamojo">Instamojo</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="alert alert-info small">
+                                    <i class="bi bi-shield-check"></i>
+                                    Your payment information is secured with 256-bit SSL encryption
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <!-- Offline Payment -->
+                            <div class="card mb-3 border-secondary">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" 
+                                               id="offline_payment" value="offline">
+                                        <label class="form-check-label fw-bold" for="offline_payment">
+                                            <i class="bi bi-bank text-secondary"></i>
+                                            Bank Transfer / Demand Draft
+                                        </label>
+                                    </div>
+                                    <p class="small text-muted mb-0 mt-2">
+                                        Transfer amount via NEFT/RTGS or submit Demand Draft
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Bank Details -->
+                            <div id="offlineOptions" style="display: none;">
+                                <div class="bank-details p-3 border rounded bg-light">
+                                    <h6 class="mb-3">Bank Account Details</h6>
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <th>Bank Name:</th>
+                                            <td>State Bank of India</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account Name:</th>
+                                            <td>Maharashtra Medical Council</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account Number:</th>
+                                            <td>12345678901</td>
+                                        </tr>
+                                        <tr>
+                                            <th>IFSC Code:</th>
+                                            <td>SBIN0000123</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Branch:</th>
+                                            <td>Mumbai Main Branch</td>
+                                        </tr>
+                                    </table>
+                                    <div class="alert alert-warning small mb-0">
+                                        <i class="bi bi-info-circle"></i>
+                                        Please mention your Application ID in the transaction remarks
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Terms and Conditions -->
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="payment_terms" required>
+                        <label class="form-check-label" for="payment_terms">
+                            I agree to the <a href="#" class="text-decoration-none">Payment Terms & Conditions</a>. 
+                            I understand that the application fee is non-refundable once paid.
+                        </label>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'application_step' application.application_id 9 %}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Previous
+                                </a>
+                                <button type="submit" class="btn btn-success btn-lg" id="proceedPayment">
+                                    <i class="bi bi-lock-fill"></i> Proceed to Payment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Payment Support -->
+        <div class="card">
+            <div class="card-body text-center">
+                <h6><i class="bi bi-headset"></i> Need Help with Payment?</h6>
+                <p class="text-muted mb-2">Contact our support team for payment-related queries</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Email:</strong> payments@mmc.gov.in
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Phone:</strong> 1800-123-4567
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const onlinePayment = document.getElementById('online_payment');
+    const offlinePayment = document.getElementById('offline_payment');
+    const onlineOptions = document.getElementById('onlineOptions');
+    const offlineOptions = document.getElementById('offlineOptions');
+    
+    function togglePaymentOptions() {
+        if (onlinePayment.checked) {
+            onlineOptions.style.display = 'block';
+            offlineOptions.style.display = 'none';
+        } else {
+            onlineOptions.style.display = 'none';
+            offlineOptions.style.display = 'block';
+        }
+    }
+    
+    onlinePayment.addEventListener('change', togglePaymentOptions);
+    offlinePayment.addEventListener('change', togglePaymentOptions);
+    
+    // Handle form submission
+    const paymentForm = document.getElementById('paymentForm');
+    const proceedBtn = document.getElementById('proceedPayment');
+    
+    paymentForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!document.getElementById('payment_terms').checked) {
+            alert('Please accept the Payment Terms & Conditions');
+            return;
+        }
+        
+        // Show loading state
+        proceedBtn.disabled = true;
+        proceedBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+        
+        // Simulate payment processing
+        setTimeout(() => {
+            // In real implementation, this would redirect to payment gateway
+            // or process offline payment confirmation
+            
+            // For demo purposes, we'll simulate successful payment
+            alert('Payment processed successfully! Your application has been submitted.');
+            paymentForm.submit();
+        }, 2000);
+    });
+});
+</script>
+
+<style>
+.bank-details th {
+    width: 40%;
+    font-weight: 600;
+}
+
+.card.border-primary {
+    border-width: 2px !important;
+}
+
+.card.border-secondary {
+    border-width: 1px !important;
+}
+</style>
+{% endblock %}

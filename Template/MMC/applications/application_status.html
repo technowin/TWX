@@ -1,0 +1,287 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 1rem 0;
+    border-left: 2px solid #dee2e6;
+}
+
+.timeline-item.completed {
+    border-left-color: #198754;
+}
+
+.timeline-item.current {
+    border-left-color: #0d6efd;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -1rem;
+    top: 1.5rem;
+    background: white;
+}
+
+.timeline-content {
+    margin-left: 1rem;
+}
+
+.timeline-item:last-child {
+    border-left: 2px solid transparent;
+}
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Application Status</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'application_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Applications
+            </a>
+        </div>
+    </div>
+
+    <!-- Application Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Application Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Application ID:</strong><br>
+                            <code>{{ application.application_id }}</code>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Type:</strong><br>
+                            {{ application.get_application_type_display }}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Status:</strong><br>
+                            <span class="badge bg-{% if application.status == 'approved' %}success{% elif application.status == 'rejected' %}danger{% elif application.status == 'submitted' %}warning{% else %}secondary{% endif %}">
+                                {{ application.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Submitted:</strong><br>
+                            {{ application.submitted_date|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+                    
+                    {% if application.review_notes %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <strong>Review Notes:</strong><br>
+                            <div class="alert alert-info mt-2">
+                                {{ application.review_notes }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if application.rejection_reason %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <strong>Rejection Reason:</strong><br>
+                            <div class="alert alert-danger mt-2">
+                                {{ application.rejection_reason }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Timeline -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Application Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for step in steps %}
+                        <div class="timeline-item {% if step.is_completed %}completed{% elif step.step_number == application.current_step %}current{% endif %}">
+                            <div class="timeline-marker">
+                                {% if step.is_completed %}
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                {% elif step.step_number == application.current_step %}
+                                <i class="bi bi-arrow-right-circle-fill text-primary"></i>
+                                {% else %}
+                                <i class="bi bi-circle text-muted"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Step {{ step.step_number }}: {{ step.step_name|title }}</h6>
+                                <small class="text-muted">
+                                    {% if step.is_completed %}
+                                    Completed on {{ step.completed_date|date:"M d, Y H:i" }}
+                                    {% elif step.step_number == application.current_step %}
+                                    Currently in progress
+                                    {% else %}
+                                    Pending
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Uploaded Documents</h5>
+                </div>
+                <div class="card-body">
+                    {% if documents %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Document Type</th>
+                                    <th>File Name</th>
+                                    <th>Uploaded</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td>{{ document.get_document_type_display }}</td>
+                                    <td>
+                                        <a href="{{ document.document_file.url }}" target="_blank">
+                                            {{ document.document_file.name|slice:"20:" }}
+                                        </a>
+                                    </td>
+                                    <td>{{ document.uploaded_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if document.is_verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ document.document_file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No documents uploaded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

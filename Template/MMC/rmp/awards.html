@@ -1,0 +1,712 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}My Awards - MMC Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .award-card {
+        border: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--mmc-primary);
+    }
+    
+    .award-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .award-year-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 1.1rem;
+    }
+    
+    .certificate-preview {
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        background: #f8f9fa;
+    }
+    
+    .award-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .award-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--mmc-primary);
+    }
+    
+    .award-timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    
+    .award-timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -0.4rem;
+        top: 0.5rem;
+        width: 0.8rem;
+        height: 0.8rem;
+        background: var(--mmc-primary);
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+    
+    .achievement-level {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .level-national { background: #d4edda; color: #155724; }
+    .level-state { background: #cce7ff; color: #004085; }
+    .level-institutional { background: #fff3cd; color: #856404; }
+    .level-international { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-2 text-gray-800">
+                        <i class="bi bi-trophy me-2 text-mmc-primary"></i>
+                        My Awards & Honors
+                    </h1>
+                    <p class="text-muted">Manage your professional awards, honors, and recognitions</p>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAwardModal">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add Award
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Awards List -->
+        <div class="col-lg-8">
+            {% if awards %}
+            <div class="row">
+                {% for award in awards %}
+                <div class="col-12 mb-4">
+                    <div class="card award-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title text-mmc-primary mb-1">
+                                        {{ award.award_name }}
+                                    </h5>
+                                    <h6 class="text-muted mb-2">{{ award.awarding_organization }}</h6>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <span class="badge award-year-badge">
+                                        {{ award.year }}
+                                    </span>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editAwardModal{{ award.id }}">
+                                                    <i class="bi bi-pencil me-2"></i>Edit
+                                                </a>
+                                            </li>
+                                            {% if award.certificate_file %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ award.certificate_file.url }}" target="_blank">
+                                                    <i class="bi bi-download me-2"></i>Download Certificate
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteAwardModal{{ award.id }}">
+                                                    <i class="bi bi-trash me-2"></i>Delete
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row text-muted mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <i class="bi bi-building me-2"></i>
+                                        <strong>Organization:</strong> {{ award.awarding_organization }}
+                                    </p>
+                                    <p class="mb-1">
+                                        <i class="bi bi-calendar me-2"></i>
+                                        <strong>Year:</strong> {{ award.year }}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <i class="bi bi-award me-2"></i>
+                                        <strong>Category:</strong> 
+                                        <span class="achievement-level 
+                                            {% if 'national' in award.award_name|lower %}level-national
+                                            {% elif 'state' in award.award_name|lower %}level-state
+                                            {% elif 'international' in award.award_name|lower %}level-international
+                                            {% else %}level-institutional{% endif %}">
+                                            {% if 'national' in award.award_name|lower %}National
+                                            {% elif 'state' in award.award_name|lower %}State
+                                            {% elif 'international' in award.award_name|lower %}International
+                                            {% else %}Institutional{% endif %}
+                                        </span>
+                                    </p>
+                                    {% if award.certificate_file %}
+                                    <p class="mb-1">
+                                        <i class="bi bi-file-earmark-check me-2"></i>
+                                        <strong>Certificate:</strong> Available
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if award.description %}
+                            <div class="bg-light p-3 rounded mb-3">
+                                <h6 class="mb-2">Award Description:</h6>
+                                <p class="mb-0 text-muted">{{ award.description }}</p>
+                            </div>
+                            {% endif %}
+
+                            <!-- Certificate Preview -->
+                            {% if award.certificate_file %}
+                            <div class="certificate-preview mb-3">
+                                <i class="bi bi-file-earmark-pdf display-4 text-danger"></i>
+                                <p class="mt-2 mb-1">
+                                    <strong>Certificate Available</strong>
+                                </p>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="{{ award.certificate_file.url }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                    <a href="{{ award.certificate_file.url }}" download class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-download me-1"></i>Download
+                                    </a>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="certificate-preview mb-3">
+                                <i class="bi bi-file-earmark-plus display-4 text-muted"></i>
+                                <p class="mt-2 mb-1 text-muted">
+                                    <strong>No Certificate Uploaded</strong>
+                                </p>
+                                <small class="text-muted">You can upload a certificate file when editing this award</small>
+                            </div>
+                            {% endif %}
+
+                            <!-- Significance Level -->
+                            <div class="mt-3 d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-star-fill text-warning me-1"></i>
+                                    {% if award.year >= 2020 %}
+                                    <strong>Recent Achievement</strong>
+                                    {% elif award.year >= 2010 %}
+                                    <strong>Significant Honor</strong>
+                                    {% else %}
+                                    <strong>Historical Recognition</strong>
+                                    {% endif %}
+                                </small>
+                                <small class="text-muted">
+                                    Added: {{ award.created_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-trophy display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No Awards Added</h4>
+                <p class="text-muted">Start by adding your first professional award or honor</p>
+                <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addAwardModal">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add First Award
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Awards Timeline -->
+            <div class="card form-card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-diagram-3 me-2"></i>
+                        Awards Timeline
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if awards %}
+                    <div class="award-timeline">
+                        {% for award in awards|dictsortreversed:"year" %}
+                        <div class="award-timeline-item">
+                            <h6 class="mb-1">{{ award.award_name }}</h6>
+                            <p class="mb-1 small text-muted">{{ award.awarding_organization }}</p>
+                            <small class="text-muted">{{ award.year }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-timeline display-4 text-muted"></i>
+                        <p class="text-muted mt-2">Your awards timeline will appear here</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Awards Summary -->
+            <div class="card form-card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Awards Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h3 class="text-mmc-primary">{{ awards.count }}</h3>
+                            <small class="text-muted">Total Awards</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-success">
+                                {% if awards %}
+                                {{ awards|dictsort:"year"|last.year }}
+                                {% else %}
+                                0
+                                {% endif %}
+                            </h3>
+                            <small class="text-muted">Latest</small>
+                        </div>
+                    </div>
+                    
+                    {% if awards %}
+                    <div class="mt-3">
+                        <h6>Achievement Levels:</h6>
+                        {% with national=awards|length international=awards|length state=awards|length institutional=awards|length %}
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>International</span>
+                            <span class="badge level-international">{{ international }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>National</span>
+                            <span class="badge level-national">{{ national }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>State</span>
+                            <span class="badge level-state">{{ state }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span>Institutional</span>
+                            <span class="badge level-institutional">{{ institutional }}</span>
+                        </div>
+                        {% endwith %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card form-card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-award me-2"></i>
+                        Achievement Stats
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="text-warning">
+                                {% if awards %}
+                                {{ awards|dictsort:"year"|first.year }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">First</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-success">
+                                {% if awards %}
+                                {{ awards|dictsort:"year"|last.year }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">Latest</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-info">
+                                {% if awards.count > 1 %}
+                                {{ awards|length }}
+                                {% else %}
+                                1
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">Years</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips & Guidelines -->
+            <div class="card form-card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Award Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small text-muted">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Include professional awards only
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Upload certificate for verification
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Provide detailed descriptions
+                        </li>
+                        <li class="mb-0">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Include year and organization
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Award Modal -->
+<div class="modal fade" id="addAwardModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-mmc-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add New Award
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="awardForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Award Name *</label>
+                            {{ form.award_name }}
+                            <div class="form-text">Enter the full name of the award or honor</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Year Received *</label>
+                            {{ form.year }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Awarding Organization *</label>
+                        {{ form.awarding_organization }}
+                        <div class="form-text">Name of the institution or organization that gave the award</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Award Description</label>
+                        {{ form.description }}
+                        <div class="form-text">
+                            Describe the significance of this award, criteria for selection, and your achievements.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Certificate File</label>
+                        {{ form.certificate_file }}
+                        <div class="form-text">
+                            Upload a scanned copy of your award certificate (PDF, JPG, PNG). Max size: 5MB.
+                        </div>
+                    </div>
+                    
+                    <!-- Preview Area -->
+                    <div id="certificatePreview" class="certificate-preview mt-3 d-none">
+                        <i class="bi bi-file-earmark-pdf display-4 text-danger"></i>
+                        <p class="mt-2 mb-1" id="fileName">certificate.pdf</p>
+                        <small class="text-muted" id="fileSize">0 KB</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="awardForm" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Save Award
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Message Display -->
+{% if messages %}
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
+    {% for message in messages %}
+    <div class="toast show" role="alert">
+        <div class="toast-header bg-{{ message.tags }} text-white">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            {{ message }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        // File upload preview
+        $('#id_certificate_file').on('change', function() {
+            const file = this.files[0];
+            const preview = $('#certificatePreview');
+            const fileName = $('#fileName');
+            const fileSize = $('#fileSize');
+            
+            if (file) {
+                // Validate file type
+                const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Please select a PDF, JPG, or PNG file.');
+                    $(this).val('');
+                    return;
+                }
+                
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB.');
+                    $(this).val('');
+                    return;
+                }
+                
+                // Show preview
+                preview.removeClass('d-none');
+                fileName.text(file.name);
+                fileSize.text((file.size / 1024).toFixed(1) + ' KB');
+                
+                // Change icon based on file type
+                const icon = preview.find('i');
+                if (file.type.includes('image')) {
+                    icon.removeClass('bi-file-earmark-pdf text-danger')
+                       .addClass('bi-file-image text-success');
+                } else {
+                    icon.removeClass('bi-file-image text-success')
+                       .addClass('bi-file-earmark-pdf text-danger');
+                }
+            } else {
+                preview.addClass('d-none');
+            }
+        });
+
+        // Year validation
+        $('#id_year').on('blur', function() {
+            const year = parseInt($(this).val());
+            const currentYear = new Date().getFullYear();
+            
+            if (year < 1950 || year > currentYear) {
+                alert('Please enter a valid year between 1950 and ' + currentYear);
+                $(this).val('');
+                $(this).focus();
+            }
+        });
+
+        // Form submission validation
+        $('#awardForm').on('submit', function(e) {
+            const awardName = $('#id_award_name').val().trim();
+            const organization = $('#id_awarding_organization').val().trim();
+            const year = $('#id_year').val();
+            
+            if (!awardName) {
+                e.preventDefault();
+                alert('Please enter the award name.');
+                $('#id_award_name').focus();
+                return false;
+            }
+            
+            if (!organization) {
+                e.preventDefault();
+                alert('Please enter the awarding organization.');
+                $('#id_awarding_organization').focus();
+                return false;
+            }
+            
+            if (!year) {
+                e.preventDefault();
+                alert('Please enter the year received.');
+                $('#id_year').focus();
+                return false;
+            }
+        });
+
+        // Auto-hide success messages
+        setTimeout(function() {
+            $('.toast').toast('hide');
+        }, 5000);
+
+        // Auto-suggest organizations
+        const organizations = [
+            'Medical Council of India',
+            'Maharashtra Medical Council',
+            'Indian Medical Association',
+            'Association of Physicians of India',
+            'Indian Academy of Pediatrics',
+            'College of Physicians & Surgeons',
+            'World Health Organization',
+            'Ministry of Health',
+            'State Health Department',
+            'Medical College'
+        ];
+        
+        $('#id_awarding_organization').autocomplete({
+            source: organizations,
+            minLength: 2
+        });
+    });
+
+    // Function to estimate achievement level
+    function estimateAchievementLevel(awardName) {
+        const name = awardName.toLowerCase();
+        if (name.includes('international') || name.includes('world') || name.includes('global')) {
+            return 'International';
+        } else if (name.includes('national') || name.includes('india') || name.includes('country')) {
+            return 'National';
+        } else if (name.includes('state') || name.includes('maharashtra')) {
+            return 'State';
+        } else {
+            return 'Institutional';
+        }
+    }
+
+    // Auto-detect achievement level
+    $('#id_award_name').on('blur', function() {
+        const awardName = $(this).val();
+        if (awardName) {
+            const level = estimateAchievementLevel(awardName);
+            console.log('Estimated achievement level:', level);
+            // You could display this to the user or store it in a hidden field
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

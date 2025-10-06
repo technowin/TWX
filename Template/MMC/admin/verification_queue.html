@@ -1,0 +1,390 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Verification Queue - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Verification Queue</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <a href="{% url 'verification_queue' %}?assigned_to_me=true" 
+                   class="btn btn-sm {% if assigned_to_me %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Assigned to Me
+                </a>
+                <a href="{% url 'verification_queue' %}?status=overdue" 
+                   class="btn btn-sm {% if status_filter == 'overdue' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                    Overdue
+                </a>
+                <a href="{% url 'verification_queue' %}?status=urgent" 
+                   class="btn btn-sm {% if status_filter == 'urgent' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                    Urgent
+                </a>
+            </div>
+            <a href="{% url 'bulk_actions' %}" class="btn btn-sm btn-success">
+                <i class="bi bi-gear"></i> Bulk Actions
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="card-title text-primary">{{ applications.count }}</h5>
+                            <p class="card-text">Total Applications</p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-files display-4 text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="card-title text-warning">
+                                {{ applications.filter(expected_completion_date__lt=timezone.now).count }}
+                            </h5>
+                            <p class="card-text">Overdue</p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-clock-history display-4 text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="card-title text-danger">
+                                {{ applications.filter(is_urgent=True).count }}
+                            </h5>
+                            <p class="card-text">Urgent</p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle display-4 text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="card-title text-success">
+                                {{ applications.filter(status='UNDER_REVIEW').count }}
+                            </h5>
+                            <p class="card-text">Under Review</p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-search display-4 text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Applications Pending Verification</h5>
+        </div>
+        <div class="card-body">
+            {% if applications %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll">
+                            </th>
+                            <th>Application ID</th>
+                            <th>Type</th>
+                            <th>Applicant</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Expected Completion</th>
+                            <th>Priority</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr class="{% if application.is_urgent %}table-warning{% endif %} {% if application.expected_completion_date < timezone.now %}table-danger{% endif %}">
+                            <td>
+                                <input type="checkbox" name="applications" value="{{ application.application_id }}" class="application-checkbox">
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ application.application_id|slice:8 }}...</small>
+                            </td>
+                            <td>{{ application.get_application_type_display }}</td>
+                            <td>
+                                <strong>{{ application.applicant.get_full_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ application.applicant.mmc_registration_number }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if application.status == 'SUBMITTED' %}primary{% elif application.status == 'UNDER_REVIEW' %}warning{% else %}info{% endif %}">
+                                    {{ application.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ application.submission_date|date:"d M Y" }}
+                                <br>
+                                <small class="text-muted">{{ application.submission_date|timesince }} ago</small>
+                            </td>
+                            <td>
+                                {{ application.expected_completion_date|date:"d M Y" }}
+                                {% if application.expected_completion_date < timezone.now %}
+                                <br>
+                                <small class="text-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> Overdue
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if application.is_urgent %}
+                                <span class="badge bg-danger">Urgent</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Normal</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'admin_application_detail' application.application_id %}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Review
+                                    </a>
+                                    <a href="{% url 'assign_verification_task' application.application_id %}" 
+                                       class="btn btn-outline-success">
+                                        <i class="bi bi-person-check"></i> Assign
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Actions Panel -->
+            <div class="card mt-4" id="bulkActionsPanel" style="display: none;">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Bulk Actions</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'bulk_actions' %}" id="bulkActionForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-4">
+                                <select name="action" class="form-select" required>
+                                    <option value="">Select Action</option>
+                                    <option value="ASSIGN_VERIFIER">Assign to Verifier</option>
+                                    <option value="BULK_APPROVE">Bulk Approve</option>
+                                    <option value="BULK_REJECT">Bulk Reject</option>
+                                    <option value="SEND_REMINDER">Send Reminder</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select name="verifier" class="form-select" id="verifierSelect" style="display: none;">
+                                    <option value="">Select Verifier</option>
+                                    {% for verifier in verifiers %}
+                                    <option value="{{ verifier.id }}">{{ verifier.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary">Apply Action</button>
+                                <button type="button" class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <textarea name="notes" class="form-control" placeholder="Add notes (optional)" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-check-circle display-1 text-success"></i>
+                <h4 class="mt-3">No applications pending verification</h4>
+                <p class="text-muted">All applications have been processed.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.application-checkbox');
+    const bulkActionsPanel = document.getElementById('bulkActionsPanel');
+    const actionSelect = document.querySelector('select[name="action"]');
+    const verifierSelect = document.getElementById('verifierSelect');
+    const bulkActionForm = document.getElementById('bulkActionForm');
+
+    // Select all functionality
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        toggleBulkActions();
+    });
+
+    // Individual checkbox functionality
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', toggleBulkActions);
+    });
+
+    // Action type change
+    actionSelect.addEventListener('change', function() {
+        if (this.value === 'ASSIGN_VERIFIER') {
+            verifierSelect.style.display = 'block';
+            verifierSelect.required = true;
+        } else {
+            verifierSelect.style.display = 'none';
+            verifierSelect.required = false;
+        }
+    });
+
+    function toggleBulkActions() {
+        const selectedCount = document.querySelectorAll('.application-checkbox:checked').length;
+        if (selectedCount > 0) {
+            bulkActionsPanel.style.display = 'block';
+        } else {
+            bulkActionsPanel.style.display = 'none';
+        }
+    }
+
+    // Form submission
+    bulkActionForm.addEventListener('submit', function(e) {
+        const selectedApplications = Array.from(document.querySelectorAll('.application-checkbox:checked'))
+            .map(cb => cb.value);
+        
+        if (selectedApplications.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one application.');
+            return;
+        }
+
+        // Add selected applications to form
+        selectedApplications.forEach(appId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'applications';
+            input.value = appId;
+            this.appendChild(input);
+        });
+    });
+});
+
+function clearSelection() {
+    document.querySelectorAll('.application-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAll').checked = false;
+    document.getElementById('bulkActionsPanel').style.display = 'none';
+}
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

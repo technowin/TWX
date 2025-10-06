@@ -1,0 +1,515 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}My Publications - MMC Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .publication-card {
+        border: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--mmc-primary);
+    }
+    
+    .publication-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .publication-type-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .doi-link {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        padding: 0.5rem;
+        font-family: monospace;
+    }
+    
+    .citation-style {
+        font-style: italic;
+        color: #6c757d;
+        border-left: 3px solid var(--mmc-primary);
+        padding-left: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-2 text-gray-800">
+                        <i class="bi bi-journal-text me-2 text-mmc-primary"></i>
+                        My Publications & Research
+                    </h1>
+                    <p class="text-muted">Manage your research publications, papers, and academic work</p>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPublicationModal">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add Publication
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Publications List -->
+        <div class="col-lg-8">
+            {% if publications %}
+            <div class="row">
+                {% for publication in publications %}
+                <div class="col-12 mb-4">
+                    <div class="card publication-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title text-mmc-primary mb-1">
+                                        {{ publication.title }}
+                                    </h5>
+                                    <p class="text-muted mb-2 small">{{ publication.authors }}</p>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <span class="badge publication-type-badge">
+                                        {{ publication.get_publication_type_display }}
+                                    </span>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editPublicationModal{{ publication.id }}">
+                                                    <i class="bi bi-pencil me-2"></i>Edit
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deletePublicationModal{{ publication.id }}">
+                                                    <i class="bi bi-trash me-2"></i>Delete
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row text-muted mb-3">
+                                <div class="col-md-6">
+                                    {% if publication.journal_name %}
+                                    <p class="mb-1">
+                                        <i class="bi bi-journal me-2"></i>
+                                        <strong>Journal:</strong> {{ publication.journal_name }}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if publication.publisher %}
+                                    <p class="mb-1">
+                                        <i class="bi bi-building me-2"></i>
+                                        <strong>Publisher:</strong> {{ publication.publisher }}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    <p class="mb-1">
+                                        <i class="bi bi-calendar me-2"></i>
+                                        <strong>Published:</strong> {{ publication.publication_date|date:"F Y" }}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    {% if publication.volume or publication.issue %}
+                                    <p class="mb-1">
+                                        <i class="bi bi-collection me-2"></i>
+                                        <strong>Volume/Issue:</strong> 
+                                        {% if publication.volume %}Vol. {{ publication.volume }}{% endif %}
+                                        {% if publication.issue %}({{ publication.issue }}){% endif %}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if publication.pages %}
+                                    <p class="mb-1">
+                                        <i class="bi bi-file-text me-2"></i>
+                                        <strong>Pages:</strong> {{ publication.pages }}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if publication.doi %}
+                                    <p class="mb-1">
+                                        <i class="bi bi-link-45deg me-2"></i>
+                                        <strong>DOI:</strong> 
+                                        <a href="https://doi.org/{{ publication.doi }}" target="_blank" class="text-decoration-none">
+                                            {{ publication.doi }}
+                                        </a>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if publication.description %}
+                            <div class="bg-light p-3 rounded mb-3">
+                                <h6 class="mb-2">Abstract/Description:</h6>
+                                <p class="mb-0 text-muted">{{ publication.description }}</p>
+                            </div>
+                            {% endif %}
+
+                            <!-- Citation Preview -->
+                            <div class="citation-style small">
+                                {{ publication.authors }} ({{ publication.publication_date|date:"Y" }}). 
+                                "{{ publication.title }}".
+                                {% if publication.journal_name %}<em>{{ publication.journal_name }}</em>.{% endif %}
+                                {% if publication.volume %}Vol. {{ publication.volume }}{% endif %}
+                                {% if publication.issue %}({{ publication.issue }}){% endif %}
+                                {% if publication.pages %}, pp. {{ publication.pages }}.{% endif %}
+                                {% if publication.doi %}DOI: {{ publication.doi }}{% endif %}
+                            </div>
+
+                            <!-- Action Links -->
+                            <div class="mt-3 d-flex gap-2">
+                                {% if publication.url %}
+                                <a href="{{ publication.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-link-45deg me-1"></i>View Online
+                                </a>
+                                {% endif %}
+                                {% if publication.doi %}
+                                <a href="https://doi.org/{{ publication.doi }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-journal me-1"></i>DOI Link
+                                </a>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary" onclick="copyCitation({{ publication.id }})">
+                                    <i class="bi bi-clipboard me-1"></i>Copy Citation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-journal-text display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No Publications Added</h4>
+                <p class="text-muted">Start by adding your first research publication</p>
+                <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addPublicationModal">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add First Publication
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Publication Statistics -->
+            <div class="card form-card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Publication Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h3 class="text-mmc-primary">{{ publications.count }}</h3>
+                            <small class="text-muted">Total</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-success">
+                                {{ publications|dictsort:"publication_date"|last.publication_date|date:"Y" }}
+                            </h3>
+                            <small class="text-muted">Latest</small>
+                        </div>
+                    </div>
+                    
+                    {% if publications %}
+                    <div class="mt-3">
+                        <h6>By Type:</h6>
+                        {% for type in publication_types %}
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>{{ type.1 }}</span>
+                            <span>
+                                {{ publications|length }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Add Guide -->
+            <div class="card form-card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Publication Tips
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small text-muted">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Include DOI for better accessibility
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Use standard citation format
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Add abstracts for better context
+                        </li>
+                        <li class="mb-0">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Include all co-authors properly
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Import Options -->
+            <div class="card form-card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-download me-2"></i>
+                        Import Publications
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-google me-2"></i>
+                            Import from Google Scholar
+                        </button>
+                        <button class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-file-text me-2"></i>
+                            Import from BibTeX
+                        </button>
+                        <button class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+                            Import from CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Publication Modal -->
+<div class="modal fade" id="addPublicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-mmc-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add New Publication
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="publicationForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Publication Type *</label>
+                            {{ form.publication_type }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Publication Date *</label>
+                            {{ form.publication_date }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Title *</label>
+                        {{ form.title }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Authors *</label>
+                        {{ form.authors }}
+                        <div class="form-text">List all authors in the format: Lastname, F., Lastname2, F., etc.</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Journal Name</label>
+                            {{ form.journal_name }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Volume</label>
+                            {{ form.volume }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Issue</label>
+                            {{ form.issue }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Pages</label>
+                            {{ form.pages }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Publisher</label>
+                            {{ form.publisher }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">DOI</label>
+                            {{ form.doi }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">URL</label>
+                            {{ form.url }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description/Abstract</label>
+                        {{ form.description }}
+                        <div class="form-text">Provide a brief abstract or description of the publication.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="publicationForm" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Save Publication
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    function copyCitation(publicationId) {
+        // This would fetch the citation text and copy to clipboard
+        const citation = document.querySelector(`[data-citation="${publicationId}"]`);
+        if (citation) {
+            navigator.clipboard.writeText(citation.textContent).then(function() {
+                alert('Citation copied to clipboard!');
+            });
+        }
+    }
+
+    $(document).ready(function() {
+        // Auto-format DOI
+        $('#id_doi').on('blur', function() {
+            let doi = $(this).val().trim();
+            if (doi && !doi.startsWith('10.')) {
+                // Basic DOI validation
+                alert('Please enter a valid DOI starting with 10.');
+            }
+        });
+
+        // Show/hide fields based on publication type
+        $('#id_publication_type').on('change', function() {
+            const type = $(this).val();
+            const journalFields = $('#id_journal_name, #id_volume, #id_issue, #id_pages').closest('.mb-3');
+            
+            if (type === 'journal') {
+                journalFields.show();
+            } else {
+                journalFields.hide();
+            }
+        });
+
+        // Initialize date picker
+        $('#id_publication_date').attr('type', 'date');
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

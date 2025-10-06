@@ -1,0 +1,497 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Service Selection - MMC Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .service-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-left: 4px solid var(--bs-primary);
+        height: 100%;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .service-card.border-success { border-left-color: var(--bs-success) !important; }
+    .service-card.border-warning { border-left-color: var(--bs-warning) !important; }
+    .service-card.border-info { border-left-color: var(--bs-info) !important; }
+    .service-card.border-danger { border-left-color: var(--bs-danger) !important; }
+    .service-card.border-secondary { border-left-color: var(--bs-secondary) !important; }
+    
+    .category-header {
+        background: linear-gradient(135deg, var(--mmc-primary), #1e3a8a);
+        color: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .badge-pending {
+        background-color: #ffc107;
+        color: #000;
+    }
+    
+    .quick-stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .service-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+    }
+    
+    .search-box {
+        border-radius: 25px;
+        border: 2px solid #e9ecef;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .search-box:focus {
+        border-color: var(--mmc-primary);
+        box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="category-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-5 fw-bold mb-3">
+                            <i class="bi bi-grid-3x3-gap me-3"></i>
+                            MMC Services Portal
+                        </h1>
+                        <p class="lead mb-0">Choose from {{ total_services }} professional services for medical practitioners</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="bg-white text-dark rounded p-3 d-inline-block">
+                            <h4 class="mb-0 text-mmc-primary">{{ user_stats.total_applications }}</h4>
+                            <small>Total Applications</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card quick-stats-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history service-icon"></i>
+                    <h3>{{ user_stats.pending_applications }}</h3>
+                    <p class="mb-0">Pending Applications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle service-icon"></i>
+                    <h3>{{ user_stats.approved_applications }}</h3>
+                    <p class="mb-0">Approved Applications</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-month service-icon"></i>
+                    <h3>{{ user_stats.recent_applications }}</h3>
+                    <p class="mb-0">Recent (30 days)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="bi bi-lightning service-icon"></i>
+                    <h3>{{ total_services }}</h3>
+                    <p class="mb-0">Available Services</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control search-box border-start-0" 
+                       placeholder="Search services... (e.g., registration, certificate, renewal)" 
+                       id="serviceSearch">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" id="categoryFilter">
+                <option value="">All Categories</option>
+                {% for category_name, category_data in service_categories.items %}
+                <option value="{{ category_name }}">{{ category_data.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    {% if quick_actions %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning-charge text-warning me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for action in quick_actions %}
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center p-3 border rounded">
+                                <div class="flex-shrink-0">
+                                    <i class="bi {{ action.icon }} fs-2 text-{{ action.color }}"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">{{ action.name }}</h6>
+                                    <p class="mb-0 text-muted small">{{ action.description }}</p>
+                                    <a href="{% url 'initiate_service' action.action %}" 
+                                       class="btn btn-sm btn-{{ action.color }} mt-2">
+                                        Start Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending Applications -->
+    {% if pending_applications %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-hourglass-split me-2"></i>
+                        Your Pending Applications
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for app in pending_applications %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                <div>
+                                    <h6 class="mb-1">{{ app.get_application_type_display }}</h6>
+                                    <small class="text-muted">ID: {{ app.application_id|slice:":8" }}...</small>
+                                    <br>
+                                    <span class="badge bg-{% if app.status == 'submitted' %}primary{% elif app.status == 'under_review' %}info{% else %}secondary{% endif %}">
+                                        {{ app.get_status_display }}
+                                    </span>
+                                </div>
+                                <a href="{% url 'application_status' application_id=app.application_id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Service Categories -->
+    {% for category_name, category_data in service_categories.items %}
+    <div class="row mb-5 service-category" data-category="{{ category_name }}">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+                <div class="flex-shrink-0">
+                    <i class="bi {{ category_data.icon }} fs-2 text-mmc-primary me-3"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h3 class="text-mmc-primary mb-1">{{ category_data.title }}</h3>
+                    <p class="text-muted mb-0">{{ category_data.description }}</p>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                {% for service in category_data.services %}
+                <div class="col-xl-4 col-lg-6 col-md-6 service-item" 
+                     data-name="{{ service.name|lower }}" 
+                     data-category="{{ category_name }}">
+                    <div class="card service-card h-100 border-{{ service.color }} position-relative">
+                        {% if service.pending_count > 0 %}
+                        <span class="badge badge-pending feature-badge">
+                            {{ service.pending_count }} Pending
+                        </span>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-shrink-0">
+                                    <i class="bi {{ service.icon }} fs-1 text-{{ service.color }}"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="card-title text-{{ service.color }} mb-2">
+                                        {{ service.name }}
+                                    </h5>
+                                    <p class="card-text text-muted small">
+                                        {{ service.description }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Service Details -->
+                            <div class="service-details mt-3">
+                                <div class="row text-center g-2">
+                                    <div class="col-4">
+                                        <small class="text-muted">Fee</small>
+                                        <br>
+                                        <strong class="text-{{ service.color }}">₹{{ service.fee }}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Duration</small>
+                                        <br>
+                                        <strong>{{ service.duration }}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Documents</small>
+                                        <br>
+                                        <strong>{{ service.documents_required }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Eligibility Badge -->
+                            <div class="mt-3">
+                                <span class="badge bg-light text-dark small">
+                                    <i class="bi bi-person-check me-1"></i>
+                                    {{ service.eligibility }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'service_details' service.code %}" 
+                                   class="btn btn-sm btn-outline-{{ service.color }} mb-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Details
+                                </a>
+                                <a href="{% url 'initiate_service' service.code %}" 
+                                   class="btn btn-{{ service.color }} btn-sm">
+                                    <i class="bi bi-play-circle me-1"></i>
+                                    Start Application
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- No Results Message -->
+    <div class="row d-none" id="noResults">
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-search display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">No services found</h4>
+            <p class="text-muted">Try adjusting your search terms or filters</p>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        // Search functionality
+        $('#serviceSearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            filterServices();
+        });
+
+        // Category filter
+        $('#categoryFilter').on('change', function() {
+            filterServices();
+        });
+
+        function filterServices() {
+            const searchTerm = $('#serviceSearch').val().toLowerCase();
+            const categoryFilter = $('#categoryFilter').val();
+            let visibleCount = 0;
+
+            $('.service-item').each(function() {
+                const serviceName = $(this).data('name');
+                const serviceCategory = $(this).data('category');
+                const categoryElement = $(this).closest('.service-category');
+                
+                const matchesSearch = serviceName.includes(searchTerm) || searchTerm === '';
+                const matchesCategory = categoryFilter === '' || serviceCategory === categoryFilter;
+                
+                if (matchesSearch && matchesCategory) {
+                    $(this).show();
+                    categoryElement.show();
+                    visibleCount++;
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            // Hide empty categories
+            $('.service-category').each(function() {
+                const category = $(this).data('category');
+                const hasVisibleServices = $(this).find('.service-item:visible').length > 0;
+                
+                if (categoryFilter === '' || categoryFilter === category) {
+                    $(this).toggle(hasVisibleServices);
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0) {
+                $('#noResults').removeClass('d-none');
+            } else {
+                $('#noResults').addClass('d-none');
+            }
+        }
+
+        // Add hover effects
+        $('.service-card').hover(
+            function() {
+                $(this).addClass('shadow-lg');
+            },
+            function() {
+                $(this).removeClass('shadow-lg');
+            }
+        );
+
+        // Quick stats animation
+        $('.quick-stats-card h3').each(function() {
+            const $this = $(this);
+            const countTo = $this.text();
+            $({ countNum: 0 }).animate({ countNum: countTo }, {
+                duration: 1000,
+                easing: 'swing',
+                step: function() {
+                    $this.text(Math.floor(this.countNum));
+                },
+                complete: function() {
+                    $this.text(countTo);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

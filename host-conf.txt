@@ -200,6 +200,10 @@ python manage.py startapp SalesPurchase
 python manage.py makemigrations SalesPurchase
 python manage.py migrate SalesPurchase
 
+python manage.py startapp MMC
+python manage.py makemigrations MMC
+python manage.py migrate MMC
+
 curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"
