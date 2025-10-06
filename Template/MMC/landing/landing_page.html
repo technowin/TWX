@@ -35,38 +35,26 @@
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
 
 <style>
-        :root {
-            --mmc-primary: #2c5aa0;
-            --mmc-secondary: #dc3545;
-            --mmc-accent: #28a745;
-            --mmc-light: #f8f9fa;
-            --mmc-dark: #343a40;
-        }
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-        }
         
         .mmc-primary-bg {
-            background-color: var(--mmc-primary) !important;
+            background-color: var(--cd-primary) !important;
         }
         
         .mmc-secondary-bg {
-            background-color: var(--mmc-secondary) !important;
+            background-color: var(--cd-secondary) !important;
         }
         
         .text-mmc-primary {
-            color: var(--mmc-primary) !important;
+            color: var(--cd-primary) !important;
         }
         
         .text-mmc-secondary {
-            color: var(--mmc-secondary) !important;
+            color: var(--cd-secondary) !important;
         }
         
         .hero-section {
-            background: linear-gradient(135deg, var(--mmc-primary) 0%, #1e3a8a 100%);
+            background: linear-gradient(135deg, var(--cd-primary) 0%, #1e3a8a 100%);
             color: white;
             padding: 80px 0;
         }
@@ -104,20 +92,16 @@
         }
         
         @keyframes scrollUp {
-            0% { transform: translateY(100%); }
+            0% { transform: translateY(50%); }
             100% { transform: translateY(-100%); }
         }
+
         
         .marquee-content:hover {
             animation-play-state: paused;
         }
         
-        .theme-toggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
+       
         
         .blink {
             animation: blink 2s infinite;
@@ -144,10 +128,10 @@
 
 {% block content %}
     <!-- Header -->
-    <header class="navbar navbar-expand-lg navbar-dark mmc-primary-bg sticky-top">
+    <header class="navbar navbar-expand-lg navbar-dark mmc-primary-bg">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'landing_page' %}">
-                <img src="/static/images/mmc_logo.png" alt="MMC Logo" height="50" class="me-3">
+                <img src="/static/images/mmc_logo2.png" alt="MMC Logo" height="50" class="me-3">
                 <div>
                     <h5 class="mb-0">MAHARASHTRA MEDICAL COUNCIL, MUMBAI</h5>
                     <small class="opacity-75">(Established by Government of Maharashtra Under MMC Act, 1965)</small>
@@ -175,11 +159,11 @@
                             {% elif user.user_type == 'admin' %}{% url 'admin_dashboard' %}
                             {% elif user.user_type == 'staff' %}{% url 'admin_dashboard' %}
                             {% else %}{% url 'mmc_dashboard' %}{% endif %}" 
-                           class="btn btn-outline-light">
+                           class="btn btn-light">
                             <i class="bi bi-speedometer2 me-2"></i>Dashboard
                         </a>
                     {% else %}
-                        <a href="{% url 'mmc_login' %}" class="btn btn-outline-light me-2">
+                        <a href="{% url 'mmc_login' %}" class="btn btn-light me-2">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Login
                         </a>
                         <a href="{% url 'mmc_register' %}" class="btn btn-light text-mmc-primary">
@@ -204,10 +188,10 @@
                     <h1 class="display-4 fw-bold mb-4">Welcome to MMC Digital Portal</h1>
                     <p class="lead mb-4">Comprehensive digital platform for medical practitioners in Maharashtra. Streamlining registration, CPD management, and regulatory compliance.</p>
                     <div class="d-flex flex-wrap gap-3">
-                        <a href="{% url 'service_selection' %}" class="btn btn-light btn-lg text-mmc-primary">
+                        <a href="{% url 'service_selection' %}" class="btn btn-light btn-lg">
                             <i class="bi bi-rocket-takeoff me-2"></i>Get Started
                         </a>
-                        <a href="{% url 'about_mmc' %}" class="btn btn-outline-light btn-lg">
+                        <a href="{% url 'about_mmc' %}" class="btn btn-light btn-lg">
                             <i class="bi bi-info-circle me-2"></i>Learn More
                         </a>
                     </div>
@@ -282,7 +266,7 @@
                             <i class="bi bi-credit-card display-4 text-mmc-primary mb-3"></i>
                             <h5>Online Payment</h5>
                             <p class="text-muted">Secure payment gateway</p>
-                            <a href="{% url 'payment_page' %}" class="btn btn-outline-mmc-primary">Pay Now</a>
+                            <a href="applications/1/payment/" class="btn btn-outline-mmc-primary">Pay Now</a>
                         </div>
                     </div>
                 </div>
@@ -366,13 +350,13 @@
                         </div>
                         <div class="carousel-inner rounded">
                             <div class="carousel-item active">
-                                <img src="/static/images/carousel1.jpg" class="d-block w-100" alt="MMC Event 1" style="height: 300px; object-fit: cover;">
+                                <img src="/static/images/mmc.jpg" class="d-block w-100" alt="MMC Event 1" style="height: 300px; object-fit: cover;">
                             </div>
                             <div class="carousel-item">
-                                <img src="/static/images/carousel2.jpg" class="d-block w-100" alt="MMC Event 2" style="height: 300px; object-fit: cover;">
+                                <img src="/static/images/mmc_img_2.jpg" class="d-block w-100" alt="MMC Event 2" style="height: 300px; object-fit: cover;">
                             </div>
                             <div class="carousel-item">
-                                <img src="/static/images/carousel3.jpg" class="d-block w-100" alt="MMC Event 3" style="height: 300px; object-fit: cover;">
+                                <img src="/static/images/mmc_img_3.jpg" class="d-block w-100" alt="MMC Event 3" style="height: 300px; object-fit: cover;">
                             </div>
                         </div>
                         <button class="carousel-control-prev" type="button" data-bs-target="#mmcCarousel" data-bs-slide="prev">
@@ -387,27 +371,79 @@
                     <div class="mt-4">
                         <div class="card">
                             <div class="card-header bg-warning">
-                                <h6 class="mb-0"><i class="bi bi-megaphone me-2"></i>Important Updates</h6>
+                                <h6 class="mb-0 text-dark"><i class="bi bi-megaphone me-2"></i>Important Updates</h6>
                             </div>
                             <div class="card-body">
                                 <div class="marquee-container">
                                     <div class="marquee-content">
                                         <ul class="list-unstyled mb-0">
                                             <li class="mb-2">
-                                                <a href="#" class="text-decoration-none">
+                                                <a href="/Files/CCMP_Notification_11092025.pdf" target="_blank" class="text-decoration-none">
                                                     <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
-                                                    Notification Regarding CCMP Qualification Registration
+                                                    Notification Regarding CCMP Qualification Registration Dated 11.09.2025
                                                 </a>
                                             </li>
                                             <li class="mb-2">
-                                                <a href="#" class="text-decoration-none">
+                                                <a href="/Files/fmg_guidlines.pdf" target="_blank" class="text-decoration-none">
                                                     <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
-                                                    Guidelines for Internship Duration of Foreign Medical Graduates
+                                                    Guidelines for Internship Duration of Foreign Medical Graduates (FMGs)
                                                 </a>
                                             </li>
-                                            <!-- Add more notifications dynamically -->
+                                            <li class="mb-2">
+                                                <a href="/Files/Renewal_Notice_2020_RMPs.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Renewal Notice for RMPs Registered During 2020-2021
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/CPD_Guidelines_2024.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Revised CPD Guidelines Effective from 1st January 2024
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/Online_CPD_Platform_Launch.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Launch of New Online CPD Platform with Enhanced Features
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/Foreign_Verification_Process.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Streamlined Foreign Verification Process for NRI Doctors
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/ID_Card_Generation_Process.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    New Online ID Card Generation Process for Registered Practitioners
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/Ethics_Workshop_Schedule.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Schedule for Medical Ethics Workshops - October 2024
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/Telemedicine_Guidelines.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Updated Telemedicine Practice Guidelines for Registered Practitioners
+                                                </a>
+                                            </li>
+                                            <li class="mb-2">
+                                                <a href="/Files/Annual_Renewal_Deadline.pdf" target="_blank" class="text-decoration-none">
+                                                    <i class="bi bi-chevron-right text-mmc-primary me-2"></i>
+                                                    Important: Annual Renewal Deadline Extended to 31st December 2024
+                                                </a>
+                                            </li>
                                         </ul>
                                     </div>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <a href="{% url 'get_notifications' %}" class="btn btn-sm text-dark btn-warning">
+                                        <i class="bi bi-list-ul me-1"></i>View All Notifications
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -433,7 +469,7 @@
                             <a href="{% url 'file_complaint' %}" class="list-group-item list-group-item-action">
                                 <i class="bi bi-exclamation-triangle me-2"></i>File Complaint
                             </a>
-                            <a href="{% url 'payment_page' %}" class="list-group-item list-group-item-action">
+                            <a href="applications/1/payment/" class="list-group-item list-group-item-action">
                                 <i class="bi bi-credit-card me-2"></i>Online Payment
                             </a>
                             <a href="{% url 'id_card_view' %}" class="list-group-item list-group-item-action">
@@ -475,7 +511,7 @@
                                 <div class="marquee-content">
                                     {% for announcement in announcements %}
                                     <div class="mb-3">
-                                        <a href="#" class="text-decoration-none small">
+                                        <a href="#" class="text-decoration-none text-dark small">
                                             <i class="bi bi-caret-right-fill text-danger me-1"></i>
                                             {{ announcement.value }}
                                         </a>
@@ -502,7 +538,7 @@
                                 <div class="marquee-content">
                                     {% for notification in notifications %}
                                     <div class="mb-3">
-                                        <a href="#" class="text-decoration-none small">
+                                        <a href="#" class="text-decoration-none text-dark small">
                                             <i class="bi bi-caret-right-fill text-success me-1"></i>
                                             {{ notification.value }}
                                         </a>
@@ -529,7 +565,7 @@
                                 <div class="marquee-content">
                                     {% for download in downloads %}
                                     <div class="mb-3">
-                                        <a href="#" class="text-decoration-none small">
+                                        <a href="#" class="text-decoration-none text-dark small">
                                             <i class="bi bi-caret-right-fill text-info me-1"></i>
                                             {{ download.value }}
                                         </a>
@@ -556,7 +592,7 @@
                                 <div class="marquee-content">
                                     {% for instruction in instructions %}
                                     <div class="mb-3">
-                                        <a href="#" class="text-decoration-none small">
+                                        <a href="#" class="text-decoration-none text-dark small">
                                             <i class="bi bi-caret-right-fill text-warning me-1"></i>
                                             {{ instruction.value }}
                                         </a>
@@ -609,14 +645,14 @@
             </div>
 
             <div class="text-center mt-5">
-                <a href="{% url 'service_selection' %}" class="btn btn-mmc-primary btn-lg">
+                <a href="{% url 'service_selection' %}" class="btn btn-primary btn-lg">
                     <i class="bi bi-grid me-2"></i>View All Services
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
+    {% comment %} <!-- Footer -->
     <footer class="footer py-4 mt-5">
         <div class="container">
             <div class="row">
@@ -648,7 +684,7 @@
                 <p class="mb-0">&copy; {% now "Y" %} Maharashtra Medical Council, Mumbai. All Rights Reserved.</p>
             </div>
         </div>
-    </footer>
+    </footer> {% endcomment %}
 
     <!-- WhatsApp Float -->
     <a href="https://wa.me/9987619955?text=Hi" class="whatsapp-float" target="_blank" 
@@ -657,11 +693,7 @@
         <small>Click to solve RMP queries instantly</small>
     </a>
 
-    <!-- Theme Toggle -->
-    <button class="btn btn-primary theme-toggle rounded-circle" id="themeToggle" 
-            style="width: 50px; height: 50px;">
-        <i class="bi bi-moon-stars"></i>
-    </button>
+
 
     <!-- Scroll to Top -->
     <button class="btn btn-mmc-primary rounded-circle" id="scrollToTop" 
@@ -741,7 +773,7 @@
     </script>
 
     {% endblock %}
-    
+
 {% block extra_javascript %}
 
 {% include "bootstrap/partials/syntax-highlight.html" %}

@@ -33,14 +33,11 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
-{% endblock %}
 
-{% block title %}{{ service.name }} - MMC Services{% endblock %}
 
-{% block extra_css %}
 <style>
     .service-hero {
-        background: linear-gradient(135deg, var(--mmc-primary) 0%, #1e3a8a 100%);
+        background: linear-gradient(135deg, var(--cd-primary) 0%, #1e3a8a 100%);
         color: white;
         padding: 3rem 0;
         border-radius: 0 0 20px 20px;
@@ -76,7 +73,7 @@
         top: 0;
         bottom: 0;
         width: 3px;
-        background: var(--mmc-primary);
+        background: var(--cd-primary);
         border-radius: 10px;
     }
     
@@ -93,10 +90,10 @@
         top: 0.5rem;
         width: 1rem;
         height: 1rem;
-        background: var(--mmc-primary);
+        background: var(--cd-primary);
         border-radius: 50%;
         border: 3px solid white;
-        box-shadow: 0 0 0 3px var(--mmc-primary);
+        box-shadow: 0 0 0 3px var(--cd-primary);
     }
     
     .document-list {
@@ -123,14 +120,14 @@
     
     .eligibility-badge {
         background-color: #e7f3ff;
-        color: var(--mmc-primary);
-        border: 1px solid var(--mmc-primary);
+        color: var(--cd-primary);
+        border: 1px solid var(--cd-primary);
     }
     
     .similar-service-card {
         transition: all 0.3s ease;
         border: none;
-        border-left: 4px solid var(--mmc-primary);
+        border-left: 4px solid var(--cd-primary);
     }
     
     .similar-service-card:hover {
@@ -138,7 +135,10 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
 </style>
+
 {% endblock %}
+
+{% block title %}{{ service.name }} - MMC Services{% endblock %}
 
 {% block content %}
 <!-- Service Hero Section -->
@@ -155,11 +155,11 @@
                     </ol>
                 </nav>
                 
-                <h1 class="display-4 fw-bold mb-3">
+                <h1 class="display-6 fw-bold text-dark mb-2">
                     <i class="bi {{ service.icon }} me-3"></i>
                     {{ service.name }}
                 </h1>
-                <p class="lead mb-4">{{ service.description }}</p>
+                <p class="lead text-dark mb-2">{{ service.description }}</p>
                 
                 <div class="d-flex flex-wrap gap-3">
                     <span class="badge bg-light text-dark fs-6 p-2">
@@ -187,7 +187,7 @@
                     <i class="bi {{ service.icon }}"></i>
                 </div>
                 {% if user.is_authenticated %}
-                <div class="mt-4">
+                <div class="mt-2">
                     {% if is_eligible %}
                     <a href="{% url 'initiate_service' service.code %}" 
                        class="btn btn-light btn-lg px-4 py-2 fw-bold">
@@ -216,7 +216,7 @@
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-2">
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">

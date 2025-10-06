@@ -84,6 +84,7 @@ def create_audit_log(user, action_type, model_name, object_id, description, requ
     except Exception as e:
         logger.error(f"Failed to create audit log: {e}")
 
+
 def landing_page(request):
     """Comprehensive landing page for MMC portal"""
     
@@ -102,29 +103,53 @@ def landing_page(request):
     ).count()
     
     # Get active announcements from system config
-    announcements = SystemConfig.objects.filter(
-        key__startswith='announcement_',
-        is_active=True
-    ).order_by('-updated_date')[:5]
+    # announcements = SystemConfig.objects.filter(
+    #     key__startswith='announcement_',
+    #     is_active=True
+    # ).order_by('-updated_date')[:5]
+    from django.db.models.functions import Cast
+    from django.db.models import CharField
+
+    # announcements = SystemConfig.objects.annotate(
+    #     key_text=Cast('key', output_field=CharField())
+    # ).filter(
+    #     key_text__startswith='announcement_',
+    #     is_active=True
+    # ).order_by('-updated_date')[:5]
+
+    # # Get notifications
+    # notifications = SystemConfig.objects.filter(
+    #     key__startswith='notification_',
+    #     is_active=True
+    # ).order_by('-updated_date')[:5]
     
-    # Get notifications
-    notifications = SystemConfig.objects.filter(
-        key__startswith='notification_',
-        is_active=True
-    ).order_by('-updated_date')[:5]
+    # # Get downloads
+    # downloads = SystemConfig.objects.filter(
+    #     key__startswith='download_',
+    #     is_active=True
+    # ).order_by('-updated_date')[:5]
     
-    # Get downloads
-    downloads = SystemConfig.objects.filter(
-        key__startswith='download_',
-        is_active=True
+    # # Get instructions
+    # instructions = SystemConfig.objects.filter(
+    #     key__startswith='instruction_',
+    #     is_active=True
+    # ).order_by('-updated_date')[:5]
+    announcements = SystemConfig.objects.extra(
+        where=["CAST(`key` AS CHAR) LIKE 'announcement_%' AND is_active = TRUE"]
     ).order_by('-updated_date')[:5]
-    
-    # Get instructions
-    instructions = SystemConfig.objects.filter(
-        key__startswith='instruction_',
-        is_active=True
+
+    notifications = SystemConfig.objects.extra(
+        where=["CAST(`key` AS CHAR) LIKE 'notification_%' AND is_active = TRUE"]
     ).order_by('-updated_date')[:5]
-    
+
+    downloads = SystemConfig.objects.extra(
+        where=["CAST(`key` AS CHAR) LIKE 'download_%' AND is_active = TRUE"]
+    ).order_by('-updated_date')[:5]
+
+    instructions = SystemConfig.objects.extra(
+        where=["CAST(`key` AS CHAR) LIKE 'instruction_%' AND is_active = TRUE"]
+    ).order_by('-updated_date')[:5]
+
     # Service categories for quick access
     service_categories = {
         'Registration Services': [
@@ -488,41 +513,51 @@ def get_service_categories():
 def service_selection(request):
     """Enhanced service selection page for all 23 registration services"""
     service_categories = get_service_categories()
-    
-    # Get user's pending applications
-    pending_applications = Application.objects.filter(
-        applicant=request.user,
+
+    # Fetch all applications for current user once
+    user_apps = Application.objects.filter(applicant=request.user)
+
+    # Pending applications
+    pending_applications = user_apps.filter(
         status__in=['draft', 'submitted', 'under_review', 'additional_info_required']
-    ).select_related('application_type')
-    
-    # Get application counts by type
-    application_counts = pending_applications.values('application_type').annotate(
-        count=Count('application_type')
+    ).select_related('rmp', 'assigned_to', 'approved_by')
+
+    # Application counts by type (for badges beside services)
+    application_counts = (
+        pending_applications.values('application_type')
+        .annotate(count=Count('application_type'))
     )
-    
-    # Create a dictionary for quick lookup
     pending_count_dict = {item['application_type']: item['count'] for item in application_counts}
-    
-    # Add pending counts to services
+
+    # Add pending counts to each service
     for category_name, category_data in service_categories.items():
         for service in category_data['services']:
             service['pending_count'] = pending_count_dict.get(service['code'], 0)
-    
-    # User statistics
+
+    # --- 📊 User statistics (optimized with single aggregation query) ---
+    total_apps = user_apps.count()
+
+    # Aggregate counts in one DB call
+    status_counts = (
+        user_apps.values('status')
+        .annotate(count=Count('status'))
+    )
+    status_dict = {item['status']: item['count'] for item in status_counts}
+
     user_stats = {
-        'total_applications': Application.objects.filter(applicant=request.user).count(),
-        'approved_applications': Application.objects.filter(
-            applicant=request.user, 
-            status='approved'
-        ).count(),
-        'pending_applications': pending_applications.count(),
-        'recent_applications': Application.objects.filter(
-            applicant=request.user,
+        'total_applications': total_apps,
+        'approved_applications': status_dict.get('approved', 0),
+        'completed_applications': status_dict.get('completed', 0),
+        'rejected_applications': status_dict.get('rejected', 0),
+        'pending_applications': sum(
+            status_dict.get(s, 0) for s in ['draft', 'submitted', 'under_review', 'additional_info_required']
+        ),
+        'recent_applications': user_apps.filter(
             submitted_date__gte=timezone.now() - timedelta(days=30)
-        ).count()
+        ).count(),
     }
-    
-    # Quick actions based on user type
+
+    # --- ⚡ Quick actions based on RMP profile ---
     quick_actions = []
     if hasattr(request.user, 'rmp_profile'):
         rmp_profile = request.user.rmp_profile
@@ -534,7 +569,7 @@ def service_selection(request):
                 'icon': 'bi-check-circle',
                 'color': 'success'
             })
-        else:
+        elif rmp_profile.registration_status == 'pending':
             quick_actions.append({
                 'name': 'Complete Registration',
                 'description': 'Registration pending completion',
@@ -542,16 +577,25 @@ def service_selection(request):
                 'icon': 'bi-exclamation-circle',
                 'color': 'warning'
             })
-    
+        else:
+            quick_actions.append({
+                'name': 'Start New Registration',
+                'description': 'You can apply for registration services',
+                'action': 'permanent',
+                'icon': 'bi-person-plus',
+                'color': 'primary'
+            })
+
     context = {
         'service_categories': service_categories,
         'user_stats': user_stats,
-        'pending_applications': pending_applications[:5],  # Recent 5
+        'pending_applications': pending_applications[:5],  # recent 5 pending
         'quick_actions': quick_actions,
         'total_services': sum(len(cat['services']) for cat in service_categories.values())
     }
-    
+
     return render(request, 'MMC/landing/service_selection.html', context)
+
 
 @login_required
 def initiate_service(request, service_type):

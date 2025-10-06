@@ -73,7 +73,9 @@ def Login(request):
             else:
                 request.session.set_expiry(0)  # Browser close
             # return redirect('workflow_module') 
-            return redirect('bom_dashboard') 
+            if user.role_id == 13:
+                return redirect('landing_page') 
+            else : return redirect('bom_dashboard') 
         else:
             messages.error(request, 'Invalid Credentials')
             return redirect("Login")

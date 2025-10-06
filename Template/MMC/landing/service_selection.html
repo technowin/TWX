@@ -39,7 +39,7 @@
     .service-card {
         transition: all 0.3s ease;
         border: none;
-        border-left: 4px solid var(--bs-primary);
+        border-left: 4px solid var(--cd-primary);
         height: 100%;
     }
     
@@ -48,14 +48,14 @@
         box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     }
     
-    .service-card.border-success { border-left-color: var(--bs-success) !important; }
-    .service-card.border-warning { border-left-color: var(--bs-warning) !important; }
-    .service-card.border-info { border-left-color: var(--bs-info) !important; }
-    .service-card.border-danger { border-left-color: var(--bs-danger) !important; }
-    .service-card.border-secondary { border-left-color: var(--bs-secondary) !important; }
+    .service-card.border-success { border-left-color: var(--cd-success) !important; }
+    .service-card.border-warning { border-left-color: var(--cd-warning) !important; }
+    .service-card.border-info { border-left-color: var(--cd-info) !important; }
+    .service-card.border-danger { border-left-color: var(--cd-danger) !important; }
+    .service-card.border-secondary { border-left-color: var(--cd-secondary) !important; }
     
     .category-header {
-        background: linear-gradient(135deg, var(--mmc-primary), #1e3a8a);
+        background: linear-gradient(135deg, var(--cd-primary), #1e3a8a);
         color: white;
         border-radius: 10px;
         padding: 1.5rem;
@@ -91,7 +91,7 @@
     }
     
     .search-box:focus {
-        border-color: var(--mmc-primary);
+        border-color: var(--cd-primary);
         box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
     }
 </style>
@@ -109,16 +109,16 @@
             <div class="category-header">
                 <div class="row align-items-center">
                     <div class="col-md-8">
-                        <h1 class="display-5 fw-bold mb-3">
+                        <h1 class=" fw-bold text-dark mb-3">
                             <i class="bi bi-grid-3x3-gap me-3"></i>
                             MMC Services Portal
                         </h1>
-                        <p class="lead mb-0">Choose from {{ total_services }} professional services for medical practitioners</p>
+                        <p class="lead mb-0 text-dark">Choose from {{ total_services }} professional services for medical practitioners</p>
                     </div>
                     <div class="col-md-4 text-end">
-                        <div class="bg-white text-dark rounded p-3 d-inline-block">
+                        <div class="rounded p-3 text-dark d-inline-block">
                             <h4 class="mb-0 text-mmc-primary">{{ user_stats.total_applications }}</h4>
-                            <small>Total Applications</small>
+                            <small >Total Applications</small>
                         </div>
                     </div>
                 </div>

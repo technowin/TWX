@@ -457,6 +457,7 @@ urlpatterns = [
     # Service Options
     path('service_selection/', service_selection, name='service_selection'),
     path('initiate_service/<str:service_type>/', initiate_service, name='initiate_service'),
+    path('service_details/<str:service_type>/', service_details, name='service_details'),
 
     # API endpoints for landing page
     path('api/quick-stats/', quick_stats_api, name='quick_stats_api'),
@@ -464,8 +465,8 @@ urlpatterns = [
     path('api/notifications/', get_notifications, name='get_notifications'),
 
     # Authentication
-    path('mmc/login/', MMCLoginView.as_view(), name='api_cpd_points'),
-    path('mmc/register/', MMCRegistrationView.as_view(), name='api_cpd_points'),
+    path('mmc/login/', MMCLoginView.as_view(), name='mmc_login'),
+    path('mmc/register/', MMCRegistrationView.as_view(), name='mmc_register'),
 
     # Dashboard
     path('mmc_dashboard/', mmc_dashboard, name='mmc_dashboard'),
