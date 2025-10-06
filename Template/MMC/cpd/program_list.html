@@ -1,0 +1,327 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+.program-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.program-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.program-details {
+    font-size: 0.9rem;
+}
+</style>
+
+{% endblock %}
+
+{% block title %}CPD Programs - MMC Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Continuing Professional Development</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'cpd_my_programs' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-list-check"></i> My Programs
+            </a>
+            {% if user.user_type in 'ADMIN,SUPER_ADMIN' %}
+            <a href="{% url 'admin_cpd_program_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Program
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="specialization" class="form-label">Specialization</label>
+                    <select name="specialization" id="specialization" class="form-select">
+                        <option value="">All Specializations</option>
+                        {% for specialization in specializations %}
+                        <option value="{{ specialization }}" {% if request.GET.specialization == specialization %}selected{% endif %}>
+                            {{ specialization }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="program_type" class="form-label">Program Type</label>
+                    <select name="program_type" id="program_type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for value, label in program_types %}
+                        <option value="{{ value }}" {% if request.GET.program_type == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date_filter" class="form-label">Date Filter</label>
+                    <select name="date_filter" id="date_filter" class="form-select">
+                        <option value="">All Programs</option>
+                        <option value="upcoming" {% if request.GET.date_filter == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                        <option value="ongoing" {% if request.GET.date_filter == 'ongoing' %}selected{% endif %}>Ongoing</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Programs Grid -->
+    {% if programs %}
+    <div class="row">
+        {% for program in programs %}
+        <div class="col-xl-4 col-lg-6 mb-4">
+            <div class="card h-100 program-card">
+                <div class="card-header {% if program.is_registration_open %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="card-title mb-0">{{ program.get_program_type_display }}</h6>
+                        <span class="badge bg-light text-dark">{{ program.cpd_points }} pts</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ program.title }}</h5>
+                    <p class="card-text text-muted">{{ program.description|truncatewords:20 }}</p>
+                    
+                    <div class="program-details">
+                        <div class="mb-2">
+                            <i class="bi bi-calendar-event text-primary"></i>
+                            <strong>Date:</strong> {{ program.start_date|date:"d M Y" }} - {{ program.end_date|date:"d M Y" }}
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-geo-alt text-warning"></i>
+                            <strong>Venue:</strong> {{ program.venue|truncatewords:5 }}
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-people text-info"></i>
+                            <strong>Organizer:</strong> {{ program.organizer }}
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-clock text-success"></i>
+                            <strong>Registration:</strong> 
+                            {% if program.is_registration_open %}
+                            <span class="text-success">Open until {{ program.registration_deadline|date:"d M Y" }}</span>
+                            {% else %}
+                            <span class="text-danger">Closed</span>
+                            {% endif %}
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-person-check text-primary"></i>
+                            <strong>Participants:</strong> {{ program.get_registered_count }}/{{ program.max_participants }}
+                        </div>
+                    </div>
+
+                    {% if program.fee_amount > 0 %}
+                    <div class="mt-3">
+                        <h5 class="text-primary">₹{{ program.fee_amount }}</h5>
+                        <small class="text-muted">Registration Fee</small>
+                    </div>
+                    {% else %}
+                    <div class="mt-3">
+                        <span class="badge bg-success">Free</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'cpd_program_detail' program.program_id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-eye"></i> View Details
+                        </a>
+                        {% if program.is_registration_open and not program.is_full %}
+                        <a href="{% url 'cpd_program_register' program.program_id %}" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Register Now
+                        </a>
+                        {% elif program.is_full %}
+                        <button class="btn btn-secondary" disabled>
+                            <i class="bi bi-x-circle"></i> Program Full
+                        </button>
+                        {% else %}
+                        <button class="btn btn-warning" disabled>
+                            <i class="bi bi-clock"></i> Registration Closed
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Program pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-calendar-x display-1 text-muted"></i>
+        <h4 class="mt-3">No programs found</h4>
+        <p class="text-muted">No CPD programs match your current filters.</p>
+        <a href="{% url 'cpd_program_list' %}" class="btn btn-primary">Clear Filters</a>
+    </div>
+    {% endif %}
+
+    <!-- CPD Statistics -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">CPD Requirements & Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h3 class="text-primary">{{ user.total_cpd_points }}</h3>
+                            <p class="text-muted mb-0">Points Earned</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-warning">{{ user.cpd_points_required }}</h3>
+                            <p class="text-muted mb-0">Points Required</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-{% if user.total_cpd_points >= user.cpd_points_required %}success{% else %}danger{% endif %}">
+                                {{ user.cpd_points_required|subtract:user.total_cpd_points }}
+                            </h3>
+                            <p class="text-muted mb-0">Points Needed</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-info">
+                                {% widthratio user.total_cpd_points user.cpd_points_required 100 %}%
+                            </h3>
+                            <p class="text-muted mb-0">Completion</p>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {% widthratio user.total_cpd_points user.cpd_points_required 100 %}%;"
+                             aria-valuenow="{% widthratio user.total_cpd_points user.cpd_points_required 100 %}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                            {% widthratio user.total_cpd_points user.cpd_points_required 100 %}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

@@ -1,0 +1,422 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}My CPD Programs - MMC Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">My CPD Programs</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'cpd_program_list' %}" class="btn btn-primary">
+                <i class="bi bi-search"></i> Browse Programs
+            </a>
+        </div>
+    </div>
+
+    <!-- CPD Progress -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">CPD Progress Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <div class="display-4 fw-bold text-primary">{{ total_points }}</div>
+                            <small class="text-muted">Points Earned</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="display-4 fw-bold text-warning">{{ points_required }}</div>
+                            <small class="text-muted">Points Required</small>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Progress: {{ completion_percentage|floatformat:1 }}% Complete</h6>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated 
+                                    {% if completion_percentage >= 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                    role="progressbar" 
+                                    style="width: {{ completion_percentage }}%;"
+                                    aria-valuenow="{{ completion_percentage }}" 
+                                    aria-valuemin="0" aria-valuemax="100">
+                                    {{ completion_percentage|floatformat:1 }}%
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                {% if completion_percentage >= 100 %}
+                                🎉 Congratulations! You've met your CPD requirements.
+                                {% else %}
+                                {{ points_required|subtract:total_points }} more points needed to complete requirements.
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5>Program Statistics</h5>
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <div class="display-6 text-primary">{{ participations.count }}</div>
+                            <small class="text-muted">Total Registered</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="display-6 text-success">{{ completed_programs.count }}</div>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Program Tabs -->
+    <ul class="nav nav-tabs mb-4" id="programTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
+                Upcoming Programs ({{ upcoming_programs.count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
+                Completed Programs ({{ completed_programs.count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                All Programs ({{ participations.count }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="programTabsContent">
+        <!-- Upcoming Programs -->
+        <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+            {% if upcoming_programs %}
+            <div class="row">
+                {% for participation in upcoming_programs %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-0">{{ participation.program.title|truncatewords:4 }}</h6>
+                                <span class="badge bg-light text-primary">{{ participation.program.cpd_points }} pts</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">{{ participation.program.description|truncatewords:15 }}</p>
+                            <div class="program-info small">
+                                <div><i class="bi bi-calendar-event"></i> {{ participation.program.start_date|date:"d M Y" }}</div>
+                                <div><i class="bi bi-geo-alt"></i> {{ participation.program.venue|truncatewords:3 }}</div>
+                                <div><i class="bi bi-clock"></i> {{ participation.program.start_date|time }} - {{ participation.program.end_date|time }}</div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-warning">{{ participation.get_attendance_status_display }}</span>
+                                <div>
+                                    <a href="{% url 'cpd_program_detail' participation.program.program_id %}" class="btn btn-sm btn-outline-primary">
+                                        Details
+                                    </a>
+                                    <a href="{% url 'cpd_program_unregister' participation.program.program_id %}" class="btn btn-sm btn-outline-danger">
+                                        Unregister
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x display-1 text-muted"></i>
+                <h4 class="mt-3">No upcoming programs</h4>
+                <p class="text-muted">You don't have any upcoming CPD programs.</p>
+                <a href="{% url 'cpd_program_list' %}" class="btn btn-primary">Browse Programs</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Completed Programs -->
+        <div class="tab-pane fade" id="completed" role="tabpanel">
+            {% if completed_programs %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Program Name</th>
+                            <th>Completion Date</th>
+                            <th>CPD Points</th>
+                            <th>Certificate</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for participation in completed_programs %}
+                        <tr>
+                            <td>
+                                <strong>{{ participation.program.title }}</strong><br>
+                                <small class="text-muted">{{ participation.program.organizer }}</small>
+                            </td>
+                            <td>{{ participation.completion_date|date:"d M Y" }}</td>
+                            <td>
+                                <span class="badge bg-success">{{ participation.points_earned }} points</span>
+                            </td>
+                            <td>
+                                {% if participation.certificate_issued %}
+                                <span class="badge bg-success">Issued</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if participation.rating %}
+                                <div class="text-warning">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= participation.rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                        <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#ratingModal{{ participation.id }}">
+                                    Rate Program
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-award display-1 text-muted"></i>
+                <h4 class="mt-3">No completed programs</h4>
+                <p class="text-muted">You haven't completed any CPD programs yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- All Programs -->
+        <div class="tab-pane fade" id="all" role="tabpanel">
+            {% if participations %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Program Name</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Points</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for participation in participations %}
+                        <tr>
+                            <td>
+                                <strong>{{ participation.program.title }}</strong><br>
+                                <small class="text-muted">{{ participation.program.get_program_type_display }}</small>
+                            </td>
+                            <td>
+                                {{ participation.program.start_date|date:"d M Y" }}<br>
+                                <small class="text-muted">{{ participation.registration_date|date:"d M Y" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if participation.attendance_status == 'COMPLETED' %}success{% elif participation.attendance_status == 'REGISTERED' %}primary{% else %}warning{% endif %}">
+                                    {{ participation.get_attendance_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if participation.points_earned %}
+                                <span class="badge bg-success">{{ participation.points_earned }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'cpd_program_detail' participation.program.program_id %}" class="btn btn-outline-primary">
+                                        View
+                                    </a>
+                                    {% if participation.attendance_status == 'REGISTERED' %}
+                                    <a href="{% url 'cpd_program_unregister' participation.program.program_id %}" class="btn btn-outline-danger">
+                                        Cancel
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-plus display-1 text-muted"></i>
+                <h4 class="mt-3">No program registrations</h4>
+                <p class="text-muted">You haven't registered for any CPD programs yet.</p>
+                <a href="{% url 'cpd_program_list' %}" class="btn btn-primary">Browse Programs</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Rating Modals -->
+{% for participation in completed_programs %}
+{% if not participation.rating %}
+<div class="modal fade" id="ratingModal{{ participation.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rate Program: {{ participation.program.title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'rate_program' participation.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div class="rating-stars" data-participation="{{ participation.id }}">
+                            {% for i in "12345" %}
+                            <i class="bi bi-star fs-1 text-warning" data-rating="{{ forloop.counter }}" style="cursor: pointer;"></i>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="rating" id="rating{{ participation.id }}" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedback{{ participation.id }}" class="form-label">Feedback (Optional)</label>
+                        <textarea class="form-control" id="feedback{{ participation.id }}" name="feedback" rows="3" placeholder="Share your experience with this program..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Rating</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Rating stars functionality
+    document.querySelectorAll('.rating-stars').forEach(starsContainer => {
+        const stars = starsContainer.querySelectorAll('.bi-star');
+        const hiddenInput = document.getElementById('rating' + starsContainer.dataset.participation);
+        
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = this.dataset.rating;
+                hiddenInput.value = rating;
+                
+                // Update star display
+                stars.forEach(s => {
+                    if (s.dataset.rating <= rating) {
+                        s.classList.add('bi-star-fill');
+                        s.classList.remove('bi-star');
+                    } else {
+                        s.classList.add('bi-star');
+                        s.classList.remove('bi-star-fill');
+                    }
+                });
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

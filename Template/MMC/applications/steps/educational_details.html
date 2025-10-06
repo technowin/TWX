@@ -1,0 +1,296 @@
+{% extends 'applications/application_wizard.html' %}
+{% load static %}
+
+{% block step_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-journal-bookmark"></i>
+            Step 2: Educational Details
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Please provide your educational qualifications starting from 10th standard onwards.
+            </div>
+            
+            <!-- Educational Qualifications -->
+            <div id="qualifications-container">
+                <div class="qualification-item mb-4 p-3 border rounded">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Qualification Type *</label>
+                            <select class="form-select" name="qualification_0_type" required>
+                                <option value="">Select Type</option>
+                                <option value="10th">10th Standard</option>
+                                <option value="12th">12th Standard</option>
+                                <option value="mbbs">MBBS</option>
+                                <option value="md">MD</option>
+                                <option value="ms">MS</option>
+                                <option value="diploma">Diploma</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label">Institution Name *</label>
+                            <input type="text" class="form-control" name="qualification_0_institution" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Board/University *</label>
+                            <input type="text" class="form-control" name="qualification_0_board" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Year of Passing *</label>
+                            <input type="number" class="form-control" name="qualification_0_year" 
+                                   min="1950" max="2030" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Percentage *</label>
+                            <input type="number" class="form-control" name="qualification_0_percentage" 
+                                   step="0.01" min="0" max="100" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Roll Number *</label>
+                            <input type="text" class="form-control" name="qualification_0_roll" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Marksheet</label>
+                            <input type="file" class="form-control" name="qualification_0_marksheet" 
+                                   accept=".pdf,.jpg,.jpeg,.png">
+                        </div>
+                    </div>
+                    
+                    <!-- Subjects Section -->
+                    <div class="subjects-section mt-3">
+                        <h6 class="text-muted">Subjects Details</h6>
+                        <div class="subjects-container">
+                            <div class="subject-item row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" 
+                                           placeholder="Subject Name" name="qualification_0_subject_0_name">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control form-control-sm" 
+                                           placeholder="Max Marks" name="qualification_0_subject_0_max">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control form-control-sm" 
+                                           placeholder="Obtained" name="qualification_0_subject_0_obtained">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control form-control-sm" 
+                                           placeholder="%" step="0.01" name="qualification_0_subject_0_percentage">
+                                </div>
+                                <div class="col-md-2">
+                                    <select class="form-select form-select-sm" name="qualification_0_subject_0_result">
+                                        <option value="pass">Pass</option>
+                                        <option value="fail">Fail</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary add-subject">
+                            <i class="bi bi-plus"></i> Add Subject
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" id="add-qualification" class="btn btn-outline-success mb-4">
+                <i class="bi bi-plus-circle"></i> Add Another Qualification
+            </button>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'application_step' application.application_id 1 %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Previous
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Save & Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let qualCount = 1;
+    let subjectCounts = {0: 1};
+    
+    // Add qualification
+    document.getElementById('add-qualification').addEventListener('click', function() {
+        const container = document.getElementById('qualifications-container');
+        const newQual = document.createElement('div');
+        newQual.className = 'qualification-item mb-4 p-3 border rounded';
+        newQual.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Qualification ${qualCount + 1}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-qualification">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Qualification Type *</label>
+                    <select class="form-select" name="qualification_${qualCount}_type" required>
+                        <option value="">Select Type</option>
+                        <option value="10th">10th Standard</option>
+                        <option value="12th">12th Standard</option>
+                        <option value="mbbs">MBBS</option>
+                        <option value="md">MD</option>
+                        <option value="ms">MS</option>
+                        <option value="diploma">Diploma</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Institution Name *</label>
+                    <input type="text" class="form-control" name="qualification_${qualCount}_institution" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Board/University *</label>
+                    <input type="text" class="form-control" name="qualification_${qualCount}_board" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Year of Passing *</label>
+                    <input type="number" class="form-control" name="qualification_${qualCount}_year" 
+                           min="1950" max="2030" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Percentage *</label>
+                    <input type="number" class="form-control" name="qualification_${qualCount}_percentage" 
+                           step="0.01" min="0" max="100" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Roll Number *</label>
+                    <input type="text" class="form-control" name="qualification_${qualCount}_roll" required>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Marksheet</label>
+                    <input type="file" class="form-control" name="qualification_${qualCount}_marksheet" 
+                           accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+            
+            <div class="subjects-section mt-3">
+                <h6 class="text-muted">Subjects Details</h6>
+                <div class="subjects-container">
+                    <div class="subject-item row g-2 mb-2">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control form-control-sm" 
+                                   placeholder="Subject Name" name="qualification_${qualCount}_subject_0_name">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control form-control-sm" 
+                                   placeholder="Max Marks" name="qualification_${qualCount}_subject_0_max">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control form-control-sm" 
+                                   placeholder="Obtained" name="qualification_${qualCount}_subject_0_obtained">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control form-control-sm" 
+                                   placeholder="%" step="0.01" name="qualification_${qualCount}_subject_0_percentage">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" name="qualification_${qualCount}_subject_0_result">
+                                <option value="pass">Pass</option>
+                                <option value="fail">Fail</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary add-subject">
+                    <i class="bi bi-plus"></i> Add Subject
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(newQual);
+        subjectCounts[qualCount] = 1;
+        qualCount++;
+        
+        // Add event listeners for new elements
+        newQual.querySelector('.remove-qualification').addEventListener('click', function() {
+            newQual.remove();
+        });
+        
+        newQual.querySelector('.add-subject').addEventListener('click', function() {
+            addSubject(qualCount - 1, newQual.querySelector('.subjects-container'));
+        });
+    });
+    
+    // Add subject function
+    function addSubject(qualIndex, container) {
+        const subjectCount = subjectCounts[qualIndex];
+        const newSubject = document.createElement('div');
+        newSubject.className = 'subject-item row g-2 mb-2';
+        newSubject.innerHTML = `
+            <div class="col-md-4">
+                <input type="text" class="form-control form-control-sm" 
+                       placeholder="Subject Name" name="qualification_${qualIndex}_subject_${subjectCount}_name">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control form-control-sm" 
+                       placeholder="Max Marks" name="qualification_${qualIndex}_subject_${subjectCount}_max">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control form-control-sm" 
+                       placeholder="Obtained" name="qualification_${qualIndex}_subject_${subjectCount}_obtained">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control form-control-sm" 
+                       placeholder="%" step="0.01" name="qualification_${qualIndex}_subject_${subjectCount}_percentage">
+            </div>
+            <div class="col-md-1">
+                <select class="form-select form-select-sm" name="qualification_${qualIndex}_subject_${subjectCount}_result">
+                    <option value="pass">Pass</option>
+                    <option value="fail">Fail</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-subject">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(newSubject);
+        subjectCounts[qualIndex]++;
+        
+        newSubject.querySelector('.remove-subject').addEventListener('click', function() {
+            newSubject.remove();
+        });
+    }
+    
+    // Initial add subject listeners
+    document.querySelectorAll('.add-subject').forEach(button => {
+        button.addEventListener('click', function() {
+            const container = this.previousElementSibling;
+            addSubject(0, container);
+        });
+    });
+    
+    // Remove qualification listeners
+    document.querySelectorAll('.remove-qualification').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.qualification-item').remove();
+        });
+    });
+});
+</script>
+{% endblock %}

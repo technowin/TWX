@@ -1,0 +1,217 @@
+{% extends 'applications/application_wizard.html' %}
+{% load static %}
+
+{% block step_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-clipboard-data"></i>
+            Step 5: Screening Test Details
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Provide details of the screening test undertaken as per MCI/NMC requirements.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Screening Test Board *</label>
+                    <select class="form-select" name="screening_board" required>
+                        <option value="">Select Board</option>
+                        <option value="nmc">National Medical Commission (NMC)</option>
+                        <option value="state">State Medical Council</option>
+                        <option value="other">Other Authorized Body</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Test Name *</label>
+                    <input type="text" class="form-control" name="test_name" 
+                           value="Foreign Medical Graduate Examination (FMGE)" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Date of Examination *</label>
+                    <input type="date" class="form-control" name="exam_date" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Roll Number *</label>
+                    <input type="text" class="form-control" name="roll_number" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Test Center *</label>
+                    <input type="text" class="form-control" name="test_center" required>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Examination Results</h6>
+            
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Maximum Marks *</label>
+                    <input type="number" class="form-control" name="max_marks" value="300" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Marks Obtained *</label>
+                    <input type="number" class="form-control" name="obtained_marks" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Percentage *</label>
+                    <input type="number" class="form-control" name="percentage" step="0.01" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Result *</label>
+                    <select class="form-select" name="result" required>
+                        <option value="">Select Result</option>
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Attempt Number</label>
+                    <select class="form-select" name="attempt_number">
+                        <option value="1">First Attempt</option>
+                        <option value="2">Second Attempt</option>
+                        <option value="3">Third Attempt</option>
+                        <option value="4">Fourth Attempt</option>
+                        <option value="5+">Fifth or More Attempts</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Subject-wise Marks -->
+            <h6 class="border-bottom pb-2 mt-4">Subject-wise Performance</h6>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered" id="subjectsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Subject</th>
+                            <th>Maximum Marks</th>
+                            <th>Marks Obtained</th>
+                            <th>Percentage</th>
+                            <th>Result</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <input type="text" class="form-control form-control-sm" name="subject_1_name" 
+                                       value="Anatomy" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="subject_1_max" 
+                                       value="50" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="subject_1_obtained" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="subject_1_percentage" 
+                                       step="0.01" required>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="subject_1_result" required>
+                                    <option value="pass">Pass</option>
+                                    <option value="fail">Fail</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled>
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <button type="button" id="addSubject" class="btn btn-outline-success btn-sm mb-4">
+                <i class="bi bi-plus-circle"></i> Add Another Subject
+            </button>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'application_step' application.application_id 4 %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Previous
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Save & Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let subjectCount = 1;
+    
+    document.getElementById('addSubject').addEventListener('click', function() {
+        subjectCount++;
+        const table = document.getElementById('subjectsTable').getElementsByTagName('tbody')[0];
+        const newRow = table.insertRow();
+        
+        newRow.innerHTML = `
+            <td>
+                <input type="text" class="form-control form-control-sm" name="subject_${subjectCount}_name" required>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm" name="subject_${subjectCount}_max" required>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm" name="subject_${subjectCount}_obtained" required>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm" name="subject_${subjectCount}_percentage" 
+                       step="0.01" required>
+            </td>
+            <td>
+                <select class="form-select form-select-sm" name="subject_${subjectCount}_result" required>
+                    <option value="pass">Pass</option>
+                    <option value="fail">Fail</option>
+                </select>
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-subject">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        newRow.querySelector('.remove-subject').addEventListener('click', function() {
+            newRow.remove();
+        });
+    });
+    
+    // Auto-calculate percentage
+    document.addEventListener('input', function(e) {
+        if (e.target.name.includes('_obtained') || e.target.name.includes('_max')) {
+            const input = e.target;
+            const row = input.closest('tr');
+            const obtained = row.querySelector('input[name$="_obtained"]').value;
+            const max = row.querySelector('input[name$="_max"]').value;
+            const percentageInput = row.querySelector('input[name$="_percentage"]');
+            
+            if (obtained && max) {
+                const percentage = (obtained / max) * 100;
+                percentageInput.value = percentage.toFixed(2);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

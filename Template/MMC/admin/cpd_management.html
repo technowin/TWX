@@ -1,0 +1,552 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-gear"></i>
+            CPD Program Management
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportCPDData()">
+                    <i class="bi bi-download"></i> Export
+                </button>
+            </div>
+            <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProgramModal">
+                <i class="bi bi-plus-circle"></i> Add Program
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ programs.count }}</h3>
+                    <p class="text-muted mb-0">Total Programs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="text-success">{{ programs|length }}</h3>
+                    <p class="text-muted mb-0">Active Programs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ accreditations.count }}</h3>
+                    <p class="text-muted mb-0">Accreditations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h3 class="text-info">0</h3>
+                    <p class="text-muted mb-0">Pending Approvals</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- CPD Programs -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">CPD Programs</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary active" data-filter="all">All</button>
+                        <button class="btn btn-sm btn-outline-primary" data-filter="active">Active</button>
+                        <button class="btn btn-sm btn-outline-primary" data-filter="upcoming">Upcoming</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if programs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="programsTable">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Date</th>
+                                    <th>Points</th>
+                                    <th>Participants</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for program in programs %}
+                                <tr data-status="{% if program.is_active %}active{% else %}inactive{% endif %}" 
+                                    data-date="{{ program.start_date|date:'Y-m-d' }}">
+                                    <td>
+                                        <strong>{{ program.title }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ program.organizer }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ program.get_program_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        {{ program.start_date|date:"M d" }} - {{ program.end_date|date:"M d, Y" }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ program.cpd_points }}</span>
+                                    </td>
+                                    <td>
+                                        {{ program.attendances.count }}/{{ program.max_participants }}
+                                    </td>
+                                    <td>
+                                        {% if program.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="#" class="btn btn-outline-primary" 
+                                               data-bs-toggle="modal" data-bs-target="#viewProgramModal{{ program.id }}">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="#" class="btn btn-outline-warning"
+                                               data-bs-toggle="modal" data-bs-target="#editProgramModal{{ program.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteProgram({{ program.id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                        <h5 class="text-muted mt-3">No CPD Programs</h5>
+                        <p class="text-muted">Create your first CPD program to get started.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Accreditation Management -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Accreditations</h5>
+                    <a href="#" class="btn btn-sm btn-outline-primary" 
+                       data-bs-toggle="modal" data-bs-target="#addAccreditationModal">
+                        <i class="bi bi-plus"></i> Add
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if accreditations %}
+                    <div class="list-group list-group-flush">
+                        {% for accreditation in accreditations %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ accreditation.name }}</h6>
+                                <span class="badge bg-{% if accreditation.status == 'approved' %}success{% elif accreditation.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                    {{ accreditation.get_status_display }}
+                                </span>
+                            </div>
+                            <p class="mb-1 small">{{ accreditation.accreditation_type|title }}</p>
+                            <small class="text-muted">
+                                Valid until: {{ accreditation.expiry_date|date:"M d, Y" }}
+                                {% if accreditation.is_expired %}
+                                <span class="badge bg-danger ms-1">Expired</span>
+                                {% endif %}
+                            </small>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="viewAccreditation({{ accreditation.id }})">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning"
+                                        onclick="editAccreditation({{ accreditation.id }})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-award fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No accreditations found</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" 
+                                data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                            <i class="bi bi-upload"></i> Bulk Upload Programs
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="generateCPDReport()">
+                            <i class="bi bi-file-earmark-text"></i> Generate Report
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" 
+                                data-bs-toggle="modal" data-bs-target="#emailParticipantsModal">
+                            <i class="bi bi-envelope"></i> Email Participants
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Program Modal -->
+<div class="modal fade" id="addProgramModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add New CPD Program</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addProgramForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Program Title *</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Program Type *</label>
+                            <select class="form-select" name="program_type" required>
+                                <option value="">Select Type</option>
+                                <option value="seminar">Seminar</option>
+                                <option value="workshop">Workshop</option>
+                                <option value="conference">Conference</option>
+                                <option value="online_course">Online Course</option>
+                                <option value="webinar">Webinar</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date *</label>
+                            <input type="datetime-local" class="form-control" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date *</label>
+                            <input type="datetime-local" class="form-control" name="end_date" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">CPD Points *</label>
+                            <input type="number" class="form-control" name="cpd_points" min="1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Participants *</label>
+                            <input type="number" class="form-control" name="max_participants" min="1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Organizer *</label>
+                            <input type="text" class="form-control" name="organizer" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Venue</label>
+                        <textarea class="form-control" name="venue" rows="2"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_online" id="is_online">
+                        <label class="form-check-label" for="is_online">This is an online program</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+                        <label class="form-check-label" for="is_active">Activate program immediately</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveProgram()">Save Program</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Accreditation Modal -->
+<div class="modal fade" id="addAccreditationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Add Accreditation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAccreditationForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type *</label>
+                        <select class="form-select" name="accreditation_type" required>
+                            <option value="">Select Type</option>
+                            <option value="organization">Organization/Institution</option>
+                            <option value="speaker">Speaker</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Person *</label>
+                        <input type="text" class="form-control" name="contact_person" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mobile *</label>
+                        <input type="text" class="form-control" name="mobile" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Issue Date *</label>
+                            <input type="date" class="form-control" name="issue_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expiry Date *</label>
+                            <input type="date" class="form-control" name="expiry_date" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="saveAccreditation()">Save Accreditation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+// Filter programs
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.getAttribute('data-filter');
+            
+            // Update active button
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filter rows
+            const rows = document.querySelectorAll('#programsTable tbody tr');
+            rows.forEach(row => {
+                const status = row.getAttribute('data-status');
+                const date = new Date(row.getAttribute('data-date'));
+                const today = new Date();
+                
+                let show = true;
+                
+                if (filter === 'active') {
+                    show = status === 'active';
+                } else if (filter === 'upcoming') {
+                    show = date > today;
+                }
+                // 'all' shows everything
+                
+                row.style.display = show ? '' : 'none';
+            });
+        });
+    });
+});
+
+function saveProgram() {
+    const form = document.getElementById('addProgramForm');
+    const formData = new FormData(form);
+    
+    fetch('/api/cpd/programs/create/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error saving program: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error saving program');
+        console.error('Error:', error);
+    });
+}
+
+function saveAccreditation() {
+    const form = document.getElementById('addAccreditationForm');
+    const formData = new FormData(form);
+    
+    fetch('/api/accreditations/create/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error saving accreditation: ' + data.message);
+        }
+    });
+}
+
+function deleteProgram(programId) {
+    if (confirm('Are you sure you want to delete this program?')) {
+        fetch(`/api/cpd/programs/${programId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting program');
+            }
+        });
+    }
+}
+
+function exportCPDData() {
+    // Implement export functionality
+    alert('Export functionality will be implemented');
+}
+
+function generateCPDReport() {
+    // Implement report generation
+    alert('Report generation will be implemented');
+}
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

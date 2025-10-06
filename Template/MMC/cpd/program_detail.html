@@ -1,0 +1,332 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}{{ program.title }} - CPD Program{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Program Header -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="card-title mb-0 text-white">{{ program.title }}</h4>
+                    <p class="text-white-50 mb-0">{{ program.organizer }} • {{ program.get_program_type_display }}</p>
+                </div>
+                <div class="col-auto">
+                    <span class="badge bg-light text-primary fs-6">{{ program.cpd_points }} CPD Points</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Program Details -->
+        <div class="col-lg-8">
+            <!-- Program Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Program Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="40%"><i class="bi bi-calendar-event text-primary"></i> Start Date:</th>
+                                    <td>{{ program.start_date|date:"d M Y, H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="bi bi-calendar-check text-primary"></i> End Date:</th>
+                                    <td>{{ program.end_date|date:"d M Y, H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="bi bi-geo-alt text-warning"></i> Venue:</th>
+                                    <td>{{ program.venue }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="bi bi-people text-info"></i> Organizer:</th>
+                                    <td>{{ program.organizer }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="40%"><i class="bi bi-clock text-success"></i> Registration:</th>
+                                    <td>
+                                        {% if program.is_registration_open %}
+                                        <span class="text-success">Open until {{ program.registration_deadline|date:"d M Y" }}</span>
+                                        {% else %}
+                                        <span class="text-danger">Closed</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><i class="bi bi-person-check text-primary"></i> Participants:</th>
+                                    <td>{{ program.get_registered_count }}/{{ program.max_participants }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="bi bi-award text-warning"></i> CPD Points:</th>
+                                    <td>{{ program.cpd_points }} points</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="bi bi-currency-rupee text-success"></i> Fee:</th>
+                                    <td>
+                                        {% if program.fee_amount > 0 %}
+                                        ₹{{ program.fee_amount }}
+                                        {% else %}
+                                        <span class="badge bg-success">Free</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Program Description -->
+                    <div class="mt-4">
+                        <h6>Program Description</h6>
+                        <p class="card-text">{{ program.description|linebreaks }}</p>
+                    </div>
+
+                    <!-- Specializations -->
+                    {% if program.specializations %}
+                    <div class="mt-3">
+                        <h6>Relevant Specializations</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for specialization in program.specializations.split %}
+                            <span class="badge bg-info">{{ specialization }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            {% if program.contact_person or program.contact_email or program.contact_phone %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Contact Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if program.contact_person %}
+                        <div class="col-md-4">
+                            <strong>Contact Person:</strong><br>
+                            {{ program.contact_person }}
+                        </div>
+                        {% endif %}
+                        {% if program.contact_email %}
+                        <div class="col-md-4">
+                            <strong>Email:</strong><br>
+                            <a href="mailto:{{ program.contact_email }}">{{ program.contact_email }}</a>
+                        </div>
+                        {% endif %}
+                        {% if program.contact_phone %}
+                        <div class="col-md-4">
+                            <strong>Phone:</strong><br>
+                            <a href="tel:{{ program.contact_phone }}">{{ program.contact_phone }}</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Registration Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Registration Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if user_participation %}
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-check-circle"></i> Already Registered</h6>
+                        <p class="mb-2">Your registration status: 
+                            <span class="badge bg-{% if user_participation.attendance_status == 'COMPLETED' %}success{% elif user_participation.attendance_status == 'REGISTERED' %}primary{% else %}warning{% endif %}">
+                                {{ user_participation.get_attendance_status_display }}
+                            </span>
+                        </p>
+                        <p class="small mb-0">
+                            Registered on: {{ user_participation.registration_date|date:"d M Y" }}
+                        </p>
+                        {% if user_participation.attendance_status == 'REGISTERED' %}
+                        <a href="{% url 'cpd_program_unregister' program.program_id %}" class="btn btn-warning btn-sm w-100 mt-2">
+                            <i class="bi bi-x-circle"></i> Unregister
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center">
+                        {% if program.is_registration_open %}
+                            {% if program.is_full %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <h6>Program Full</h6>
+                                <p class="mb-0">This program has reached maximum capacity.</p>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i>
+                                <h6>Registration Open</h6>
+                                <p class="mb-3">{{ program.get_available_slots }} spots available</p>
+                                <a href="{% url 'cpd_program_register' program.program_id %}" class="btn btn-success btn-lg w-100">
+                                    <i class="bi bi-check-circle"></i> Register Now
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-clock"></i>
+                            <h6>Registration Closed</h6>
+                            <p class="mb-0">Registration deadline has passed.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Program Highlights -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Program Highlights</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            CPD Points
+                            <span class="badge bg-primary rounded-pill">{{ program.cpd_points }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Duration
+                            <span>{{ program.start_date|timesince:program.end_date }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Capacity
+                            <span>{{ program.max_participants }} participants</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Available Spots
+                            <span class="badge bg-{% if program.get_available_slots > 10 %}success{% elif program.get_available_slots > 0 %}warning{% else %}danger{% endif %} rounded-pill">
+                                {{ program.get_available_slots }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'cpd_program_list' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left"></i> Back to Programs
+                        </a>
+                        <a href="{% url 'cpd_my_programs' %}" class="btn btn-outline-info">
+                            <i class="bi bi-list-check"></i> My Programs
+                        </a>
+                        {% if user.user_type in 'ADMIN,SUPER_ADMIN' %}
+                        <a href="{% url 'admin_cpd_program_edit' program.program_id %}" class="btn btn-outline-warning">
+                            <i class="bi bi-pencil"></i> Edit Program
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

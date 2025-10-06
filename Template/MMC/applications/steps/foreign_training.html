@@ -1,0 +1,214 @@
+{% extends 'applications/application_wizard.html' %}
+{% load static %}
+
+{% block step_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-globe"></i>
+            Step 7: Foreign Training & Registration
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Provide details of your medical training and registration in foreign countries.
+            </div>
+            
+            <h6 class="border-bottom pb-2">Medical Degree/Diploma Details</h6>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Name of Medical Degree/Diploma *</label>
+                    <input type="text" class="form-control" name="degree_name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Name of Foreign University *</label>
+                    <input type="text" class="form-control" name="foreign_university" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Country *</label>
+                    <input type="text" class="form-control" name="degree_country" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Year of Award *</label>
+                    <input type="number" class="form-control" name="degree_year" min="1950" max="2030" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Duration of Course (Years) *</label>
+                    <input type="number" class="form-control" name="course_duration" required>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Practical Training Details</h6>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Details of Practical Training Completed *</label>
+                    <textarea class="form-control" name="practical_training" rows="4" required></textarea>
+                    <div class="form-text">Describe the clinical rotations, specialties covered, and hands-on experience gained.</div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Did you attend any Indian college during this course?</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="indian_college_attended" id="college_yes" value="yes">
+                        <label class="form-check-label" for="college_yes">Yes</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="indian_college_attended" id="college_no" value="no" checked>
+                        <label class="form-check-label" for="college_no">No</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="indian_college_details" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Name of Indian College</label>
+                        <input type="text" class="form-control" name="indian_college_name">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Duration (Months)</label>
+                        <input type="number" class="form-control" name="indian_college_duration">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Subjects Covered in India</label>
+                        <textarea class="form-control" name="indian_subjects" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Language of Study</h6>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Medium of Instruction *</label>
+                    <select class="form-select" name="medium_instruction" required>
+                        <option value="">Select Language</option>
+                        <option value="english">English</option>
+                        <option value="local">Local Language</option>
+                        <option value="both">Both English and Local Language</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Language Proficiency Certificate</label>
+                    <input type="file" class="form-control" name="language_certificate" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Foreign Registration Details</h6>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Are you registered with any foreign medical council?</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="foreign_registered" id="foreign_yes" value="yes">
+                        <label class="form-check-label" for="foreign_yes">Yes</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="foreign_registered" id="foreign_no" value="no" checked>
+                        <label class="form-check-label" for="foreign_no">No</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="foreign_registration_details" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Name of Foreign Medical Council</label>
+                        <input type="text" class="form-control" name="foreign_council_name">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Registration Number</label>
+                        <input type="text" class="form-control" name="foreign_reg_number">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Registration Date</label>
+                        <input type="date" class="form-control" name="foreign_reg_date">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Registration Status</label>
+                        <select class="form-select" name="foreign_reg_status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Additional Information</h6>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Any other relevant information about your foreign training</label>
+                    <textarea class="form-control" name="additional_info" rows="3"></textarea>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'application_step' application.application_id 6 %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Previous
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Save & Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle Indian college details
+    const collegeYes = document.getElementById('college_yes');
+    const collegeNo = document.getElementById('college_no');
+    const collegeDetails = document.getElementById('indian_college_details');
+    
+    function toggleCollegeDetails() {
+        if (collegeYes.checked) {
+            collegeDetails.style.display = 'block';
+        } else {
+            collegeDetails.style.display = 'none';
+        }
+    }
+    
+    collegeYes.addEventListener('change', toggleCollegeDetails);
+    collegeNo.addEventListener('change', toggleCollegeDetails);
+    
+    // Toggle foreign registration details
+    const foreignYes = document.getElementById('foreign_yes');
+    const foreignNo = document.getElementById('foreign_no');
+    const foreignDetails = document.getElementById('foreign_registration_details');
+    
+    function toggleForeignDetails() {
+        if (foreignYes.checked) {
+            foreignDetails.style.display = 'block';
+        } else {
+            foreignDetails.style.display = 'none';
+        }
+    }
+    
+    foreignYes.addEventListener('change', toggleForeignDetails);
+    foreignNo.addEventListener('change', toggleForeignDetails);
+});
+</script>
+{% endblock %}

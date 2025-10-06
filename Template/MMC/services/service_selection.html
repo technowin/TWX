@@ -1,0 +1,278 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Select Service - MMC Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2">Select Service</h1>
+                <div class="btn-group">
+                    <a href="{% url 'application_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-list-ul"></i> My Applications
+                    </a>
+                    {% if pending_applications > 0 %}
+                    <span class="btn btn-warning position-relative">
+                        Pending Applications
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ pending_applications }}
+                        </span>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Service Categories -->
+            <div class="row">
+                <!-- Registration Services -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person-plus"></i> Registration Services
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for service_key, service_name, description, badge_type in services.registration_services %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                                <div>
+                                    <h6 class="mb-1">{{ service_name }}</h6>
+                                    <p class="text-muted mb-0 small">{{ description }}</p>
+                                </div>
+                                <a href="{% url 'initiate_service' service_key %}" class="btn btn-outline-{{ badge_type }} btn-sm">
+                                    Apply
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Services -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-check-circle"></i> Verification Services
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for service_key, service_name, description, badge_type in services.verification_services %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                                <div>
+                                    <h6 class="mb-1">{{ service_name }}</h6>
+                                    <p class="text-muted mb-0 small">{{ description }}</p>
+                                </div>
+                                <a href="{% url 'initiate_service' service_key %}" class="btn btn-outline-{{ badge_type }} btn-sm">
+                                    Apply
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modification Services -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-pencil-square"></i> Modification Services
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for service_key, service_name, description, badge_type in services.modification_services %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                                <div>
+                                    <h6 class="mb-1">{{ service_name }}</h6>
+                                    <p class="text-muted mb-0 small">{{ description }}</p>
+                                </div>
+                                <a href="{% url 'initiate_service' service_key %}" class="btn btn-outline-{{ badge_type }} btn-sm">
+                                    Apply
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certificate Services -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-file-earmark-text"></i> Certificate Services
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% for service_key, service_name, description, badge_type in services.certificate_services %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                                <div>
+                                    <h6 class="mb-1">{{ service_name }}</h6>
+                                    <p class="text-muted mb-0 small">{{ description }}</p>
+                                </div>
+                                <a href="{% url 'initiate_service' service_key %}" class="btn btn-outline-{{ badge_type }} btn-sm">
+                                    Apply
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Services -->
+                <div class="col-12 mb-4">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-star"></i> Special Services
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for service_key, service_name, description, badge_type in services.special_services %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                        <div>
+                                            <h6 class="mb-1">{{ service_name }}</h6>
+                                            <p class="text-muted mb-0 small">{{ description }}</p>
+                                        </div>
+                                        <a href="{% url 'initiate_service' service_key %}" class="btn btn-outline-{{ badge_type }} btn-sm">
+                                            Apply
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">{{ pending_applications }}</h3>
+                            <p class="text-muted mb-0">Pending Applications</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">{{ user.total_cpd_points }}</h3>
+                            <p class="text-muted mb-0">CPD Points Earned</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">{{ user.certificates.count }}</h3>
+                            <p class="text-muted mb-0">Certificates Issued</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">
+                                {% if user.id_card %}{{ user.id_card.card_number }}{% else %}Not Issued{% endif %}
+                            </h3>
+                            <p class="text-muted mb-0">ID Card Status</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

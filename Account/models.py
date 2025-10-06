@@ -41,6 +41,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     module = models.TextField(null=True, blank=True)
 
     USER_TYPES = (
+        ('rmp', 'Registered Medical Practitioner'),
+        ('staff', 'MMC Staff'),
+        ('cpd_provider', 'CPD Provider'),
         ('INDIVIDUAL', 'Individual Learner'),
         ('GROUP_LEADER', 'Group Leader'),
         ('GROUP_TRAINEE', 'Group Trainee'),
@@ -58,11 +61,47 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone_verified = models.BooleanField(default=False)
     last_activity = models.DateTimeField(auto_now=True)
     date_joined = models.DateTimeField(auto_now=True)
+    # MMC Fields
+    mmc_registration_number = models.CharField(max_length=200, blank=True, null=True, unique=True)
+    specialization = models.CharField(max_length=100, blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=50, blank=True, null=True)
+    district = models.CharField(max_length=50, blank=True, null=True)
+    state = models.CharField(max_length=50, blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    
+    # CPD Related
+    total_cpd_points = models.IntegerField(default=0)
+    cpd_points_required = models.IntegerField(default=30)
+
+    # Status
+    is_verified = models.BooleanField(default=False)
+    registration_status = models.CharField(
+        max_length=20,
+        choices=(
+            ('PROVISIONAL', 'Provisional'),
+            ('PERMANENT', 'Permanent'),
+            ('EXPIRED', 'Expired'),
+            ('SUSPENDED', 'Suspended'),
+        ),
+        default='PROVISIONAL'
+    )
+
+    # Additional fields for staff/admin
+    department = models.CharField(max_length=200, null=True, blank=True)
+    designation = models.CharField(max_length=200, null=True, blank=True)
+    employee_id = models.CharField(max_length=200, null=True, blank=True)
+
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name', 'phone']  # Add any additional required fields
     class Meta:
         db_table = 'users'
+        indexes = [
+            models.Index(fields=['user_type']),
+            models.Index(fields=['is_verified']),
+        ]
 
     def __str__(self):
         return self.email

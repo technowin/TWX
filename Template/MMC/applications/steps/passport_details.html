@@ -1,0 +1,167 @@
+{% extends 'applications/application_wizard.html' %}
+{% load static %}
+
+{% block step_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-passport"></i>
+            Step 4: Passport Details
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Provide your passport details for verification purposes.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Passport Number *</label>
+                    <input type="text" class="form-control" name="passport_number" required 
+                           pattern="[A-Z0-9]{6,9}" title="Enter valid passport number">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nationality *</label>
+                    <input type="text" class="form-control" name="nationality" value="Indian" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Date of Issue *</label>
+                    <input type="date" class="form-control" name="issue_date" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Date of Expiry *</label>
+                    <input type="date" class="form-control" name="expiry_date" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Place of Issue *</label>
+                    <input type="text" class="form-control" name="place_of_issue" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Address as in Passport *</label>
+                    <textarea class="form-control" name="passport_address" rows="3" required></textarea>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Visa Details (If Applicable)</h6>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Visa Type</label>
+                    <select class="form-select" name="visa_type">
+                        <option value="">Select Visa Type</option>
+                        <option value="student">Student Visa</option>
+                        <option value="work">Work Visa</option>
+                        <option value="tourist">Tourist Visa</option>
+                        <option value="business">Business Visa</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Visa Number</label>
+                    <input type="text" class="form-control" name="visa_number">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Visa Expiry Date</label>
+                    <input type="date" class="form-control" name="visa_expiry">
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Travel History</h6>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Date of Leaving India *</label>
+                    <input type="date" class="form-control" name="leaving_date" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Date of Returning to India *</label>
+                    <input type="date" class="form-control" name="returning_date" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Countries Visited</label>
+                    <input type="text" class="form-control" name="countries_visited" 
+                           placeholder="e.g., USA, UK, Australia">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Purpose of Travel *</label>
+                    <textarea class="form-control" name="travel_purpose" rows="2" required></textarea>
+                </div>
+            </div>
+            
+            <h6 class="border-bottom pb-2 mt-4">Additional Information</h6>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Have you ever lost your passport or had it changed?</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="passport_lost" id="lost_yes" value="yes">
+                        <label class="form-check-label" for="lost_yes">Yes</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="passport_lost" id="lost_no" value="no" checked>
+                        <label class="form-check-label" for="lost_no">No</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="passport_change_details" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Previous Passport Number</label>
+                        <input type="text" class="form-control" name="previous_passport">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Reason for Change/Loss</label>
+                        <input type="text" class="form-control" name="change_reason">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'application_step' application.application_id 3 %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Previous
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Save & Continue <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passportLostYes = document.getElementById('lost_yes');
+    const passportLostNo = document.getElementById('lost_no');
+    const passportChangeDetails = document.getElementById('passport_change_details');
+    
+    function togglePassportChangeDetails() {
+        if (passportLostYes.checked) {
+            passportChangeDetails.style.display = 'block';
+        } else {
+            passportChangeDetails.style.display = 'none';
+        }
+    }
+    
+    passportLostYes.addEventListener('change', togglePassportChangeDetails);
+    passportLostNo.addEventListener('change', togglePassportChangeDetails);
+});
+</script>
+{% endblock %}

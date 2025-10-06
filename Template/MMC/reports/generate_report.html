@@ -1,0 +1,454 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+}
+
+.list-group-item {
+    border: none;
+    padding-left: 0;
+    padding-right: 0;
+}
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-file-earmark-text"></i>
+            Generate Report
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'reports_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Report Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Report Type *</label>
+                                {{ form.report_type }}
+                                {% if form.report_type.errors %}
+                                <div class="text-danger small">{{ form.report_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Output Format *</label>
+                                {{ form.format }}
+                                {% if form.format.errors %}
+                                <div class="text-danger small">{{ form.format.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date From</label>
+                                {{ form.date_from }}
+                                {% if form.date_from.errors %}
+                                <div class="text-danger small">{{ form.date_from.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date To</label>
+                                {{ form.date_to }}
+                                {% if form.date_to.errors %}
+                                <div class="text-danger small">{{ form.date_to.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Report Specific Filters -->
+                        <div id="reportFilters">
+                            <!-- Payment Report Filters -->
+                            <div class="payment-filters" style="display: none;">
+                                <h6 class="border-bottom pb-2 mt-4">Payment Report Filters</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Payment Status</label>
+                                        <select class="form-select" name="payment_status">
+                                            <option value="">All Status</option>
+                                            <option value="success">Success</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="failed">Failed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Payment Method</label>
+                                        <select class="form-select" name="payment_method">
+                                            <option value="">All Methods</option>
+                                            <option value="online">Online</option>
+                                            <option value="bank_transfer">Bank Transfer</option>
+                                            <option value="cheque">Cheque</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Application Report Filters -->
+                            <div class="application-filters" style="display: none;">
+                                <h6 class="border-bottom pb-2 mt-4">Application Report Filters</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Application Type</label>
+                                        <select class="form-select" name="application_type">
+                                            <option value="">All Types</option>
+                                            {% for app_type in Application.APPLICATION_TYPES %}
+                                            <option value="{{ app_type.0 }}">{{ app_type.1 }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Application Status</label>
+                                        <select class="form-select" name="application_status">
+                                            <option value="">All Status</option>
+                                            {% for status in Application.APPLICATION_STATUS %}
+                                            <option value="{{ status.0 }}">{{ status.1 }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CPD Report Filters -->
+                            <div class="cpd-filters" style="display: none;">
+                                <h6 class="border-bottom pb-2 mt-4">CPD Report Filters</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Program Type</label>
+                                        <select class="form-select" name="cpd_program_type">
+                                            <option value="">All Types</option>
+                                            {% for prog_type in CPDProgram.PROGRAM_TYPES %}
+                                            <option value="{{ prog_type.0 }}">{{ prog_type.1 }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Minimum Points</label>
+                                        <input type="number" class="form-control" name="min_points" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="accordion mt-4" id="advancedOptions">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#advancedCollapse">
+                                        <i class="bi bi-gear me-2"></i>
+                                        Advanced Options
+                                    </button>
+                                </h2>
+                                <div id="advancedCollapse" class="accordion-collapse collapse" 
+                                     data-bs-parent="#advancedOptions">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Group By</label>
+                                                <select class="form-select" name="group_by">
+                                                    <option value="">No Grouping</option>
+                                                    <option value="month">Month</option>
+                                                    <option value="quarter">Quarter</option>
+                                                    <option value="year">Year</option>
+                                                    <option value="type">Type</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Sort By</label>
+                                                <select class="form-select" name="sort_by">
+                                                    <option value="date">Date</option>
+                                                    <option value="amount">Amount</option>
+                                                    <option value="name">Name</option>
+                                                    <option value="type">Type</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="include_charts" id="include_charts">
+                                            <label class="form-check-label" for="include_charts">
+                                                Include charts and graphs in report
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="include_summary" id="include_summary" checked>
+                                            <label class="form-check-label" for="include_summary">
+                                                Include executive summary
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'reports_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-gear"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Report Preview -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Report Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="bi bi-file-earmark-text fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Configure your report settings to see preview</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Reports -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Payment Summary - Jan 2024</h6>
+                                <small class="text-muted">2 days ago</small>
+                            </div>
+                            <p class="mb-1 small text-muted">PDF • 156 records</p>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Application Status Report</h6>
+                                <small class="text-muted">1 week ago</small>
+                            </div>
+                            <p class="mb-1 small text-muted">Excel • 892 records</p>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">CPD Participation Q4 2023</h6>
+                                <small class="text-muted">2 weeks ago</small>
+                            </div>
+                            <p class="mb-1 small text-muted">PDF • 1,234 records</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Reports -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="generateQuickReport('today_payments')">
+                            <i class="bi bi-currency-rupee"></i> Today's Payments
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="generateQuickReport('pending_applications')">
+                            <i class="bi bi-clock"></i> Pending Applications
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="generateQuickReport('upcoming_cpd')">
+                            <i class="bi bi-calendar-event"></i> Upcoming CPD
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="generateQuickReport('expiring_registrations')">
+                            <i class="bi bi-exclamation-triangle"></i> Expiring Registrations
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reportTypeSelect = document.getElementById('id_report_type');
+    const reportFilters = document.getElementById('reportFilters');
+    
+    function toggleReportFilters() {
+        // Hide all filter sections
+        document.querySelectorAll('#reportFilters > div').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show relevant filter section
+        const selectedReport = reportTypeSelect.value;
+        if (selectedReport) {
+            const filterSection = document.querySelector(`.${selectedReport.replace('_', '-')}-filters`);
+            if (filterSection) {
+                filterSection.style.display = 'block';
+            }
+        }
+    }
+    
+    reportTypeSelect.addEventListener('change', toggleReportFilters);
+    toggleReportFilters(); // Initial call
+    
+    // Date validation
+    const dateFrom = document.getElementById('id_date_from');
+    const dateTo = document.getElementById('id_date_to');
+    
+    function validateDates() {
+        if (dateFrom.value && dateTo.value && dateFrom.value > dateTo.value) {
+            dateTo.setCustomValidity('End date cannot be before start date');
+        } else {
+            dateTo.setCustomValidity('');
+        }
+    }
+    
+    dateFrom.addEventListener('change', validateDates);
+    dateTo.addEventListener('change', validateDates);
+});
+
+function generateQuickReport(reportType) {
+    const quickReports = {
+        'today_payments': {
+            report_type: 'payment_summary',
+            date_from: new Date().toISOString().split('T')[0],
+            date_to: new Date().toISOString().split('T')[0],
+            format: 'pdf'
+        },
+        'pending_applications': {
+            report_type: 'application_status',
+            application_status: 'submitted',
+            format: 'excel'
+        },
+        'upcoming_cpd': {
+            report_type: 'cpd_participation',
+            date_from: new Date().toISOString().split('T')[0],
+            format: 'pdf'
+        },
+        'expiring_registrations': {
+            report_type: 'registration_trends',
+            format: 'pdf'
+        }
+    };
+    
+    const config = quickReports[reportType];
+    if (config) {
+        // Set form values
+        document.getElementById('id_report_type').value = config.report_type;
+        document.getElementById('id_format').value = config.format;
+        
+        if (config.date_from) {
+            document.getElementById('id_date_from').value = config.date_from;
+        }
+        if (config.date_to) {
+            document.getElementById('id_date_to').value = config.date_to;
+        }
+        
+        // Trigger change event to update filters
+        document.getElementById('id_report_type').dispatchEvent(new Event('change'));
+        
+        alert('Quick report configured! Click "Generate Report" to proceed.');
+    }
+}
+</script>
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

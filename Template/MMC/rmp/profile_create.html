@@ -1,0 +1,355 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-person-vcard"></i>
+            Complete Your Profile
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">RMP Registration Form</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- Personal Information -->
+                            <div class="col-12 mb-4">
+                                <h6 class="border-bottom pb-2 text-primary">
+                                    <i class="bi bi-person"></i> Personal Information
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-2 mb-3">
+                                        <label class="form-label">Prefix</label>
+                                        {{ form.prefix }}
+                                        {% if form.prefix.errors %}
+                                        <div class="text-danger small">{{ form.prefix.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-10 mb-3">
+                                        <label class="form-label">Full Name *</label>
+                                        {{ form.full_name }}
+                                        {% if form.full_name.errors %}
+                                        <div class="text-danger small">{{ form.full_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Father's Name *</label>
+                                        {{ form.father_name }}
+                                        {% if form.father_name.errors %}
+                                        <div class="text-danger small">{{ form.father_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Mother's Name *</label>
+                                        {{ form.mother_name }}
+                                        {% if form.mother_name.errors %}
+                                        <div class="text-danger small">{{ form.mother_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Marital Status *</label>
+                                        {{ form.marital_status }}
+                                        {% if form.marital_status.errors %}
+                                        <div class="text-danger small">{{ form.marital_status.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Date of Birth *</label>
+                                        {{ form.date_of_birth }}
+                                        {% if form.date_of_birth.errors %}
+                                        <div class="text-danger small">{{ form.date_of_birth.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Gender *</label>
+                                        {{ form.gender }}
+                                        {% if form.gender.errors %}
+                                        <div class="text-danger small">{{ form.gender.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Category *</label>
+                                        {{ form.category }}
+                                        {% if form.category.errors %}
+                                        <div class="text-danger small">{{ form.category.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row" id="maidenNameField" style="display: none;">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Maiden Name</label>
+                                        {{ form.maiden_name }}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Husband's Name</label>
+                                        {{ form.husband_name }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Contact Information -->
+                            <div class="col-12 mb-4">
+                                <h6 class="border-bottom pb-2 text-primary">
+                                    <i class="bi bi-telephone"></i> Contact Information
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email Address *</label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                        <div class="text-danger small">{{ form.email.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Mobile Number *</label>
+                                        {{ form.mobile }}
+                                        {% if form.mobile.errors %}
+                                        <div class="text-danger small">{{ form.mobile.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Address Information -->
+                            <div class="col-12 mb-4">
+                                <h6 class="border-bottom pb-2 text-primary">
+                                    <i class="bi bi-geo-alt"></i> Address Information
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">Communication Address *</label>
+                                        {{ form.communication_address }}
+                                        {% if form.communication_address.errors %}
+                                        <div class="text-danger small">{{ form.communication_address.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">City *</label>
+                                        {{ form.communication_city }}
+                                        {% if form.communication_city.errors %}
+                                        <div class="text-danger small">{{ form.communication_city.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">District *</label>
+                                        {{ form.communication_district }}
+                                        {% if form.communication_district.errors %}
+                                        <div class="text-danger small">{{ form.communication_district.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">State *</label>
+                                        {{ form.communication_state }}
+                                        {% if form.communication_state.errors %}
+                                        <div class="text-danger small">{{ form.communication_state.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Pincode *</label>
+                                        {{ form.communication_pincode }}
+                                        {% if form.communication_pincode.errors %}
+                                        <div class="text-danger small">{{ form.communication_pincode.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">Residential Address *</label>
+                                        {{ form.residential_address }}
+                                        {% if form.residential_address.errors %}
+                                        <div class="text-danger small">{{ form.residential_address.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">Clinic/Hospital Address</label>
+                                        {{ form.clinic_address }}
+                                        {% if form.clinic_address.errors %}
+                                        <div class="text-danger small">{{ form.clinic_address.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Professional Information -->
+                            <div class="col-12 mb-4">
+                                <h6 class="border-bottom pb-2 text-primary">
+                                    <i class="bi bi-briefcase"></i> Professional Information
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Specialization</label>
+                                        {{ form.specialization }}
+                                        {% if form.specialization.errors %}
+                                        <div class="text-danger small">{{ form.specialization.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Medical Council</label>
+                                        {{ form.medical_council }}
+                                        {% if form.medical_council.errors %}
+                                        <div class="text-danger small">{{ form.medical_council.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Year of Graduation</label>
+                                        {{ form.year_of_graduation }}
+                                        {% if form.year_of_graduation.errors %}
+                                        <div class="text-danger small">{{ form.year_of_graduation.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle"></i> Complete Registration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide maiden name fields based on marital status
+    const maritalStatus = document.getElementById('id_marital_status');
+    const maidenNameField = document.getElementById('maidenNameField');
+    
+    function toggleMaidenName() {
+        if (maritalStatus.value === 'M' || maritalStatus.value === 'D') {
+            maidenNameField.style.display = 'block';
+        } else {
+            maidenNameField.style.display = 'none';
+        }
+    }
+    
+    maritalStatus.addEventListener('change', toggleMaidenName);
+    toggleMaidenName(); // Initial check
+});
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

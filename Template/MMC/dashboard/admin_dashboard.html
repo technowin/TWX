@@ -1,0 +1,761 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}Admin Dashboard - MMC Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        border: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-card.info {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+    
+    .risk-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+    }
+    
+    .progress-thin {
+        height: 6px;
+    }
+    
+    .activity-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .activity-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--mmc-primary);
+    }
+    
+    .activity-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    
+    .activity-item::before {
+        content: '';
+        position: absolute;
+        left: -0.4rem;
+        top: 0.5rem;
+        width: 0.8rem;
+        height: 0.8rem;
+        background: var(--mmc-primary);
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+    
+    .alert-critical {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .alert-warning {
+        border-left: 4px solid #ffc107;
+    }
+    
+    .alert-info {
+        border-left: 4px solid #0dcaf0;
+    }
+    
+    .staff-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--mmc-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    
+    .quick-action-btn {
+        border: none;
+        border-radius: 10px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-2 text-gray-800">
+                        <i class="bi bi-speedometer2 me-2 text-mmc-primary"></i>
+                        Admin Dashboard
+                    </h1>
+                    <p class="text-muted">Welcome back! Here's what's happening with your MMC portal today.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary">
+                        <i class="bi bi-download me-2"></i>Export Report
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Quick Action
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card stat-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Total Applications
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">
+                                {{ total_applications|intcomma }}
+                            </div>
+                            <div class="mt-2">
+                                <span class="text-white-50 small">
+                                    <i class="bi bi-arrow-up-short"></i> 12% from last month
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-files stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card stat-card warning">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Pending Applications
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">
+                                {{ pending_applications|intcomma }}
+                            </div>
+                            <div class="mt-2">
+                                <span class="text-white-50 small">
+                                    {{ overdue_applications }} overdue
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-clock-history stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card stat-card success">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Registered RMPs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">
+                                {{ total_rmps|intcomma }}
+                            </div>
+                            <div class="mt-2">
+                                <span class="text-white-50 small">
+                                    +{{ new_registrations }} new this month
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-people stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card stat-card info">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Revenue (30 days)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">
+                                ₹{{ payment_stats.total_amount|default:0|intcomma }}
+                            </div>
+                            <div class="mt-2">
+                                <span class="text-white-50 small">
+                                    {{ payment_stats.total_count|default:0 }} transactions
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-rupee stat-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- AI Insights & High Risk Applications -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card dashboard-card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                AI Risk Alerts & High Priority Applications
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if high_risk_applications %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Application ID</th>
+                                            <th>Type</th>
+                                            <th>Applicant</th>
+                                            <th>Risk Score</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for app in high_risk_applications %}
+                                        <tr class="{% if app.risk_score > 80 %}table-danger{% else %}table-warning{% endif %}">
+                                            <td>
+                                                <strong>{{ app.application_id|slice:":8" }}...</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if app.application_type == 'FOREIGN_PERMANENT' %}warning{% else %}danger{% endif %}">
+                                                    {{ app.get_application_type_display }}
+                                                </span>
+                                            </td>
+                                            <td>Dr. {{ app.applicant.get_full_name }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress progress-thin flex-grow-1 me-2">
+                                                        <div class="progress-bar bg-{% if app.risk_score > 80 %}danger{% else %}warning{% endif %}" 
+                                                             style="width: {{ app.risk_score }}%"></div>
+                                                    </div>
+                                                    <span class="badge bg-{% if app.risk_score > 80 %}danger{% else %}warning{% endif %}">
+                                                        {{ app.risk_score }}%
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-warning">{{ app.get_status_display }}</span>
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'admin_application_detail' application_id=app.application_id %}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    Review
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="bi bi-check-circle display-4 text-success"></i>
+                                <h5 class="mt-3 text-muted">No high-risk applications detected</h5>
+                                <p class="text-muted">All applications are within acceptable risk parameters.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Applications & Activities -->
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-clock-history me-2"></i>
+                                Recent Applications
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                {% for app in recent_applications %}
+                                <div class="activity-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ app.get_application_type_display }}</h6>
+                                            <p class="mb-1 small text-muted">
+                                                Dr. {{ app.applicant.get_full_name }}
+                                            </p>
+                                            <small class="text-muted">
+                                                {{ app.application_date|naturaltime }}
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-{% if app.status == 'SUBMITTED' %}primary{% else %}info{% endif %}">
+                                            {{ app.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center py-4">
+                                    <i class="bi bi-inbox display-4 text-muted"></i>
+                                    <p class="text-muted mt-2">No recent applications</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-currency-rupee me-2"></i>
+                                Recent Payments
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                {% for payment in recent_payments %}
+                                <div class="activity-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">₹{{ payment.amount }}</h6>
+                                            <p class="mb-1 small text-muted">
+                                                {{ payment.get_payment_method_display }}
+                                            </p>
+                                            <small class="text-muted">
+                                                {{ payment.payment_date|naturaltime }}
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-success">Success</span>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center py-4">
+                                    <i class="bi bi-credit-card display-4 text-muted"></i>
+                                    <p class="text-muted mt-2">No recent payments</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Compliance Alerts -->
+            <div class="card dashboard-card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bell me-2"></i>
+                        Compliance Alerts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if compliance_alerts %}
+                    <div class="list-group list-group-flush">
+                        {% for alert in compliance_alerts %}
+                        <div class="list-group-item px-0 {% if alert.cpd_deficit > 20 %}alert-critical{% else %}alert-warning{% endif %}">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="bi bi-{% if alert.cpd_deficit > 20 %}exclamation-triangle-fill text-danger{% else %}exclamation-circle text-warning{% endif %}"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">Dr. {{ alert.get_full_name }}</h6>
+                                    <p class="mb-1 small">
+                                        {% if alert.cpd_deficit > 0 %}
+                                        CPD Deficit: {{ alert.cpd_deficit }} points
+                                        {% endif %}
+                                        {% if alert.renewal_soon %}
+                                        <br>Registration renewal due soon
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle display-4 text-success"></i>
+                        <h6 class="mt-3 text-muted">No Compliance Issues</h6>
+                        <p class="text-muted small">All practitioners are compliant</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Staff Performance -->
+            <div class="card dashboard-card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Staff Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if staff_performance %}
+                    <div class="list-group list-group-flush">
+                        {% for staff in staff_performance %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="staff-avatar">
+                                        {{ staff.first_name|first }}{{ staff.last_name|first }}
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">{{ staff.first_name }} {{ staff.last_name }}</h6>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <small class="text-muted">
+                                            {{ staff.tasks_completed }} tasks
+                                        </small>
+                                        <small class="text-muted">
+                                            {% if staff.avg_processing_time %}
+                                            {{ staff.avg_processing_time|floatformat:1 }} days avg.
+                                            {% else %}
+                                            N/A
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-people display-4 text-muted"></i>
+                        <p class="text-muted mt-2">No staff performance data</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card dashboard-card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'admin_applications' %}" class="btn btn-outline-primary quick-action-btn w-100 h-100">
+                                <i class="bi bi-files d-block fs-2 mb-2"></i>
+                                <small>Manage Applications</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'admin_user_management' %}" class="btn btn-outline-success quick-action-btn w-100 h-100">
+                                <i class="bi bi-people d-block fs-2 mb-2"></i>
+                                <small>User Management</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'reports_dashboard' %}" class="btn btn-outline-info quick-action-btn w-100 h-100">
+                                <i class="bi bi-graph-up d-block fs-2 mb-2"></i>
+                                <small>Reports</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'admin_cpd_management' %}" class="btn btn-outline-warning quick-action-btn w-100 h-100">
+                                <i class="bi bi-mortarboard d-block fs-2 mb-2"></i>
+                                <small>CPD Programs</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CPD Statistics -->
+            <div class="card dashboard-card mt-4">
+                <div class="card-header bg-purple text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-mortarboard me-2"></i>
+                        CPD Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h3 class="text-purple">{{ cpd_stats.total_programs|default:0 }}</h3>
+                            <small class="text-muted">Programs</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-purple">{{ cpd_stats.total_participants|default:0 }}</h3>
+                            <small class="text-muted">Participants</small>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'admin_cpd_management' %}" class="btn btn-outline-purple btn-sm w-100">
+                            Manage CPD Programs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health & Additional Metrics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card dashboard-card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-heart-pulse me-2"></i>
+                        System Health & Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <i class="bi bi-cpu fs-1 text-primary"></i>
+                                <h5 class="mt-2">98%</h5>
+                                <small class="text-muted">CPU Usage</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <i class="bi bi-hdd fs-1 text-success"></i>
+                                <h5 class="mt-2">65%</h5>
+                                <small class="text-muted">Storage</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <i class="bi bi-database fs-1 text-info"></i>
+                                <h5 class="mt-2">1.2GB</h5>
+                                <small class="text-muted">Database</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <i class="bi bi-shield-check fs-1 text-warning"></i>
+                                <h5 class="mt-2">100%</h5>
+                                <small class="text-muted">Security</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <i class="bi bi-clock fs-1 text-secondary"></i>
+                                <h5 class="mt-2">0.8s</h5>
+                                <small class="text-muted">Avg. Response</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="border rounded p-3">
+                                <i class="bi bi-arrow-clockwise fs-1 text-purple"></i>
+                                <h5 class="mt-2">99.9%</h5>
+                                <small class="text-muted">Uptime</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        // Auto-refresh dashboard every 60 seconds
+        setInterval(function() {
+            $.ajax({
+                url: '{% url "api_dashboard_stats" %}',
+                type: 'GET',
+                success: function(data) {
+                    // Update stats dynamically
+                    $('.stat-card:eq(0) .h5').text(data.total_applications.toLocaleString());
+                    $('.stat-card:eq(1) .h5').text(data.pending_applications.toLocaleString());
+                    $('.stat-card:eq(2) .h5').text(data.total_rmps.toLocaleString());
+                    $('.stat-card:eq(3) .h5').text('₹' + data.revenue.toLocaleString());
+                }
+            });
+        }, 60000);
+
+        // Chart initialization (placeholder for actual charts)
+        function initializeCharts() {
+            // This would be replaced with actual chart.js or other chart library implementation
+            console.log('Charts would be initialized here');
+        }
+
+        // Risk score animation
+        $('.progress-bar').each(function() {
+            const width = $(this).css('width');
+            $(this).css('width', '0').animate({
+                width: width
+            }, 1000);
+        });
+
+        // Tooltip initialization
+        $('[data-bs-toggle="tooltip"]').tooltip();
+
+        // Real-time notifications
+        function checkForAlerts() {
+            // This would connect to a WebSocket or polling endpoint for real-time alerts
+            console.log('Checking for new alerts...');
+        }
+
+        // Initialize charts when page loads
+        initializeCharts();
+        
+        // Check for alerts every 30 seconds
+        setInterval(checkForAlerts, 30000);
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

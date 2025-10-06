@@ -37,6 +37,7 @@ from Checklist.views import *
 from Inventory.views import *
 from LMS.views import *
 from SalesPurchase.views import *
+from MMC.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
@@ -440,6 +441,155 @@ urlpatterns = [
     # Payment URLs
     path('invoices/<int:invoice_id>/mark-paid/', mark_invoice_paid, name='mark_invoice_paid'),
     path('supplier-invoices/<int:invoice_id>/mark-paid/', mark_supplier_invoice_paid, name='mark_supplier_invoice_paid'),
+
+
+    # Maharashtra Medical Council (MMC)
+
+    # Landing page and information pages
+    path('mmc_landing_page/', landing_page, name='landing_page'),
+    path('about/', about_mmc, name='about_mmc'),
+    path('contact/', contact_us, name='contact_us'),
+    path('rti/', rti_information, name='rti_information'),
+    path('act-rules/', act_rules, name='act_rules'),
+    path('disclaimer/', disclaimer, name='disclaimer'),
+    path('terms-conditions/', terms_conditions, name='terms_conditions'),
+    
+    # Service Options
+    path('service_selection/', service_selection, name='service_selection'),
+    path('initiate_service/<str:service_type>/', initiate_service, name='initiate_service'),
+
+    # API endpoints for landing page
+    path('api/quick-stats/', quick_stats_api, name='quick_stats_api'),
+    path('api/announcements/', get_announcements, name='get_announcements'),
+    path('api/notifications/', get_notifications, name='get_notifications'),
+
+    # Authentication
+    path('mmc/login/', MMCLoginView.as_view(), name='api_cpd_points'),
+    path('mmc/register/', MMCRegistrationView.as_view(), name='api_cpd_points'),
+
+    # Dashboard
+    path('mmc_dashboard/', mmc_dashboard, name='mmc_dashboard'),
+    path('rmp_dashboard/', rmp_dashboard, name='rmp_dashboard'),
+    path('admin_dashboard1/', admin_dashboard1, name='admin_dashboard1'),
+    path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
+
+    # RMP Profile
+    path('profile/create/', rmp_profile_create, name='rmp_profile_create'),
+    path('profile/edit/', rmp_profile_edit, name='rmp_profile_edit'),
+    path('rmp/qualifications/', rmp_qualifications, name='rmp_qualifications'),
+    path('rmp/experience/', rmp_experience, name='rmp_experience'),
+    path('rmp/publications/', rmp_publications, name='rmp_publications'),
+    path('rmp/awards/', rmp_awards, name='rmp_awards'),
+    path('search_rmps/', search_rmps, name='search_rmps'),
+
+    # Profile Management
+    path('profile/', rmp_profile_view, name='rmp_profile_view'),
+
+    # Applications
+    path('applications/', application_wizard, name='application_wizard'),
+    path('applications/list/', application_list, name='application_list'),
+    path('applications/<int:application_id>/step/<int:step>/', application_step, name='application_step'),
+    path('applications/<int:application_id>/status/', application_status, name='application_status'),
+    path('applications/<int:application_id>/review/', application_review, name='application_review'),
+    path('applications/<int:application_id>/submit/', submit_application, name='submit_application'),
+    path('applications/<int:application_id>/upload-document/', mmc_upload_document, name='upload_document'),
+    path('documents/<int:document_id>/delete/', mmc_delete_document, name='delete_document'),
+    path('applications/<int:application_id>/payment/', payment_page, name='payment_page'),
+    path('search_applications/', search_applications, name='search_applications'),
+
+    # Service Requests
+    path('services/good-standing/<str:certificate_type>/', request_good_standing, name='request_good_standing'),
+    path('services/noc/', request_noc, name='request_noc'),
+    path('services/change/<str:change_type>/', request_change, name='request_change'),
+    path('services/termination/', request_termination, name='request_termination'),
+    
+    # Certificates & ID Cards
+    path('certificates/', certificate_list, name='certificate_list'),
+    path('certificates/request/', request_certificate, name='request_certificate'),
+    path('id-card/', id_card_view, name='id_card_view'),
+    path('id-card/request/', request_id_card, name='request_id_card'),
+    path('admin/id-card/request/', admin_id_card_requests, name='admin_id_card_requests'),
+    path('generate_id_card/<int:application_id>/', generate_id_card, name='generate_id_card'),
+    path('bulk_certificate_generation/', bulk_certificate_generation, name='bulk_certificate_generation'),
+
+    # CPD Programs
+    path('cpd/programs/', cpd_programs, name='cpd_programs'),
+    path('cpd/programs/<int:program_id>/attend/', cpd_attendance, name='cpd_attendance'),
+    path('cpd/certificates/', cpd_certificates, name='cpd_certificates'),
+    path('cpd/programs/<int:program_id>/register/', cpd_program_register, name='cpd_program_register'),
+    path('cpd/programs/<int:program_id>/unregister/', cpd_program_unregister, name='cpd_program_unregister'),
+    path('cpd/programs/<int:program_id>/detail/', cpd_program_detail, name='cpd_program_detail'),
+    path('cpd/my-programs/', cpd_my_programs, name='cpd_my_programs'),
+    path('cpd_points_summary/', cpd_points_summary, name='cpd_points_summary'),
+    path('create_cpd_program/', create_cpd_program, name='create_cpd_program'),
+    path('delete_cpd_program/', delete_cpd_program, name='delete_cpd_program'),
+    path('cpd/accreditation/apply/', cpd_accreditation_apply, name='cpd_accreditation_apply'),
+
+    # Admin Management
+    path('admin/applications/', admin_applications, name='admin_applications'),
+    path('admin/applications/<int:application_id>/review/', admin_application_review, name='admin_application_review'),
+    path('admin/applications/', admin_application_list, name='admin_application_list'),
+    path('admin/applications/<int:application_id>/detail/', admin_application_detail, name='admin_application_detail'),
+    path('generate_certificate/<int:certificate_id>/', generate_certificate, name='generate_certificate'),
+    path('admin/certificate_management/', admin_certificate_management, name='admin_certificate_management'),
+    path('admin/cpd-management/', admin_cpd_management, name='admin_cpd_management'),
+    path('admin/user-management/', admin_user_management, name='admin_user_management'),
+    path('admin/verification-queue/', verification_queue, name='verification_queue'),
+    path('admin/verification-queue/assign/<int:application_id>/', assign_verification_task, name='assign_verification_task'),
+    path('admin/my-tasks/', my_verification_tasks, name='my_verification_tasks'),
+    path('admin/tasks/<int:task_id>/update/', update_verification_task, name='update_verification_task'),
+    path('admin/bulk-actions/', bulk_actions, name='bulk_actions'),
+
+     # CPD Admin
+    path('admin/cpd-programs/', admin_cpd_program_list, name='admin_cpd_program_list'),
+    path('admin/cpd-programs/add/', admin_cpd_program_add, name='admin_cpd_program_add'),
+    path('admin/cpd-programs/<int:program_id>/edit/', admin_cpd_program_edit, name='admin_cpd_program_edit'),
+    path('admin/cpd-accreditation/', cpd_accreditation_requests, name='cpd_accreditation_requests'),
+    path('admin/cpd-accreditation/<int:accreditation_id>/review/', review_accreditation, name='review_accreditation'),
+
+     # Reports
+    path('reports/generate/', generate_report, name='generate_report'),
+    path('reports/', reports_dashboard, name='reports_dashboard'),
+    path('reports/payments/', payment_reports, name='payment_reports'),
+    path('reports/applications/', application_reports, name='application_reports'),
+    path('reports/comprehensive/', comprehensive_reports, name='comprehensive_reports'),
+    path('reports/export/<str:report_type>/', export_reports, name='export_reports'),
+    path('reports/cpd/', cpd_reports, name='cpd_reports'),
+    path('manual_verification_reports/', manual_verification_reports, name='manual_verification_reports'),
+    path('staff_performance_reports/', staff_performance_reports, name='staff_performance_reports'),
+    path('export_applications_excel/', export_applications_excel, name='export_applications_excel'),
+    path('export_financial_report/', export_financial_report, name='export_financial_report'),
+    
+    #Complaint Management
+    path('complaints/file/', file_complaint, name='file_complaint'),    
+    path('complaint_status/', complaint_status, name='complaint_status'),    
+    path('admin_complaint_management/', admin_complaint_management, name='admin_complaint_management'),    
+    path('update_complaint_status/<int:complaint_id>', update_complaint_status, name='update_complaint_status'),
+
+    # AI Integration
+    path('ai/insights/', ai_insights, name='ai_insights'),
+    path('admin/ai/insights/', admin_ai_insights, name='admin_ai_insights'),
+    path('rmp/ai/insights/', rmp_ai_insights, name='rmp_ai_insights'),
+    path('ai/dashboard/', ai_dashboard, name='ai_dashboard'),
+    path('ai_analytics_dashboard/', ai_analytics_dashboard, name='ai_analytics_dashboard'),
+    
+    # API Endpoints
+    path('api/application/<int:application_id>/status/', ApplicationStatusAPI.as_view(), name='api_application_status'),
+    path('api/cpd/points/', CPDPointsAPI.as_view(), name='api_cpd_points'),
+    path('api/notifications/', NotificationAPI.as_view(), name='api_notifications'),
+
+    # API Endpoints
+    path('api/application-status/<int:application_id>/', api_application_status, name='api_application_status'),
+    path('api/cpd-points/', api_cpd_points, name='api_cpd_points'),
+    path('api/dashboard_stats/', api_dashboard_stats, name='api_dashboard_stats'),
+
+    # User Management APIs
+    path('api/users/create/', mmc_create_user, name='api_create_user'),
+    path('api/users/<int:user_id>/toggle-status/', toggle_user_status, name='api_toggle_user_status'),
+    
+    # Document APIs
+    path('api/documents/<int:document_id>/verify/', verify_document, name='api_verify_document'),
+
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
