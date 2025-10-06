@@ -53,6 +53,43 @@ DATABASES = {
     },
 }
 
+
+# File upload settings
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_FILE_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']
+
+# Payment gateway settings
+RAZORPAY_KEY_ID = 'your_razorpay_key_id'
+RAZORPAY_KEY_SECRET = 'your_razorpay_key_secret'
+
+# Email templates
+EMAIL_TEMPLATES = {
+    'application_submitted': 'emails/application_submitted.html',
+    'payment_success': 'emails/payment_success.html',
+    'registration_approved': 'emails/registration_approved.html',
+    'cpd_reminder': 'emails/cpd_reminder.html',
+}
+
+# AI Model settings
+AI_MODEL_CONFIG = {
+    'performance_scoring': {
+        'enabled': True,
+        'update_frequency': 'daily',
+        'confidence_threshold': 0.8
+    },
+    'predictive_alerts': {
+        'enabled': True,
+        'lookahead_days': 90
+    }
+}
+
+# CPD Settings
+CPD_SETTINGS = {
+    'annual_requirement': 30,
+    'online_max': 15,
+    'validity_period': 365  # days
+}
+
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -164,7 +201,8 @@ LOCAL_APPS = [
     'Inventory',
     'LMS',
     'SalesPurchase',
-    'PLM'
+    'PLM',
+    'MMC'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
