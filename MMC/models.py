@@ -488,7 +488,7 @@ class CPDProgram(models.Model):
     description = models.TextField()
     detailed_description = models.TextField(blank=True)
     organizer = models.CharField(max_length=200)
-    co_organizers = models.TextField(blank=True)
+    co_organizers = models.TextField(null=True, blank=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     venue = models.TextField()

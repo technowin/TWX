@@ -127,459 +127,840 @@
             {% endfor %}
             
             
+            {% if role_name == 'MMC'%}
+              <li class="side-nav-title">Maharashtra Medical Council</li>
+
+                <!-- DASHBOARDS -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false"
+                       aria-controls="sidebarDashboards" class="side-nav-link">
+                        <i class="uil-dashboard"></i>
+                        <span> Dashboards </span>
+                    </a>
+                    <div class="collapse" id="sidebarDashboards">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/rmp_dashboard/">RMP Dashboard</a>
+                            </li>
+                            <li>
+                                <a href="/admin_dashboard/">Admin Dashboard</a>
+                            </li>
+                            <li>
+                                <a href="/ai_dashboard/">AI Analytics Dashboard</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- REGISTRATION SERVICES -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarRegistration" aria-expanded="false"
+                       aria-controls="sidebarRegistration" class="side-nav-link">
+                        <i class="uil-user-plus"></i>
+                        <span> Registration Services </span>
+                    </a>
+                    <div class="collapse" id="sidebarRegistration">
+                        <ul class="side-nav-second-level">
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarProvisionalReg" aria-expanded="false"
+                                   aria-controls="sidebarProvisionalReg">
+                                    <span> Provisional Registration </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarProvisionalReg">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/initiate_service/provisional/">Indian Graduates</a></li>
+                                        <li><a href="/initiate_service/foreign-provisional/">Foreign Graduates</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarPermanentReg" aria-expanded="false"
+                                   aria-controls="sidebarPermanentReg">
+                                    <span> Permanent Registration </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarPermanentReg">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/initiate_service/permanent-maharashtra/">Maharashtra</a></li>
+                                        <li><a href="/initiate_service/permanent-other-state/">Other States</a></li>
+                                        <li><a href="/initiate_service/foreign-permanent/">Foreign Permanent</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li>
+                                <a href="/initiate_service/additional-qualification/">Additional Qualification</a>
+                            </li>
+                            <li>
+                                <a href="/initiate_service/renewal/">Renewal of Registration</a>
+                            </li>
+                            <li>
+                                <a href="/initiate_service/form-verification/">Form Verification</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- CERTIFICATES & DOCUMENTS -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarCertificates" aria-expanded="false"
+                       aria-controls="sidebarCertificates" class="side-nav-link">
+                        <i class="uil-file-alt"></i>
+                        <span> Certificates & Documents </span>
+                    </a>
+                    <div class="collapse" id="sidebarCertificates">
+                        <ul class="side-nav-second-level">
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarGoodStanding" aria-expanded="false"
+                                   aria-controls="sidebarGoodStanding">
+                                    <span> Good Standing Certificates </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarGoodStanding">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/services/good-standing/mmc/">MMC Certificate</a></li>
+                                        <li><a href="/services/good-standing/nmc/">NMC Certificate</a></li>
+                                        <li><a href="/services/good-standing/nri/">NRI Certificate</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarNOC" aria-expanded="false"
+                                   aria-controls="sidebarNOC">
+                                    <span> NOC Certificates </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarNOC">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/services/noc/">NOC for Other State</a></li>
+                                        <li><a href="/services/noc/reapplication/">Reapplication of NOC</a></li>
+                                        <li><a href="/services/noc/provisional/">Provisional to Other State</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li>
+                                <a href="/certificates/request/">Duplicate Certificate</a>
+                            </li>
+                            <li>
+                                <a href="/services/change/name/">Change of Name</a>
+                            </li>
+                            <li>
+                                <a href="/services/change/address/">Change of Address</a>
+                            </li>
+                            <li>
+                                <a href="/id-card/request/">ID Card Generation</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- CPD PROGRAMS -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarCPD" aria-expanded="false"
+                       aria-controls="sidebarCPD" class="side-nav-link">
+                        <i class="uil-graduation-cap"></i>
+                        <span> CPD Programs </span>
+                    </a>
+                    <div class="collapse" id="sidebarCPD">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/cpd/programs/">Browse CPD Programs</a>
+                            </li>
+                            <li>
+                                <a href="/cpd/my-programs/">My CPD Programs</a>
+                            </li>
+                            <li>
+                                <a href="/cpd_points_summary/">CPD Points Summary</a>
+                            </li>
+                            <li>
+                                <a href="/cpd/certificates/">CPD Certificates</a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarAccreditation" aria-expanded="false"
+                                   aria-controls="sidebarAccreditation">
+                                    <span> Accreditation </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarAccreditation">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/cpd/accreditation/apply/organization/">Organization Accreditation</a></li>
+                                        <li><a href="/cpd/accreditation/apply/speaker/">Speaker Accreditation</a></li>
+                                        <li><a href="/cpd/accreditation/renewal/">Renewal of Accreditation</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- PROFILE MANAGEMENT -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarProfile" aria-expanded="false"
+                       aria-controls="sidebarProfile" class="side-nav-link">
+                        <i class="uil-user"></i>
+                        <span> Profile Management </span>
+                    </a>
+                    <div class="collapse" id="sidebarProfile">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/profile/">View Profile</a>
+                            </li>
+                            <li>
+                                <a href="/profile/edit/">Edit Profile</a>
+                            </li>
+                            <li>
+                                <a href="/rmp/qualifications/">Qualifications</a>
+                            </li>
+                            <li>
+                                <a href="/rmp/experience/">Experience</a>
+                            </li>
+                            <li>
+                                <a href="/rmp/publications/">Publications</a>
+                            </li>
+                            <li>
+                                <a href="/rmp/awards/">Awards</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- APPLICATIONS -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarApplications" aria-expanded="false"
+                       aria-controls="sidebarApplications" class="side-nav-link">
+                        <i class="uil-clipboard-notes"></i>
+                        <span> My Applications </span>
+                    </a>
+                    <div class="collapse" id="sidebarApplications">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/applications/list/">Application List</a>
+                            </li>
+                            <li>
+                                <a href="/applications/">New Application</a>
+                            </li>
+                            <li>
+                                <a href="/search_applications/">Track Application</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- ADMINISTRATION -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarAdmin" aria-expanded="false"
+                       aria-controls="sidebarAdmin" class="side-nav-link">
+                        <i class="uil-cog"></i>
+                        <span> Administration </span>
+                    </a>
+                    <div class="collapse" id="sidebarAdmin">
+                        <ul class="side-nav-second-level">
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarAppManagement" aria-expanded="false"
+                                   aria-controls="sidebarAppManagement">
+                                    <span> Application Management </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarAppManagement">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/admin/applications/">All Applications</a></li>
+                                        <li><a href="/admin/verification-queue/">Verification Queue</a></li>
+                                        <li><a href="/admin/my-tasks/">My Tasks</a></li>
+                                        <li><a href="/manual_verification_reports/">Manual Verification</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarUserManagement" aria-expanded="false"
+                                   aria-controls="sidebarUserManagement">
+                                    <span> User Management </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarUserManagement">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/admin/user-management/">RMP Management</a></li>
+                                        <li><a href="/search_rmps/">Search RMPs</a></li>
+                                        <li><a href="/services/termination/">Termination of RMP</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarCPDAdmin" aria-expanded="false"
+                                   aria-controls="sidebarCPDAdmin">
+                                    <span> CPD Management </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarCPDAdmin">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/admin/cpd-management/">CPD Programs</a></li>
+                                        <li><a href="/create_cpd_program/">Create CPD Program</a></li>
+                                        <li><a href="/admin/cpd-accreditation/">Accreditation Requests</a></li>
+                                        <li><a href="/generate_cpd_text_file/">Generate CPD Text File</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarCertificateAdmin" aria-expanded="false"
+                                   aria-controls="sidebarCertificateAdmin">
+                                    <span> Certificate Management </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarCertificateAdmin">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/admin/certificate_management/">Certificate Requests</a></li>
+                                        <li><a href="/bulk_certificate_generation/">Bulk Certificate Generation</a></li>
+                                        <li><a href="/admin/id-card/request/">ID Card Requests</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li>
+                                <a href="/admin/bulk-actions/">Bulk Actions</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- REPORTS -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarReports" aria-expanded="false"
+                       aria-controls="sidebarReports" class="side-nav-link">
+                        <i class="uil-chart-bar"></i>
+                        <span> Reports </span>
+                    </a>
+                    <div class="collapse" id="sidebarReports">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/reports/">Reports Dashboard</a>
+                            </li>
+                            <li>
+                                <a href="/reports/payments/">Payment Reports</a>
+                            </li>
+                            <li>
+                                <a href="/reports/applications/">Application Reports</a>
+                            </li>
+                            <li>
+                                <a href="/reports/cpd/">CPD Reports</a>
+                            </li>
+                            <li>
+                                <a href="/reports/comprehensive/">Comprehensive Reports</a>
+                            </li>
+                            <li>
+                                <a href="/staff_performance_reports/">Staff Performance</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- COMPLAINT MANAGEMENT -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarComplaints" aria-expanded="false"
+                       aria-controls="sidebarComplaints" class="side-nav-link">
+                        <i class="uil-exclamation-triangle"></i>
+                        <span> Complaint Management </span>
+                    </a>
+                    <div class="collapse" id="sidebarComplaints">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/complaints/file/">File Complaint</a>
+                            </li>
+                            <li>
+                                <a href="/complaint_status/">Complaint Status</a>
+                            </li>
+                            <li>
+                                <a href="/admin_complaint_management/">Admin Complaint Management</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- AI INTEGRATION -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarAI" aria-expanded="false"
+                       aria-controls="sidebarAI" class="side-nav-link">
+                        <i class="uil-brain"></i>
+                        <span> AI Insights </span>
+                    </a>
+                    <div class="collapse" id="sidebarAI">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="/ai/insights/">AI Insights</a>
+                            </li>
+                            <li>
+                                <a href="/rmp/ai/insights/">RMP Performance Insights</a>
+                            </li>
+                            <li>
+                                <a href="/admin/ai/insights/">Admin AI Analytics</a>
+                            </li>
+                            <li>
+                                <a href="/ai_analytics_dashboard/">Analytics Dashboard</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- SUPPORT -->
+                <li class="side-nav-item">
+                    <a href="/technical-support/" class="side-nav-link">
+                        <i class="uil-life-ring"></i>
+                        <span> Technical Support </span>
+                    </a>
+                </li>
+            {% else %}
+              <li class="side-nav-title">Sales & Purchase</li>
+
+                <!-- Dashboard -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false"
+                       aria-controls="sidebarDashboards" class="side-nav-link">
+                        <i class="uil-home-alt"></i>
+                        <span> Dashboards </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarDashboards">
+                        <ul class="side-nav-second-level">
+                            <li><a href="/sp_dashboard/">Main Dashboard</a></li>
+                            <li><a href="/sales-dashboard/">Sales Dashboard</a></li>
+                            <li><a href="/purchase-dashboard/">Purchase Dashboard</a></li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Customers -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarCustomers" aria-expanded="false"
+                       aria-controls="sidebarCustomers" class="side-nav-link">
+                        <i class="uil-users-alt"></i>
+                        <span> Customers </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarCustomers">
+                        <ul class="side-nav-second-level">
+                            <li><a href="/customers/">Customer List</a></li>
+                            <li><a href="/customers/create/">Create Customer</a></li>
+                            <li><a href="/customers/1/edit/">Edit Customer</a></li>
+                            <li><a href="/customers/1/">Customer Detail</a></li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarCustomerPricing" aria-expanded="false"
+                                   aria-controls="sidebarCustomerPricing">
+                                    <span> Pricing </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarCustomerPricing">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/customers/1/pricing/">Customer Pricing List</a></li>
+                                        <li><a href="/customers/1/pricing/create/">Create Pricing</a></li>
+                                        <li><a href="/customer-pricing/1/edit/">Edit Pricing</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Sales -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarSales" aria-expanded="false"
+                       aria-controls="sidebarSales" class="side-nav-link">
+                        <i class="uil-shopping-cart-alt"></i>
+                        <span> Sales </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarSales">
+                        <ul class="side-nav-second-level">
+                            <!-- RFQ -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarSalesRFQ" aria-expanded="false"
+                                   aria-controls="sidebarSalesRFQ">
+                                    <span> RFQ </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarSalesRFQ">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/rfqs/">RFQ List</a></li>
+                                        <li><a href="/rfqs/create/">Create RFQ</a></li>
+                                        <li><a href="/rfqs/1/edit/">Edit RFQ</a></li>
+                                        <li><a href="/rfqs/1/">RFQ Detail</a></li>
+                                        <li><a href="/rfqs/1/clone/">Clone RFQ</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Quotations -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarQuotations" aria-expanded="false"
+                                   aria-controls="sidebarQuotations">
+                                    <span> Quotations </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarQuotations">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/quotations/">Quotation List</a></li>
+                                        <li><a href="/quotations/create/">Create Quotation</a></li>
+                                        <li><a href="/quotations/create-from-rfq/1/">From RFQ</a></li>
+                                        <li><a href="/quotations/1/edit/">Edit Quotation</a></li>
+                                        <li><a href="/quotations/1/">Quotation Detail</a></li>
+                                        <li><a href="/quotations/1/pdf/">Quotation PDF</a></li>
+                                        <li><a href="/rfqs/1/quotation-with-variant-bom/">With Variant BOM</a></li>
+                                        <li><a href="/bom/7/clone/">Clone BOM</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Sales Orders -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarSalesOrders" aria-expanded="false"
+                                   aria-controls="sidebarSalesOrders">
+                                    <span> Sales Orders </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarSalesOrders">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/sales-orders/">Sales Order List</a></li>
+                                        <li><a href="/sales-orders/create/">Create Sales Order</a></li>
+                                        <li><a href="/sales-orders/create-from-quotation/1/">From Quotation</a></li>
+                                        <li><a href="/sales-orders/1/edit/">Edit Sales Order</a></li>
+                                        <li><a href="/sales-orders/1/">Sales Order Detail</a></li>
+                                        <li><a href="/sales-orders/1/upload-po/">Upload Customer PO</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Invoices -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarSalesInvoices" aria-expanded="false"
+                                   aria-controls="sidebarSalesInvoices">
+                                    <span> Invoices </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarSalesInvoices">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/invoices/">Invoice List</a></li>
+                                        <li><a href="/invoices/create/">Create Invoice</a></li>
+                                        <li><a href="/invoices/create-from-sales-order/1/">From Sales Order</a></li>
+                                        <li><a href="/invoices/1/edit/">Edit Invoice</a></li>
+                                        <li><a href="/invoices/1/">Invoice Detail</a></li>
+                                        <li><a href="/invoices/1/pdf/">Invoice PDF</a></li>
+                                        <li><a href="/invoices/1/mark-paid/">Mark Paid</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Purchase -->
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarPurchase" aria-expanded="false"
+                       aria-controls="sidebarPurchase" class="side-nav-link">
+                        <i class="uil-bill"></i>
+                        <span> Purchase </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarPurchase">
+                        <ul class="side-nav-second-level">
+                            <!-- RFQ -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarPurchaseRFQ" aria-expanded="false"
+                                   aria-controls="sidebarPurchaseRFQ">
+                                    <span> RFQ </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarPurchaseRFQ">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/purchase-rfqs/">Purchase RFQ List</a></li>
+                                        <li><a href="/purchase-rfqs/create/">Create Purchase RFQ</a></li>
+                                        <li><a href="/purchase-rfqs/create-from-requisition/1/">From Requisition</a></li>
+                                        <li><a href="/purchase-rfqs/1/edit/">Edit Purchase RFQ</a></li>
+                                        <li><a href="/purchase-rfqs/1/">Purchase RFQ Detail</a></li>
+                                        <li><a href="/purchase-rfqs/1/send/">Send RFQ</a></li>
+                                        <li><a href="/purchase-rfqs/1/comparison/">Supplier Comparison</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Purchase Quotations -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarPurchaseQuotations" aria-expanded="false"
+                                   aria-controls="sidebarPurchaseQuotations">
+                                    <span> Purchase Quotations </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarPurchaseQuotations">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/purchase-quotations/"> Quotation List</a></li>
+                                        <li><a href="/purchase-quotations/create/">Create  Quotation</a></li>
+                                        <li><a href="/purchase-quotations/create-from-rfq/1/">From RFQ</a></li>
+                                        <li><a href="/purchase-quotations/1/edit/">Edit  Quotation</a></li>
+                                        <li><a href="/purchase-quotations/1/"> Quotation Detail</a></li>
+                                        <li><a href="/purchase-quotations/1/pdf/"> Quotation PDF</a></li>
+                                        <li><a href="/purchase-quotations/1/status/approved/">Update Status</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+
+                            <!-- Orders -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarPurchaseOrders" aria-expanded="false"
+                                   aria-controls="sidebarPurchaseOrders">
+                                    <span> Orders </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarPurchaseOrders">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/purchase-orders/">Purchase Order List</a></li>
+                                        <li><a href="/purchase-orders/create/">Create Purchase Order</a></li>
+                                        <li><a href="/purchase-orders/create-from-rfq/1/">From RFQ</a></li>
+                                        <li><a href="/purchase-orders/1/edit/">Edit Purchase Order</a></li>
+                                        <li><a href="/purchase-orders/1/">Purchase Order Detail</a></li>
+                                        <li><a href="/purchase-orders/1/pdf/">Purchase Order PDF</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- GRN -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarGRN" aria-expanded="false"
+                                   aria-controls="sidebarGRN">
+                                    <span> GRN </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarGRN">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/grns/">GRN List</a></li>
+                                        <li><a href="/grns/create/">Create GRN</a></li>
+                                        <li><a href="/grns/create-from-po/1/">From PO</a></li>
+                                        <li><a href="/grns/1/edit/">Edit GRN</a></li>
+                                        <li><a href="/grns/1/">GRN Detail</a></li>
+                                        <li><a href="/grns/1/verify/">Verify GRN</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Supplier Invoices -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarSupplierInvoices" aria-expanded="false"
+                                   aria-controls="sidebarSupplierInvoices">
+                                    <span> Supplier Invoices </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarSupplierInvoices">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/supplier-invoices/">Supplier Invoice List</a></li>
+                                        <li><a href="/supplier-invoices/create/">Create Supplier Invoice</a></li>
+                                        <li><a href="/supplier-invoices/create-from-grn/1/">From GRN</a></li>
+                                        <li><a href="/supplier-invoices/1/edit/">Edit Supplier Invoice</a></li>
+                                        <li><a href="/supplier-invoices/1/">Supplier Invoice Detail</a></li>
+                                        <li><a href="/supplier-invoices/1/upload-invoice/">Upload Invoice</a></li>
+                                        <li><a href="/supplier-invoices/1/mark-paid/">Mark Paid</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Vertex AI Invoice -->
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarVertexAIInvoice" aria-expanded="false"
+                                   aria-controls="sidebarVertexAIInvoice">
+                                    <span> Vertex AI Invoice </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarVertexAIInvoice">
+                                    <ul class="side-nav-third-level">
+                                        <li><a href="/invoice_list_vai/">Invoice List</a></li>
+                                        <li><a href="/invoice_upload_vai/">Upload Invoice</a></li>
+                                        <li><a href="/invoice_detail_vai/1/">Invoice Detail</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
             
-            <li class="side-nav-title">Sales & Purchase</li>
 
-            <!-- Dashboard -->
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false"
-                   aria-controls="sidebarDashboards" class="side-nav-link">
-                    <i class="uil-home-alt"></i>
-                    <span> Dashboards </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarDashboards">
-                    <ul class="side-nav-second-level">
-                        <li><a href="/sp_dashboard/">Main Dashboard</a></li>
-                        <li><a href="/sales-dashboard/">Sales Dashboard</a></li>
-                        <li><a href="/purchase-dashboard/">Purchase Dashboard</a></li>
-                    </ul>
-                </div>
-            </li>
 
-            <!-- Customers -->
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarCustomers" aria-expanded="false"
-                   aria-controls="sidebarCustomers" class="side-nav-link">
-                    <i class="uil-users-alt"></i>
-                    <span> Customers </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarCustomers">
-                    <ul class="side-nav-second-level">
-                        <li><a href="/customers/">Customer List</a></li>
-                        <li><a href="/customers/create/">Create Customer</a></li>
-                        <li><a href="/customers/1/edit/">Edit Customer</a></li>
-                        <li><a href="/customers/1/">Customer Detail</a></li>
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarCustomerPricing" aria-expanded="false"
-                               aria-controls="sidebarCustomerPricing">
-                                <span> Pricing </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarCustomerPricing">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/customers/1/pricing/">Customer Pricing List</a></li>
-                                    <li><a href="/customers/1/pricing/create/">Create Pricing</a></li>
-                                    <li><a href="/customer-pricing/1/edit/">Edit Pricing</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                <li class="side-nav-title">Technowin Xperience</li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false"
+                       aria-controls="sidebarDashboards" class="side-nav-link">
+                        <i class="uil-home-alt"></i>
+                        <span class="badge bg-success float-end">5</span>
+                        <span> Dashboards </span>
+                    </a>
+                    <div class="collapse" id="sidebarDashboards">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{% url 'dashboard:analytics' %}">Analytics</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'dashboard:index' %}">Ecommerce</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'dashboard:projects' %}">Projects</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'dashboard:crm' %}">CRM</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'dashboard:wallet' %}">E-Wallet</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>    
 
-            <!-- Sales -->
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarSales" aria-expanded="false"
-                   aria-controls="sidebarSales" class="side-nav-link">
-                    <i class="uil-shopping-cart-alt"></i>
-                    <span> Sales </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarSales">
-                    <ul class="side-nav-second-level">
-                        <!-- RFQ -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarSalesRFQ" aria-expanded="false"
-                               aria-controls="sidebarSalesRFQ">
-                                <span> RFQ </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarSalesRFQ">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/rfqs/">RFQ List</a></li>
-                                    <li><a href="/rfqs/create/">Create RFQ</a></li>
-                                    <li><a href="/rfqs/1/edit/">Edit RFQ</a></li>
-                                    <li><a href="/rfqs/1/">RFQ Detail</a></li>
-                                    <li><a href="/rfqs/1/clone/">Clone RFQ</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- Quotations -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarQuotations" aria-expanded="false"
-                               aria-controls="sidebarQuotations">
-                                <span> Quotations </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarQuotations">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/quotations/">Quotation List</a></li>
-                                    <li><a href="/quotations/create/">Create Quotation</a></li>
-                                    <li><a href="/quotations/create-from-rfq/1/">From RFQ</a></li>
-                                    <li><a href="/quotations/1/edit/">Edit Quotation</a></li>
-                                    <li><a href="/quotations/1/">Quotation Detail</a></li>
-                                    <li><a href="/quotations/1/pdf/">Quotation PDF</a></li>
-                                    <li><a href="/rfqs/1/quotation-with-variant-bom/">With Variant BOM</a></li>
-                                    <li><a href="/bom/7/clone/">Clone BOM</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- Sales Orders -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarSalesOrders" aria-expanded="false"
-                               aria-controls="sidebarSalesOrders">
-                                <span> Sales Orders </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarSalesOrders">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/sales-orders/">Sales Order List</a></li>
-                                    <li><a href="/sales-orders/create/">Create Sales Order</a></li>
-                                    <li><a href="/sales-orders/create-from-quotation/1/">From Quotation</a></li>
-                                    <li><a href="/sales-orders/1/edit/">Edit Sales Order</a></li>
-                                    <li><a href="/sales-orders/1/">Sales Order Detail</a></li>
-                                    <li><a href="/sales-orders/1/upload-po/">Upload Customer PO</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- Invoices -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarSalesInvoices" aria-expanded="false"
-                               aria-controls="sidebarSalesInvoices">
-                                <span> Invoices </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarSalesInvoices">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/invoices/">Invoice List</a></li>
-                                    <li><a href="/invoices/create/">Create Invoice</a></li>
-                                    <li><a href="/invoices/create-from-sales-order/1/">From Sales Order</a></li>
-                                    <li><a href="/invoices/1/edit/">Edit Invoice</a></li>
-                                    <li><a href="/invoices/1/">Invoice Detail</a></li>
-                                    <li><a href="/invoices/1/pdf/">Invoice PDF</a></li>
-                                    <li><a href="/invoices/1/mark-paid/">Mark Paid</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                <li class="side-nav-title">Apps</li>
 
-            <!-- Purchase -->
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarPurchase" aria-expanded="false"
-                   aria-controls="sidebarPurchase" class="side-nav-link">
-                    <i class="uil-bill"></i>
-                    <span> Purchase </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarPurchase">
-                    <ul class="side-nav-second-level">
-                        <!-- RFQ -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarPurchaseRFQ" aria-expanded="false"
-                               aria-controls="sidebarPurchaseRFQ">
-                                <span> RFQ </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarPurchaseRFQ">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/purchase-rfqs/">Purchase RFQ List</a></li>
-                                    <li><a href="/purchase-rfqs/create/">Create Purchase RFQ</a></li>
-                                    <li><a href="/purchase-rfqs/create-from-requisition/1/">From Requisition</a></li>
-                                    <li><a href="/purchase-rfqs/1/edit/">Edit Purchase RFQ</a></li>
-                                    <li><a href="/purchase-rfqs/1/">Purchase RFQ Detail</a></li>
-                                    <li><a href="/purchase-rfqs/1/send/">Send RFQ</a></li>
-                                    <li><a href="/purchase-rfqs/1/comparison/">Supplier Comparison</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- Purchase Quotations -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarPurchaseQuotations" aria-expanded="false"
-                               aria-controls="sidebarPurchaseQuotations">
-                                <span> Purchase Quotations </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarPurchaseQuotations">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/purchase-quotations/"> Quotation List</a></li>
-                                    <li><a href="/purchase-quotations/create/">Create  Quotation</a></li>
-                                    <li><a href="/purchase-quotations/create-from-rfq/1/">From RFQ</a></li>
-                                    <li><a href="/purchase-quotations/1/edit/">Edit  Quotation</a></li>
-                                    <li><a href="/purchase-quotations/1/"> Quotation Detail</a></li>
-                                    <li><a href="/purchase-quotations/1/pdf/"> Quotation PDF</a></li>
-                                    <li><a href="/purchase-quotations/1/status/approved/">Update Status</a></li>
-                                </ul>
-                            </div>
-                        </li>
+                <li class="side-nav-item">
+                    <a href="{% url 'apps:calendar' %}" class="side-nav-link">
+                        <i class="uil-calender"></i>
+                        <span> Calendar </span>
+                    </a>
+                </li>
 
-                        <!-- Orders -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarPurchaseOrders" aria-expanded="false"
-                               aria-controls="sidebarPurchaseOrders">
-                                <span> Orders </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarPurchaseOrders">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/purchase-orders/">Purchase Order List</a></li>
-                                    <li><a href="/purchase-orders/create/">Create Purchase Order</a></li>
-                                    <li><a href="/purchase-orders/create-from-rfq/1/">From RFQ</a></li>
-                                    <li><a href="/purchase-orders/1/edit/">Edit Purchase Order</a></li>
-                                    <li><a href="/purchase-orders/1/">Purchase Order Detail</a></li>
-                                    <li><a href="/purchase-orders/1/pdf/">Purchase Order PDF</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- GRN -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarGRN" aria-expanded="false"
-                               aria-controls="sidebarGRN">
-                                <span> GRN </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarGRN">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/grns/">GRN List</a></li>
-                                    <li><a href="/grns/create/">Create GRN</a></li>
-                                    <li><a href="/grns/create-from-po/1/">From PO</a></li>
-                                    <li><a href="/grns/1/edit/">Edit GRN</a></li>
-                                    <li><a href="/grns/1/">GRN Detail</a></li>
-                                    <li><a href="/grns/1/verify/">Verify GRN</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- Supplier Invoices -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarSupplierInvoices" aria-expanded="false"
-                               aria-controls="sidebarSupplierInvoices">
-                                <span> Supplier Invoices </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarSupplierInvoices">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/supplier-invoices/">Supplier Invoice List</a></li>
-                                    <li><a href="/supplier-invoices/create/">Create Supplier Invoice</a></li>
-                                    <li><a href="/supplier-invoices/create-from-grn/1/">From GRN</a></li>
-                                    <li><a href="/supplier-invoices/1/edit/">Edit Supplier Invoice</a></li>
-                                    <li><a href="/supplier-invoices/1/">Supplier Invoice Detail</a></li>
-                                    <li><a href="/supplier-invoices/1/upload-invoice/">Upload Invoice</a></li>
-                                    <li><a href="/supplier-invoices/1/mark-paid/">Mark Paid</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                        <!-- Vertex AI Invoice -->
-                        <li class="side-nav-item">
-                            <a data-bs-toggle="collapse" href="#sidebarVertexAIInvoice" aria-expanded="false"
-                               aria-controls="sidebarVertexAIInvoice">
-                                <span> Vertex AI Invoice </span>
-                                <span class="menu-arrow"></span>
-                            </a>
-                            <div class="collapse" id="sidebarVertexAIInvoice">
-                                <ul class="side-nav-third-level">
-                                    <li><a href="/invoice_list_vai/">Invoice List</a></li>
-                                    <li><a href="/invoice_upload_vai/">Upload Invoice</a></li>
-                                    <li><a href="/invoice_detail_vai/1/">Invoice Detail</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                <li class="side-nav-item">
+                    <a href="{% url 'apps:chat' %}" class="side-nav-link">
+                        <i class="uil-comments-alt"></i>
+                        <span> Chat </span>
+                    </a>
+                </li>
 
-        
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarCrm" aria-expanded="false" aria-controls="sidebarCrm"
+                       class="side-nav-link">
+                        <i class="uil uil-tachometer-fast"></i>
+                        <span class="badge bg-danger text-white float-end">New</span>
+                        <span> CRM </span>
+                    </a>
+                    <div class="collapse" id="sidebarCrm">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{% url 'crm:projects' %}">Projects</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'crm:orders-list' %}">Orders List</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'crm:clients' %}">Clients</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'crm:management' %}">Management</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarEcommerce" aria-expanded="false"
+                       aria-controls="sidebarEcommerce" class="side-nav-link">
+                        <i class="uil-store"></i>
+                        <span> Ecommerce </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarEcommerce">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{% url 'ecommerce:products' %}">Products</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:products-details' %}">Products Details</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:orders' %}">Orders</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:order-details' %}">Order Details</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:customers' %}">Customers</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:shopping-cart' %}">Shopping Cart</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:checkout' %}">Checkout</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ecommerce:sellers' %}">Sellers</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarEmail" aria-expanded="false" aria-controls="sidebarEmail"
+                       class="side-nav-link">
+                        <i class="uil-envelope"></i>
+                        <span> Email </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarEmail">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{% url 'apps:email.inbox' %}">Inbox</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'apps:email.read' %}">Read Email</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarProjects" aria-expanded="false"
+                       aria-controls="sidebarProjects" class="side-nav-link">
+                        <i class="uil-briefcase"></i>
+                        <span> Projects </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarProjects">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{% url 'apps:projects.list' %}">List</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'apps:projects.details' %}">Details</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'apps:projects.gantt' %}">Gantt <span
+                                        class="badge rounded-pill bg-light text-dark font-10 float-end">New</span></a>
+                            </li>
+                            <li>
+                                <a href="{% url 'apps:projects.add' %}">Create Project</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="side-nav-item">
+                    <a href="{% url 'apps:social.feed' %}" class="side-nav-link">
+                        <i class="uil-rss"></i>
+                        <span> Social Feed </span>
+                    </a>
+                </li>
+
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarTasks" aria-expanded="false" aria-controls="sidebarTasks"
+                       class="side-nav-link">
+                        <i class="uil-clipboard-alt"></i>
+                        <span> Tasks </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarTasks">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{% url 'apps:tasks.tasks' %}">List</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'apps:tasks.details' %}">Details</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'apps:tasks.kanban' %}">Kanban Board</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="side-nav-item">
+                    <a href="{% url 'apps:file.manager' %}" class="side-nav-link">
+                        <i class="uil-folder-plus"></i>
+                        <span> File Manager </span>
+                    </a>
+                </li>
+            {% endif %}
+
             
-
-            <li class="side-nav-title">Technowin Xperience</li>
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false"
-                   aria-controls="sidebarDashboards" class="side-nav-link">
-                    <i class="uil-home-alt"></i>
-                    <span class="badge bg-success float-end">5</span>
-                    <span> Dashboards </span>
-                </a>
-                <div class="collapse" id="sidebarDashboards">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{% url 'dashboard:analytics' %}">Analytics</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'dashboard:index' %}">Ecommerce</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'dashboard:projects' %}">Projects</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'dashboard:crm' %}">CRM</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'dashboard:wallet' %}">E-Wallet</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>    
-                    
-            <li class="side-nav-title">Apps</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'apps:calendar' %}" class="side-nav-link">
-                    <i class="uil-calender"></i>
-                    <span> Calendar </span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'apps:chat' %}" class="side-nav-link">
-                    <i class="uil-comments-alt"></i>
-                    <span> Chat </span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarCrm" aria-expanded="false" aria-controls="sidebarCrm"
-                   class="side-nav-link">
-                    <i class="uil uil-tachometer-fast"></i>
-                    <span class="badge bg-danger text-white float-end">New</span>
-                    <span> CRM </span>
-                </a>
-                <div class="collapse" id="sidebarCrm">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{% url 'crm:projects' %}">Projects</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'crm:orders-list' %}">Orders List</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'crm:clients' %}">Clients</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'crm:management' %}">Management</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarEcommerce" aria-expanded="false"
-                   aria-controls="sidebarEcommerce" class="side-nav-link">
-                    <i class="uil-store"></i>
-                    <span> Ecommerce </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarEcommerce">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{% url 'ecommerce:products' %}">Products</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:products-details' %}">Products Details</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:orders' %}">Orders</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:order-details' %}">Order Details</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:customers' %}">Customers</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:shopping-cart' %}">Shopping Cart</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:checkout' %}">Checkout</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'ecommerce:sellers' %}">Sellers</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarEmail" aria-expanded="false" aria-controls="sidebarEmail"
-                   class="side-nav-link">
-                    <i class="uil-envelope"></i>
-                    <span> Email </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarEmail">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{% url 'apps:email.inbox' %}">Inbox</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'apps:email.read' %}">Read Email</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarProjects" aria-expanded="false"
-                   aria-controls="sidebarProjects" class="side-nav-link">
-                    <i class="uil-briefcase"></i>
-                    <span> Projects </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarProjects">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{% url 'apps:projects.list' %}">List</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'apps:projects.details' %}">Details</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'apps:projects.gantt' %}">Gantt <span
-                                    class="badge rounded-pill bg-light text-dark font-10 float-end">New</span></a>
-                        </li>
-                        <li>
-                            <a href="{% url 'apps:projects.add' %}">Create Project</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'apps:social.feed' %}" class="side-nav-link">
-                    <i class="uil-rss"></i>
-                    <span> Social Feed </span>
-                </a>
-            </li>
-
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarTasks" aria-expanded="false" aria-controls="sidebarTasks"
-                   class="side-nav-link">
-                    <i class="uil-clipboard-alt"></i>
-                    <span> Tasks </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarTasks">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{% url 'apps:tasks.tasks' %}">List</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'apps:tasks.details' %}">Details</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'apps:tasks.kanban' %}">Kanban Board</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'apps:file.manager' %}" class="side-nav-link">
-                    <i class="uil-folder-plus"></i>
-                    <span> File Manager </span>
-                </a>
-            </li>
         
             {% comment %} <li class="side-nav-title">Custom</li>
 
