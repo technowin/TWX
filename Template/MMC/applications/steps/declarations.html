@@ -1,208 +1,241 @@
-{% extends 'applications/application_wizard.html' %}
-{% load static %}
+{% extends 'MMC/applications/application_wizard_base.html' %}
+{% load crispy_forms_tags %}
 
 {% block step_content %}
-<div class="card">
-    <div class="card-header bg-primary text-white">
-        <h5 class="card-title mb-0">
-            <i class="bi bi-shield-check"></i>
-            Step 9: Declarations & Undertakings
-        </h5>
+<form method="post" id="declarationsForm">
+    {% csrf_token %}
+    
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Please read all declarations carefully before agreeing. Submitting false information may lead to cancellation of registration and legal action.
     </div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i>
-                <strong>Important:</strong> Please read all declarations carefully before proceeding. 
-                False declarations may lead to cancellation of registration and legal action.
-            </div>
-            
-            <!-- Applicant Declaration -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="card-title mb-0">Applicant Declaration</h6>
-                </div>
-                <div class="card-body">
-                    <div class="declaration-content border rounded p-3 bg-light mb-3" style="max-height: 200px; overflow-y: auto;">
-                        <h6>Declaration by the Applicant</h6>
-                        <p>I, <strong>[Full Name]</strong>, hereby solemnly declare and affirm that:</p>
-                        <ol>
-                            <li>The information furnished in this application form and the documents submitted are true, correct, and complete to the best of my knowledge and belief.</li>
-                            <li>I have not concealed or suppressed any material information in this application.</li>
-                            <li>I have not been convicted by any court of law for any criminal offense involving moral turpitude.</li>
-                            <li>I have not been debarred from appearing in any examination or from pursuing any course of study.</li>
-                            <li>I have not been removed or dismissed from service in any institution/organization.</li>
-                            <li>I am aware that if any of the above information is found to be false or incorrect at any stage, my application shall be rejected and my registration, if granted, shall be liable to be cancelled.</li>
-                            <li>I undertake to abide by the rules and regulations of the Maharashtra Medical Council and the provisions of the Indian Medical Council Act, 1956.</li>
-                            <li>I shall follow the Code of Medical Ethics as prescribed by the Medical Council of India/NMC.</li>
-                            <li>I understand that this registration is subject to verification of all documents and information provided.</li>
-                            <li>I consent to the Maharashtra Medical Council making necessary inquiries for verification of my credentials.</li>
-                        </ol>
-                        <p><strong>Place:</strong> <span id="declarationPlace">[City, State]</span><br>
-                        <strong>Date:</strong> <span id="declarationDate">{{ current_date }}</span></p>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="applicant_declaration" required>
-                        <label class="form-check-label fw-bold" for="applicant_declaration">
-                            I hereby declare that the above statements are true and correct to the best of my knowledge and belief.
-                        </label>
+
+    <!-- Application Summary -->
+    <div class="form-section">
+        <h5><i class="bi bi-file-text me-2"></i>Application Summary</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Personal Information</h6>
+                        <dl class="row small mb-0">
+                            <dt class="col-5">Name:</dt>
+                            <dd class="col-7">{{ application.rmp.full_name }}</dd>
+                            
+                            <dt class="col-5">Date of Birth:</dt>
+                            <dd class="col-7">{{ application.rmp.date_of_birth|date:"d M Y" }}</dd>
+                            
+                            <dt class="col-5">Mobile:</dt>
+                            <dd class="col-7">{{ application.rmp.mobile }}</dd>
+                            
+                            <dt class="col-5">Email:</dt>
+                            <dd class="col-7">{{ application.rmp.email }}</dd>
+                        </dl>
                     </div>
                 </div>
             </div>
-            
-            <!-- IMC Code Pledge -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="card-title mb-0">Indian Medical Council (Professional Conduct, Etiquette and Ethics) Regulations Pledge</h6>
-                </div>
-                <div class="card-body">
-                    <div class="declaration-content border rounded p-3 bg-light mb-3" style="max-height: 200px; overflow-y: auto;">
-                        <h6>Pledge to Uphold Medical Ethics</h6>
-                        <p>I solemnly pledge myself to consecrate my life to the service of humanity:</p>
-                        <ul>
-                            <li>I will give to my teachers the respect and gratitude that is their due</li>
-                            <li>I will practice my profession with conscience and dignity</li>
-                            <li>The health of my patient will be my first consideration</li>
-                            <li>I will respect the secrets that are confided in me, even after the patient has died</li>
-                            <li>I will maintain by all means in my power, the honor and noble traditions of the medical profession</li>
-                            <li>My colleagues will be my sisters and brothers</li>
-                            <li>I will not permit considerations of age, disease or disability, creed, ethnic origin, gender, nationality, political affiliation, race, sexual orientation, social standing or any other factor to intervene between my duty and my patient</li>
-                            <li>I will maintain the utmost respect for human life</li>
-                            <li>I will not use my medical knowledge to violate human rights and civil liberties, even under threat</li>
-                            <li>I make these promises solemnly, freely, and upon my honor</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="imc_pledge" required>
-                        <label class="form-check-label fw-bold" for="imc_pledge">
-                            I solemnly pledge to abide by the Indian Medical Council (Professional Conduct, Etiquette and Ethics) Regulations.
-                        </label>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Application Details</h6>
+                        <dl class="row small mb-0">
+                            <dt class="col-5">Application Type:</dt>
+                            <dd class="col-7">{{ application.get_application_type_display }}</dd>
+                            
+                            <dt class="col-5">Application ID:</dt>
+                            <dd class="col-7">{{ application.application_id }}</dd>
+                            
+                            <dt class="col-5">Fee Amount:</dt>
+                            <dd class="col-7">₹{{ application.fee_amount }}</dd>
+                            
+                            <dt class="col-5">Submission Date:</dt>
+                            <dd class="col-7">{{ application.submitted_date|date:"d M Y" }}</dd>
+                        </dl>
                     </div>
                 </div>
             </div>
-            
-            <!-- Undertaking -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="card-title mb-0">Undertaking</h6>
+        </div>
+    </div>
+
+    <!-- Declarations -->
+    <div class="form-section">
+        <h5><i class="bi bi-shield-check me-2"></i>Declarations & Undertakings</h5>
+        
+        <!-- Main Declaration -->
+        <div class="card mb-3 border-primary">
+            <div class="card-body">
+                <div class="form-check">
+                    {{ form.declaration_agree }}
+                    <label class="form-check-label fw-bold" for="{{ form.declaration_agree.id_for_label }}">
+                        I hereby solemnly declare that:
+                    </label>
                 </div>
-                <div class="card-body">
-                    <div class="declaration-content border rounded p-3 bg-light mb-3">
-                        <p>I undertake to:</p>
-                        <ol>
-                            <li>Inform the Maharashtra Medical Council immediately of any change in my address or other particulars within 30 days of such change.</li>
-                            <li>Comply with the provisions of the Maharashtra Medical Council Act and Rules framed thereunder.</li>
-                            <li>Pay the prescribed fees for registration and renewal as per the rules.</li>
-                            <li>Participate in Continuing Medical Education (CME) programs as required by the Council.</li>
-                            <li>Maintain proper medical records of my patients for a period of three years.</li>
-                            <li>Not to practice any system of medicine for which I am not registered.</li>
-                            <li>Display my registration certificate at my place of practice.</li>
-                        </ol>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="undertaking" required>
-                        <label class="form-check-label fw-bold" for="undertaking">
-                            I hereby undertake to comply with all the above conditions.
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Consent for Verification -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h6 class="card-title mb-0">Consent for Verification</h6>
-                </div>
-                <div class="card-body">
-                    <div class="declaration-content border rounded p-3 bg-light mb-3">
-                        <p>I hereby give my consent to the Maharashtra Medical Council to:</p>
-                        <ul>
-                            <li>Verify all the documents and information submitted by me</li>
-                            <li>Make inquiries with educational institutions, previous employers, and other medical councils</li>
-                            <li>Share my information with other regulatory bodies as required by law</li>
-                            <li>Use my data for statistical purposes and research while maintaining confidentiality</li>
-                            <li>Contact me via email, SMS, or phone for official communication</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="verification_consent" required>
-                        <label class="form-check-label fw-bold" for="verification_consent">
-                            I give my consent for verification of my documents and information as described above.
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Final Confirmation -->
-            <div class="alert alert-success">
-                <h6><i class="bi bi-check-circle"></i> Final Confirmation</h6>
-                <p class="mb-2">By submitting this application, I confirm that:</p>
-                <ul class="mb-0">
-                    <li>I have read and understood all the declarations and undertakings</li>
-                    <li>All information provided is true and correct</li>
-                    <li>I agree to abide by the rules and regulations of MMC</li>
-                    <li>I understand the consequences of providing false information</li>
+                <ul class="mt-2 small">
+                    <li>All information provided in this application is true, complete, and correct to the best of my knowledge and belief</li>
+                    <li>I have not withheld any information that might affect the consideration of this application</li>
+                    <li>All documents submitted are genuine and relate to me</li>
+                    <li>I understand that providing false information may lead to rejection of application and legal consequences</li>
                 </ul>
             </div>
-            
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'application_step' application.application_id 8 %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Previous
-                        </a>
-                        <button type="submit" class="btn btn-success" id="submitDeclarations" disabled>
-                            <i class="bi bi-shield-check"></i> Accept & Continue to Payment
-                        </button>
-                    </div>
+        </div>
+
+        <!-- IMC Code Pledge -->
+        <div class="card mb-3 border-success">
+            <div class="card-body">
+                <div class="form-check">
+                    {{ form.imc_code_pledge }}
+                    <label class="form-check-label fw-bold" for="{{ form.imc_code_pledge.id_for_label }}">
+                        I pledge to abide by the Indian Medical Council (Professional Conduct, Etiquette and Ethics) Regulations:
+                    </label>
+                </div>
+                <ul class="mt-2 small">
+                    <li>I will maintain the dignity and honor of the medical profession</li>
+                    <li>I will practice medicine with conscience and dignity</li>
+                    <li>I will not permit considerations of religion, nationality, race, or social standing to intervene between my duty and my patient</li>
+                    <li>I will maintain due respect for human life from conception</li>
+                    <li>I will not use my medical knowledge contrary to the laws of humanity</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Undertaking -->
+        <div class="card mb-3 border-warning">
+            <div class="card-body">
+                <div class="form-check">
+                    {{ form.undertaking_agree }}
+                    <label class="form-check-label fw-bold" for="{{ form.undertaking_agree.id_for_label }}">
+                        I undertake and agree to the following:
+                    </label>
+                </div>
+                <ul class="mt-2 small">
+                    <li>I will inform the Maharashtra Medical Council about any change in my address, qualifications, or employment within 30 days of such change</li>
+                    <li>I will maintain professional indemnity insurance as required</li>
+                    <li>I will participate in Continuing Medical Education (CME) programs as prescribed</li>
+                    <li>I will renew my registration as per the prescribed schedule and rules</li>
+                    <li>I will comply with all the provisions of the MMC Act and Regulations</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Additional Declarations for Foreign Graduates -->
+        {% if 'foreign' in application.application_type %}
+        <div class="card mb-3 border-info">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-globe me-2"></i>Additional Declaration for Foreign Medical Graduates</h6>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="foreign_graduate_declaration" name="foreign_graduate_declaration" required>
+                    <label class="form-check-label fw-bold" for="foreign_graduate_declaration">
+                        I further declare that:
+                    </label>
+                </div>
+                <ul class="mt-2 small">
+                    <li>I have obtained the requisite screening test qualification as prescribed</li>
+                    <li>My foreign medical qualification is recognized as per the provisions of the Indian Medical Council Act</li>
+                    <li>I have completed the required internship training</li>
+                    <li>I have not been debarred from practicing medicine in any country</li>
+                    <li>All my foreign documents are duly authenticated</li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Consent for Verification -->
+    <div class="form-section">
+        <h5><i class="bi bi-clipboard-check me-2"></i>Consent for Verification</h5>
+        <div class="card border-secondary">
+            <div class="card-body">
+                <p class="mb-3">
+                    I hereby give my consent to the Maharashtra Medical Council to:
+                </p>
+                <ul class="small">
+                    <li>Verify all the information and documents provided in this application</li>
+                    <li>Make inquiries with educational institutions, employers, and other medical councils</li>
+                    <li>Share information with other regulatory bodies as required by law</li>
+                    <li>Use my personal information for registration and regulatory purposes</li>
+                    <li>Contact me via email, SMS, or phone for application-related communication</li>
+                </ul>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="verification_consent" name="verification_consent" required>
+                    <label class="form-check-label fw-bold" for="verification_consent">
+                        I give my consent for the above verification processes
+                    </label>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
-</div>
 
+    <!-- Final Confirmation -->
+    <div class="form-section">
+        <h5><i class="bi bi-check-all me-2"></i>Final Confirmation</h5>
+        <div class="alert alert-success">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="final_confirmation" name="final_confirmation" required>
+                <label class="form-check-label fw-bold" for="final_confirmation">
+                    I confirm that I have reviewed all the information provided in this application and found it to be correct. I understand that once submitted, I cannot make changes to the application.
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <button type="submit" name="previous_step" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-2"></i>Previous Step
+            </button>
+        </div>
+        
+        <div>
+            <button type="submit" name="save_draft" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-save me-2"></i>Save Draft
+            </button>
+            <button type="submit" class="btn btn-success" id="submitDeclarations">
+                <i class="bi bi-check-circle me-2"></i>Agree & Continue to Payment
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    const submitBtn = document.getElementById('submitDeclarations');
+    const form = document.getElementById('declarationsForm');
+    const submitButton = document.getElementById('submitDeclarations');
     
-    function updateSubmitButton() {
-        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
-        submitBtn.disabled = !allChecked;
-    }
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSubmitButton);
+    // Validate all checkboxes before submission
+    form.addEventListener('submit', function(e) {
+        const requiredCheckboxes = form.querySelectorAll('input[type="checkbox"][required]');
+        let allChecked = true;
+        
+        requiredCheckboxes.forEach(checkbox => {
+            if (!checkbox.checked) {
+                allChecked = false;
+                checkbox.closest('.form-check').classList.add('is-invalid');
+            } else {
+                checkbox.closest('.form-check').classList.remove('is-invalid');
+            }
+        });
+        
+        if (!allChecked) {
+            e.preventDefault();
+            showToast('Please agree to all declarations and undertakings', 'warning');
+        }
     });
     
-    // Update declaration place and date
-    const declarationPlace = document.getElementById('declarationPlace');
-    const declarationDate = document.getElementById('declarationDate');
-    
-    // Get current location (simplified - in real app, this could use geolocation API)
-    declarationPlace.textContent = 'Mumbai, Maharashtra';
-    declarationDate.textContent = new Date().toLocaleDateString('en-IN');
+    // Add visual feedback for checkboxes
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                this.closest('.form-check').classList.add('is-valid');
+                this.closest('.form-check').classList.remove('is-invalid');
+            } else {
+                this.closest('.form-check').classList.remove('is-valid');
+            }
+        });
+    });
 });
 </script>
-
-<style>
-.declaration-content {
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.declaration-content ol, .declaration-content ul {
-    padding-left: 1.5rem;
-}
-
-.declaration-content li {
-    margin-bottom: 0.5rem;
-}
-</style>
 {% endblock %}

@@ -1,139 +1,173 @@
-{% extends 'applications/application_wizard.html' %}
-{% load static %}
+{% extends 'MMC/applications/application_wizard_base.html' %}
+{% load crispy_forms_tags %}
 
 {% block step_content %}
-<div class="card">
-    <div class="card-header bg-primary text-white">
-        <h5 class="card-title mb-0">
-            <i class="bi bi-heart-pulse"></i>
-            Step 3: Medical Qualification Details
-        </h5>
+<form method="post" enctype="multipart/form-data" id="medicalQualificationForm">
+    {% csrf_token %}
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Please provide details of your medical qualifications. Add all degrees, diplomas, and certifications.
     </div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i>
-                Provide details about your medical qualification and training.
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Medical College/Institution *</label>
-                    <input type="text" class="form-control" name="medical_institution" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">University *</label>
-                    <input type="text" class="form-control" name="medical_university" required>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Degree Obtained *</label>
-                    <select class="form-select" name="medical_degree" required>
-                        <option value="">Select Degree</option>
-                        <option value="mbbs">MBBS</option>
-                        <option value="bds">BDS</option>
-                        <option value="bams">BAMS</option>
-                        <option value="bhms">BHMS</option>
-                        <option value="bums">BUMS</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Year of Passing *</label>
-                    <input type="number" class="form-control" name="medical_year" min="1950" max="2030" required>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Registration Number</label>
-                    <input type="text" class="form-control" name="medical_registration">
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Medium of Instruction *</label>
-                    <select class="form-select" name="medium_instruction" required>
-                        <option value="">Select Medium</option>
-                        <option value="english">English</option>
-                        <option value="hindi">Hindi</option>
-                        <option value="marathi">Marathi</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">OVIR Registration Number</label>
-                    <input type="text" class="form-control" name="ovir_registration">
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-12 mb-3">
-                    <label class="form-label">Did you complete any part of the course in India?</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="part_course_india" id="part_yes" value="yes">
-                        <label class="form-check-label" for="part_yes">Yes</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="part_course_india" id="part_no" value="no" checked>
-                        <label class="form-check-label" for="part_no">No</label>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="india_course_details" style="display: none;">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Indian College/Institution</label>
-                        <input type="text" class="form-control" name="india_institution">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Duration (Months)</label>
-                        <input type="number" class="form-control" name="india_duration">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12 mb-3">
-                        <label class="form-label">Subjects Covered in India</label>
-                        <textarea class="form-control" name="india_subjects" rows="3"></textarea>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'application_step' application.application_id 2 %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Previous
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            Save & Continue <i class="bi bi-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 
+    <!-- Primary Medical Qualification -->
+    <div class="form-section">
+        <h5><i class="bi bi-heart-pulse me-2"></i>Primary Medical Qualification</h5>
+        <div class="row">
+            <div class="col-md-4">
+                {{ form.qualification_level|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.degree_name|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.specialization|as_crispy_field }}
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                {{ form.college_name|as_crispy_field }}
+            </div>
+            <div class="col-md-6">
+                {{ form.university|as_crispy_field }}
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                {{ form.country|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.year_of_passing|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.duration|as_crispy_field }}
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                {{ form.registration_number|as_crispy_field }}
+            </div>
+            <div class="col-md-6">
+                {{ form.registration_council|as_crispy_field }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Medical Qualifications -->
+    <div id="additionalMedicalQualifications">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="bi bi-plus-circle me-2"></i>Additional Medical Qualifications</h5>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="addMedicalQualification">
+                <i class="bi bi-plus me-1"></i>Add Qualification
+            </button>
+        </div>
+        
+        <div class="medical-qualification-template" style="display: none;">
+            <div class="form-section medical-qualification-item">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Additional Qualification <span class="med-qual-number">1</span></h6>
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-medical-qualification">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <select name="qualification_level_0" class="form-select">
+                            <option value="">Select Level</option>
+                            <option value="ug">Undergraduate</option>
+                            <option value="pg">Postgraduate</option>
+                            <option value="super_specialty">Super Specialty</option>
+                            <option value="diploma">Diploma</option>
+                            <option value="certificate">Certificate</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" name="degree_name_0" class="form-control" placeholder="Degree Name">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" name="specialization_0" class="form-control" placeholder="Specialization">
+                    </div>
+                </div>
+                
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <input type="text" name="college_name_0" class="form-control" placeholder="College Name">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" name="university_0" class="form-control" placeholder="University">
+                    </div>
+                </div>
+                
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <input type="text" name="country_0" class="form-control" placeholder="Country" value="India">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" name="year_of_passing_0" class="form-control" placeholder="Year of Passing" min="1950" max="2030">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" name="duration_0" class="form-control" placeholder="Duration (years)" min="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <button type="submit" name="previous_step" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-2"></i>Previous Step
+            </button>
+        </div>
+        
+        <div>
+            <button type="submit" name="save_draft" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-save me-2"></i>Save Draft
+            </button>
+            <button type="submit" class="btn btn-primary">
+                Next Step <i class="bi bi-arrow-right ms-2"></i>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const partCourseYes = document.getElementById('part_yes');
-    const partCourseNo = document.getElementById('part_no');
-    const indiaDetails = document.getElementById('india_course_details');
+    let medicalQualificationCount = 0;
     
-    function toggleIndiaDetails() {
-        if (partCourseYes.checked) {
-            indiaDetails.style.display = 'block';
-        } else {
-            indiaDetails.style.display = 'none';
-        }
-    }
-    
-    partCourseYes.addEventListener('change', toggleIndiaDetails);
-    partCourseNo.addEventListener('change', toggleIndiaDetails);
+    // Add medical qualification
+    document.getElementById('addMedicalQualification').addEventListener('click', function() {
+        medicalQualificationCount++;
+        const template = document.querySelector('.medical-qualification-template').cloneNode(true);
+        template.style.display = 'block';
+        template.classList.remove('medical-qualification-template');
+        
+        // Update all elements with new index
+        const qualNumber = template.querySelector('.med-qual-number');
+        qualNumber.textContent = medicalQualificationCount + 1;
+        
+        const inputs = template.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            const name = input.getAttribute('name');
+            if (name) {
+                input.setAttribute('name', name.replace('_0', `_${medicalQualificationCount}`));
+            }
+        });
+        
+        // Add remove functionality
+        template.querySelector('.remove-medical-qualification').addEventListener('click', function() {
+            template.remove();
+        });
+        
+        document.getElementById('additionalMedicalQualifications').appendChild(template);
+    });
 });
 </script>
 {% endblock %}

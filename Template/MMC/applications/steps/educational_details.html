@@ -1,4 +1,4 @@
-{% extends 'applications/application_wizard.html' %}
+{% extends 'MMC/applications/application_wizard_base.html' %}
 {% load static %}
 
 {% block step_content %}
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Remove qualification listeners
     document.querySelectorAll('.remove-qualification').forEach(button => {
         button.addEventListener('click', function() {
-            this.closest('.qualification-item').remove();
+            this.closest('.qualification-item').remove();   
         });
     });
 });

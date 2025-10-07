@@ -1879,149 +1879,149 @@ def generate_mmc_number():
             return mmc_number
 
 # Application Management Views
-@login_required
-@user_passes_test(is_rmp)
-def application_wizard(request, application_type=None):
-    if application_type is None:
-        if request.method == 'POST':
-            form = ApplicationForm(request.POST)
-            if form.is_valid():
-                application = form.save(commit=False)
-                application.rmp = get_rmp_profile(request.user)
-                application.fee_amount = get_application_fee(application.application_type)
-                application.save()
+# @login_required
+# @user_passes_test(is_rmp)
+# def application_wizard(request, application_type=None):
+#     if application_type is None:
+#         if request.method == 'POST':
+#             form = ApplicationForm(request.POST)
+#             if form.is_valid():
+#                 application = form.save(commit=False)
+#                 application.rmp = get_rmp_profile(request.user)
+#                 application.fee_amount = get_application_fee(application.application_type)
+#                 application.save()
                 
-                # Create initial step
-                ApplicationStep.objects.create(
-                    application=application,
-                    step_number=1,
-                    step_name='applicant_details',
-                    required_documents=get_required_documents(application.application_type)
-                )
+#                 # Create initial step
+#                 ApplicationStep.objects.create(
+#                     application=application,
+#                     step_number=1,
+#                     step_name='applicant_details',
+#                     required_documents=get_required_documents(application.application_type)
+#                 )
                 
-                # Create audit log
-                create_audit_log(
-                    user=request.user,
-                    action_type='create',
-                    model_name='Application',
-                    object_id=application.application_id,
-                    description=f"New {application.get_application_type_display()} application created",
-                    request=request
-                )
+#                 # Create audit log
+#                 create_audit_log(
+#                     user=request.user,
+#                     action_type='create',
+#                     model_name='Application',
+#                     object_id=application.application_id,
+#                     description=f"New {application.get_application_type_display()} application created",
+#                     request=request
+#                 )
                 
-                return redirect('application_step', application_id=application.application_id, step=1)
-        else:
-            form = ApplicationForm()
-        return render(request, 'MMC/applications/application_type.html', {'form': form})
+#                 return redirect('application_step', application_id=application.application_id, step=1)
+#         else:
+#             form = ApplicationForm()
+#         return render(request, 'MMC/applications/application_type.html', {'form': form})
     
-    return redirect('application_wizard')
+#     return redirect('application_wizard')
 
-@login_required
-@user_passes_test(is_rmp)
-def application_step(request, application_id, step):
-    application = get_object_or_404(Application, application_id=application_id, rmp__user=request.user)
+# @login_required
+# @user_passes_test(is_rmp)
+# def application_step(request, application_id, step):
+#     application = get_object_or_404(Application, application_id=application_id, rmp__user=request.user)
     
-    steps_config = {
-        1: {'name': 'applicant_details', 'title': 'Applicant Details', 'form_class': RMPRegistrationForm},
-        2: {'name': 'educational_details', 'title': 'Educational Details', 'form_class': EducationalQualificationForm},
-        3: {'name': 'medical_qualification', 'title': 'Medical Qualification', 'form_class': MedicalQualificationForm},
-        4: {'name': 'passport_details', 'title': 'Passport Details', 'form_class': PassportDetailsForm},
-        5: {'name': 'screening_test', 'title': 'Screening Test', 'form_class': ScreeningTestForm},
-        6: {'name': 'internship_training', 'title': 'Internship Training', 'form_class': InternshipTrainingForm},
-        7: {'name': 'foreign_training', 'title': 'Foreign Training/Registration', 'form_class': ForeignTrainingForm},
-        8: {'name': 'documents_upload', 'title': 'Document Upload', 'form_class': DocumentUploadForm},
-        9: {'name': 'declarations', 'title': 'Declarations', 'form_class': DeclarationForm},
-        10: {'name': 'payment', 'title': 'Payment', 'form_class': PaymentForm},
-    }
+#     steps_config = {
+#         1: {'name': 'applicant_details', 'title': 'Applicant Details', 'form_class': RMPRegistrationForm},
+#         2: {'name': 'educational_details', 'title': 'Educational Details', 'form_class': EducationalQualificationForm},
+#         3: {'name': 'medical_qualification', 'title': 'Medical Qualification', 'form_class': MedicalQualificationForm},
+#         4: {'name': 'passport_details', 'title': 'Passport Details', 'form_class': PassportDetailsForm},
+#         5: {'name': 'screening_test', 'title': 'Screening Test', 'form_class': ScreeningTestForm},
+#         6: {'name': 'internship_training', 'title': 'Internship Training', 'form_class': InternshipTrainingForm},
+#         7: {'name': 'foreign_training', 'title': 'Foreign Training/Registration', 'form_class': ForeignTrainingForm},
+#         8: {'name': 'documents_upload', 'title': 'Document Upload', 'form_class': DocumentUploadForm},
+#         9: {'name': 'declarations', 'title': 'Declarations', 'form_class': DeclarationForm},
+#         10: {'name': 'payment', 'title': 'Payment', 'form_class': PaymentForm},
+#     }
     
-    current_step_config = steps_config.get(step)
-    if not current_step_config:
-        messages.error(request, "Invalid step")
-        return redirect('application_status', application_id=application_id)
+#     current_step_config = steps_config.get(step)
+#     if not current_step_config:
+#         messages.error(request, "Invalid step")
+#         return redirect('application_status', application_id=application_id)
     
-    if request.method == 'POST':
-        if step == 10:  # Payment step
-            # Handle payment processing
-            application.payment_status = True
-            application.payment_date = timezone.now()
-            application.status = 'submitted'
-            application.save()
+#     if request.method == 'POST':
+#         if step == 10:  # Payment step
+#             # Handle payment processing
+#             application.payment_status = True
+#             application.payment_date = timezone.now()
+#             application.status = 'submitted'
+#             application.save()
             
-            # Create notification for admin
-            admin_users = CustomUser.objects.filter(user_type='admin')
-            for admin in admin_users:
-                Notification.objects.create(
-                    user=admin,
-                    notification_type='registration',
-                    title='New Application Submitted',
-                    message=f"New {application.get_application_type_display()} application submitted by {application.rmp.full_name}",
-                    related_object_id=str(application.application_id),
-                    action_url=reverse('admin_application_review', args=[application.application_id]),
-                    priority='high'
-                )
+#             # Create notification for admin
+#             admin_users = CustomUser.objects.filter(user_type='admin')
+#             for admin in admin_users:
+#                 Notification.objects.create(
+#                     user=admin,
+#                     notification_type='registration',
+#                     title='New Application Submitted',
+#                     message=f"New {application.get_application_type_display()} application submitted by {application.rmp.full_name}",
+#                     related_object_id=str(application.application_id),
+#                     action_url=reverse('admin_application_review', args=[application.application_id]),
+#                     priority='high'
+#                 )
             
-            # Create audit log
-            create_audit_log(
-                user=request.user,
-                action_type='update',
-                model_name='Application',
-                object_id=application.application_id,
-                description=f"Application submitted and payment completed",
-                request=request
-            )
+#             # Create audit log
+#             create_audit_log(
+#                 user=request.user,
+#                 action_type='update',
+#                 model_name='Application',
+#                 object_id=application.application_id,
+#                 description=f"Application submitted and payment completed",
+#                 request=request
+#             )
             
-            messages.success(request, "Application submitted successfully!")
-            return redirect('application_status', application_id=application_id)
-        else:
-            # Save step data
-            step_data = process_step_data(request, step, application)
+#             messages.success(request, "Application submitted successfully!")
+#             return redirect('application_status', application_id=application_id)
+#         else:
+#             # Save step data
+#             step_data = process_step_data(request, step, application)
             
-            # Update step progress
-            application_step, created = ApplicationStep.objects.update_or_create(
-                application=application,
-                step_number=step,
-                defaults={
-                    'step_name': current_step_config['name'],
-                    'data': step_data,
-                    'is_completed': True,
-                    'completed_date': timezone.now(),
-                }
-            )
+#             # Update step progress
+#             application_step, created = ApplicationStep.objects.update_or_create(
+#                 application=application,
+#                 step_number=step,
+#                 defaults={
+#                     'step_name': current_step_config['name'],
+#                     'data': step_data,
+#                     'is_completed': True,
+#                     'completed_date': timezone.now(),
+#                 }
+#             )
             
-            # Update application current step
-            application.current_step = step + 1
-            application.save()
+#             # Update application current step
+#             application.current_step = step + 1
+#             application.save()
             
-            if step < len(steps_config):
-                return redirect('application_step', application_id=application_id, step=step + 1)
+#             if step < len(steps_config):
+#                 return redirect('application_step', application_id=application_id, step=step + 1)
     
-    # Load existing step data
-    try:
-        step_data = ApplicationStep.objects.get(application=application, step_number=step).data
-    except ApplicationStep.DoesNotExist:
-        step_data = {}
+#     # Load existing step data
+#     try:
+#         step_data = ApplicationStep.objects.get(application=application, step_number=step).data
+#     except ApplicationStep.DoesNotExist:
+#         step_data = {}
     
-    # Initialize form for current step
-    form = None
-    if current_step_config['form_class']:
-        form_class = current_step_config['form_class']
-        if form_class == PaymentForm:
-            form = form_class(initial=step_data, application_type=application.application_type)
-        else:
-            form = form_class(initial=step_data)
+#     # Initialize form for current step
+#     form = None
+#     if current_step_config['form_class']:
+#         form_class = current_step_config['form_class']
+#         if form_class == PaymentForm:
+#             form = form_class(initial=step_data, application_type=application.application_type)
+#         else:
+#             form = form_class(initial=step_data)
     
-    context = {
-        'application': application,
-        'current_step': step,
-        'current_step_name': current_step_config['name'],
-        'step_title': current_step_config['title'],
-        'total_steps': len(steps_config),
-        'step_data': step_data,
-        'form': form,
-    }
+#     context = {
+#         'application': application,
+#         'current_step': step,
+#         'current_step_name': current_step_config['name'],
+#         'step_title': current_step_config['title'],
+#         'total_steps': len(steps_config),
+#         'step_data': step_data,
+#         'form': form,
+#     }
     
-    template_name = f'MMC/applications/steps/{current_step_config["name"]}.html'
-    return render(request, template_name, context)
+#     template_name = f'MMC/applications/steps/{current_step_config["name"]}.html'
+#     return render(request, template_name, context)
 
 def process_step_data(request, step, application):
     """Process and validate step data"""
@@ -2077,6 +2077,570 @@ def process_step_data(request, step, application):
                 document.save()
     
     return step_data
+
+@login_required
+def application_wizard(request, application_type=None):
+    """Application type selection and initialization"""
+    if not is_rmp(request.user):
+        messages.error(request, "Access denied. RMP registration required.")
+        return redirect('mmc_dashboard')
+    
+    rmp_profile = get_rmp_profile(request.user)
+    
+    if application_type is None:
+        # Show application type selection
+        if request.method == 'POST':
+            application_type = request.POST.get('application_type')
+            if application_type:
+                return redirect('application_wizard_with_type', application_type=application_type)
+            else:
+                messages.error(request, "Please select an application type")
+        
+        return render(request, 'MMC/applications/application_type.html', {
+            'application_types': Application.APPLICATION_TYPES
+        })
+    
+    # Initialize application
+    if request.method == 'POST':
+        with transaction.atomic():
+            application = Application.objects.create(
+                applicant=request.user,
+                rmp=rmp_profile,
+                application_type=application_type,
+                fee_amount=get_application_fee(application_type),
+                status='draft',
+                current_step=1
+            )
+            
+            # Create initial step
+            ApplicationStep.objects.create(
+                application=application,
+                step_number=1,
+                step_name='applicant_details',
+                required_documents=get_required_documents(application_type)
+            )
+            
+            # Create audit log
+            create_audit_log(
+                user=request.user,
+                action_type='create',
+                model_name='Application',
+                object_id=application.application_id,
+                description=f"New {application.get_application_type_display()} application created",
+                request=request
+            )
+            
+            messages.success(request, f"New {application.get_application_type_display()} application started!")
+            return redirect('application_step', application_id=application.application_id, step=1)
+    
+    return render(request, 'MMC/applications/application_type.html', {
+        'selected_type': application_type,
+        'application_types': Application.APPLICATION_TYPES
+    })
+
+@login_required
+def application_step(request, application_id, step):
+    """Handle individual application steps - ALL STEPS ACCESSIBLE"""
+    application = get_object_or_404(
+        Application, 
+        application_id=application_id, 
+        applicant=request.user
+    )
+    
+    # Step configuration for ALL 10 STEPS
+    steps_config = {
+        1: {
+            'name': 'applicant_details', 
+            'title': 'Applicant Details', 
+            'form_class': RMPRegistrationForm,
+            'template': 'applicant_details.html'
+        },
+        2: {
+            'name': 'educational_details', 
+            'title': 'Educational Details', 
+            'form_class': EducationalQualificationForm,
+            'template': 'educational_details.html'
+        },
+        3: {
+            'name': 'medical_qualification', 
+            'title': 'Medical Qualification', 
+            'form_class': MedicalQualificationForm,
+            'template': 'medical_qualification.html'
+        },
+        4: {
+            'name': 'passport_details', 
+            'title': 'Passport Details', 
+            'form_class': PassportDetailsForm,
+            'template': 'passport_details.html'
+        },
+        5: {
+            'name': 'screening_test', 
+            'title': 'Screening Test', 
+            'form_class': ScreeningTestForm,
+            'template': 'screening_test.html'
+        },
+        6: {
+            'name': 'internship_training', 
+            'title': 'Internship Training', 
+            'form_class': InternshipTrainingForm,
+            'template': 'internship_training.html'
+        },
+        7: {
+            'name': 'foreign_training', 
+            'title': 'Foreign Training/Registration', 
+            'form_class': ForeignTrainingForm,
+            'template': 'foreign_training.html'
+        },
+        8: {
+            'name': 'documents_upload', 
+            'title': 'Document Upload', 
+            'form_class': DocumentUploadForm,
+            'template': 'documents_upload.html'
+        },
+        9: {
+            'name': 'declarations', 
+            'title': 'Declarations', 
+            'form_class': DeclarationForm,
+            'template': 'declarations.html'
+        },
+        10: {
+            'name': 'payment', 
+            'title': 'Payment', 
+            'form_class': PaymentForm,
+            'template': 'payment.html'
+        },
+    }
+    
+    current_step_config = steps_config.get(step)
+    if not current_step_config:
+        messages.error(request, "Invalid step")
+        return redirect('application_status', application_id=application_id)
+    
+    # ALL STEPS ARE ACCESSIBLE - NO RESTRICTIONS
+    
+    # Handle POST request
+    if request.method == 'POST':
+        form = current_step_config['form_class'](request.POST, request.FILES)
+        if form.is_valid():
+            # Save step data if needed
+            save_step_data(application, step, form.cleaned_data)
+            messages.success(request, f"Step {step} data saved successfully!")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        # Load existing data if any
+        try:
+            step_data = ApplicationStep.objects.get(
+                application=application,
+                step_number=step
+            ).data
+        except ApplicationStep.DoesNotExist:
+            step_data = {}
+        
+        # Initialize form
+        form_class = current_step_config['form_class']
+        if step == 10:  # Payment form
+            form = form_class(initial={'amount': application.fee_amount})
+        else:
+            form = form_class(initial=step_data)
+    
+    # Get uploaded documents for document step
+    uploaded_documents = None
+    if step == 8:
+        uploaded_documents = Document.objects.filter(application=application)
+    
+    context = {
+        'application': application,
+        'form': form,
+        'current_step': step,
+        'step_title': current_step_config['title'],
+        'total_steps': 10,  # Fixed to 10 steps
+        'uploaded_documents': uploaded_documents,
+        'required_documents': get_required_documents(application.application_type),
+    }
+    
+    return render(request, f"MMC/applications/steps/{current_step_config['template']}", context)
+
+def get_steps_config():
+    """Get configuration for all steps"""
+    return {
+        1: {
+            'name': 'applicant_details', 
+            'title': 'Applicant Details', 
+            'form_class': RMPRegistrationForm,
+            'template': 'applicant_details.html',
+            'icon': 'person'
+        },
+        2: {
+            'name': 'educational_details', 
+            'title': 'Educational Details', 
+            'form_class': EducationalQualificationForm,
+            'template': 'educational_details.html',
+            'icon': 'mortarboard'
+        },
+        3: {
+            'name': 'medical_qualification', 
+            'title': 'Medical Qualification', 
+            'form_class': MedicalQualificationForm,
+            'template': 'medical_qualification.html',
+            'icon': 'heart-pulse'
+        },
+        4: {
+            'name': 'passport_details', 
+            'title': 'Passport Details', 
+            'form_class': PassportDetailsForm,
+            'template': 'passport_details.html',
+            'icon': 'passport'
+        },
+        5: {
+            'name': 'screening_test', 
+            'title': 'Screening Test', 
+            'form_class': ScreeningTestForm,
+            'template': 'screening_test.html',
+            'icon': 'clipboard-check'
+        },
+        6: {
+            'name': 'internship_training', 
+            'title': 'Internship Training', 
+            'form_class': InternshipTrainingForm,
+            'template': 'internship_training.html',
+            'icon': 'hospital'
+        },
+        7: {
+            'name': 'foreign_training', 
+            'title': 'Foreign Training/Registration', 
+            'form_class': ForeignTrainingForm,
+            'template': 'foreign_training.html',
+            'icon': 'globe'
+        },
+        8: {
+            'name': 'documents_upload', 
+            'title': 'Document Upload', 
+            'form_class': DocumentUploadForm,
+            'template': 'documents_upload.html',
+            'icon': 'folder'
+        },
+        9: {
+            'name': 'declarations', 
+            'title': 'Declarations', 
+            'form_class': DeclarationForm,
+            'template': 'declarations.html',
+            'icon': 'shield-check'
+        },
+        10: {
+            'name': 'payment', 
+            'title': 'Payment', 
+            'form_class': PaymentForm,
+            'template': 'payment.html',
+            'icon': 'credit-card'
+        },
+    }
+
+def render_step_form(request, application, step, step_config, steps_config):
+    """Render the step form with existing data"""
+    # Get existing step data from database (if any)
+    try:
+        step_data = ApplicationStep.objects.get(
+            application=application,
+            step_number=step
+        ).data
+    except ApplicationStep.DoesNotExist:
+        step_data = {}
+    
+    # Initialize form
+    form_class = step_config['form_class']
+    
+    # Special handling for payment form
+    if step == 10:
+        form = form_class(initial={'amount': application.fee_amount})
+    else:
+        form = form_class(initial=step_data)
+    
+    # Get uploaded documents for document step
+    uploaded_documents = None
+    if step == 8:
+        uploaded_documents = Document.objects.filter(application=application)
+    
+    context = {
+        'application': application,
+        'form': form,
+        'current_step': step,
+        'step_title': step_config['title'],
+        'total_steps': len(steps_config),
+        'uploaded_documents': uploaded_documents,
+        'required_documents': get_required_documents(application.application_type),
+    }
+    
+    return render(request, f"MMC/applications/steps/{step_config['template']}", context)
+
+def can_access_step(application, step):
+    """Check if user can access the requested step"""
+    # Allow access to current step and completed steps
+    if step <= application.current_step:
+        return True
+    
+    # For steps beyond current step, check if all previous steps are completed
+    if step > application.current_step:
+        completed_steps = ApplicationStep.objects.filter(
+            application=application,
+            step_number__lt=step,
+            is_completed=True
+        ).count()
+        return completed_steps >= (step - 1)
+    
+    return False
+
+def handle_step_post(request, application, step, step_config):
+    """Handle step form submission"""
+    form = step_config['form_class'](request.POST, request.FILES)
+    
+    if form.is_valid():
+        # Special handling for different steps
+        if step == 8:  # Document upload
+            handle_document_upload(request, application)
+        elif step == 10:  # Payment
+            return handle_payment(request, application)
+        
+        save_step_data(application, step, form.cleaned_data)
+        mark_step_completed(application, step)
+        
+        # Update application current step if moving forward
+        if step >= application.current_step:
+            application.current_step = min(step + 1, 10)
+            application.save()
+        
+        messages.success(request, f"Step {step} completed successfully!")
+        
+        # Move to next step or complete
+        if step < 10:
+            return redirect('application_step', application_id=application.application_id, step=step+1)
+        else:
+            return redirect('application_status', application_id=application.application_id)
+    else:
+        messages.error(request, "Please correct the errors below.")
+        return render_step_form_after_post(request, application, step, step_config, form)
+
+def render_step_form_after_post(request, application, step, step_config, form):
+    """Render step form after POST with errors"""
+    steps_config = get_steps_config()
+    
+    # Get uploaded documents for document step
+    uploaded_documents = None
+    if step == 8:
+        uploaded_documents = Document.objects.filter(application=application)
+    
+    context = {
+        'application': application,
+        'form': form,
+        'current_step': step,
+        'step_title': step_config['title'],
+        'total_steps': len(steps_config),
+        'uploaded_documents': uploaded_documents,
+        'required_documents': get_required_documents(application.application_type),
+        'progress_percentage': calculate_progress_percentage(application),
+    }
+    
+    return render(request, f"MMC/applications/steps/{step_config['template']}", context)
+
+def calculate_progress_percentage(application):
+    """Calculate progress percentage based on completed steps"""
+    completed_steps = ApplicationStep.objects.filter(
+        application=application,
+        is_completed=True
+    ).count()
+    total_steps = 10
+    return int((completed_steps / total_steps) * 100)
+
+@login_required
+def get_step_progress(request, application_id):
+    """Get step progress for AJAX updates"""
+    application = get_object_or_404(Application, application_id=application_id, applicant=request.user)
+    completed_steps = ApplicationStep.objects.filter(application=application, is_completed=True).count()
+    total_steps = 10
+    
+    progress_percentage = int((completed_steps / total_steps) * 100)
+    
+    return JsonResponse({
+        'completed': completed_steps,
+        'total': total_steps,
+        'percentage': progress_percentage,
+        'current_step': application.current_step
+    })
+
+@login_required
+def jump_to_step(request, application_id, step):
+    """Allow jumping to specific step if accessible"""
+    application = get_object_or_404(Application, application_id=application_id, applicant=request.user)
+    
+    if can_access_step(application, step):
+        return redirect('application_step', application_id=application_id, step=step)
+    else:
+        messages.warning(request, "Cannot jump to this step. Please complete previous steps first.")
+        return redirect('application_step', application_id=application_id, step=application.current_step)
+
+def handle_save_draft(request, application, step, step_config):
+    """Save current step as draft"""
+    form = step_config['form_class'](request.POST, request.FILES)
+    
+    if form.is_valid():
+        save_step_data(application, step, form.cleaned_data)
+        messages.success(request, "Progress saved successfully!")
+    else:
+        messages.warning(request, "Form contains errors, but draft was saved.")
+        save_step_data(application, step, request.POST.dict())
+    
+    return redirect('application_step', application_id=application.application_id, step=step)
+
+def handle_step_submission(request, application, step, step_config):
+    """Handle step form submission"""
+    form = step_config['form_class'](request.POST, request.FILES)
+    
+    if form.is_valid():
+        # Special handling for different steps
+        if step == 8:  # Document upload
+            handle_document_upload(request, application)
+        elif step == 10:  # Payment
+            return handle_payment(request, application)
+        
+        save_step_data(application, step, form.cleaned_data)
+        mark_step_completed(application, step)
+        
+        # Move to next step or complete
+        if step < 10:
+            return redirect('application_step', application_id=application.application_id, step=step+1)
+        else:
+            return redirect('application_status', application_id=application.application_id)
+    else:
+        messages.error(request, "Please correct the errors below.")
+        return render(request, f"MMC/applications/steps/{step_config['template']}", {
+            'application': application,
+            'form': form,
+            'current_step': step,
+            'step_title': step_config['title'],
+            'total_steps': 10
+        })
+
+def handle_document_upload(request, application):
+    """Handle document uploads"""
+    for file_key, file_obj in request.FILES.items():
+        if file_key.startswith('document_'):
+            document_type = file_key.replace('document_', '')
+            Document.objects.create(
+                application=application,
+                document_type=document_type,
+                document_file=file_obj,
+                file_name=file_obj.name,
+                file_size=file_obj.size
+            )
+
+def handle_payment(request, application):
+    """Handle payment processing"""
+    with transaction.atomic():
+        application.payment_status = True
+        application.payment_date = timezone.now()
+        application.status = 'submitted'
+        application.submitted_date = timezone.now()
+        application.save()
+        
+        # Create payment record
+        Payment.objects.create(
+            application=application,
+            amount=application.fee_amount,
+            status='success',
+            payment_method='online',
+            transaction_id=f"TXN{application.application_id}{int(timezone.now().timestamp())}"
+        )
+        
+        # Create notification for admin
+        admin_users = CustomUser.objects.filter(user_type__in=['admin', 'staff'])
+        for admin in admin_users:
+            Notification.objects.create(
+                user=admin,
+                notification_type='registration',
+                title='New Application Submitted',
+                message=f"New {application.get_application_type_display()} application submitted by {application.rmp.full_name}",
+                related_object_id=str(application.application_id),
+                action_url=reverse('admin_application_review', args=[application.application_id]),
+                priority='high'
+            )
+        
+        # Create audit log
+        create_audit_log(
+            user=request.user,
+            action_type='update',
+            model_name='Application',
+            object_id=application.application_id,
+            description="Application submitted and payment completed",
+            request=request
+        )
+        
+        messages.success(request, "Application submitted successfully!")
+        return redirect('application_status', application_id=application.application_id)
+
+def save_step_data(application, step, data):
+    """Save step data to ApplicationStep"""
+    step_obj, created = ApplicationStep.objects.update_or_create(
+        application=application,
+        step_number=step,
+        defaults={
+            'data': data,
+            'is_completed': True,
+            'completed_date': timezone.now(),
+        }
+    )
+    
+    # Update application current step if moving forward
+    if step > application.current_step:
+        application.current_step = step
+        application.save()
+
+def mark_step_completed(application, step):
+    """Mark step as completed"""
+    ApplicationStep.objects.filter(
+        application=application,
+        step_number=step
+    ).update(
+        is_completed=True,
+        completed_date=timezone.now()
+    )
+
+def render_step_form(request, application, step, step_config, steps_config):
+    """Render the step form with existing data"""
+    # Get existing step data
+    try:
+        step_data = ApplicationStep.objects.get(
+            application=application,
+            step_number=step
+        ).data
+    except ApplicationStep.DoesNotExist:
+        step_data = {}
+    
+    # Initialize form
+    form_class = step_config['form_class']
+    
+    # Special handling for payment form
+    if step == 10:
+        form = form_class(initial={'amount': application.fee_amount})
+    else:
+        form = form_class(initial=step_data)
+    
+    # Get uploaded documents for document step
+    uploaded_documents = None
+    if step == 8:
+        uploaded_documents = Document.objects.filter(application=application)
+    
+    context = {
+        'application': application,
+        'form': form,
+        'current_step': step,
+        'step_title': step_config['title'],
+        'total_steps': len(steps_config),
+        'uploaded_documents': uploaded_documents,
+        'required_documents': get_required_documents(application.application_type),
+        'progress_percentage': int((step / len(steps_config)) * 100),
+    }
+    
+    return render(request, f"MMC/applications/steps/{step_config['template']}", context)
 
 def handle_document_uploads(self, application, form_data, files):
         document_mapping = {
@@ -2249,16 +2813,28 @@ def get_application_fee(application_type):
     }
     return fee_structure.get(application_type, 1000)
 
+# def get_required_documents(application_type):
+#     """Get required documents for application type"""
+#     document_requirements = {
+#         'provisional': ['photo', 'signature', 'ssc', 'hsc', 'degree', 'internship', 'address_proof'],
+#         'permanent': ['photo', 'signature', 'ssc', 'hsc', 'degree', 'internship', 'provisional_reg', 'address_proof'],
+#         'renewal': ['photo', 'latest_cpd_certificate', 'address_proof'],
+#         'additional_qualification': ['photo', 'degree', 'marksheet'],
+#         'good_standing_mmc': ['photo', 'address_proof', 'affidavit'],
+#     }
+#     return document_requirements.get(application_type, ['photo', 'signature', 'address_proof'])
+
 def get_required_documents(application_type):
-    """Get required documents for application type"""
+    """Get required documents based on application type"""
     document_requirements = {
-        'provisional': ['photo', 'signature', 'ssc', 'hsc', 'degree', 'internship', 'address_proof'],
-        'permanent': ['photo', 'signature', 'ssc', 'hsc', 'degree', 'internship', 'provisional_reg', 'address_proof'],
-        'renewal': ['photo', 'latest_cpd_certificate', 'address_proof'],
+        'permanent': ['photo', 'signature', 'ssc', 'hsc', 'degree', 'internship', 'address_proof'],
+        'foreign_permanent': ['photo', 'signature', 'ssc', 'hsc', 'degree', 'passport', 'screening_test', 'mci_eligibility'],
+        'provisional': ['photo', 'signature', 'ssc', 'hsc', 'degree_certificate'],
         'additional_qualification': ['photo', 'degree', 'marksheet'],
-        'good_standing_mmc': ['photo', 'address_proof', 'affidavit'],
+        'renewal': ['photo', 'current_registration'],
+        'good_standing_mmc': ['photo', 'address_proof', 'current_registration'],
     }
-    return document_requirements.get(application_type, ['photo', 'signature', 'address_proof'])
+    return document_requirements.get(application_type, ['photo', 'signature'])
 
 @login_required
 def application_status(request, application_id):
@@ -2282,6 +2858,52 @@ def application_status(request, application_id):
         'verification_tasks': verification_tasks,
     }
     return render(request, 'MMC/applications/application_status.html', context)
+
+@login_required
+def delete_application(request, application_id):
+    """Delete draft application"""
+    application = get_object_or_404(
+        Application, 
+        application_id=application_id, 
+        applicant=request.user,
+        status='draft'
+    )
+    
+    if request.method == 'POST':
+        application_id = application.application_id
+        application_type = application.get_application_type_display()
+        application.delete()
+        
+        messages.success(request, f"{application_type} application deleted successfully.")
+        return redirect('dashboard')
+    
+    return render(request, 'MMC/applications/delete_confirm.html', {
+        'application': application
+    })
+
+
+# AJAX views for dynamic functionality
+@login_required
+def get_step_progress(request, application_id):
+    """Get step progress for AJAX updates"""
+    application = get_object_or_404(Application, application_id=application_id, applicant=request.user)
+    completed_steps = ApplicationStep.objects.filter(application=application, is_completed=True).count()
+    total_steps = 10
+    
+    return JsonResponse({
+        'completed': completed_steps,
+        'total': total_steps,
+        'percentage': int((completed_steps / total_steps) * 100)
+    })
+
+@login_required
+def validate_step_data(request, application_id, step):
+    """Validate step data via AJAX"""
+    application = get_object_or_404(Application, application_id=application_id, applicant=request.user)
+    
+    # This would contain specific validation logic for each step
+    # For now, return basic validation
+    return JsonResponse({'valid': True, 'errors': []})
 
 @login_required
 @user_passes_test(is_rmp)

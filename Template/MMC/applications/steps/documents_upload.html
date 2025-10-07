@@ -1,271 +1,338 @@
-{% extends 'applications/application_wizard.html' %}
-{% load static %}
+{% extends 'MMC/applications/application_wizard_base.html' %}
+{% load crispy_forms_tags %}
 
 {% block step_content %}
-<div class="card">
-    <div class="card-header bg-primary text-white">
-        <h5 class="card-title mb-0">
-            <i class="bi bi-cloud-upload"></i>
-            Step 8: Document Upload
-        </h5>
+<form method="post" enctype="multipart/form-data" id="documentsForm">
+    {% csrf_token %}
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Please upload all required documents. Ensure files are clear, legible, and in supported formats (PDF, JPG, PNG).
     </div>
-    <div class="card-body">
+
+    <!-- Required Documents Checklist -->
+    <div class="form-section">
+        <h5><i class="bi bi-checklist me-2"></i>Required Documents Checklist</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th width="5%">Status</th>
+                        <th width="35%">Document Type</th>
+                        <th width="40%">Description & Requirements</th>
+                        <th width="20%">Upload</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc_type in required_documents %}
+                    <tr class="document-row" data-doc-type="{{ doc_type }}">
+                        <td class="text-center">
+                            <span class="upload-status badge bg-secondary" id="status-{{ doc_type }}">Pending</span>
+                        </td>
+                        <td>
+                            <strong>{{ doc_type|title }} Document</strong>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if doc_type == 'photo' %}
+                                Recent passport-size photograph (35mm x 45mm), white background
+                                {% elif doc_type == 'signature' %}
+                                Scanned signature on white paper
+                                {% elif doc_type == 'ssc' %}
+                                10th Standard Marksheet and Passing Certificate
+                                {% elif doc_type == 'hsc' %}
+                                12th Standard Marksheet and Passing Certificate
+                                {% elif doc_type == 'degree' %}
+                                Medical Degree Certificate and Mark sheets
+                                {% elif doc_type == 'internship' %}
+                                Internship Completion Certificate
+                                {% elif doc_type == 'passport' %}
+                                Passport first and last pages
+                                {% elif doc_type == 'address_proof' %}
+                                Aadhaar Card, Utility Bill, or Bank Statement
+                                {% elif doc_type == 'screening_test' %}
+                                Screening Test Certificate and Mark sheet
+                                {% else %}
+                                Required supporting document
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <input type="file" 
+                                   class="form-control form-control-sm document-file" 
+                                   name="document_{{ doc_type }}" 
+                                   data-doc-type="{{ doc_type }}"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   onchange="validateDocument(this)">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Uploaded Documents Preview -->
+    <div class="form-section" id="uploadedDocumentsSection" style="display: none;">
+        <h5><i class="bi bi-folder-check me-2"></i>Uploaded Documents</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered" id="uploadedDocumentsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Document Type</th>
+                        <th>File Name</th>
+                        <th>Size</th>
+                        <th>Upload Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="uploadedDocumentsBody">
+                    <!-- Will be populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Additional Documents -->
+    <div class="form-section">
+        <h5><i class="bi bi-plus-circle me-2"></i>Additional Supporting Documents</h5>
         <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle"></i>
-            <strong>Important:</strong> Please upload clear, legible documents. Maximum file size: 5MB per document. 
-            Allowed formats: PDF, JPG, JPEG, PNG.
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Upload any additional documents that support your application (optional).
         </div>
         
-        <form method="post" enctype="multipart/form-data" id="documentUploadForm">
-            {% csrf_token %}
-            
-            <div class="row">
-                <!-- Photograph -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-camera"></i> Photograph
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-center mb-3">
-                                <div class="border rounded d-inline-block p-3 bg-light">
-                                    <i class="bi bi-person-bounding-box fs-1 text-muted"></i>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Upload Recent Passport Photo *</label>
-                                <input type="file" class="form-control" name="document_photo" 
-                                       accept=".jpg,.jpeg,.png" required>
-                                <div class="form-text">Recent color passport photograph (35mm x 45mm)</div>
-                            </div>
-                        </div>
+        <div id="additionalDocuments">
+            <div class="additional-doc-template" style="display: none;">
+                <div class="row mb-3 additional-doc-item">
+                    <div class="col-md-4">
+                        <select class="form-select" name="additional_doc_type_0">
+                            <option value="">Select Document Type</option>
+                            <option value="experience_certificate">Experience Certificate</option>
+                            <option value="publication">Publication Proof</option>
+                            <option value="award">Award Certificate</option>
+                            <option value="research">Research Document</option>
+                            <option value="other">Other Document</option>
+                        </select>
                     </div>
-                </div>
-                
-                <!-- Signature -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-pen"></i> Signature
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-center mb-3">
-                                <div class="border rounded d-inline-block p-3 bg-light">
-                                    <i class="bi bi-type fs-1 text-muted"></i>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Upload Signature *</label>
-                                <input type="file" class="form-control" name="document_signature" 
-                                       accept=".jpg,.jpeg,.png" required>
-                                <div class="form-text">Scanned signature on white background</div>
-                            </div>
-                        </div>
+                    <div class="col-md-5">
+                        <input type="file" class="form-control" name="additional_doc_file_0" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
-                </div>
-            </div>
-            
-            <!-- Educational Documents -->
-            <div class="row">
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-journal-text"></i> Educational Documents
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">10th Marksheet *</label>
-                                    <input type="file" class="form-control" name="document_ssc" 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">12th Marksheet *</label>
-                                    <input type="file" class="form-control" name="document_hsc" 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">MBBS Degree *</label>
-                                    <input type="file" class="form-control" name="document_degree" 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Internship Certificate *</label>
-                                    <input type="file" class="form-control" name="document_internship" 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">MCI Eligibility Certificate</label>
-                                    <input type="file" class="form-control" name="document_mci_eligibility" 
-                                           accept=".pdf,.jpg,.jpeg,.png">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Screening Test Result</label>
-                                    <input type="file" class="form-control" name="document_screening_test" 
-                                           accept=".pdf,.jpg,.jpeg,.png">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Identity Documents -->
-            <div class="row">
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-person-badge"></i> Identity & Address Proof
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Passport *</label>
-                                    <input type="file" class="form-control" name="document_passport" 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Aadhaar Card *</label>
-                                    <input type="file" class="form-control" name="document_address_proof" 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Domicile Certificate</label>
-                                    <input type="file" class="form-control" name="document_domicile" 
-                                           accept=".pdf,.jpg,.jpeg,.png">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Additional Documents -->
-            <div class="row">
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-folder-plus"></i> Additional Documents
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Affidavit</label>
-                                    <input type="file" class="form-control" name="document_affidavit" 
-                                           accept=".pdf,.jpg,.jpeg,.png">
-                                    <div class="form-text">Self-attested affidavit</div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Embassy Letter</label>
-                                    <input type="file" class="form-control" name="document_embassy_letter" 
-                                           accept=".pdf,.jpg,.jpeg,.png">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Caste Certificate (if applicable)</label>
-                                    <input type="file" class="form-control" name="document_caste_certificate" 
-                                           accept=".pdf,.jpg,.jpeg,.png">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Upload Progress -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="card-title mb-0">Upload Progress</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="progress mb-3">
-                                <div class="progress-bar" role="progressbar" style="width: 0%" 
-                                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="uploadProgress">
-                                    0%
-                                </div>
-                            </div>
-                            <div id="uploadStatus" class="small text-muted">
-                                Ready to upload documents...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'application_step' application.application_id 7 %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Previous
-                        </a>
-                        <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <i class="bi bi-cloud-upload"></i> Upload Documents & Continue
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-additional-doc">
+                            <i class="bi bi-trash"></i> Remove
                         </button>
                     </div>
                 </div>
             </div>
-        </form>
+        </div>
+        
+        <div class="text-center mt-3">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="addAdditionalDoc">
+                <i class="bi bi-plus me-1"></i>Add Additional Document
+            </button>
+        </div>
     </div>
-</div>
 
+    <!-- Document Requirements -->
+    <div class="form-section">
+        <h5><i class="bi bi-exclamation-octagon me-2"></i>Document Requirements</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="bi bi-check-circle text-warning me-2"></i>Do's</h6>
+                        <ul class="small mb-0">
+                            <li>Upload clear, legible scanned copies</li>
+                            <li>Use PDF format for multi-page documents</li>
+                            <li>Ensure file size is less than 5MB per document</li>
+                            <li>Name files appropriately (e.g., "Passport_FirstPage.pdf")</li>
+                            <li>Upload all pages of multi-page documents</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-danger">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="bi bi-x-circle text-danger me-2"></i>Don'ts</h6>
+                        <ul class="small mb-0">
+                            <li>Don't upload blurred or unclear documents</li>
+                            <li>Don't upload password-protected files</li>
+                            <li>Don't upload documents in unsupported formats</li>
+                            <li>Don't upload files larger than 5MB</li>
+                            <li>Don't upload edited or manipulated documents</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <button type="submit" name="previous_step" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-2"></i>Previous Step
+            </button>
+        </div>
+        
+        <div>
+            <button type="submit" name="save_draft" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-save me-2"></i>Save Draft
+            </button>
+            <button type="submit" class="btn btn-primary" id="submitDocuments">
+                Next Step <i class="bi bi-arrow-right ms-2"></i>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('documentUploadForm');
-    const progressBar = document.getElementById('uploadProgress');
-    const uploadStatus = document.getElementById('uploadStatus');
-    const submitBtn = document.getElementById('submitBtn');
+    let additionalDocCount = 0;
     
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
-        
-        const formData = new FormData(form);
-        
-        // Simulate upload progress (in real implementation, use XMLHttpRequest with progress events)
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 10;
-            progressBar.style.width = progress + '%';
-            progressBar.textContent = progress + '%';
-            progressBar.setAttribute('aria-valuenow', progress);
-            
-            if (progress >= 100) {
-                clearInterval(interval);
-                uploadStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i> All documents uploaded successfully!';
-                form.submit();
-            }
-        }, 200);
-    });
+    // Load previously uploaded documents
+    loadUploadedDocuments();
     
-    // File size validation
-    const fileInputs = document.querySelectorAll('input[type="file"]');
-    fileInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const fileSize = file.size / 1024 / 1024; // MB
-                if (fileSize > 5) {
-                    alert('File size must be less than 5MB');
-                    this.value = '';
-                }
+    // Add additional document
+    document.getElementById('addAdditionalDoc').addEventListener('click', function() {
+        additionalDocCount++;
+        const template = document.querySelector('.additional-doc-template').cloneNode(true);
+        template.style.display = 'block';
+        template.classList.remove('additional-doc-template');
+        
+        // Update all elements with new index
+        const inputs = template.querySelectorAll('select, input');
+        inputs.forEach(input => {
+            const name = input.getAttribute('name');
+            if (name) {
+                input.setAttribute('name', name.replace('_0', `_${additionalDocCount}`));
             }
         });
+        
+        // Add remove functionality
+        template.querySelector('.remove-additional-doc').addEventListener('click', function() {
+            template.remove();
+        });
+        
+        document.getElementById('additionalDocuments').appendChild(template);
+    });
+    
+    // Form submission validation
+    document.getElementById('documentsForm').addEventListener('submit', function(e) {
+        const requiredDocs = {{ required_documents|safe }};
+        let allRequiredUploaded = true;
+        let missingDocs = [];
+        
+        requiredDocs.forEach(docType => {
+            const fileInput = document.querySelector(`input[name="document_${docType}"]`);
+            if (!fileInput || !fileInput.files.length) {
+                allRequiredUploaded = false;
+                missingDocs.push(docType);
+            }
+        });
+        
+        if (!allRequiredUploaded) {
+            e.preventDefault();
+            showToast(`Please upload all required documents: ${missingDocs.join(', ')}`, 'warning');
+        }
     });
 });
+
+function validateDocument(input) {
+    const file = input.files[0];
+    const docType = input.getAttribute('data-doc-type');
+    const statusBadge = document.getElementById(`status-${docType}`);
+    
+    if (file) {
+        // Check file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('File size must be less than 5MB', 'warning');
+            input.value = '';
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = 'Too Large';
+            return;
+        }
+        
+        // Check file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            showToast('Please upload PDF, JPG, or PNG files only', 'warning');
+            input.value = '';
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = 'Invalid Format';
+            return;
+        }
+        
+        // Update status
+        statusBadge.className = 'badge bg-success';
+        statusBadge.textContent = 'Uploaded';
+        
+        // Add to uploaded documents table
+        addToUploadedTable(docType, file);
+    } else {
+        statusBadge.className = 'badge bg-secondary';
+        statusBadge.textContent = 'Pending';
+    }
+}
+
+function addToUploadedTable(docType, file) {
+    const tableBody = document.getElementById('uploadedDocumentsBody');
+    const uploadedSection = document.getElementById('uploadedDocumentsSection');
+    
+    // Show section if hidden
+    uploadedSection.style.display = 'block';
+    
+    // Format file size
+    const fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+    
+    // Add row to table
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>${docType.toUpperCase()}</td>
+        <td>${file.name}</td>
+        <td>${fileSize}</td>
+        <td>${new Date().toLocaleDateString()}</td>
+        <td><span class="badge bg-success">Uploaded</span></td>
+        <td>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeUploadedDocument(this, '${docType}')">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tableBody.appendChild(newRow);
+}
+
+function removeUploadedDocument(button, docType) {
+    const row = button.closest('tr');
+    row.remove();
+    
+    // Clear the file input
+    const fileInput = document.querySelector(`input[name="document_${docType}"]`);
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    // Update status badge
+    const statusBadge = document.getElementById(`status-${docType}`);
+    statusBadge.className = 'badge bg-secondary';
+    statusBadge.textContent = 'Pending';
+    
+    // Hide section if no uploaded documents
+    const tableBody = document.getElementById('uploadedDocumentsBody');
+    if (tableBody.children.length === 0) {
+        document.getElementById('uploadedDocumentsSection').style.display = 'none';
+    }
+}
+
+function loadUploadedDocuments() {
+    // This would typically make an AJAX call to load previously uploaded documents
+    // For now, it's a placeholder for the actual implementation
+    console.log('Loading uploaded documents...');
+}
 </script>
 {% endblock %}

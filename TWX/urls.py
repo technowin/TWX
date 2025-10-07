@@ -487,17 +487,22 @@ urlpatterns = [
     path('profile/', rmp_profile_view, name='rmp_profile_view'),
 
     # Applications
-    path('applications/', application_wizard, name='application_wizard'),
     path('applications/list/', application_list, name='application_list'),
+    path('applications/', application_wizard, name='application_wizard'),
+    path('applications/<str:application_type>/', application_wizard, name='application_wizard_with_type'),
     path('applications/<int:application_id>/step/<int:step>/', application_step, name='application_step'),
+    path('applications/<int:application_id>/jump/<int:step>/', jump_to_step, name='jump_to_step'),
     path('applications/<int:application_id>/status/', application_status, name='application_status'),
+    path('applications/<int:application_id>/delete/', delete_application, name='delete_application'),
     path('applications/<int:application_id>/review/', application_review, name='application_review'),
     path('applications/<int:application_id>/submit/', submit_application, name='submit_application'),
     path('applications/<int:application_id>/upload-document/', mmc_upload_document, name='upload_document'),
     path('documents/<int:document_id>/delete/', mmc_delete_document, name='delete_document'),
     path('applications/<int:application_id>/payment/', payment_page, name='payment_page'),
     path('search_applications/', search_applications, name='search_applications'),
-
+    # AJAX URLs
+    path('applications/<int:application_id>/progress/', get_step_progress, name='get_step_progress'),
+    path('applications/<int:application_id>/step/<int:step>/validate/', validate_step_data, name='validate_step_data'),
     # Service Requests
     path('services/good-standing/<str:certificate_type>/', request_good_standing, name='request_good_standing'),
     path('services/noc/', request_noc, name='request_noc'),
