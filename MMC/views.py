@@ -1492,11 +1492,11 @@ def mmc_dashboard(request):
 def rmp_dashboard(request):
     user = request.user
     today = timezone.now().date()
-    
+    rmp_profile = get_rmp_profile(request.user)
     # Applications statistics
     applications = Application.objects.filter(applicant=user)
-    active_applications = applications.filter(status__in=['SUBMITTED', 'UNDER_REVIEW']).count()
-    completed_applications = applications.filter(status__in=['APPROVED', 'COMPLETED']).count()
+    active_applications = applications.filter(status__in=['submitted', 'completed']).count()
+    completed_applications = applications.filter(status__in=['approved', 'completed']).count()
     
     # CPD statistics
     cpd_participations = CPDParticipation.objects.filter(participant=user, attendance_status='COMPLETED')
@@ -1504,10 +1504,14 @@ def rmp_dashboard(request):
     
     # Renewal alerts
     renewal_alerts = []
-    if user.renewal_date and user.renewal_date <= today + timedelta(days=60):
+    # Calculate renewal date
+    renewal_date = rmp_profile.registration_valid_till if rmp_profile else None
+
+    
+    if renewal_date and renewal_date <= today + timedelta(days=60):
         renewal_alerts.append({
-            'message': f'Registration renewal due on {user.renewal_date}',
-            'type': 'warning' if user.renewal_date > today else 'danger'
+            'message': f'Registration renewal due on {renewal_date}',
+            'type': 'warning' if renewal_date > today else 'danger'
         })
     
     # CPD alerts
@@ -1524,27 +1528,27 @@ def rmp_dashboard(request):
     upcoming_cpd = CPDProgram.objects.filter(
         start_date__gte=today,
         is_active=True,
-        status='PUBLISHED'
+        status='Published'
     ).order_by('start_date')[:5]
     
     # AI Insights
-    ai_insights = AIInsight.objects.filter(user=user, is_active=True).order_by('-generated_at')[:3]
+    ai_insights = AIInsight.objects.filter(rmp=rmp_profile,is_active=True).order_by('-generated_date')[:3]
     
     context = {
         'active_applications': active_applications,
         'completed_applications': completed_applications,
-        'pending_payments': Payment.objects.filter(user=user, status='PENDING').count(),
+        'pending_payments': Payment.objects.filter(status='pending').count(),
         'cpd_points': total_cpd_points,
         'cpd_required': user.cpd_points_required,
         'cpd_completion': cpd_completion,
         'recent_applications': recent_applications,
         'upcoming_cpd': upcoming_cpd,
-        'notifications': Notification.objects.filter(user=user, is_read=False).order_by('-created_at')[:10],
-        'complaints_count': Complaint.objects.filter(against_doctor=user, status='PENDING').count(),
+        'notifications': Notification.objects.filter(user=user, is_read=False).order_by('-created_date')[:10],
+        'complaints_count': Complaint.objects.filter(against_rmp=rmp_profile, status='under_investigation').count(),
         'renewal_alerts': renewal_alerts,
         'cpd_alerts': cpd_alerts,
         'ai_insights': ai_insights,
-        'performance_score': AIPerformanceScore.objects.filter(user=user).first(),
+        'performance_score': AIPerformanceScore.objects.filter(rmp=rmp_profile).first(),
     }
     return render(request, 'MMC/dashboard/rmp_dashboard.html', context)
 
@@ -1555,10 +1559,10 @@ def admin_dashboard1(request):
     
     # Application statistics
     total_applications = Application.objects.count()
-    pending_applications = Application.objects.filter(status__in=['SUBMITTED', 'UNDER_REVIEW']).count()
+    pending_applications = Application.objects.filter(status__in=['submitted', 'under_review']).count()
     overdue_applications = Application.objects.filter(
         expected_completion_date__lt=today,
-        status__in=['SUBMITTED', 'UNDER_REVIEW']
+        status__in=['submitted', 'under_review']
     ).count()
     
     # User statistics
@@ -1571,10 +1575,10 @@ def admin_dashboard1(request):
     # Payment statistics
     payment_stats = Payment.objects.filter(
         payment_date__date__gte=thirty_days_ago,
-        status='SUCCESS'
+        status='success'
     ).aggregate(
         total_amount=Sum('amount'),
-        total_count=Count('id')
+        total_count=Count('payment_id')
     )
     
     # CPD statistics
@@ -1587,7 +1591,7 @@ def admin_dashboard1(request):
     
     # Recent activities
     recent_applications = Application.objects.select_related('applicant').order_by('-application_date')[:10]
-    recent_payments = Payment.objects.select_related('user').filter(status='SUCCESS').order_by('-payment_date')[:10]
+    recent_payments = Payment.objects.select_related('application__applicant').filter(status='success').order_by('-payment_date')[:10]
     
     # Staff performance
     staff_performance = CustomUser.objects.filter(
@@ -1603,30 +1607,57 @@ def admin_dashboard1(request):
         )
     ).values('username', 'first_name', 'last_name', 'tasks_completed', 'avg_processing_time')
     
-    # AI-powered insights for admin
-    high_risk_applications = Application.objects.filter(
-        status='UNDER_REVIEW'
-    ).annotate(
-        risk_score=Case(
-            When(application_type__in=['FOREIGN_PERMANENT', 'PERMANENT_DEFAULTER'], then=Value(80)),
-            When(verification_notes__isnull=False, then=Value(70)),
-            When(Q(documents__is_verified=False) & Q(documents__isnull=False), then=Value(60)),
-            default=Value(40),
-            output_field=IntegerField()
+    from django.db.models import Q, Case, When, Value, IntegerField
+
+    high_risk_applications = (
+        Application.objects.filter(status='under_review')
+        .annotate(
+            risk_score=Case(
+                # Rule 1: high-risk types
+                When(application_type__in=['foreign_permanent', 'defaulter'], then=Value(80)),
+
+                # Rule 2: non-empty review notes
+                When(~Q(review_notes="") & Q(review_notes__isnull=False), then=Value(70)),
+
+                # Rule 3: unverified documents — adjust related name
+                When(documents__is_verified=False, then=Value(60)),
+
+                # Default fallback
+                default=Value(40),
+                output_field=IntegerField(),  # ✅ Correct usage (you DO instantiate here)
+            )
         )
-    ).filter(risk_score__gte=70).distinct()[:10]
-    
-    compliance_alerts = CustomUser.objects.filter(
-        user_type='rmp',
-        registration_status='PERMANENT'
-    ).annotate(
-        cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
-        renewal_soon=Case(
-            When(renewal_date__lte=today + timedelta(days=30), then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField()
+        .filter(risk_score__gte=70)
+        .distinct()[:10]
+    )
+
+    # Step 1: Get RMP Profile if exists
+    rmp_profile = get_rmp_profile(request.user)
+    renewal_date = rmp_profile.registration_valid_till if rmp_profile else None
+
+    # Step 2: Base queryset with CPD deficit annotation
+    compliance_alerts = (
+        CustomUser.objects.filter(
+            user_type='rmp',
+            registration_status='PERMANENT'
         )
-    ).filter(Q(cpd_deficit__gt=10) | Q(renewal_soon=True))[:10]
+        .annotate(
+            cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
+        )
+        .filter(cpd_deficit__gt=10)[:10]
+    )
+
+    # Step 3: Add renewal alert logic (handled in Python)
+    if renewal_date:
+        renewal_soon_users = []
+        for user in compliance_alerts:
+            user_rmp = get_rmp_profile(user)
+            if user_rmp and user_rmp.registration_valid_till and user_rmp.registration_valid_till <= today + timedelta(days=30):
+                renewal_soon_users.append(user)
+
+        # Combine users with CPD deficit OR renewal soon
+        combined_users = set(compliance_alerts) | set(renewal_soon_users)
+        compliance_alerts = list(combined_users)
     
     context = {
         'total_applications': total_applications,
@@ -1989,7 +2020,7 @@ def application_step(request, application_id, step):
         'form': form,
     }
     
-    template_name = f'applications/steps/{current_step_config["name"]}.html'
+    template_name = f'MMC/applications/steps/{current_step_config["name"]}.html'
     return render(request, template_name, context)
 
 def process_step_data(request, step, application):

@@ -33,11 +33,7 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
-{% endblock %}
 
-{% block title %}Admin Dashboard - MMC Portal{% endblock %}
-
-{% block extra_css %}
 <style>
     .dashboard-card {
         border: none;
@@ -96,7 +92,7 @@
         top: 0;
         bottom: 0;
         width: 2px;
-        background: var(--mmc-primary);
+        background: #727cf5;
     }
     
     .activity-item {
@@ -112,7 +108,7 @@
         top: 0.5rem;
         width: 0.8rem;
         height: 0.8rem;
-        background: var(--mmc-primary);
+        background: #727cf5;
         border-radius: 50%;
         border: 2px solid white;
     }
@@ -133,7 +129,7 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: var(--mmc-primary);
+        background: #727cf5;
         color: white;
         display: flex;
         align-items: center;
@@ -158,7 +154,10 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
 </style>
+
 {% endblock %}
+
+{% block title %}Admin Dashboard - MMC Portal{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -304,7 +303,7 @@
                         <div class="card-body">
                             {% if high_risk_applications %}
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table">
                                     <thead>
                                         <tr>
                                             <th>Application ID</th>

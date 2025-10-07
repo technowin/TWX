@@ -471,8 +471,8 @@ urlpatterns = [
     # Dashboard
     path('mmc_dashboard/', mmc_dashboard, name='mmc_dashboard'),
     path('rmp_dashboard/', rmp_dashboard, name='rmp_dashboard'),
-    path('admin_dashboard1/', admin_dashboard1, name='admin_dashboard1'),
-    path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('admin_dashboard/', admin_dashboard1, name='admin_dashboard'),
+    # path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
 
     # RMP Profile
     path('profile/create/', rmp_profile_create, name='rmp_profile_create'),
@@ -573,6 +573,7 @@ urlpatterns = [
     path('rmp/ai/insights/', rmp_ai_insights, name='rmp_ai_insights'),
     path('ai/dashboard/', ai_dashboard, name='ai_dashboard'),
     path('ai_analytics_dashboard/', ai_analytics_dashboard, name='ai_analytics_dashboard'),
+    path('notification_list/', notification_list, name='notification_list'),
     
     # API Endpoints
     path('api/application/<int:application_id>/status/', ApplicationStatusAPI.as_view(), name='api_application_status'),
