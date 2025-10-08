@@ -66,6 +66,7 @@
                             <th>Name</th>
                             <th>Machine</th>
                             <th>Employee</th>
+                            <th>Work Center</th>
                             <th>Created At</th>
                             <th>Updated At</th>
                             <th>Actions</th>
@@ -76,7 +77,8 @@
                         <tr>
                             <td>{{ workstation.name }}</td>
                             <td>{{ workstation.machine.name }}</td>
-                            <td>{{ workstation.employee.employee_name }}</td>
+                           <td>{{ workstation.get_employee_names }}</td>
+                           <td>{{ workstation.work_center.name }}</td>
                             <td>{{ workstation.created_at|date:"M d, Y H:i" }}</td>
                             <td>{{ workstation.updated_at|date:"M d, Y H:i" }}</td>
                             <td>
@@ -100,7 +102,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4">
+                            <td colspan="7" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-inbox fa-3x mb-3"></i>
                                     <p>No workstations found. <a href="{% url 'mcp:workstation_create' %}">Create the first one</a></p>

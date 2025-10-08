@@ -420,10 +420,6 @@ class MachineScheduleDetailForm(forms.ModelForm):
             'employee',
             'shift',
             'hours_allocated',
-            'scheduled_start',
-            'scheduled_end',
-            'actual_start',
-            'actual_end',
             'status',
             'notes',
         ]
@@ -435,10 +431,6 @@ class MachineScheduleDetailForm(forms.ModelForm):
             'employee': forms.Select(attrs={'class': 'form-select'}),   # dropdown looks better
             'shift': forms.Select(attrs={'class': 'form-select'}),
             'hours_allocated': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Hours'}),
-            'scheduled_start': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'scheduled_end': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'actual_start': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'actual_end': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Add notes...'}),
         }
@@ -453,53 +445,66 @@ MachineScheduleDetailFormSet = forms.inlineformset_factory(
     can_delete=True
 )
 
-# class WorkStationForm(forms.ModelForm):
-#     class Meta:
-#         model = WorkStation
-#         fields = ['name', 'machine', 'employee']
-#         widgets = {'name': forms.TextInput(attrs={'class': 'form-control','placeholder': 'Enter workstation name'}),
-#                    'machine': forms.Select(attrs={'class': 'form-select'}),
-#                    'employee': forms.Select(attrs={'class': 'form-select'}),
-#         }
-#         labels = {
-#             'name': 'WorkStation Name',
-#             'machine': 'Machine',
-#             'employee': 'Assigned Employee',
-#         }
+class WorkStationForm(forms.ModelForm):
+    employee = forms.ModelMultipleChoiceField(
+        queryset=Employee.objects.all(),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select select2-multiple',
+            'multiple': 'multiple',
+            'data-placeholder': 'Select employees...'
+        }),
+        required=False,
+        label='Assigned Employees'
+    )
+    work_center = forms.ModelChoiceField(
+        queryset=WorkCenters.objects.all(),  # Make sure this matches your model
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+        }),
+        label='Work Center'
+    )
 
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = WorkStations
+        fields = ['name', 'machine', 'employee', 'work_center']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter workstation name'
+            }),
+            'machine': forms.Select(attrs={'class': 'form-select'}),
+            'work_center': forms.Select(attrs={'class': 'form-select'})
+        }
+        labels = {
+            'name': 'WorkStation Name',
+            'machine': 'Machine',
+            'employee': 'Assigned Employees',
+            'work_center': 'Work Center'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         
-#         # Add form-control class to all fields automatically
-#         for field_name, field in self.fields.items():
-#             if field.widget.attrs.get('class'):
-#                 field.widget.attrs['class'] += ' form-control'
-#             else:
-#                 field.widget.attrs['class'] = 'form-control'
-            
-#             # Add placeholder for text fields
-#             if isinstance(field.widget, forms.TextInput):
-#                 field.widget.attrs['placeholder'] = f'Enter {field.label.lower()}'
+        for field_name, field in self.fields.items():
+            css = field.widget.attrs.get('class', '')
+            if 'form-control' not in css and not isinstance(field.widget, forms.SelectMultiple):
+                field.widget.attrs['class'] = (css + ' form-control').strip()
 
-#     def clean(self):
-#         cleaned_data = super().clean()
-#         machine = cleaned_data.get('machine')
-#         employee = cleaned_data.get('employee')
+        if self.instance and self.instance.employee:
+            self.initial['employee'] = [
+                int(e) for e in self.instance.employee.split(',') if e.strip().isdigit()
+            ]
 
-#         # Check for unique_together constraint
-#         if machine and employee:
-#             existing = WorkStation.objects.filter(
-#                 machine=machine, 
-#                 employee=employee
-#             )
-            
-#             # If updating, exclude current instance
-#             if self.instance.pk:
-#                 existing = existing.exclude(pk=self.instance.pk)
-            
-#             if existing.exists():
-#                 raise forms.ValidationError(
-#                     'This employee is already assigned to this machine.'
-#                 )
-        
-#         return cleaned_data
+    def clean_employee(self):
+        employees = self.cleaned_data.get('employee')
+        if employees:
+            return ','.join(str(emp.id) for emp in employees)
+        return ''
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.employee = self.cleaned_data.get('employee', '')
+        if commit:
+            instance.save()
+        return instance
