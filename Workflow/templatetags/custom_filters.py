@@ -256,3 +256,70 @@ def abs(value):
 def percentage(value, arg):
     """Calculate percentage of value"""
     return (value * arg) / 100
+
+
+
+
+@register.filter
+def get_step_icon(step_number):
+    icons = {
+        1: 'person',
+        2: 'mortarboard',
+        3: 'heart-pulse',
+        4: 'passport',
+        5: 'clipboard-check',
+        6: 'hospital',
+        7: 'globe',
+        8: 'folder',
+        9: 'shield-check',
+        10: 'credit-card'
+    }
+    return icons.get(step_number, 'file-text')
+
+@register.filter
+def get_application_icon(app_type):
+    icons = {
+        'provisional': 'file-earmark-medical',
+        'permanent': 'file-medical',
+        'foreign_provisional': 'globe',
+        'foreign_permanent': 'globe2',
+        'additional_qualification': 'journal-plus',
+        'renewal': 'arrow-clockwise',
+        'good_standing_mmc': 'shield-check',
+        'noc_state': 'signpost',
+        'duplicate': 'files',
+        'verification': 'clipboard-check'
+    }
+    return icons.get(app_type, 'file-earmark-text')
+
+@register.filter
+def get_application_fee(app_type):
+    fees = {
+        'provisional': 1000,
+        'permanent': 2000,
+        'foreign_provisional': 5000,
+        'foreign_permanent': 10000,
+        'additional_qualification': 1000,
+        'renewal': 500,
+        'good_standing_mmc': 1000,
+        'good_standing_nmc': 1500,
+        'good_standing_nri': 2000,
+        'noc_state': 500,
+        'duplicate': 300,
+    }
+    return fees.get(app_type, 0)
+
+@register.filter
+def get_processing_time(app_type):
+    times = {
+        'provisional': '15 days',
+        'permanent': '30 days',
+        'foreign_provisional': '45 days',
+        'foreign_permanent': '60 days',
+        'additional_qualification': '20 days',
+        'renewal': '7 days',
+        'good_standing_mmc': '10 days',
+        'noc_state': '15 days',
+        'duplicate': '5 days',
+    }
+    return times.get(app_type, '15-30 days')

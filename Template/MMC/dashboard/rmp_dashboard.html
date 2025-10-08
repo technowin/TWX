@@ -44,10 +44,10 @@
         <h1 class="h2">Welcome, Dr. {{ user.get_full_name }}</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
             <div class="btn-group me-2">
-                <a href="{% url 'application_wizard_start' %}" class="btn btn-primary">
+                <a href="{% url 'application_wizard' %}" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> New Application
-                </a>
-                <a href="{% url 'cpd_program_list' %}" class="btn btn-success">
+                </a>&nbsp;&nbsp;
+                <a href="{% url 'cpd_programs' %}" class="btn btn-success">
                     <i class="bi bi-mortarboard"></i> Browse CPD Programs
                 </a>
             </div>
@@ -60,7 +60,7 @@
         <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <strong>Renewal Alert:</strong> {{ alert.message }}
-            <a href="{% url 'application_wizard_start' %}?type=RENEWAL_REG" class="alert-link">Renew Now</a>
+            <a href="{% url 'application_wizard' %}?type=RENEWAL_REG" class="alert-link">Renew Now</a>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
@@ -71,7 +71,7 @@
         <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
             <i class="bi bi-info-circle-fill"></i>
             {{ alert.message }}
-            <a href="{% url 'cpd_program_list' %}" class="alert-link">View Programs</a>
+            <a href="{% url 'cpd_programs' %}" class="alert-link">View Programs</a>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
@@ -204,7 +204,7 @@
                     <div class="text-center py-4">
                         <i class="bi bi-file-earmark-text display-1 text-muted"></i>
                         <p class="text-muted mt-3">No applications yet.</p>
-                        <a href="{% url 'application_wizard_start' %}" class="btn btn-primary">Start Your First Application</a>
+                        <a href="{% url 'application_wizard' %}" class="btn btn-primary">Start Your First Application</a>
                     </div>
                     {% endif %}
                 </div>
@@ -278,7 +278,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Upcoming CPD Programs</h5>
-                    <a href="{% url 'cpd_program_list' %}" class="btn btn-sm btn-outline-primary">Browse All</a>
+                    <a href="{% url 'cpd_programs' %}" class="btn btn-sm btn-outline-primary">Browse All</a>
                 </div>
                 <div class="card-body p-0">
                     {% if upcoming_cpd %}
@@ -306,7 +306,7 @@
                     <div class="text-center p-4">
                         <i class="bi bi-mortarboard display-1 text-muted"></i>
                         <p class="text-muted mt-3">No upcoming programs</p>
-                        <a href="{% url 'cpd_program_list' %}" class="btn btn-sm btn-primary">Browse Programs</a>
+                        <a href="{% url 'cpd_programs' %}" class="btn btn-sm btn-primary">Browse Programs</a>
                     </div>
                     {% endif %}
                 </div>
@@ -353,25 +353,25 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <a href="{% url 'application_wizard_start' %}?type=PROVISIONAL_REG" class="btn btn-outline-primary w-100 h-100 py-3">
+                            <a href="{% url 'application_wizard' %}?type=PROVISIONAL_REG" class="btn btn-outline-primary w-100 h-100 py-3">
                                 <i class="bi bi-file-earmark-plus display-6 d-block mb-2"></i>
                                 Provisional Registration
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="{% url 'application_wizard_start' %}?type=PERMANENT_REG" class="btn btn-outline-success w-100 h-100 py-3">
+                            <a href="{% url 'application_wizard' %}?type=PERMANENT_REG" class="btn btn-outline-success w-100 h-100 py-3">
                                 <i class="bi bi-file-earmark-check display-6 d-block mb-2"></i>
                                 Permanent Registration
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="{% url 'application_wizard_start' %}?type=RENEWAL_REG" class="btn btn-outline-warning w-100 h-100 py-3">
+                            <a href="{% url 'application_wizard' %}?type=RENEWAL_REG" class="btn btn-outline-warning w-100 h-100 py-3">
                                 <i class="bi bi-arrow-clockwise display-6 d-block mb-2"></i>
                                 Renew Registration
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="{% url 'cpd_program_list' %}" class="btn btn-outline-info w-100 h-100 py-3">
+                            <a href="{% url 'cpd_programs' %}" class="btn btn-outline-info w-100 h-100 py-3">
                                 <i class="bi bi-mortarboard display-6 d-block mb-2"></i>
                                 CPD Programs
                             </a>

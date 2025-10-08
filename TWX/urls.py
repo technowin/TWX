@@ -457,6 +457,7 @@ urlpatterns = [
     # Service Options
     path('service_selection/', service_selection, name='service_selection'),
     path('initiate_service/<str:service_type>/', initiate_service, name='initiate_service'),
+    path('service_details/<str:service_type>/', service_details, name='service_details'),
 
     # API endpoints for landing page
     path('api/quick-stats/', quick_stats_api, name='quick_stats_api'),
@@ -464,14 +465,14 @@ urlpatterns = [
     path('api/notifications/', get_notifications, name='get_notifications'),
 
     # Authentication
-    path('mmc/login/', MMCLoginView.as_view(), name='api_cpd_points'),
-    path('mmc/register/', MMCRegistrationView.as_view(), name='api_cpd_points'),
+    path('mmc/login/', MMCLoginView.as_view(), name='mmc_login'),
+    path('mmc/register/', MMCRegistrationView.as_view(), name='mmc_register'),
 
     # Dashboard
     path('mmc_dashboard/', mmc_dashboard, name='mmc_dashboard'),
     path('rmp_dashboard/', rmp_dashboard, name='rmp_dashboard'),
-    path('admin_dashboard1/', admin_dashboard1, name='admin_dashboard1'),
-    path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('admin_dashboard/', admin_dashboard1, name='admin_dashboard'),
+    # path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
 
     # RMP Profile
     path('profile/create/', rmp_profile_create, name='rmp_profile_create'),
@@ -486,17 +487,22 @@ urlpatterns = [
     path('profile/', rmp_profile_view, name='rmp_profile_view'),
 
     # Applications
-    path('applications/', application_wizard, name='application_wizard'),
     path('applications/list/', application_list, name='application_list'),
+    path('applications/', application_wizard, name='application_wizard'),
+    path('applications/<str:application_type>/', application_wizard, name='application_wizard_with_type'),
     path('applications/<int:application_id>/step/<int:step>/', application_step, name='application_step'),
+    path('applications/<int:application_id>/jump/<int:step>/', jump_to_step, name='jump_to_step'),
     path('applications/<int:application_id>/status/', application_status, name='application_status'),
+    path('applications/<int:application_id>/delete/', delete_application, name='delete_application'),
     path('applications/<int:application_id>/review/', application_review, name='application_review'),
     path('applications/<int:application_id>/submit/', submit_application, name='submit_application'),
     path('applications/<int:application_id>/upload-document/', mmc_upload_document, name='upload_document'),
     path('documents/<int:document_id>/delete/', mmc_delete_document, name='delete_document'),
     path('applications/<int:application_id>/payment/', payment_page, name='payment_page'),
     path('search_applications/', search_applications, name='search_applications'),
-
+    # AJAX URLs
+    path('applications/<int:application_id>/progress/', get_step_progress, name='get_step_progress'),
+    path('applications/<int:application_id>/step/<int:step>/validate/', validate_step_data, name='validate_step_data'),
     # Service Requests
     path('services/good-standing/<str:certificate_type>/', request_good_standing, name='request_good_standing'),
     path('services/noc/', request_noc, name='request_noc'),
@@ -572,6 +578,7 @@ urlpatterns = [
     path('rmp/ai/insights/', rmp_ai_insights, name='rmp_ai_insights'),
     path('ai/dashboard/', ai_dashboard, name='ai_dashboard'),
     path('ai_analytics_dashboard/', ai_analytics_dashboard, name='ai_analytics_dashboard'),
+    path('notification_list/', notification_list, name='notification_list'),
     
     # API Endpoints
     path('api/application/<int:application_id>/status/', ApplicationStatusAPI.as_view(), name='api_application_status'),

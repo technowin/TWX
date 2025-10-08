@@ -1,0 +1,403 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+.step-navigation {
+    position: sticky;
+    top: 20px;
+}
+.step-item {
+    border-left: 3px solid #dee2e6;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.step-item:hover {
+    {% comment %} background-color: #f8f9fa; {% endcomment %}
+    border-left-color: #0d6efd;
+}
+.step-item.active {
+    border-left-color: #0d6efd;
+    {% comment %} background-color: #e7f1ff; {% endcomment %}
+}
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    color: white;
+    margin-right: 10px;
+    font-weight: bold;
+}
+.step-item.active .step-number {
+    background-color: #0d6efd;
+}
+.form-section {
+    {% comment %} background: #f8f9fa; {% endcomment %}
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.form-section h5 {
+    border-bottom: 2px solid #0d6efd;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+.step-content {
+    min-height: 500px;
+}
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="card-title mb-1">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                {{ step_title }} - {{ application.get_application_type_display }}
+                            </h4>
+                            <p class="text-muted mb-0">Application ID: {{ application.application_id }} | Free Navigation: Click any step to view its form</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="badge bg-primary fs-6">Step {{ current_step }} of 10</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Steps Navigation - ALL 10 STEPS -->
+                <div class="col-lg-3 col-md-4">
+                    <div class="card shadow-sm step-navigation">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-list-ol me-2"></i>All Application Steps
+                            </h6>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            <!-- Step 1 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=1 %}" class="list-group-item list-group-item-action step-item {% if current_step == 1 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">1</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 1</div>
+                                        <small>Applicant Details</small>
+                                    </div>
+                                    {% if current_step == 1 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 2 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=2 %}" class="list-group-item list-group-item-action step-item {% if current_step == 2 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">2</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 2</div>
+                                        <small>Educational Details</small>
+                                    </div>
+                                    {% if current_step == 2 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 3 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=3 %}" class="list-group-item list-group-item-action step-item {% if current_step == 3 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">3</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 3</div>
+                                        <small>Medical Qualification</small>
+                                    </div>
+                                    {% if current_step == 3 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 4 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=4 %}" class="list-group-item list-group-item-action step-item {% if current_step == 4 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">4</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 4</div>
+                                        <small>Passport Details</small>
+                                    </div>
+                                    {% if current_step == 4 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 5 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=5 %}" class="list-group-item list-group-item-action step-item {% if current_step == 5 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">5</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 5</div>
+                                        <small>Screening Test</small>
+                                    </div>
+                                    {% if current_step == 5 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 6 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=6 %}" class="list-group-item list-group-item-action step-item {% if current_step == 6 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">6</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 6</div>
+                                        <small>Internship Training</small>
+                                    </div>
+                                    {% if current_step == 6 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 7 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=7 %}" class="list-group-item list-group-item-action step-item {% if current_step == 7 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">7</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 7</div>
+                                        <small>Foreign Training</small>
+                                    </div>
+                                    {% if current_step == 7 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 8 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=8 %}" class="list-group-item list-group-item-action step-item {% if current_step == 8 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">8</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 8</div>
+                                        <small>Document Upload</small>
+                                    </div>
+                                    {% if current_step == 8 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 9 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=9 %}" class="list-group-item list-group-item-action step-item {% if current_step == 9 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">9</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 9</div>
+                                        <small>Declarations</small>
+                                    </div>
+                                    {% if current_step == 9 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+
+                            <!-- Step 10 -->
+                            <a href="{% url 'application_step' application_id=application.application_id step=10 %}" class="list-group-item list-group-item-action step-item {% if current_step == 10 %}active{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="step-number">10</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium">Step 10</div>
+                                        <small>Payment</small>
+                                    </div>
+                                    {% if current_step == 10 %}
+                                    <i class="bi bi-arrow-right-circle text-primary"></i>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Application Info -->
+                    <div class="card shadow-sm mt-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Application Info</h6>
+                            <dl class="row small mb-0">
+                                <dt class="col-5">Type:</dt>
+                                <dd class="col-7">{{ application.get_application_type_display }}</dd>
+                                
+                                <dt class="col-5">Status:</dt>
+                                <dd class="col-7">
+                                    <span class="badge bg-warning">Draft</span>
+                                </dd>
+                                
+                                <dt class="col-5">Fee:</dt>
+                                <dd class="col-7">₹{{ application.fee_amount }}</dd>
+                                
+                                <dt class="col-5">Current Step:</dt>
+                                <dd class="col-7">{{ current_step }} of 10</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step Content -->
+                <div class="col-lg-9 col-md-8">
+                    <div class="card shadow-sm step-content">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-{{ current_step|get_step_icon }} me-2"></i>
+                                Step {{ current_step }}: {{ step_title }}
+                            </h5>
+                            <div class="step-indicator">
+                                <span class="badge bg-primary">Step {{ current_step }} of 10</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Free Navigation Notice -->
+                            <div class="alert alert-info mb-4">
+                                <div class="d-flex">
+                                    <i class="bi bi-arrows-expand me-3 fs-4"></i>
+                                    <div>
+                                        <h6 class="alert-heading">Free Navigation Enabled</h6>
+                                        <p class="mb-0">You can click any step in the sidebar to view and fill its form. All 10 steps are accessible without restrictions.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% block step_content %}
+                            {% endblock %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+// Simple toast notification
+function showToast(message, type = 'info') {
+    // Remove existing toasts
+    const existingToasts = document.querySelectorAll('.custom-toast');
+    existingToasts.forEach(toast => toast.remove());
+    
+    // Create new toast
+    const toast = document.createElement('div');
+    toast.className = `custom-toast alert alert-${type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 3000);
+}
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Step {{ current_step }} loaded successfully');
+    
+    // All steps are accessible, no JavaScript restrictions needed
+});
+</script>
+
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

@@ -141,17 +141,19 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{% url 'application_status' application.application_id %}" 
-                                       class="btn btn-outline-primary" title="View Status">
+                                       class="btn btn-primary" title="View Status">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     {% if application.status == 'draft' %}
+                                     &nbsp;&nbsp;
                                     <a href="{% url 'application_step' application.application_id application.current_step %}" 
-                                       class="btn btn-outline-warning" title="Continue">
+                                       class="btn btn-warning" title="Continue">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     {% endif %}
                                     {% if application.status == 'approved' and application.application_type in 'provisional,permanent,renewal' %}
-                                    <a href="#" class="btn btn-outline-success" title="Download Certificate">
+                                     &nbsp;&nbsp;
+                                    <a href="#" class="btn btn-success" title="Download Certificate">
                                         <i class="bi bi-download"></i>
                                     </a>
                                     {% endif %}

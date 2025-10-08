@@ -33,107 +33,117 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+.application-type-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.application-type-card:hover {
+    transform: translateY(-5px);
+    border-color: #0d6efd;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+</style>
+
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid py-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-lg">
                 <div class="card-header bg-primary text-white">
                     <h4 class="card-title mb-0">
-                        <i class="bi bi-file-earmark-plus"></i>
-                        Select Application Type
+                        <i class="bi bi-file-earmark-plus me-2"></i>
+                        New Application
                     </h4>
                 </div>
                 <div class="card-body">
+                    <div class="text-center mb-5">
+                        <i class="bi bi-clipboard-check display-1 text-primary mb-3"></i>
+                        <h3>Select Application Type</h3>
+                        <p class="text-muted">Choose the type of application you want to submit</p>
+                    </div>
+
                     <form method="post">
                         {% csrf_token %}
                         
                         <div class="row">
-                            <div class="col-12 mb-4">
-                                <label class="form-label fw-bold">Choose Application Type:</label>
-                                {{ form.application_type }}
-                                {% if form.application_type.errors %}
-                                <div class="text-danger">
-                                    {{ form.application_type.errors }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Application Type Cards -->
-                        <div class="row g-3">
-                            <!-- Provisional Registration -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-primary">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-primary">Provisional Registration</h5>
-                                        <p class="card-text">For fresh medical graduates to practice under supervision</p>
-                                        <ul class="small">
-                                            <li>Indian Medical Graduates</li>
-                                            <li>Foreign Medical Graduates</li>
-                                            <li>Valid for 1 year</li>
-                                        </ul>
+                            {% for app_type in application_types %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card application-type-card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-{{ app_type.0|get_application_icon }} display-4 text-primary mb-3"></i>
+                                        <h5 class="card-title">{{ app_type.1 }}</h5>
+                                        <p class="card-text small text-muted">
+                                            {% if app_type.0 == 'provisional' %}
+                                            For fresh medical graduates seeking provisional registration
+                                            {% elif app_type.0 == 'permanent' %}
+                                            For permanent registration after completing requirements
+                                            {% elif app_type.0 == 'foreign_permanent' %}
+                                            For Indian nationals with foreign medical qualifications
+                                            {% elif app_type.0 == 'additional_qualification' %}
+                                            Add new qualifications to your existing registration
+                                            {% elif app_type.0 == 'renewal' %}
+                                            Renew your medical registration
+                                            {% else %}
+                                            Application for {{ app_type.1 }}
+                                            {% endif %}
+                                        </p>
+                                        <div class="mt-3">
+                                            <span class="badge bg-info">Fee: ₹{{ app_type.0|get_application_fee }}</span>
+                                            <span class="badge bg-secondary ms-1">{{ app_type.0|get_processing_time }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button type="submit" name="application_type" value="{{ app_type.0 }}" 
+                                                class="btn btn-outline-primary btn-sm">
+                                            Select & Continue
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Permanent Registration -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-success">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-success">Permanent Registration</h5>
-                                        <p class="card-text">Full registration for independent medical practice</p>
-                                        <ul class="small">
-                                            <li>Indian Nationals</li>
-                                            <li>Foreign Qualified</li>
-                                            <li>Lifetime validity</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Additional Qualification -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-info">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-info">Additional Qualification</h5>
-                                        <p class="card-text">Register additional degrees and specializations</p>
-                                        <ul class="small">
-                                            <li>Postgraduate degrees</li>
-                                            <li>Diplomas</li>
-                                            <li>Super-specialties</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Renewal -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-warning">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-warning">Renewal of Registration</h5>
-                                        <p class="card-text">Renew your medical registration periodically</p>
-                                        <ul class="small">
-                                            <li>5-year cycle</li>
-                                            <li>CPD points verification</li>
-                                            <li>Good standing certificate</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-between">
-                                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
-                                    <button type="submit" class="btn btn-primary">Start Application</button>
-                                </div>
-                            </div>
+                            {% endfor %}
                         </div>
                     </form>
+
+                    <!-- Application Statistics -->
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Application Statistics</h6>
+                                    <div class="row text-center">
+                                        <div class="col-md-3">
+                                            <div class="border-end">
+                                                <h4 class="text-primary mb-1">15-30</h4>
+                                                <small class="text-muted">Processing Days</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="border-end">
+                                                <h4 class="text-success mb-1">24/7</h4>
+                                                <small class="text-muted">Online Support</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="border-end">
+                                                <h4 class="text-info mb-1">100%</h4>
+                                                <small class="text-muted">Secure Payment</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h4 class="text-warning mb-1">Online</h4>
+                                            <small class="text-muted">Certificate Delivery</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
