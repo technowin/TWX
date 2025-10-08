@@ -74,11 +74,12 @@ urlpatterns = [
     path("get_routings/<int:component_id>/",get_routings, name="get_routings"),
     path("get_assignment_data/<int:routing_id>/",get_assignment_data, name="get_assignment_data"),
 
-    # path('workstations/', WorkStationListView.as_view(), name='workstation_list'),
-    # path('workstations/create/', WorkStationCreateView.as_view(), name='workstation_create'),
-    # path('workstations/<int:pk>/update/', WorkStationUpdateView.as_view(), name='workstation_update'),
-    # path('workstations/<int:pk>/delete/', WorkStationDeleteView.as_view(), name='workstation_delete'),
+    path('workstations/', WorkStationListView.as_view(), name='workstation_list'),
+    path('workstations/create/', WorkStationCreateView.as_view(), name='workstation_create'),
+    path('workstations/<int:pk>/update/', WorkStationUpdateView.as_view(), name='workstation_update'),
+    path('workstations/<int:pk>/delete/', WorkStationDeleteView.as_view(), name='workstation_delete'),
     path('get-component-by-production/', get_component_by_production_order, name='get_component_by_production'),
+    path("get-routing-details/", get_routing_details, name="get_routing_details"),
 
     path('dashboard/',dashboard, name='dashboard'),
 

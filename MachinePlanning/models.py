@@ -333,10 +333,6 @@ class MachineScheduleDetail(models.Model):
     employee = models.TextField(verbose_name="Assigned Employee", null=True, blank=True)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True)
     hours_allocated = models.DecimalField(max_digits=4,decimal_places=2,validators=[MinValueValidator(0.25), MaxValueValidator(24)], verbose_name="Hours Allocated",null=True,blank=True )
-    scheduled_start = models.DateTimeField()
-    scheduled_end = models.DateTimeField()
-    actual_start = models.DateTimeField(null=True, blank=True)
-    actual_end = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='machienscheduledetail_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='machienscheduledetail_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -359,7 +355,7 @@ class MachineScheduleDetail(models.Model):
 
     class Meta:
         verbose_name = "Machine Schedule Detail"
-        ordering = ['scheduled_start']
+        ordering = ['seq']
     
     def __str__(self):
         return f"{self.schedule.name} - {self.routing.operation} on {self.machine}"
@@ -400,7 +396,8 @@ class WorkStations(models.Model):
 
     name = models.TextField(null=True,blank=True)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE,related_name='workstation',verbose_name="Machine")
-    employee = models.TextField(null=True,blank=True)
+    work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE, related_name="work_center_station",null=True,blank=True)
+    employee = models.TextField(null=True, blank=True, verbose_name='Assigned Employees')
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True, blank=True,related_name='workstations_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey( CustomUser,on_delete=models.SET_NULL, null=True,blank=True,related_name='workstations_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
@@ -413,6 +410,15 @@ class WorkStations(models.Model):
 
     def __str__(self):
         return f"WorkStation: {self.name} - {self.machine.name}"
+
+    def get_employee_names(self):
+        """Return a readable string of employee names."""
+        from .models import Employee  # local import to avoid circular import
+        if not self.employee:
+            return ""
+        ids = [int(e) for e in self.employee.split(',') if e.strip().isdigit()]
+        employees = Employee.objects.filter(id__in=ids)
+        return ", ".join(emp.employee_name for emp in employees)
 
 
 
