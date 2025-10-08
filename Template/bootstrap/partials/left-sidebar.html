@@ -436,27 +436,38 @@
                     <div class="collapse" id="sidebarReports">
                         <ul class="side-nav-second-level">
                             <li>
-                                <a href="/reports/">Reports Dashboard</a>
+                                <a href="{% url 'reports_dashboard' %}">Reports Dashboard</a>
                             </li>
                             <li>
-                                <a href="/reports/payments/">Payment Reports</a>
+                                <a href="{% url 'payment_reports' %}">Payment Reports</a>
                             </li>
                             <li>
-                                <a href="/reports/applications/">Application Reports</a>
+                                <a href="{% url 'application_reports' %}">Application Reports</a>
                             </li>
                             <li>
-                                <a href="/reports/cpd/">CPD Reports</a>
+                                <a href="{% url 'cpd_reports' %}">CPD Reports</a>
                             </li>
                             <li>
-                                <a href="/reports/comprehensive/">Comprehensive Reports</a>
+                                <a href="{% url 'comprehensive_reports' %}">Comprehensive Reports</a>
                             </li>
                             <li>
-                                <a href="/staff_performance_reports/">Staff Performance</a>
+                                <a href="{% url 'manual_verification_reports' %}">Manual Verification</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'staff_performance_reports' %}">Staff Performance</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'complaint_analysis_reports' %}">Complaint Analysis</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'ai_performance_reports' %}">AI Performance</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'generate_report' %}">Generate Report</a>
                             </li>
                         </ul>
                     </div>
                 </li>
-
                 <!-- COMPLAINT MANAGEMENT -->
                 <li class="side-nav-item">
                     <a data-bs-toggle="collapse" href="#sidebarComplaints" aria-expanded="false"

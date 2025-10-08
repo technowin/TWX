@@ -1,0 +1,476 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}MMC Staff Performance Reports{% endblock %}
+{% block page_title %}<h4>Staff Performance Reports</h4>{% endblock %}
+
+{% block header_buttons %}
+<div class="btn-group me-2">
+    <div class="export-btn-group">
+        <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="exportReport('pdf')">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="exportReport('csv')">
+            <i class="bi bi-file-earmark-text"></i> CSV
+        </button>
+    </div>
+</div>
+<button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+    <i class="bi bi-printer"></i> Print
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Date Range Filter -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-calendar-range"></i> Performance Period
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">End Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-filter"></i> Apply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Performance Summary -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Total Staff</h6>
+                <h2 class="text-primary">{{ staff_members|length }}</h2>
+                <p class="mb-0 small text-muted">Active staff members</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Total Tasks</h6>
+                <h2 class="text-success">
+                    {% with total_tasks=0 %}
+                    {% for staff in staff_members %}
+                    {% with total_tasks=total_tasks|add:staff.tasks_completed %}
+                    {% endwith %}
+                    {% endfor %}
+                    {{ total_tasks }}
+                    {% endwith %}
+                </h2>
+                <p class="mb-0 small text-muted">Completed tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Top Performer</h6>
+                <h4 class="text-warning">
+                    {% if staff_members.0 %}
+                    {{ staff_members.0.first_name }}
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </h4>
+                <p class="mb-0 small text-muted">Highest productivity score</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Avg Processing</h6>
+                <h4 class="text-info">
+                    {% with avg_time=0 count=0 %}
+                    {% for staff in staff_members %}
+                    {% if staff.avg_processing_time %}
+                    {% with avg_time=avg_time|add:staff.avg_processing_time.total_seconds count=count|add:1 %}
+                    {% endwith %}
+                    {% endif %}
+                    {% endfor %}
+                    {% if count > 0 %}
+                    {{ avg_time|div:count|div:3600|floatformat:1 }}h
+                    {% else %}
+                    N/A
+                    {% endif %}
+                    {% endwith %}
+                </h4>
+                <p class="mb-0 small text-muted">Average time per task</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Performance Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card h-100">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i> Performance Distribution
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="performanceDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Performance -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card h-100">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Department Performance
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="departmentPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Staff Performance Table -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-trophy"></i> Staff Performance Ranking
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Staff Member</th>
+                        <th>Role</th>
+                        <th>Applications Processed</th>
+                        <th>Tasks Completed</th>
+                        <th>Approval Rate</th>
+                        <th>Avg Processing Time</th>
+                        <th>Productivity Score</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for staff in staff_members %}
+                    <tr>
+                        <td>
+                            <span class="badge 
+                                {% if forloop.counter == 1 %}bg-warning
+                                {% elif forloop.counter <= 3 %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                #{{ forloop.counter }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 40px; height: 40px;">
+                                    <span class="text-white fw-bold">
+                                        {{ staff.first_name|first }}{{ staff.last_name|first }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <strong>{{ staff.first_name }} {{ staff.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">@{{ staff.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-dark">{{ staff.get_user_type_display }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ staff.applications_processed|default:0 }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success rounded-pill">
+                                {{ staff.tasks_completed|default:0 }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ staff.approval_rate|default:0 }}%">
+                                </div>
+                            </div>
+                            <small>{{ staff.approval_rate|default:0|floatformat:1 }}%</small>
+                        </td>
+                        <td>
+                            {% if staff.avg_processing_time %}
+                            <span class="text-info">
+                                {{ staff.avg_processing_time.total_seconds|div:3600|floatformat:1 }}h
+                            </span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ staff.productivity_score|default:0|floatformat:1 }}</strong>
+                        </td>
+                        <td>
+                            {% with score=staff.productivity_score|default:0 %}
+                            {% if score > 80 %}
+                            <span class="badge bg-success">Excellent</span>
+                            {% elif score > 60 %}
+                            <span class="badge bg-warning">Good</span>
+                            {% elif score > 40 %}
+                            <span class="badge bg-info">Average</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Needs Improvement</span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted">No staff performance data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Department Performance -->
+<div class="card report-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-building"></i> Department Performance Summary
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Department</th>
+                        <th>Staff Count</th>
+                        <th>Avg Applications</th>
+                        <th>Avg Tasks</th>
+                        <th>Avg Processing Time</th>
+                        <th>Avg Approval Rate</th>
+                        <th>Overall Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept in dept_performance %}
+                    <tr>
+                        <td>
+                            <strong>{{ dept.user_type|title }}</strong>
+                        </td>
+                        <td>{{ dept.total_staff }}</td>
+                        <td>{{ dept.avg_applications|default:0|floatformat:1 }}</td>
+                        <td>{{ dept.avg_tasks|default:0|floatformat:1 }}</td>
+                        <td>
+                            {% if dept.avg_processing_time %}
+                            {{ dept.avg_processing_time.total_seconds|div:3600|floatformat:1 }}h
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ dept.avg_approval_rate|default:0 }}%">
+                                </div>
+                            </div>
+                            <small>{{ dept.avg_approval_rate|default:0|floatformat:1 }}%</small>
+                        </td>
+                        <td>
+                            {% with rating=dept.avg_applications|add:dept.avg_tasks %}
+                            {% if rating > 40 %}
+                            <span class="badge bg-success">Excellent</span>
+                            {% elif rating > 25 %}
+                            <span class="badge bg-warning">Good</span>
+                            {% else %}
+                            <span class="badge bg-info">Average</span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">No department performance data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Performance Distribution Chart
+    const perfDistCtx = document.getElementById('performanceDistributionChart').getContext('2d');
+    const perfDistChart = new Chart(perfDistCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Excellent', 'Good', 'Average', 'Needs Improvement'],
+            datasets: [{
+                label: 'Staff Count',
+                data: [3, 5, 2, 1], // Sample data
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
+                borderColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Department Performance Chart
+    const deptPerfCtx = document.getElementById('departmentPerformanceChart').getContext('2d');
+    const deptPerfChart = new Chart(deptPerfCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for dept in dept_performance %}
+                    '{{ dept.user_type|title }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for dept in dept_performance %}
+                        {{ dept.avg_applications|default:0 }},
+                    {% endfor %}
+                ],
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6c757d'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

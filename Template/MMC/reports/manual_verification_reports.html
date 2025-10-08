@@ -1,0 +1,543 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}MMC Manual Verification Reports{% endblock %}
+{% block page_title %}<h4>Manual Verification Reports</h4>{% endblock %}
+
+{% block header_buttons %}
+<div class="btn-group me-2">
+    <div class="export-btn-group">
+        <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="exportReport('pdf')">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="exportReport('csv')">
+            <i class="bi bi-file-earmark-text"></i> CSV
+        </button>
+    </div>
+</div>
+<button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+    <i class="bi bi-printer"></i> Print
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-funnel"></i> Verification Filters
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Status Filter</label>
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Submitted</option>
+                    <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>Under Review</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Verifier</label>
+                <select name="verifier" class="form-select">
+                    <option value="">All Verifiers</option>
+                    <!-- Add verifier options dynamically -->
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+                <a href="{% url 'manual_verification_reports' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Total Verifications</h6>
+                        <h3 class="text-primary">{{ stats.total|default:0|intcomma }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-clipboard-check text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Pending</h6>
+                        <h3 class="text-warning">{{ stats.pending|default:0|intcomma }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Completed</h6>
+                        <h3 class="text-success">{{ stats.completed|default:0|intcomma }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Avg Processing</h6>
+                        <h3 class="text-info">
+                            {% if stats.avg_processing_days %}
+                            {{ stats.avg_processing_days.days }} days
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-speedometer2 text-info" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Document Verification Status -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-file-check"></i> Document Verification Status
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="documentVerificationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Performance -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-person-check"></i> Staff Verification Performance
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="staffPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Staff Performance Table -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-people"></i> Staff Verification Performance
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Staff Member</th>
+                        <th>Total Tasks</th>
+                        <th>Completed</th>
+                        <th>Pending</th>
+                        <th>Avg Processing Time</th>
+                        <th>Efficiency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for staff in staff_performance %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 40px; height: 40px;">
+                                    <span class="text-white fw-bold">
+                                        {{ staff.first_name|first }}{{ staff.last_name|first }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <strong>{{ staff.first_name }} {{ staff.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">@{{ staff.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ staff.total_tasks|default:0 }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success rounded-pill">
+                                {{ staff.completed_tasks|default:0 }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning rounded-pill">
+                                {{ staff.pending_tasks|default:0 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if staff.avg_processing_hours %}
+                            <span class="text-info">
+                                {{ staff.avg_processing_hours|floatformat:1 }} hours
+                            </span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% with completion_rate=staff.completed_tasks|div:staff.total_tasks|mul:100 %}
+                            {% if completion_rate > 80 %}
+                            <span class="badge bg-success">Excellent</span>
+                            {% elif completion_rate > 60 %}
+                            <span class="badge bg-warning">Good</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Average</span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No staff performance data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Applications Summary -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-clock-history"></i> Pending Applications Summary
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Application Type</th>
+                        <th>Pending Count</th>
+                        <th>Oldest Pending</th>
+                        <th>Avg Wait Time</th>
+                        <th>Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pending in pending_summary %}
+                    <tr>
+                        <td>
+                            <strong>{{ pending.application_type|title }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning rounded-pill">
+                                {{ pending.count|intcomma }}
+                            </span>
+                        </td>
+                        <td>
+                            <small>{{ pending.oldest_pending|date:"M d, Y" }}</small>
+                        </td>
+                        <td>
+                            {% with days=pending.oldest_pending|timesince %}
+                            <span class="text-danger">{{ days }}</span>
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% if pending.count > 10 %}
+                            <span class="badge bg-danger">High</span>
+                            {% elif pending.count > 5 %}
+                            <span class="badge bg-warning">Medium</span>
+                            {% else %}
+                            <span class="badge bg-success">Low</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No pending applications</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Verification List -->
+<div class="card report-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-list-check"></i> Manual Verification Details
+        </h6>
+        <span class="badge bg-primary">{{ verifications.count }} verifications</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Application ID</th>
+                        <th>Applicant</th>
+                        <th>MMC Number</th>
+                        <th>Status</th>
+                        <th>Submission Date</th>
+                        <th>Assigned To</th>
+                        <th>Completion Date</th>
+                        <th>Processing Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for verification in verifications %}
+                    <tr>
+                        <td>
+                            <strong>#{{ verification.application_id }}</strong>
+                        </td>
+                        <td>
+                            <strong>{{ verification.applicant.get_full_name }}</strong>
+                        </td>
+                        <td>
+                            <code>{{ verification.rmp.mmc_registration_number|default:"-" }}</code>
+                        </td>
+                        <td>
+                            {% if verification.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                            {% elif verification.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% elif verification.status == 'under_review' %}
+                            <span class="badge bg-warning">Under Review</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ verification.status|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ verification.submitted_date|date:"M d, Y" }}</small>
+                        </td>
+                        <td>
+                            {% if verification.assigned_to %}
+                            <span class="text-primary">{{ verification.assigned_to.get_full_name }}</span>
+                            {% else %}
+                            <span class="text-muted">Not Assigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if verification.actual_completion_date %}
+                            <small class="text-success">{{ verification.actual_completion_date|date:"M d, Y" }}</small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if verification.actual_completion_date and verification.submitted_date %}
+                            <small class="text-info">
+                                {{ verification.actual_completion_date|timeuntil:verification.submitted_date }}
+                            </small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">No verification records found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Document Verification Chart
+    const docVerificationCtx = document.getElementById('documentVerificationChart').getContext('2d');
+    const docVerificationChart = new Chart(docVerificationCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Verified', 'Pending Verification', 'Rejected'],
+            datasets: [{
+                data: [70, 20, 10], // Sample data
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Staff Performance Chart
+    const staffPerfCtx = document.getElementById('staffPerformanceChart').getContext('2d');
+    const staffPerfChart = new Chart(staffPerfCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for staff in staff_performance|slice:":5" %}
+                    '{{ staff.first_name }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Tasks Completed',
+                data: [
+                    {% for staff in staff_performance|slice:":5" %}
+                        {{ staff.completed_tasks|default:0 }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#28a745',
+                borderColor: '#28a745',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

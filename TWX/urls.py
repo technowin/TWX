@@ -554,18 +554,39 @@ urlpatterns = [
     path('admin/cpd-accreditation/<int:accreditation_id>/review/', review_accreditation, name='review_accreditation'),
 
      # Reports
-    path('reports/generate/', generate_report, name='generate_report'),
+    # path('reports/generate/', generate_report, name='generate_report'),
+    # path('reports/', reports_dashboard, name='reports_dashboard'),
+    # path('reports/payments/', payment_reports, name='payment_reports'),
+    # path('reports/applications/', application_reports, name='application_reports'),
+    # path('reports/comprehensive/', comprehensive_reports, name='comprehensive_reports'),
+    # path('reports/export/<str:report_type>/', export_reports, name='export_reports'),
+    # path('reports/cpd/', cpd_reports, name='cpd_reports'),
+    # path('manual_verification_reports/', manual_verification_reports, name='manual_verification_reports'),
+    # path('staff_performance_reports/', staff_performance_reports, name='staff_performance_reports'),
+    # path('export_applications_excel/', export_applications_excel, name='export_applications_excel'),
+    # path('export_financial_report/', export_financial_report, name='export_financial_report'),
+    
+     # Reports Dashboard
     path('reports/', reports_dashboard, name='reports_dashboard'),
+    
+    # Individual Report Types
     path('reports/payments/', payment_reports, name='payment_reports'),
     path('reports/applications/', application_reports, name='application_reports'),
-    path('reports/comprehensive/', comprehensive_reports, name='comprehensive_reports'),
-    path('reports/export/<str:report_type>/', export_reports, name='export_reports'),
     path('reports/cpd/', cpd_reports, name='cpd_reports'),
-    path('manual_verification_reports/', manual_verification_reports, name='manual_verification_reports'),
-    path('staff_performance_reports/', staff_performance_reports, name='staff_performance_reports'),
-    path('export_applications_excel/', export_applications_excel, name='export_applications_excel'),
-    path('export_financial_report/', export_financial_report, name='export_financial_report'),
+    path('reports/comprehensive/', comprehensive_reports, name='comprehensive_reports'),
+    path('reports/manual-verification/', manual_verification_reports, name='manual_verification_reports'),
+    path('reports/staff-performance/', staff_performance_reports, name='staff_performance_reports'),
+    path('reports/complaint-analysis/', complaint_analysis_reports, name='complaint_analysis_reports'),
+    path('reports/ai-performance/', ai_performance_reports, name='ai_performance_reports'),
     
+    # Report Generation & Export
+    path('reports/generate/', generate_report, name='generate_report'),
+    path('reports/export/<str:report_type>/', export_reports, name='export_reports'),
+    
+    # AJAX Endpoints
+    path('reports/api/application-stats/', get_application_stats, name='get_application_stats'),
+    path('reports/api/payment-trends/', get_payment_trends, name='get_payment_trends'),
+
     #Complaint Management
     path('complaints/file/', file_complaint, name='file_complaint'),    
     path('complaint_status/', complaint_status, name='complaint_status'),    

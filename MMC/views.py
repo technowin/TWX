@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
-from django.db.models import Q, Count, Sum, Avg, F, Value, Case, When, ExpressionWrapper, DurationField
+from django.db.models import Q, Count, Sum, Avg, Min, F, Value, Case, When, ExpressionWrapper, DurationField
 from django.db.models.functions import Concat, TruncMonth, ExtractYear
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
@@ -3652,6 +3652,7 @@ def payment_page(request, application_id):
     }
     return render(request, 'MMC/payments/payment_page.html', context)
 
+
 # Admin Views
 @login_required
 def admin_dashboard(request):
@@ -4205,381 +4206,6 @@ def admin_cpd_program_edit(request, program_id):
     }
     return render(request, 'MMC/admin/cpd_program_edit.html', context)
 
-# Reports Views
-@login_required
-def reports_dashboard(request):
-    # Basic report data
-    applications_by_type = Application.objects.values('application_type').annotate(
-        count=Count('id')
-    )
-    applications_by_status = Application.objects.values('status').annotate(
-        count=Count('id')
-    )
-    
-    # Payment reports
-    payment_summary = Payment.objects.filter(status='success').aggregate(
-        total_amount=Sum('amount'),
-        total_count=Count('id')
-    )
-    
-    # CPD statistics
-    cpd_stats = CPDAttendance.objects.aggregate(
-        total_participations=Count('id'),
-        unique_participants=Count('rmp', distinct=True),
-        total_points=Sum('points_earned')
-    )
-    
-    context = {
-        'applications_by_type': list(applications_by_type),
-        'applications_by_status': list(applications_by_status),
-        'payment_summary': payment_summary,
-        'cpd_stats': cpd_stats,
-    }
-    
-    return render(request, 'MMC/reports/dashboard.html', context)
-
-@login_required
-def payment_reports(request):
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    payment_type = request.GET.get('payment_type')
-    status = request.GET.get('status')
-    
-    payments = Payment.objects.all()
-    
-    if date_from:
-        payments = payments.filter(created_at__date__gte=date_from)
-    if date_to:
-        payments = payments.filter(created_at__date__lte=date_to)
-    if payment_type:
-        payments = payments.filter(payment_type=payment_type)
-    if status:
-        payments = payments.filter(status=status)
-    
-    # Summary statistics
-    summary = payments.aggregate(
-        total_amount=Sum('amount'),
-        total_count=Count('id'),
-        success_count=Count('id', filter=Q(status='SUCCESS')),
-        pending_count=Count('id', filter=Q(status='PENDING'))
-    )
-    
-    # Daily breakdown
-    daily_breakdown = payments.filter(status='SUCCESS').extra(
-        {'date': "date(created_at)"}
-    ).values('date').annotate(
-        total=Sum('amount'),
-        count=Count('id')
-    ).order_by('-date')
-    
-    context = {
-        'payments': payments.order_by('-created_at'),
-        'summary': summary,
-        'daily_breakdown': daily_breakdown,
-        'date_from': date_from,
-        'date_to': date_to,
-        'payment_type': payment_type,
-        'status': status,
-    }
-    return render(request, 'MMC/reports/payment_reports.html', context)
-
-@login_required
-def application_reports(request):
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    application_type = request.GET.get('application_type')
-    status = request.GET.get('status')
-    
-    applications = Application.objects.all()
-    
-    if date_from:
-        applications = applications.filter(application_date__date__gte=date_from)
-    if date_to:
-        applications = applications.filter(application_date__date__lte=date_to)
-    if application_type:
-        applications = applications.filter(application_type=application_type)
-    if status:
-        applications = applications.filter(status=status)
-    
-    # Summary statistics
-    stats = {
-        'total': applications.count(),
-        'submitted': applications.filter(status='SUBMITTED').count(),
-        'under_review': applications.filter(status='UNDER_REVIEW').count(),
-        'approved': applications.filter(status='APPROVED').count(),
-        'rejected': applications.filter(status='REJECTED').count(),
-        'completed': applications.filter(status='COMPLETED').count(),
-    }
-    
-    # Type-wise breakdown
-    type_breakdown = applications.values('application_type').annotate(
-        total=Count('id'),
-        approved=Count('id', filter=Q(status='APPROVED')),
-        rejected=Count('id', filter=Q(status='REJECTED'))
-    ).order_by('-total')
-    
-    # Monthly trend
-    monthly_trend = applications.extra(
-        {'month': "strftime('%%Y-%%m', application_date)"}
-    ).values('month').annotate(
-        total=Count('id')
-    ).order_by('month')
-    
-    context = {
-        'applications': applications.select_related('applicant').order_by('-application_date'),
-        'stats': stats,
-        'type_breakdown': type_breakdown,
-        'monthly_trend': monthly_trend,
-        'date_from': date_from,
-        'date_to': date_to,
-        'application_type': application_type,
-        'status': status,
-    }
-    return render(request, 'MMC/reports/application_reports.html', context)
-
-@login_required
-def generate_report(request):
-    if request.method == 'POST':
-        form = ReportGenerationForm(request.POST)
-        if form.is_valid():
-            report_type = form.cleaned_data['report_type']
-            date_from = form.cleaned_data['date_from']
-            date_to = form.cleaned_data['date_to']
-            format_type = form.cleaned_data['format']
-            
-            # Generate report data based on type
-            report_data = generate_report_data(report_type, date_from, date_to)
-            
-            # Create report record
-            report = Report.objects.create(
-                report_type=report_type,
-                title=f"{report_type.replace('_', ' ').title()} Report",
-                generated_by=request.user,
-                date_from=date_from,
-                date_to=date_to,
-                report_data=report_data,
-            )
-            
-            # Generate file based on format
-            if format_type == 'csv':
-                return generate_csv_report(report_data, report_type)
-            elif format_type == 'pdf':
-                return generate_pdf_report(report_data, report_type)
-            else:
-                messages.success(request, "Report generated successfully!")
-                return redirect('reports_dashboard')
-    
-    else:
-        form = ReportGenerationForm()
-    
-    context = {
-        'form': form,
-    }
-    
-    return render(request, 'MMC/reports/generate_report.html', context)
-
-def generate_report_data(report_type, date_from, date_to):
-    """Generate report data based on type and date range"""
-    filters = {}
-    if date_from:
-        filters['submitted_date__date__gte'] = date_from
-    if date_to:
-        filters['submitted_date__date__lte'] = date_to
-    
-    if report_type == 'payment_summary':
-        payments = Payment.objects.filter(**filters) if filters else Payment.objects.all()
-        return {
-            'total_amount': payments.aggregate(Sum('amount'))['amount__sum'] or 0,
-            'total_count': payments.count(),
-            'by_status': list(payments.values('status').annotate(count=Count('id'), amount=Sum('amount'))),
-            'by_method': list(payments.values('payment_method').annotate(count=Count('id'), amount=Sum('amount'))),
-        }
-    
-    elif report_type == 'application_status':
-        applications = Application.objects.filter(**filters) if filters else Application.objects.all()
-        return {
-            'total_applications': applications.count(),
-            'by_type': list(applications.values('application_type').annotate(count=Count('id'))),
-            'by_status': list(applications.values('status').annotate(count=Count('id'))),
-            'pending_count': applications.filter(status='submitted').count(),
-        }
-    
-    # Add more report types as needed
-    return {}
-
-def generate_csv_report(report_data, report_type):
-    """Generate CSV report"""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{report_type}_report.csv"'
-    
-    writer = csv.writer(response)
-    
-    if report_type == 'payment_summary':
-        writer.writerow(['Status', 'Count', 'Amount'])
-        for item in report_data.get('by_status', []):
-            writer.writerow([item['status'], item['count'], item['amount']])
-    
-    return response
-
-def generate_pdf_report(report_data, report_type):
-    """Generate PDF report (placeholder)"""
-    # Implementation would use a library like ReportLab or WeasyPrint
-    return HttpResponse("PDF generation would be implemented here")
-
-
-# Comprehensive Reports
-@login_required
-def comprehensive_reports(request):
-    # Date range calculation
-    date_range = request.GET.get('date_range', 'THIS_MONTH')
-    end_date = timezone.now().date()
-    
-    if date_range == 'TODAY':
-        start_date = end_date
-    elif date_range == 'YESTERDAY':
-        start_date = end_date - timedelta(days=1)
-    elif date_range == 'THIS_WEEK':
-        start_date = end_date - timedelta(days=end_date.weekday())
-    elif date_range == 'THIS_MONTH':
-        start_date = end_date.replace(day=1)
-    else:
-        start_date = request.GET.get('start_date') or (end_date - timedelta(days=30))
-        if isinstance(start_date, str):
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-        end_date = request.GET.get('end_date') or end_date
-        if isinstance(end_date, str):
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-    
-    # Application Statistics
-    applications = Application.objects.filter(application_date__date__range=[start_date, end_date])
-    application_stats = applications.values('application_type').annotate(
-        total=Count('id'),
-        approved=Count('id', filter=Q(status='APPROVED')),
-        pending=Count('id', filter=Q(status__in=['SUBMITTED', 'UNDER_REVIEW']))
-    ).order_by('-total')
-    
-    # Payment Statistics
-    payments = Payment.objects.filter(created_at__date__range=[start_date, end_date], status='SUCCESS')
-    payment_summary = payments.aggregate(
-        total_amount=Sum('amount'),
-        total_count=Count('id')
-    )
-    
-    # CPD Statistics
-    cpd_participations = CPDParticipation.objects.filter(
-        registration_date__date__range=[start_date, end_date]
-    )
-    cpd_stats = cpd_participations.aggregate(
-        total_participants=Count('id'),
-        completed_sessions=Count('id', filter=Q(attendance_status='COMPLETED')),
-        total_points=Sum('points_earned')
-    )
-    
-    # User Statistics
-    user_stats = CustomUser.objects.filter(
-        date_joined__date__range=[start_date, end_date],
-        user_type='rmp'
-    ).aggregate(
-        new_registrations=Count('id'),
-        verified_users=Count('id', filter=Q(is_verified=True))
-    )
-    
-    # Staff Performance
-    staff_performance = CustomUser.objects.filter(
-        user_type__in=['ADMIN', 'VERIFIER'],
-        verification_tasks__completed_date__date__range=[start_date, end_date]
-    ).annotate(
-        applications_processed=Count('verified_applications'),
-        tasks_completed=Count('verification_tasks'),
-        avg_processing_days=Avg(
-            ExpressionWrapper(
-                F('verification_tasks__completed_date') - F('verification_tasks__assigned_date'),
-                output_field=DurationField()
-            )
-        )
-    ).values('username', 'first_name', 'last_name', 'applications_processed', 'tasks_completed', 'avg_processing_days')
-    
-    context = {
-        'start_date': start_date,
-        'end_date': end_date,
-        'application_stats': application_stats,
-        'payment_summary': payment_summary,
-        'cpd_stats': cpd_stats,
-        'user_stats': user_stats,
-        'staff_performance': staff_performance,
-        'filter_form': ReportFilterForm(initial={
-            'date_range': date_range,
-            'start_date': start_date,
-            'end_date': end_date
-        })
-    }
-    return render(request, 'MMC/reports/comprehensive_reports.html', context)
-
-@login_required
-def export_reports(request, report_type):
-    if report_type == 'applications':
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="applications_report.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['Application ID', 'Type', 'Applicant', 'Status', 'Submission Date', 'Completion Date', 'Payment Status'])
-        
-        applications = Application.objects.all().select_related('applicant')
-        for app in applications:
-            writer.writerow([
-                app.application_id,
-                app.get_application_type_display(),
-                app.applicant.get_full_name(),
-                app.get_status_display(),
-                app.submission_date,
-                app.actual_completion_date,
-                'Paid' if app.payment_status else 'Pending'
-            ])
-        
-        return response
-    
-    elif report_type == 'payments':
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="payments_report.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['Payment ID', 'User', 'Type', 'Amount', 'Status', 'Date', 'Transaction ID'])
-        
-        payments = Payment.objects.all().select_related('user')
-        for payment in payments:
-            writer.writerow([
-                payment.payment_id,
-                payment.user.get_full_name(),
-                payment.get_payment_type_display(),
-                payment.amount,
-                payment.get_status_display(),
-                payment.payment_date,
-                payment.transaction_id
-            ])
-        
-        return response
-    
-    elif report_type == 'cpd':
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="cpd_report.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['Program', 'Participant', 'Registration Date', 'Status', 'Points Earned'])
-        
-        participations = CPDParticipation.objects.all().select_related('program', 'participant')
-        for participation in participations:
-            writer.writerow([
-                participation.program.title,
-                participation.participant.get_full_name(),
-                participation.registration_date,
-                participation.get_attendance_status_display(),
-                participation.points_earned
-            ])
-        
-        return response
-    
-    messages.error(request, 'Invalid report type specified.')
-    return redirect('reports_dashboard')
 
 # views.py - AI Integration Module
 from django.shortcuts import render, get_object_or_404
@@ -5314,7 +4940,6 @@ def get_ai_metrics(request):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
 @login_required
-
 def get_realtime_analytics(request):
     """AJAX endpoint for real-time admin analytics"""
     analytics = {
@@ -6207,145 +5832,6 @@ def initiate_service1(request, service_type):
     return redirect('application_wizard_step', application_id=application.application_id, step=1)
 
 
-# ============ COMPREHENSIVE REPORTS ============
-@login_required
-def cpd_reports(request):
-    """Comprehensive CPD reports"""
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    
-    # CPD Program Statistics
-    programs = CPDProgram.objects.all()
-    if date_from:
-        programs = programs.filter(created_at__date__gte=date_from)
-    if date_to:
-        programs = programs.filter(created_at__date__lte=date_to)
-    
-    program_stats = programs.aggregate(
-        total_programs=Count('id'),
-        total_participants=Sum('max_participants'),
-        completed_programs=Count('id', filter=Q(status='COMPLETED'))
-    )
-    
-    # Participant Statistics
-    participations = CPDParticipation.objects.all()
-    if date_from:
-        participations = participations.filter(registration_date__date__gte=date_from)
-    if date_to:
-        participations = participations.filter(registration_date__date__lte=date_to)
-    
-    participation_stats = participations.aggregate(
-        total_registrations=Count('id'),
-        completed_sessions=Count('id', filter=Q(attendance_status='COMPLETED')),
-        total_points=Sum('points_earned')
-    )
-    
-    # Top Programs
-    top_programs = programs.annotate(
-        participant_count=Count('participations'),
-        completion_rate=Count('participations', filter=Q(participations__attendance_status='COMPLETED')) * 100.0 / Count('participations')
-    ).order_by('-participant_count')[:10]
-    
-    # RMP CPD Compliance
-    rmp_compliance = CustomUser.objects.filter(user_type='rmp').annotate(
-        cpd_completion=ExpressionWrapper(
-            F('total_cpd_points') * 100.0 / F('cpd_points_required'),
-            output_field=DecimalField()
-        )
-    ).values('specialization').annotate(
-        total_rmps=Count('id'),
-        avg_completion=Avg('cpd_completion'),
-        compliant_rmps=Count('id', filter=Q(total_cpd_points__gte=F('cpd_points_required')))
-    ).order_by('-avg_completion')
-    
-    context = {
-        'program_stats': program_stats,
-        'participation_stats': participation_stats,
-        'top_programs': top_programs,
-        'rmp_compliance': rmp_compliance,
-        'date_from': date_from,
-        'date_to': date_to,
-    }
-    return render(request, 'MMC/reports/cpd_reports.html', context)
-
-@login_required
-def manual_verification_reports(request):
-    """Manual verification status reports"""
-    verifications = Application.objects.filter(
-        application_type='MANUAL_VERIFICATION'
-    ).select_related('applicant')
-    
-    status_filter = request.GET.get('status')
-    if status_filter:
-        verifications = verifications.filter(status=status_filter)
-    
-    stats = verifications.aggregate(
-        total=Count('id'),
-        pending=Count('id', filter=Q(status__in=['SUBMITTED', 'UNDER_REVIEW'])),
-        completed=Count('id', filter=Q(status__in=['APPROVED', 'REJECTED', 'COMPLETED']))
-    )
-    
-    # Staff performance in manual verification
-    staff_performance = CustomUser.objects.filter(
-        user_type__in=['ADMIN', 'VERIFIER'],
-        verification_tasks__application__application_type='MANUAL_VERIFICATION'
-    ).annotate(
-        tasks_completed=Count('verification_tasks', filter=Q(verification_tasks__status='COMPLETED')),
-        avg_processing_hours=Avg(
-            ExpressionWrapper(
-                (F('verification_tasks__completed_date') - F('verification_tasks__assigned_date')) / 3600000000,  # Convert to hours
-                output_field=DecimalField()
-            )
-        )
-    ).values('username', 'first_name', 'last_name', 'tasks_completed', 'avg_processing_hours')
-    
-    context = {
-        'verifications': verifications.order_by('-application_date'),
-        'stats': stats,
-        'staff_performance': staff_performance,
-        'status_filter': status_filter,
-    }
-    return render(request, 'MMC/reports/manual_verification_reports.html', context)
-
-@login_required
-def staff_performance_reports(request):
-    """Detailed staff performance reports"""
-    date_from = request.GET.get('date_from', timezone.now().date() - timedelta(days=30))
-    date_to = request.GET.get('date_to', timezone.now().date())
-    
-    staff_members = CustomUser.objects.filter(
-        user_type__in=['ADMIN', 'VERIFIER', 'SUPER_ADMIN']
-    ).annotate(
-        # Application processing
-        applications_processed=Count('verified_applications', 
-            filter=Q(verified_applications__verification_date__date__range=[date_from, date_to])),
-        
-        # Verification tasks
-        tasks_assigned=Count('verification_tasks',
-            filter=Q(verification_tasks__assigned_date__date__range=[date_from, date_to])),
-        tasks_completed=Count('verification_tasks',
-            filter=Q(verification_tasks__completed_date__date__range=[date_from, date_to])),
-        
-        # Average processing time
-        avg_processing_time=Avg(
-            ExpressionWrapper(
-                F('verification_tasks__completed_date') - F('verification_tasks__assigned_date'),
-                output_field=DurationField()
-            ),
-            filter=Q(verification_tasks__completed_date__isnull=False)
-        ),
-        
-        # Approval rate
-        approval_rate=Count('verified_applications', 
-            filter=Q(verified_applications__status='APPROVED')) * 100.0 / Count('verified_applications')
-    ).order_by('-applications_processed')
-    
-    context = {
-        'staff_members': staff_members,
-        'date_from': date_from,
-        'date_to': date_to,
-    }
-    return render(request, 'MMC/reports/staff_performance_reports.html', context)
 
 # ============ COMPLAINT MANAGEMENT ============
 @login_required
@@ -6587,75 +6073,6 @@ def bulk_certificate_generation(request):
     }
     return render(request, 'MMC/admin/bulk_certificate_generation.html', context)
 
-# ============ EXPORT FUNCTIONALITY ============
-@login_required
-def export_applications_excel(request):
-    """Export applications to Excel"""
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="mmc_applications.xls"'
-    
-    wb = xlwt.Workbook(encoding='utf-8')
-    ws = wb.add_sheet('Applications')
-    
-    # Sheet header, first row
-    row_num = 0
-    font_style = xlwt.XFStyle()
-    font_style.font.bold = True
-    
-    columns = ['Application ID', 'Type', 'Applicant', 'Status', 'Submission Date', 'Completion Date', 'Payment Status']
-    
-    for col_num, column_title in enumerate(columns):
-        ws.write(row_num, col_num, column_title, font_style)
-    
-    # Sheet body, remaining rows
-    font_style = xlwt.XFStyle()
-    rows = Application.objects.all().select_related('applicant').values_list(
-        'application_id', 'application_type', 'applicant__username', 'status',
-        'submission_date', 'actual_completion_date', 'payment_status'
-    )
-    
-    for row in rows:
-        row_num += 1
-        for col_num, value in enumerate(row):
-            ws.write(row_num, col_num, str(value), font_style)
-    
-    wb.save(response)
-    return response
-
-@login_required
-def export_financial_report(request):
-    """Export financial report to Excel"""
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="mmc_financial_report.xls"'
-    
-    wb = xlwt.Workbook(encoding='utf-8')
-    ws = wb.add_sheet('Financial Report')
-    
-    row_num = 0
-    font_style = xlwt.XFStyle()
-    font_style.font.bold = True
-    
-    columns = ['Date', 'Transaction ID', 'User', 'Type', 'Amount', 'Status', 'Method']
-    
-    for col_num, column_title in enumerate(columns):
-        ws.write(row_num, col_num, column_title, font_style)
-    
-    font_style = xlwt.XFStyle()
-    payments = Payment.objects.filter(status='SUCCESS').select_related('user')
-    
-    for payment in payments:
-        row_num += 1
-        ws.write(row_num, 0, payment.payment_date.strftime('%Y-%m-%d'), font_style)
-        ws.write(row_num, 1, payment.transaction_id, font_style)
-        ws.write(row_num, 2, payment.user.get_full_name(), font_style)
-        ws.write(row_num, 3, payment.get_payment_type_display(), font_style)
-        ws.write(row_num, 4, str(payment.amount), font_style)
-        ws.write(row_num, 5, payment.get_status_display(), font_style)
-        ws.write(row_num, 6, payment.get_payment_method_display(), font_style)
-    
-    wb.save(response)
-    return response
-
 # ============ DASHBOARD WIDGETS & API ============
 @login_required
 def api_dashboard_widgets(request):
@@ -6781,3 +6198,1637 @@ def system_configuration(request):
         'form': form,
     }
     return render(request, 'MMC/admin/system_configuration.html', context)
+
+
+
+# views.py - Comprehensive Reports Module
+import csv
+import json
+from datetime import datetime, timedelta
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.db.models import (
+    Count, Sum, Avg, ExpressionWrapper, DurationField, 
+    DecimalField, Case, When, Value, IntegerField
+)
+from django.db.models.functions import TruncDate, TruncMonth, TruncYear
+from django.utils import timezone
+from django.core.paginator import Paginator
+import xlwt
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import io
+
+from .models import (
+    Application, Payment, CustomUser, RMPProfile, CPDProgram, 
+    CPDAttendance, Accreditation, Complaint, Document,
+    VerificationTask, AIPerformanceScore, Report, AuditLog
+)
+from .forms import ReportFilterForm, DateRangeForm
+
+def staff_required(function=None):
+    actual_decorator = user_passes_test(
+        lambda u: u.is_authenticated and u.user_type in ['admin', 'super_admin', 'staff'],
+        login_url='/login/'
+    )
+    if function:
+        return actual_decorator(function)
+    return actual_decorator
+
+# ============ REPORTS DASHBOARD ============
+@login_required
+def reports_dashboard(request):
+    """Main reports dashboard with quick stats and report categories"""
+    
+    # Quick statistics for dashboard
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
+    
+    stats = {
+        'total_applications': Application.objects.count(),
+        'pending_applications': Application.objects.filter(status__in=['submitted', 'under_review']).count(),
+        'total_payments': Payment.objects.filter(status='success').count(),
+        'revenue_today': Payment.objects.filter(
+            payment_date__date=today, status='success'
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+        'revenue_week': Payment.objects.filter(
+            payment_date__date__gte=week_ago, status='success'
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+        'revenue_month': Payment.objects.filter(
+            payment_date__date__gte=month_ago, status='success'
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+        'total_rmps': RMPProfile.objects.count(),
+        'cpd_programs': CPDProgram.objects.count(),
+        'active_complaints': Complaint.objects.filter(status__in=['registered', 'under_investigation']).count(),
+    }
+    
+    # Recent activity
+    recent_reports = Report.objects.filter(generated_by=request.user).order_by('-generated_date')[:5]
+    
+    # Application status distribution
+    app_status_dist = Application.objects.values('status').annotate(
+        count=Count('application_id')
+    ).order_by('-count')
+    
+    # Payment method distribution
+    payment_method_dist = Payment.objects.filter(status='success').values('payment_method').annotate(
+        count=Count('payment_id'),
+        amount=Sum('amount')
+    ).order_by('-amount')
+    
+    context = {
+        'stats': stats,
+        'recent_reports': recent_reports,
+        'app_status_dist': app_status_dist,
+        'payment_method_dist': payment_method_dist,
+        'active_tab': 'dashboard',
+    }
+    
+    return render(request, 'MMC/reports/dashboard.html', context)
+
+# ============ PAYMENT REPORTS ============
+@login_required
+def payment_reports(request):
+    """Comprehensive payment reports with multiple views"""
+    
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_from')
+    payment_method = request.GET.get('payment_method')
+    status = request.GET.get('status')
+    
+    payments = Payment.objects.all().select_related('application', 'application__applicant')
+    
+    # Apply filters
+    if date_from:
+        payments = payments.filter(payment_date__date__gte=date_from)
+    if date_to:
+        payments = payments.filter(payment_date__date__lte=date_to)
+    if payment_method:
+        payments = payments.filter(payment_method=payment_method)
+    if status:
+        payments = payments.filter(status=status)
+    
+    # Summary statistics
+    summary = payments.aggregate(
+        total_amount=Sum('amount'),
+        total_count=Count('payment_id'),
+        success_count=Count('payment_id', filter=Q(status='success')),
+        failed_count=Count('payment_id', filter=Q(status='failed')),
+        pending_count=Count('payment_id', filter=Q(status='pending'))
+    )
+    
+    # Daily breakdown
+    daily_breakdown = payments.filter(status='success').annotate(
+        payment_day=TruncDate('payment_date')
+    ).values('payment_day').annotate(
+        daily_amount=Sum('amount'),
+        daily_count=Count('payment_id')
+    ).order_by('-payment_day')[:30]
+    
+    # Method-wise breakdown
+    method_breakdown = payments.filter(status='success').values('payment_method').annotate(
+        total_amount=Sum('amount'),
+        count=Count('payment_id')
+    ).order_by('-total_amount')
+    
+    # Application type wise payments
+    app_type_breakdown = payments.filter(
+        status='success', 
+        application__isnull=False
+    ).values('application__application_type').annotate(
+        total_amount=Sum('amount'),
+        count=Count('payment_id')
+    ).order_by('-total_amount')
+    
+    # Pagination
+    paginator = Paginator(payments.order_by('-payment_date'), 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'payments': page_obj,
+        'summary': summary,
+        'daily_breakdown': daily_breakdown,
+        'method_breakdown': method_breakdown,
+        'app_type_breakdown': app_type_breakdown,
+        'filter_form': ReportFilterForm(request.GET or None),
+        'active_tab': 'payments',
+    }
+    
+    return render(request, 'MMC/reports/payment_reports.html', context)
+
+# ============ APPLICATION REPORTS ============
+@login_required
+def application_reports(request):
+    """Comprehensive application status and analysis reports"""
+    
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    app_type = request.GET.get('application_type')
+    status = request.GET.get('status')
+    
+    applications = Application.objects.all().select_related(
+        'applicant', 'rmp', 'assigned_to'
+    ).prefetch_related('documents', 'payments')
+    
+    # Apply filters
+    if date_from:
+        applications = applications.filter(application_date__date__gte=date_from)
+    if date_to:
+        applications = applications.filter(application_date__date__lte=date_to)
+    if app_type:
+        applications = applications.filter(application_type=app_type)
+    if status:
+        applications = applications.filter(status=status)
+    
+    # Overall statistics
+    stats = applications.aggregate(
+        total_applications=Count('application_id'),
+        approved_applications=Count('application_id', filter=Q(status='approved')),
+        pending_applications=Count('application_id', filter=Q(status__in=['submitted', 'under_review'])),
+        rejected_applications=Count('application_id', filter=Q(status='rejected')),
+        avg_processing_days=Avg(
+            ExpressionWrapper(
+                F('actual_completion_date') - F('submitted_date'),
+                output_field=DurationField()
+            )
+        )
+    )
+    
+    # Application type distribution
+    type_distribution = applications.values('application_type').annotate(
+        count=Count('application_id'),
+        approved=Count('application_id', filter=Q(status='approved')),
+        pending=Count('application_id', filter=Q(status__in=['submitted', 'under_review'])),
+        rejected=Count('application_id', filter=Q(status='rejected'))
+    ).order_by('-count')
+    
+    # Status timeline (last 30 days)
+    status_timeline = applications.filter(
+        application_date__date__gte=timezone.now().date() - timedelta(days=30)
+    ).annotate(
+        app_date=TruncDate('application_date')
+    ).values('app_date', 'status').annotate(
+        count=Count('application_id')
+    ).order_by('app_date')
+    
+    # SLA Compliance
+    sla_stats = applications.filter(actual_completion_date__isnull=False).annotate(
+        processing_days=ExpressionWrapper(
+            F('actual_completion_date') - F('submitted_date'),
+            output_field=DurationField()
+        ),
+       
+    )
+
+    # Staff performance
+    staff_performance = CustomUser.objects.filter(
+        user_type__in=['admin', 'staff'],
+        assigned_applications__isnull=False
+    ).annotate(
+        total_assigned=Count('assigned_applications'),
+        completed=Count(
+            'assigned_applications',
+            filter=Q(assigned_applications__status__in=['approved', 'rejected', 'completed'])
+        ),
+        avg_processing_time=Avg(
+            ExpressionWrapper(
+                F('assigned_applications__actual_completion_date') - F('assigned_applications__submitted_date'),
+                output_field=DurationField()
+            ),
+            filter=Q(assigned_applications__actual_completion_date__isnull=False)
+        )
+    ).filter(total_assigned__gt=0).order_by('-completed')
+    
+    # Pagination
+    paginator = Paginator(applications.order_by('-application_date'), 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'applications': page_obj,
+        'stats': stats,
+        'type_distribution': type_distribution,
+        'status_timeline': status_timeline,
+        'sla_stats': sla_stats,
+        'staff_performance': staff_performance,
+        'filter_form': ReportFilterForm(request.GET or None),
+        'active_tab': 'applications',
+    }
+    
+    return render(request, 'MMC/reports/application_reports.html', context)
+
+# ============ CPD REPORTS ============
+@login_required
+def cpd_reports(request):
+    """Comprehensive CPD program and participation reports"""
+    
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    program_type = request.GET.get('program_type')
+    
+    # CPD Program Statistics
+    programs = CPDProgram.objects.all().prefetch_related('attendances')
+    
+    if date_from:
+        programs = programs.filter(start_date__date__gte=date_from)
+    if date_to:
+        programs = programs.filter(start_date__date__lte=date_to)
+    if program_type:
+        programs = programs.filter(program_type=program_type)
+    
+    program_stats = programs.aggregate(
+        total_programs=Count('id'),
+        total_participants=Sum('max_participants'),
+        completed_programs=Count('id', filter=Q(status='Completed')),
+        active_programs=Count('id', filter=Q(status='Ongoing'))
+    )
+    
+    # Participation Statistics
+    participations = CPDAttendance.objects.all().select_related('rmp', 'program')
+    
+    if date_from:
+        participations = participations.filter(registration_date__date__gte=date_from)
+    if date_to:
+        participations = participations.filter(registration_date__date__lte=date_to)
+    
+    participation_stats = participations.aggregate(
+        total_registrations=Count('id'),
+        attended=Count('id', filter=Q(attendance_status='attended')),
+        completed=Count('id', filter=Q(attendance_status='completed')),
+        total_points=Sum('points_earned')
+    )
+    
+    # Top Programs by Participation
+    top_programs = programs.annotate(
+        actual_participants=Count('attendances'),
+        attendance_rate=Count('attendances', filter=Q(attendances__attendance_status__in=['attended', 'completed'])) * 100.0 / Count('attendances'),
+        completion_rate=Count('attendances', filter=Q(attendances__attendance_status='completed')) * 100.0 / Count('attendances')
+    ).order_by('-actual_participants')[:10]
+    
+    # RMP CPD Compliance
+    rmp_compliance = RMPProfile.objects.annotate(
+        cpd_completion_rate=Case(
+            When(cpd_points_required=0, then=Value(100.0)),
+            default=F('total_cpd_points') * 100.0 / F('cpd_points_required'),
+            output_field=DecimalField(max_digits=5, decimal_places=2)
+        ),
+        compliance_status=Case(
+            When(total_cpd_points__gte=F('cpd_points_required'), then=Value('Compliant')),
+            When(total_cpd_points__gte=F('cpd_points_required') * 0.7, then=Value('Near Compliant')),
+            default=Value('Non-Compliant'),
+            output_field=models.CharField()
+        )
+    ).values('specialization', 'compliance_status').annotate(
+        count=Count('id'),
+        avg_points=Avg('total_cpd_points'),
+        avg_required=Avg('cpd_points_required')
+    ).order_by('specialization', '-compliance_status')
+    
+    # Monthly CPD Points Trend
+    monthly_trend = participations.filter(
+        attendance_status__in=['attended', 'completed']
+    ).annotate(
+        month=TruncMonth('registration_date')
+    ).values('month').annotate(
+        total_points=Sum('points_earned'),
+        total_participations=Count('id')
+    ).order_by('month')
+    
+    context = {
+        'program_stats': program_stats,
+        'participation_stats': participation_stats,
+        'top_programs': top_programs,
+        'rmp_compliance': rmp_compliance,
+        'monthly_trend': monthly_trend,
+        'programs': programs.order_by('-start_date')[:20],
+        'filter_form': ReportFilterForm(request.GET or None),
+        'active_tab': 'cpd',
+    }
+    
+    return render(request, 'MMC/reports/cpd_reports.html', context)
+
+# ============ COMPREHENSIVE REPORTS ============
+@login_required
+def comprehensive_reports(request):
+    """All-in-one comprehensive reporting dashboard"""
+    
+    date_range = request.GET.get('date_range', 'THIS_MONTH')
+    end_date = timezone.now().date()
+    
+    # Date range calculation
+    if date_range == 'TODAY':
+        start_date = end_date
+    elif date_range == 'YESTERDAY':
+        start_date = end_date - timedelta(days=1)
+    elif date_range == 'THIS_WEEK':
+        start_date = end_date - timedelta(days=end_date.weekday())
+    elif date_range == 'THIS_MONTH':
+        start_date = end_date.replace(day=1)
+    elif date_range == 'LAST_MONTH':
+        start_date = (end_date.replace(day=1) - timedelta(days=1)).replace(day=1)
+        end_date = start_date.replace(day=28) + timedelta(days=4)
+        end_date = end_date - timedelta(days=end_date.day)
+    else:
+        start_date = request.GET.get('start_date') or (end_date - timedelta(days=30))
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = request.GET.get('end_date') or end_date
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    
+    # Application Statistics
+    applications = Application.objects.filter(application_date__date__range=[start_date, end_date])
+    application_stats = applications.values('application_type').annotate(
+        total=Count('application_id'),
+        approved=Count('application_id', filter=Q(status='approved')),
+        pending=Count('application_id', filter=Q(status__in=['submitted', 'under_review'])),
+        rejected=Count('application_id', filter=Q(status='rejected'))
+    ).order_by('-total')
+    
+    # Payment Statistics
+    payments = Payment.objects.filter(
+        payment_date__date__range=[start_date, end_date], 
+        status='success'
+    )
+    payment_summary = payments.aggregate(
+        total_amount=Sum('amount'),
+        total_count=Count('payment_id'),
+        avg_transaction=Avg('amount')
+    )
+    
+    # Payment method distribution
+    payment_methods = payments.values('payment_method').annotate(
+        count=Count('payment_id'),
+        amount=Sum('amount')
+    ).order_by('-amount')
+    
+    # CPD Statistics
+    cpd_participations = CPDAttendance.objects.filter(
+        registration_date__date__range=[start_date, end_date]
+    )
+    cpd_stats = cpd_participations.aggregate(
+        total_participants=Count('id'),
+        completed_sessions=Count('id', filter=Q(attendance_status='completed')),
+        total_points=Sum('points_earned')
+    )
+    
+    # User Statistics
+    user_stats = CustomUser.objects.filter(
+        date_joined__date__range=[start_date, end_date],
+        user_type='rmp'
+    ).aggregate(
+        new_registrations=Count('id'),
+        verified_users=Count('id', filter=Q(is_verified=True))
+    )
+    
+    # Staff Performance
+    staff_performance = (
+        CustomUser.objects.filter(
+            user_type__in=['admin', 'staff'],
+            verification_tasks__completed_date__date__range=[start_date, end_date]
+        )
+        .annotate(
+            tasks_completed=Count(
+                'verification_tasks',
+                filter=Q(verification_tasks__status='COMPLETED'),
+                distinct=True
+            ),
+            applications_processed=Count(
+                'assigned_applications',
+                filter=Q(assigned_applications__status__in=['approved', 'rejected']),
+                distinct=True
+            ),
+            processing_duration=Avg(
+                ExpressionWrapper(
+                    F('verification_tasks__completed_date') - F('verification_tasks__assigned_date'),
+                    output_field=DurationField()
+                )
+            )
+        )
+        .filter(tasks_completed__gt=0)
+        .values(
+            'username',
+            'first_name',
+            'last_name',
+            'tasks_completed',
+            'applications_processed',
+            'processing_duration',
+        )
+        .order_by('-tasks_completed')
+    )
+    
+    # Registration Trends
+    registration_trends = (
+        RMPProfile.objects.filter(
+            registration_date__range=[start_date, end_date]  # ✅ use __range directly
+        )
+        .annotate(
+            reg_date=TruncDate('registration_date')  # ✅ safe for both DateField & DateTimeField
+        )
+        .values('reg_date')
+        .annotate(
+            daily_registrations=Count('id')
+        )
+        .order_by('reg_date')
+    )
+    
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'application_stats': application_stats,
+        'payment_summary': payment_summary,
+        'payment_methods': payment_methods,
+        'cpd_stats': cpd_stats,
+        'user_stats': user_stats,
+        'staff_performance': staff_performance,
+        'registration_trends': registration_trends,
+        'filter_form': ReportFilterForm(initial={
+            'date_range': date_range,
+            'start_date': start_date,
+            'end_date': end_date
+        }),
+        'active_tab': 'comprehensive',
+    }
+    
+    return render(request, 'MMC/reports/comprehensive_reports.html', context)
+
+# ============ MANUAL VERIFICATION REPORTS ============
+@login_required
+def manual_verification_reports(request):
+    """Manual verification status and performance reports"""
+    
+    status_filter = request.GET.get('status')
+    verifier_filter = request.GET.get('verifier')
+    
+    verifications = Application.objects.filter(
+        application_type='manual_verification'
+    ).select_related('applicant', 'assigned_to')
+    
+    if status_filter:
+        verifications = verifications.filter(status=status_filter)
+    if verifier_filter:
+        verifications = verifications.filter(assigned_to_id=verifier_filter)
+    
+    # Statistics
+    stats = verifications.aggregate(
+        total=Count('application_id'),
+        pending=Count('application_id', filter=Q(status__in=['submitted', 'under_review'])),
+        completed=Count('application_id', filter=Q(status__in=['approved', 'rejected', 'completed'])),
+        avg_processing_days=Avg(
+            ExpressionWrapper(
+                F('actual_completion_date') - F('submitted_date'),
+                output_field=DurationField()
+            )
+        )
+    )
+    
+    # Document verification status
+    doc_verification = Document.objects.filter(
+        application__application_type='manual_verification'
+    ).values('document_type', 'is_verified').annotate(
+        count=Count('id')
+    ).order_by('document_type', '-is_verified')
+    
+    # Staff performance in manual verification
+    staff_performance = (
+        CustomUser.objects.filter(
+            user_type__in=['admin', 'staff'],
+            verification_tasks__application__application_type='manual_verification'
+        )
+        .annotate(
+            total_tasks=Count('verification_tasks', distinct=True),
+            completed_tasks=Count(
+                'verification_tasks',
+                filter=Q(verification_tasks__status='COMPLETED'),
+                distinct=True
+            ),
+            pending_tasks=Count(
+                'verification_tasks',
+                filter=Q(verification_tasks__status__in=['PENDING', 'IN_PROGRESS']),
+                distinct=True
+            ),
+            avg_processing_duration=Avg(
+                ExpressionWrapper(
+                    F('verification_tasks__completed_date') - F('verification_tasks__assigned_date'),
+                    output_field=DurationField()
+                )
+            ),
+        )
+        .filter(total_tasks__gt=0)
+        .values(
+            'username',
+            'first_name',
+            'last_name',
+            'total_tasks',
+            'completed_tasks',
+            'pending_tasks',
+            'avg_processing_duration',
+        )
+        .order_by('-completed_tasks')
+    )
+    
+    # Convert duration to hours (Python-side)
+    for staff in staff_performance:
+        duration = staff.get('avg_processing_duration')
+        if duration:
+            staff['avg_processing_hours'] = round(duration.total_seconds() / 3600, 2)
+        else:
+            staff['avg_processing_hours'] = 0
+    
+    # Pending applications summary by type
+    pending_summary = verifications.filter(
+        status__in=['submitted', 'under_review']
+    ).values('application_type').annotate(
+        count=Count('application_id'),
+        oldest_pending=Min('application_date')
+    ).order_by('-count')
+    
+    context = {
+        'verifications': verifications.order_by('-application_date'),
+        'stats': stats,
+        'doc_verification': doc_verification,
+        'staff_performance': staff_performance,
+        'pending_summary': pending_summary,
+        'status_filter': status_filter,
+        'verifier_filter': verifier_filter,
+        'active_tab': 'manual_verification',
+    }
+    
+    return render(request, 'MMC/reports/manual_verification_reports.html', context)
+
+# ============ STAFF PERFORMANCE REPORTS ============
+@login_required
+def staff_performance_reports(request):
+    """Detailed staff performance and productivity reports"""
+    
+    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).date())
+    date_to = request.GET.get('date_to', timezone.now().date())
+    
+    # --- Individual staff performance ---
+    staff_members = (
+        CustomUser.objects.filter(
+            user_type__in=['admin', 'staff', 'super_admin']
+        )
+        .annotate(
+            # Applications metrics
+            applications_processed=Count(
+                'assigned_applications',
+                filter=Q(
+                    assigned_applications__actual_completion_date__date__range=[date_from, date_to]
+                ),
+                distinct=True
+            ),
+            applications_approved=Count(
+                'assigned_applications',
+                filter=Q(
+                    assigned_applications__status='approved',
+                    assigned_applications__actual_completion_date__date__range=[date_from, date_to]
+                ),
+                distinct=True
+            ),
+            applications_rejected=Count(
+                'assigned_applications',
+                filter=Q(
+                    assigned_applications__status='rejected',
+                    assigned_applications__actual_completion_date__date__range=[date_from, date_to]
+                ),
+                distinct=True
+            ),
+            # Verification tasks
+            tasks_assigned=Count(
+                'verification_tasks',
+                filter=Q(verification_tasks__assigned_date__date__range=[date_from, date_to]),
+                distinct=True
+            ),
+            tasks_completed=Count(
+                'verification_tasks',
+                filter=Q(verification_tasks__completed_date__date__range=[date_from, date_to]),
+                distinct=True
+            ),
+            # Processing time
+            avg_processing_time=Avg(
+                ExpressionWrapper(
+                    F('verification_tasks__completed_date') - F('verification_tasks__assigned_date'),
+                    output_field=DurationField()
+                ),
+                filter=Q(verification_tasks__completed_date__isnull=False)
+            ),
+        )
+        .annotate(
+            approval_rate=Case(
+                When(applications_processed=0, then=Value(0.0)),
+                default=F('applications_approved') * 100.0 / F('applications_processed'),
+                output_field=DecimalField(max_digits=5, decimal_places=2)
+            ),
+        )
+    )
+    
+    # --- Calculate productivity score (done separately to avoid ORM issues) ---
+    for member in staff_members:
+        avg_time = member.avg_processing_time or timedelta(hours=9999)
+        time_score = (
+            30 if avg_time < timedelta(hours=24)
+            else 20 if avg_time < timedelta(hours=48)
+            else 10
+        )
+        member.productivity_score = (
+            member.applications_processed * 0.4 +
+            member.tasks_completed * 0.3 +
+            time_score
+        )
+    
+    # --- Department-wise performance ---
+    # Compute using a secondary aggregation
+    dept_performance = (
+        staff_members.values('user_type')
+        .annotate(
+            total_staff=Count('id'),
+            avg_applications=Avg('applications_processed'),
+            avg_tasks=Avg('tasks_completed'),
+            avg_processing_time=Avg('avg_processing_time'),
+            avg_approval_rate=Avg('approval_rate'),
+            avg_productivity=Avg('productivity_score'),
+        )
+        .order_by('-avg_productivity')
+    )
+    
+    # Monthly trend for top performer
+    monthly_trend = Application.objects.filter(
+        assigned_to=staff_members.first(),
+        actual_completion_date__date__range=[date_from, date_to]
+    ).annotate(
+        month=TruncMonth('actual_completion_date')
+    ).values('month').annotate(
+        completed=Count('application_id'),
+        approved=Count('application_id', filter=Q(status='approved'))
+    ).order_by('month')
+    
+    context = {
+        'staff_members': staff_members,
+        'dept_performance': dept_performance,
+        'monthly_trend': monthly_trend,
+        'date_from': date_from,
+        'date_to': date_to,
+        'active_tab': 'staff_performance',
+    }
+    
+    return render(request, 'MMC/reports/staff_performance_reports.html', context)
+
+# ============ COMPLAINT ANALYSIS REPORTS ============
+@login_required
+def complaint_analysis_reports(request):
+    """Complaint analysis and resolution tracking reports"""
+    
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    severity = request.GET.get('severity')
+    status = request.GET.get('status')
+    
+    complaints = Complaint.objects.all().select_related(
+        'against_rmp', 'filed_by', 'assigned_to'
+    )
+    
+    if date_from:
+        complaints = complaints.filter(filed_date__date__gte=date_from)
+    if date_to:
+        complaints = complaints.filter(filed_date__date__lte=date_to)
+    if severity:
+        complaints = complaints.filter(severity=severity)
+    if status:
+        complaints = complaints.filter(status=status)
+    
+    # Complaint statistics
+    stats = complaints.aggregate(
+        total_complaints=Count('complaint_id'),
+        resolved=Count('complaint_id', filter=Q(status='resolved')),
+        under_investigation=Count('complaint_id', filter=Q(status='under_investigation')),
+        avg_resolution_days=Avg(
+            ExpressionWrapper(
+                F('resolved_date') - F('filed_date'),
+                output_field=DurationField()
+            )
+        )
+    )
+    
+    # Severity distribution
+    severity_dist = complaints.values('severity').annotate(
+        count=Count('complaint_id'),
+        resolved=Count('complaint_id', filter=Q(status='resolved')),
+        resolution_rate=Count('complaint_id', filter=Q(status='resolved')) * 100.0 / Count('complaint_id')
+    ).order_by('-count')
+    
+    # Category-wise analysis
+    category_analysis = complaints.values('category').annotate(
+        count=Count('complaint_id'),
+        avg_resolution_days=Avg(
+            ExpressionWrapper(
+                F('resolved_date') - F('filed_date'),
+                output_field=DurationField()
+            )
+        )
+    ).exclude(category='').order_by('-count')
+    
+    # Monthly trend
+    monthly_trend = complaints.annotate(
+        month=TruncMonth('filed_date')
+    ).values('month').annotate(
+        filed=Count('complaint_id'),
+        resolved=Count('complaint_id', filter=Q(status='resolved'))
+    ).order_by('month')
+    
+    # Top RMPs with complaints
+    top_rmps = complaints.values(
+        'against_rmp__mmc_registration_number', 
+        'against_rmp__full_name'
+    ).annotate(
+        complaint_count=Count('complaint_id'),
+        resolved_count=Count('complaint_id', filter=Q(status='resolved')),
+        severe_count=Count('complaint_id', filter=Q(severity__in=['high', 'critical']))
+    ).order_by('-complaint_count')[:10]
+    
+    context = {
+        'complaints': complaints.order_by('-filed_date'),
+        'stats': stats,
+        'severity_dist': severity_dist,
+        'category_analysis': category_analysis,
+        'monthly_trend': monthly_trend,
+        'top_rmps': top_rmps,
+        'filter_form': ReportFilterForm(request.GET or None),
+        'active_tab': 'complaints',
+    }
+    
+    return render(request, 'MMC/reports/complaint_analysis_reports.html', context)
+
+# ============ AI PERFORMANCE REPORTS ============
+@login_required
+def ai_performance_reports(request):
+    """AI integration performance and insights reports"""
+    
+    # AI Performance Scores Analysis
+    ai_scores = AIPerformanceScore.objects.all().select_related('rmp')
+    
+    # Score distribution
+    score_stats = ai_scores.aggregate(
+        avg_overall=Avg('overall_score'),
+        avg_cpd=Avg('cpd_score'),
+        avg_compliance=Avg('compliance_score'),
+        avg_patient_care=Avg('patient_care_score'),
+        avg_professional=Avg('professional_conduct_score'),
+        total_rmps=Count('id')
+    )
+    
+    # Score ranges
+    score_ranges = ai_scores.annotate(
+        score_range=Case(
+            When(overall_score__gte=90, then=Value('Excellent (90-100)')),
+            When(overall_score__gte=80, then=Value('Good (80-89)')),
+            When(overall_score__gte=70, then=Value('Average (70-79)')),
+            When(overall_score__gte=60, then=Value('Below Average (60-69)')),
+            default=Value('Needs Improvement (<60)'),
+            output_field=models.CharField()
+        )
+    ).values('score_range').annotate(
+        count=Count('id'),
+        avg_score=Avg('overall_score')
+    ).order_by('-avg_score')
+    
+    # Specialization-wise performance
+    specialization_performance = ai_scores.values('rmp__specialization').annotate(
+        count=Count('id'),
+        avg_overall=Avg('overall_score'),
+        avg_cpd=Avg('cpd_score'),
+        avg_compliance=Avg('compliance_score')
+    ).exclude(rmp__specialization='').order_by('-avg_overall')
+    
+    # AI Insights Analysis
+    ai_insights = AIPerformanceScore.objects.filter(
+        overall_score__lt=70
+    ).select_related('rmp').order_by('overall_score')[:10]
+    
+    # Predictive Alerts Summary
+    predictive_alerts = AIPerformanceScore.objects.filter(
+        overall_score__lt=60
+    ).values('rmp__specialization').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    context = {
+        'score_stats': score_stats,
+        'score_ranges': score_ranges,
+        'specialization_performance': specialization_performance,
+        'ai_insights': ai_insights,
+        'predictive_alerts': predictive_alerts,
+        'active_tab': 'ai_performance',
+    }
+    
+    return render(request, 'MMC/reports/ai_performance_reports.html', context)
+
+# ============ EXPORT FUNCTIONALITY ============
+@login_required
+def export_reports(request, report_type):
+    """Unified export functionality for all report types"""
+    
+    format_type = request.GET.get('format', 'excel')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if report_type == 'applications':
+        return export_applications_report(request, format_type, date_from, date_to)
+    elif report_type == 'payments':
+        return export_payments_report(request, format_type, date_from, date_to)
+    elif report_type == 'cpd':
+        return export_cpd_report(request, format_type, date_from, date_to)
+    elif report_type == 'staff_performance':
+        return export_staff_performance_report(request, format_type, date_from, date_to)
+    elif report_type == 'complaints':
+        return export_complaints_report(request, format_type, date_from, date_to)
+    elif report_type == 'manual_verification':
+        return export_manual_verification_report(request, format_type, date_from, date_to)
+    else:
+        messages.error(request, 'Invalid report type specified.')
+        return redirect('reports_dashboard')
+
+def export_applications_report(request, format_type, date_from, date_to):
+    """Export applications report"""
+    
+    applications = Application.objects.all().select_related('applicant', 'rmp', 'assigned_to')
+    
+    if date_from:
+        applications = applications.filter(application_date__date__gte=date_from)
+    if date_to:
+        applications = applications.filter(application_date__date__lte=date_to)
+    
+    if format_type == 'excel':
+        return export_applications_excel(applications)
+    elif format_type == 'pdf':
+        return export_applications_pdf(applications)
+    else:
+        return export_applications_csv(applications)
+
+def export_applications_excel(applications):
+    """Export applications to Excel format"""
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="mmc_applications.xls"'
+    
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('Applications Report')
+    
+    # Style for header
+    header_style = xlwt.easyxf(
+        'font: bold on; align: horiz center; pattern: pattern solid, fore_color light_green;'
+    )
+    
+    # Column headers
+    columns = [
+        'Application ID', 'Type', 'Applicant Name', 'MMC Number', 
+        'Status', 'Submission Date', 'Completion Date', 
+        'Payment Status', 'Fee Amount', 'Assigned To', 'SLA Days'
+    ]
+    
+    for col_num, column_title in enumerate(columns):
+        ws.write(0, col_num, column_title, header_style)
+        ws.col(col_num).width = 6000  # Set column width
+    
+    # Data rows
+    row_num = 1
+    for app in applications:
+        ws.write(row_num, 0, str(app.application_id))
+        ws.write(row_num, 1, app.get_application_type_display())
+        ws.write(row_num, 2, app.applicant.get_full_name())
+        ws.write(row_num, 3, app.rmp.mmc_registration_number if app.rmp else 'N/A')
+        ws.write(row_num, 4, app.get_status_display())
+        ws.write(row_num, 5, app.submitted_date.strftime('%Y-%m-%d %H:%M') if app.submitted_date else '')
+        ws.write(row_num, 6, app.actual_completion_date.strftime('%Y-%m-%d %H:%M') if app.actual_completion_date else '')
+        ws.write(row_num, 7, 'Paid' if app.payment_status else 'Pending')
+        ws.write(row_num, 8, str(app.fee_amount))
+        ws.write(row_num, 9, app.assigned_to.get_full_name() if app.assigned_to else 'Not Assigned')
+        ws.write(row_num, 10, str(app.sla_days))
+        row_num += 1
+    
+    wb.save(response)
+    return response
+
+def export_applications_pdf(applications):
+    """Export applications to PDF format"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        textColor=colors.HexColor('#2c3e50')
+    )
+    
+    # Title
+    title = Paragraph("MMC Applications Report", title_style)
+    elements.append(title)
+    
+    # Summary table
+    summary_data = [
+        ['Total Applications', str(applications.count())],
+        ['Approved', str(applications.filter(status='approved').count())],
+        ['Pending', str(applications.filter(status__in=['submitted', 'under_review']).count())],
+        ['Rejected', str(applications.filter(status='rejected').count())],
+    ]
+    
+    summary_table = Table(summary_data, colWidths=[200, 100])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#ecf0f1')),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ]))
+    
+    elements.append(summary_table)
+    elements.append(Spacer(1, 20))
+    
+    # Applications table
+    if applications.exists():
+        app_data = [['ID', 'Type', 'Applicant', 'Status', 'Submission Date']]
+        
+        for app in applications[:50]:  # Limit to first 50 for PDF
+            app_data.append([
+                str(app.application_id),
+                app.get_application_type_display(),
+                app.applicant.get_full_name(),
+                app.get_status_display(),
+                app.submitted_date.strftime('%Y-%m-%d') if app.submitted_date else ''
+            ])
+        
+        app_table = Table(app_data, colWidths=[60, 100, 120, 80, 80])
+        app_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ]))
+        
+        elements.append(app_table)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="mmc_applications_report.pdf"'
+    return response
+
+def export_applications_csv(applications):
+    """Export applications to CSV format"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="mmc_applications.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Application ID', 'Type', 'Applicant Name', 'MMC Number', 
+        'Status', 'Submission Date', 'Completion Date', 
+        'Payment Status', 'Fee Amount', 'Assigned To'
+    ])
+    
+    for app in applications:
+        writer.writerow([
+            app.application_id,
+            app.get_application_type_display(),
+            app.applicant.get_full_name(),
+            app.rmp.mmc_registration_number if app.rmp else 'N/A',
+            app.get_status_display(),
+            app.submitted_date.strftime('%Y-%m-%d %H:%M') if app.submitted_date else '',
+            app.actual_completion_date.strftime('%Y-%m-%d %H:%M') if app.actual_completion_date else '',
+            'Paid' if app.payment_status else 'Pending',
+            app.fee_amount,
+            app.assigned_to.get_full_name() if app.assigned_to else 'Not Assigned'
+        ])
+    
+    return response
+
+# Similar export functions for other report types...
+def export_payments_report(request, format_type, date_from, date_to):
+    """Export payments report"""
+    payments = Payment.objects.filter(status='success').select_related('application', 'application__applicant')
+    
+    if date_from:
+        payments = payments.filter(payment_date__date__gte=date_from)
+    if date_to:
+        payments = payments.filter(payment_date__date__lte=date_to)
+    
+    if format_type == 'excel':
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mmc_payments.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Payments Report')
+        
+        header_style = xlwt.easyxf('font: bold on; align: horiz center;')
+        columns = ['Payment ID', 'Application ID', 'Applicant', 'Amount', 'Method', 'Date', 'Transaction ID']
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(0, col_num, column_title, header_style)
+        
+        row_num = 1
+        for payment in payments:
+            ws.write(row_num, 0, str(payment.payment_id))
+            ws.write(row_num, 1, str(payment.application.application_id) if payment.application else 'N/A')
+            ws.write(row_num, 2, payment.application.applicant.get_full_name() if payment.application else 'N/A')
+            ws.write(row_num, 3, str(payment.amount))
+            ws.write(row_num, 4, payment.get_payment_method_display())
+            ws.write(row_num, 5, payment.payment_date.strftime('%Y-%m-%d'))
+            ws.write(row_num, 6, payment.transaction_id)
+            row_num += 1
+        
+        wb.save(response)
+        return response
+    
+    else:  # CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mmc_payments.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Payment ID', 'Application ID', 'Applicant', 'Amount', 'Method', 'Date', 'Transaction ID'])
+        
+        for payment in payments:
+            writer.writerow([
+                payment.payment_id,
+                payment.application.application_id if payment.application else 'N/A',
+                payment.application.applicant.get_full_name() if payment.application else 'N/A',
+                payment.amount,
+                payment.get_payment_method_display(),
+                payment.payment_date.strftime('%Y-%m-%d'),
+                payment.transaction_id
+            ])
+        
+        return response
+
+# ============ REPORT GENERATION ============
+@login_required
+def generate_report(request):
+    """Dynamic report generation with filters"""
+    if request.method == 'POST':
+        form = ReportGenerationForm(request.POST)
+        if form.is_valid():
+            report_type = form.cleaned_data['report_type']
+            date_from = form.cleaned_data['date_from']
+            date_to = form.cleaned_data['date_to']
+            format_type = form.cleaned_data['format']
+            
+            # Generate report data
+            report_data = generate_report_data(report_type, date_from, date_to)
+            
+            # Create report record
+            report = Report.objects.create(
+                report_type=report_type,
+                title=f"{report_type.replace('_', ' ').title()} Report",
+                generated_by=request.user,
+                date_from=date_from,
+                date_to=date_to,
+                report_data=report_data,
+            )
+            
+            # Generate file based on format
+            if format_type == 'csv':
+                return generate_csv_report(report_data, report_type)
+            elif format_type == 'pdf':
+                return generate_pdf_report(report_data, report_type)
+            elif format_type == 'excel':
+                return generate_excel_report(report_data, report_type)
+            else:
+                messages.success(request, "Report generated successfully!")
+                return redirect('reports_dashboard')
+    
+    else:
+        form = ReportGenerationForm()
+    
+    context = {
+        'form': form,
+        'active_tab': 'generate',
+    }
+    
+    return render(request, 'MMC/reports/generate_report.html', context)
+
+def generate_report_data(report_type, date_from, date_to):
+    """Generate comprehensive report data based on type"""
+    filters = {}
+    if date_from:
+        filters['submitted_date__date__gte'] = date_from
+    if date_to:
+        filters['submitted_date__date__lte'] = date_to
+    
+    if report_type == 'payment_summary':
+        payments = Payment.objects.filter(**filters) if filters else Payment.objects.all()
+        return {
+            'total_amount': payments.aggregate(Sum('amount'))['amount__sum'] or 0,
+            'total_count': payments.count(),
+            'by_status': list(payments.values('status').annotate(
+                count=Count('id'), 
+                amount=Sum('amount')
+            )),
+            'by_method': list(payments.values('payment_method').annotate(
+                count=Count('id'), 
+                amount=Sum('amount')
+            )),
+            'daily_breakdown': list(payments.filter(status='success').annotate(
+                payment_day=TruncDate('payment_date')
+            ).values('payment_day').annotate(
+                daily_amount=Sum('amount'),
+                count=Count('id')
+            ).order_by('payment_day')),
+        }
+    
+    elif report_type == 'application_status':
+        applications = Application.objects.filter(**filters) if filters else Application.objects.all()
+        return {
+            'total_applications': applications.count(),
+            'by_type': list(applications.values('application_type').annotate(count=Count('id'))),
+            'by_status': list(applications.values('status').annotate(count=Count('id'))),
+            'pending_count': applications.filter(status__in=['submitted', 'under_review']).count(),
+            'sla_compliance': applications.filter(
+                actual_completion_date__isnull=False
+            ).annotate(
+                within_sla=Case(
+                    When(
+                        actual_completion_date__lte=F('submitted_date') + timedelta(days=F('sla_days')), 
+                        then=Value(1)
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )
+            ).aggregate(
+                total=Count('id'),
+                within_sla=Sum('within_sla'),
+                compliance_rate=Sum('within_sla') * 100.0 / Count('id')
+            ),
+        }
+    
+    elif report_type == 'cpd_participation':
+        participations = CPDAttendance.objects.filter(**filters) if filters else CPDAttendance.objects.all()
+        return {
+            'total_participations': participations.count(),
+            'total_points': participations.aggregate(Sum('points_earned'))['points_earned__sum'] or 0,
+            'by_status': list(participations.values('attendance_status').annotate(
+                count=Count('id'),
+                points=Sum('points_earned')
+            )),
+            'top_programs': list(participations.values(
+                'program__title'
+            ).annotate(
+                participants=Count('id'),
+                points=Sum('points_earned')
+            ).order_by('-participants')[:10]),
+        }
+    
+    return {}
+
+# Utility functions for report generation
+def generate_csv_report(report_data, report_type):
+    """Generate CSV report from report data"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{report_type}_report.csv"'
+    
+    writer = csv.writer(response)
+    
+    if report_type == 'payment_summary':
+        writer.writerow(['Status', 'Count', 'Amount'])
+        for item in report_data.get('by_status', []):
+            writer.writerow([item['status'], item['count'], item['amount']])
+    
+    return response
+
+def generate_pdf_report(report_data, report_type):
+    """Generate PDF report (simplified version)"""
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 750, f"{report_type.replace('_', ' ').title()} Report")
+    
+    p.setFont("Helvetica", 12)
+    y_position = 700
+    
+    if report_type == 'payment_summary':
+        p.drawString(100, y_position, f"Total Amount: {report_data.get('total_amount', 0)}")
+        y_position -= 20
+        p.drawString(100, y_position, f"Total Count: {report_data.get('total_count', 0)}")
+    
+    p.showPage()
+    p.save()
+    
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{report_type}_report.pdf"'
+    return response
+
+def generate_excel_report(report_data, report_type):
+    """Generate Excel report from report data"""
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = f'attachment; filename="{report_type}_report.xls"'
+    
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('Report')
+    
+    # Add your Excel generation logic here
+    
+    wb.save(response)
+    return response
+
+# ============ AJAX ENDPOINTS FOR CHARTS ============
+@login_required
+def get_application_stats(request):
+    """AJAX endpoint for application statistics"""
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    applications = Application.objects.all()
+    
+    if date_from:
+        applications = applications.filter(application_date__date__gte=date_from)
+    if date_to:
+        applications = applications.filter(application_date__date__lte=date_to)
+    
+    stats = applications.aggregate(
+        total=Count('id'),
+        approved=Count('id', filter=Q(status='approved')),
+        pending=Count('id', filter=Q(status__in=['submitted', 'under_review'])),
+        rejected=Count('id', filter=Q(status='rejected'))
+    )
+    
+    return JsonResponse(stats)
+
+@login_required
+def get_payment_trends(request):
+    """AJAX endpoint for payment trends"""
+    days = int(request.GET.get('days', 30))
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=days)
+    
+    trends = Payment.objects.filter(
+        payment_date__date__range=[start_date, end_date],
+        status='success'
+    ).annotate(
+        day=TruncDate('payment_date')
+    ).values('day').annotate(
+        amount=Sum('amount'),
+        count=Count('id')
+    ).order_by('day')
+    
+    return JsonResponse(list(trends), safe=False)
+
+
+# views.py - Additional missing implementations
+
+# ============ CPD REPORTS EXPORT ============
+@login_required
+@staff_required
+def export_cpd_report(request, format_type, date_from, date_to):
+    """Export CPD reports"""
+    programs = CPDProgram.objects.all().prefetch_related('attendances')
+    
+    if date_from:
+        programs = programs.filter(start_date__date__gte=date_from)
+    if date_to:
+        programs = programs.filter(start_date__date__lte=date_to)
+    
+    if format_type == 'excel':
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mmc_cpd_programs.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('CPD Programs Report')
+        
+        header_style = xlwt.easyxf('font: bold on; align: horiz center;')
+        columns = [
+            'Program ID', 'Title', 'Type', 'Organizer', 'Start Date', 'End Date',
+            'Max Participants', 'Actual Participants', 'CPD Points', 'Status'
+        ]
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(0, col_num, column_title, header_style)
+            ws.col(col_num).width = 6000
+        
+        row_num = 1
+        for program in programs:
+            actual_participants = program.attendances.count()
+            ws.write(row_num, 0, str(program.id))
+            ws.write(row_num, 1, program.title)
+            ws.write(row_num, 2, program.get_program_type_display())
+            ws.write(row_num, 3, program.organizer)
+            ws.write(row_num, 4, program.start_date.strftime('%Y-%m-%d'))
+            ws.write(row_num, 5, program.end_date.strftime('%Y-%m-%d'))
+            ws.write(row_num, 6, program.max_participants)
+            ws.write(row_num, 7, actual_participants)
+            ws.write(row_num, 8, program.cpd_points)
+            ws.write(row_num, 9, program.get_status_display())
+            row_num += 1
+        
+        wb.save(response)
+        return response
+    
+    else:  # CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mmc_cpd_programs.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Program ID', 'Title', 'Type', 'Organizer', 'Start Date', 'End Date',
+            'Max Participants', 'Actual Participants', 'CPD Points', 'Status'
+        ])
+        
+        for program in programs:
+            actual_participants = program.attendances.count()
+            writer.writerow([
+                program.id,
+                program.title,
+                program.get_program_type_display(),
+                program.organizer,
+                program.start_date.strftime('%Y-%m-%d'),
+                program.end_date.strftime('%Y-%m-%d'),
+                program.max_participants,
+                actual_participants,
+                program.cpd_points,
+                program.get_status_display()
+            ])
+        
+        return response
+
+# ============ STAFF PERFORMANCE EXPORT ============
+@login_required
+@staff_required
+def export_staff_performance_report(request, format_type, date_from, date_to):
+    """Export staff performance reports"""
+    staff_members = CustomUser.objects.filter(
+        user_type__in=['admin', 'staff', 'super_admin']
+    ).annotate(
+        applications_processed=Count('assigned_applications', 
+            filter=Q(assigned_applications__actual_completion_date__date__range=[date_from, date_to])),
+        tasks_completed=Count('verification_tasks',
+            filter=Q(verification_tasks__completed_date__date__range=[date_from, date_to])),
+    ).filter(
+        Q(applications_processed__gt=0) | Q(tasks_completed__gt=0)
+    )
+    
+    if format_type == 'excel':
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mmc_staff_performance.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Staff Performance Report')
+        
+        header_style = xlwt.easyxf('font: bold on; align: horiz center;')
+        columns = [
+            'Staff Name', 'Username', 'Role', 'Applications Processed',
+            'Tasks Completed', 'Total Workload', 'Performance Rating'
+        ]
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(0, col_num, column_title, header_style)
+            ws.col(col_num).width = 6000
+        
+        row_num = 1
+        for staff in staff_members:
+            total_workload = (staff.applications_processed or 0) + (staff.tasks_completed or 0)
+            performance = "Excellent" if total_workload > 50 else "Good" if total_workload > 20 else "Average"
+            
+            ws.write(row_num, 0, staff.get_full_name())
+            ws.write(row_num, 1, staff.username)
+            ws.write(row_num, 2, staff.get_user_type_display())
+            ws.write(row_num, 3, staff.applications_processed or 0)
+            ws.write(row_num, 4, staff.tasks_completed or 0)
+            ws.write(row_num, 5, total_workload)
+            ws.write(row_num, 6, performance)
+            row_num += 1
+        
+        wb.save(response)
+        return response
+    
+    else:  # CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mmc_staff_performance.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Staff Name', 'Username', 'Role', 'Applications Processed',
+            'Tasks Completed', 'Total Workload', 'Performance Rating'
+        ])
+        
+        for staff in staff_members:
+            total_workload = (staff.applications_processed or 0) + (staff.tasks_completed or 0)
+            performance = "Excellent" if total_workload > 50 else "Good" if total_workload > 20 else "Average"
+            
+            writer.writerow([
+                staff.get_full_name(),
+                staff.username,
+                staff.get_user_type_display(),
+                staff.applications_processed or 0,
+                staff.tasks_completed or 0,
+                total_workload,
+                performance
+            ])
+        
+        return response
+
+# ============ COMPLAINTS EXPORT ============
+@login_required
+@staff_required
+def export_complaints_report(request, format_type, date_from, date_to):
+    """Export complaints analysis reports"""
+    complaints = Complaint.objects.all().select_related('against_rmp', 'filed_by', 'assigned_to')
+    
+    if date_from:
+        complaints = complaints.filter(filed_date__date__gte=date_from)
+    if date_to:
+        complaints = complaints.filter(filed_date__date__lte=date_to)
+    
+    if format_type == 'excel':
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mmc_complaints_analysis.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Complaints Analysis Report')
+        
+        header_style = xlwt.easyxf('font: bold on; align: horiz center;')
+        columns = [
+            'Complaint ID', 'Against RMP', 'Filed By', 'Severity', 'Status',
+            'Category', 'Filed Date', 'Resolved Date', 'Assigned To'
+        ]
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(0, col_num, column_title, header_style)
+            ws.col(col_num).width = 6000
+        
+        row_num = 1
+        for complaint in complaints:
+            ws.write(row_num, 0, complaint.complaint_id)
+            ws.write(row_num, 1, complaint.against_rmp.mmc_registration_number)
+            ws.write(row_num, 2, complaint.filed_by.mmc_registration_number)
+            ws.write(row_num, 3, complaint.get_severity_display())
+            ws.write(row_num, 4, complaint.get_status_display())
+            ws.write(row_num, 5, complaint.category or 'N/A')
+            ws.write(row_num, 6, complaint.filed_date.strftime('%Y-%m-%d'))
+            ws.write(row_num, 7, complaint.resolved_date.strftime('%Y-%m-%d') if complaint.resolved_date else '')
+            ws.write(row_num, 8, complaint.assigned_to.get_full_name() if complaint.assigned_to else '')
+            row_num += 1
+        
+        wb.save(response)
+        return response
+    
+    else:  # CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mmc_complaints_analysis.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Complaint ID', 'Against RMP', 'Filed By', 'Severity', 'Status',
+            'Category', 'Filed Date', 'Resolved Date', 'Assigned To'
+        ])
+        
+        for complaint in complaints:
+            writer.writerow([
+                complaint.complaint_id,
+                complaint.against_rmp.mmc_registration_number,
+                complaint.filed_by.mmc_registration_number,
+                complaint.get_severity_display(),
+                complaint.get_status_display(),
+                complaint.category or 'N/A',
+                complaint.filed_date.strftime('%Y-%m-%d'),
+                complaint.resolved_date.strftime('%Y-%m-%d') if complaint.resolved_date else '',
+                complaint.assigned_to.get_full_name() if complaint.assigned_to else ''
+            ])
+        
+        return response
+
+# ============ MANUAL VERIFICATION EXPORT ============
+@login_required
+@staff_required
+def export_manual_verification_report(request, format_type, date_from, date_to):
+    """Export manual verification reports"""
+    verifications = Application.objects.filter(
+        application_type='manual_verification'
+    ).select_related('applicant', 'assigned_to')
+    
+    if date_from:
+        verifications = verifications.filter(application_date__date__gte=date_from)
+    if date_to:
+        verifications = verifications.filter(application_date__date__lte=date_to)
+    
+    if format_type == 'excel':
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="mmc_manual_verification.xls"'
+        
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Manual Verification Report')
+        
+        header_style = xlwt.easyxf('font: bold on; align: horiz center;')
+        columns = [
+            'Application ID', 'Applicant', 'MMC Number', 'Status',
+            'Submission Date', 'Assigned To', 'Completion Date', 'SLA Status'
+        ]
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(0, col_num, column_title, header_style)
+            ws.col(col_num).width = 6000
+        
+        row_num = 1
+        for verification in verifications:
+            sla_status = "Within SLA" if verification.actual_completion_date and verification.actual_completion_date <= verification.submitted_date + timedelta(days=verification.sla_days) else "Overdue" if verification.actual_completion_date else "In Progress"
+            
+            ws.write(row_num, 0, verification.application_id)
+            ws.write(row_num, 1, verification.applicant.get_full_name())
+            ws.write(row_num, 2, verification.rmp.mmc_registration_number if verification.rmp else 'N/A')
+            ws.write(row_num, 3, verification.get_status_display())
+            ws.write(row_num, 4, verification.submitted_date.strftime('%Y-%m-%d'))
+            ws.write(row_num, 5, verification.assigned_to.get_full_name() if verification.assigned_to else '')
+            ws.write(row_num, 6, verification.actual_completion_date.strftime('%Y-%m-%d') if verification.actual_completion_date else '')
+            ws.write(row_num, 7, sla_status)
+            row_num += 1
+        
+        wb.save(response)
+        return response
+    
+    else:  # CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="mmc_manual_verification.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Application ID', 'Applicant', 'MMC Number', 'Status',
+            'Submission Date', 'Assigned To', 'Completion Date', 'SLA Status'
+        ])
+        
+        for verification in verifications:
+            sla_status = "Within SLA" if verification.actual_completion_date and verification.actual_completion_date <= verification.submitted_date + timedelta(days=verification.sla_days) else "Overdue" if verification.actual_completion_date else "In Progress"
+            
+            writer.writerow([
+                verification.application_id,
+                verification.applicant.get_full_name(),
+                verification.rmp.mmc_registration_number if verification.rmp else 'N/A',
+                verification.get_status_display(),
+                verification.submitted_date.strftime('%Y-%m-%d'),
+                verification.assigned_to.get_full_name() if verification.assigned_to else '',
+                verification.actual_completion_date.strftime('%Y-%m-%d') if verification.actual_completion_date else '',
+                sla_status
+            ])
+        
+        return response
+
