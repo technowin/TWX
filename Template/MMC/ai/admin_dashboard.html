@@ -33,306 +33,203 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+.metric-card {
+    transition: transform 0.2s;
+}
+.metric-card:hover {
+    transform: translateY(-3px);
+}
+.risk-high { border-left: 4px solid #dc3545; }
+.risk-medium { border-left: 4px solid #ffc107; }
+.risk-low { border-left: 4px solid #28a745; }
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+</style>
 {% endblock %}
 
+{% block title %}AI Dashboard - MMC Admin{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">
-            <i class="bi bi-robot"></i>
-            AI Analytics Dashboard
-        </h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <button class="btn btn-sm btn-outline-primary" onclick="refreshAIData()">
-                <i class="bi bi-arrow-clockwise"></i> Refresh
-            </button>
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">AI Analytics Dashboard</h1>
+                    <p class="text-muted">Comprehensive intelligence for MMC administration</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'admin_ai_insights' %}" class="btn btn-outline-primary">Insights</a>
+                    <a href="{% url 'admin_ai_dashboard' %}" class="btn btn-primary">Dashboard</a>
+                    <a href="{% url 'admin_analytics_dashboard' %}" class="btn btn-outline-primary">Advanced Analytics</a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- AI Overview Cards -->
+    <!-- Key Metrics -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-center border-primary">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card metric-card border-0 bg-primary text-white shadow-sm">
                 <div class="card-body">
-                    <i class="bi bi-graph-up-arrow fs-1 text-primary mb-2"></i>
-                    <h3 class="text-primary">{{ total_analyzed }}</h3>
-                    <p class="text-muted mb-0">RMPs Analyzed</p>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="mb-0">{{ total_analyzed }}</h2>
+                            <p class="mb-0">RMPs Analyzed</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center border-success">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card metric-card border-0 bg-success text-white shadow-sm">
                 <div class="card-body">
-                    <i class="bi bi-speedometer2 fs-1 text-success mb-2"></i>
-                    <h3 class="text-success">{{ avg_scores.avg_overall|floatformat:1 }}</h3>
-                    <p class="text-muted mb-0">Avg Performance</p>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="mb-0">{{ avg_scores.avg_overall|floatformat:1 }}</h2>
+                            <p class="mb-0">Avg Performance</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center border-warning">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card metric-card border-0 bg-warning text-dark shadow-sm">
                 <div class="card-body">
-                    <i class="bi bi-exclamation-triangle fs-1 text-warning mb-2"></i>
-                    <h3 class="text-warning">{{ high_risk_rmps }}</h3>
-                    <p class="text-muted mb-0">High Risk RMPs</p>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="mb-0">{{ risk_distribution.high_risk }}</h2>
+                            <p class="mb-0">High Risk RMPs</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center border-info">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card metric-card border-0 bg-info text-white shadow-sm">
                 <div class="card-body">
-                    <i class="bi bi-lightbulb fs-1 text-info mb-2"></i>
-                    <h3 class="text-info">156</h3>
-                    <p class="text-muted mb-0">AI Insights</p>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h2 class="mb-0">{{ application_analytics.pending_review }}</h2>
+                            <p class="mb-0">Pending Review</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-tasks fa-2x opacity-50"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <!-- Performance Analytics -->
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Performance Analytics</h5>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-primary active" data-period="week">Week</button>
-                        <button class="btn btn-sm btn-outline-primary" data-period="month">Month</button>
-                        <button class="btn btn-sm btn-outline-primary" data-period="quarter">Quarter</button>
-                    </div>
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Risk Distribution -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header  d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt text-warning"></i>
+                        Risk Distribution
+                    </h5>
+                    <span class="badge bg-primary">Real-time</span>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center mb-4">
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h4 class="text-primary mb-1">{{ avg_scores.avg_overall|floatformat:1 }}</h4>
-                                <small class="text-muted">Overall Score</small>
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="risk-high p-3 rounded">
+                                <h3 class="text-danger">{{ risk_distribution.high_risk }}</h3>
+                                <p class="mb-0">High Risk</p>
+                                <small class="text-muted">Score &lt; 60</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h4 class="text-success mb-1">{{ avg_scores.avg_cpd|floatformat:1 }}</h4>
-                                <small class="text-muted">CPD Performance</small>
+                        <div class="col-md-4 mb-3">
+                            <div class="risk-medium p-3 rounded">
+                                <h3 class="text-warning">{{ risk_distribution.medium_risk }}</h3>
+                                <p class="mb-0">Medium Risk</p>
+                                <small class="text-muted">Score 60-74</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h4 class="text-warning mb-1">{{ avg_scores.avg_compliance|floatformat:1 }}</h4>
-                                <small class="text-muted">Compliance</small>
+                        <div class="col-md-4 mb-3">
+                            <div class="risk-low p-3 rounded">
+                                <h3 class="text-success">{{ risk_distribution.low_risk }}</h3>
+                                <p class="mb-0">Low Risk</p>
+                                <small class="text-muted">Score ≥ 75</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h4 class="text-info mb-1">84.2</h4>
-                                <small class="text-muted">Patient Care</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Performance Chart Placeholder -->
-                    <div class="text-center py-5 border rounded bg-light">
-                        <i class="bi bi-bar-chart fs-1 text-muted"></i>
-                        <p class="text-muted mt-2">Performance trends and analytics charts will be displayed here</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Risk Analysis -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Risk Analysis</h5>
+            <!-- Application Analytics -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar text-primary"></i>
+                        Application Analytics
+                    </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Risk Distribution</h6>
-                            <div class="risk-distribution">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Low Risk</span>
-                                    <span class="badge bg-success">65%</span>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Total Applications
+                                    <span class="badge bg-primary rounded-pill">{{ application_analytics.total_applications }}</span>
                                 </div>
-                                <div class="progress mb-3">
-                                    <div class="progress-bar bg-success" style="width: 65%"></div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Pending Review
+                                    <span class="badge bg-warning rounded-pill">{{ application_analytics.pending_review }}</span>
                                 </div>
-                                
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Medium Risk</span>
-                                    <span class="badge bg-warning">25%</span>
-                                </div>
-                                <div class="progress mb-3">
-                                    <div class="progress-bar bg-warning" style="width: 25%"></div>
-                                </div>
-                                
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>High Risk</span>
-                                    <span class="badge bg-danger">10%</span>
-                                </div>
-                                <div class="progress mb-3">
-                                    <div class="progress-bar bg-danger" style="width: 10%"></div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Approved Today
+                                    <span class="badge bg-success rounded-pill">{{ application_analytics.approved_today }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <h6>Top Risk Factors</h6>
                             <div class="list-group list-group-flush">
                                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>Low CPD Participation</span>
-                                    <span class="badge bg-danger">42%</span>
+                                    Weekly Trend
+                                    <span class="badge bg-info rounded-pill">{{ application_analytics.weekly_trend }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>Pending Applications</span>
-                                    <span class="badge bg-warning">28%</span>
+                                    Monthly Trend
+                                    <span class="badge bg-info rounded-pill">{{ application_analytics.monthly_trend }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>Complaint History</span>
-                                    <span class="badge bg-warning">15%</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>Registration Expiry</span>
-                                    <span class="badge bg-info">8%</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>Document Issues</span>
-                                    <span class="badge bg-info">7%</span>
+                                    Avg Processing Time
+                                    <span class="badge bg-secondary rounded-pill">{{ application_analytics.avg_processing_time }} days</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- AI Insights & Actions -->
-        <div class="col-md-4">
-            <!-- System Alerts -->
-            <div class="card">
-                <div class="card-header bg-warning">
-                    <h5 class="card-title mb-0 text-white">
-                        <i class="bi bi-bell"></i> System Alerts
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>High Risk Detected:</strong> 15 RMPs show critical performance issues
-                        <button class="btn btn-sm btn-outline-danger float-end">View</button>
-                    </div>
-                    <div class="alert alert-warning">
-                        <i class="bi bi-clock"></i>
-                        <strong>CPD Deadline:</strong> 234 RMPs need CPD points in next 30 days
-                        <button class="btn btn-sm btn-outline-warning float-end">Notify</button>
-                    </div>
-                    <div class="alert alert-info">
-                        <i class="bi bi-graph-up"></i>
-                        <strong>Performance Trend:</strong> Overall scores improved by 5.2% this month
-                    </div>
-                </div>
-            </div>
-
-            <!-- Predictive Analytics -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Predictive Analytics</h5>
-                </div>
-                <div class="card-body">
-                    <div class="predictive-item mb-3">
-                        <h6>Registration Renewals</h6>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Next 30 days:</span>
-                            <span class="badge bg-primary">156</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Next 90 days:</span>
-                            <span class="badge bg-warning">423</span>
-                        </div>
-                    </div>
-                    
-                    <div class="predictive-item mb-3">
-                        <h6>CPD Compliance</h6>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>At risk:</span>
-                            <span class="badge bg-danger">89</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Need improvement:</span>
-                            <span class="badge bg-warning">234</span>
-                        </div>
-                    </div>
-                    
-                    <div class="predictive-item">
-                        <h6>Complaint Prediction</h6>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>High risk:</span>
-                            <span class="badge bg-danger">12</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Medium risk:</span>
-                            <span class="badge bg-warning">45</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">AI Actions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-outline-primary btn-sm" onclick="runPerformanceAnalysis()">
-                            <i class="bi bi-graph-up"></i> Run Performance Analysis
-                        </button>
-                        <button class="btn btn-outline-success btn-sm" onclick="generateRiskReport()">
-                            <i class="bi bi-file-earmark-text"></i> Generate Risk Report
-                        </button>
-                        <button class="btn btn-outline-warning btn-sm" onclick="sendAlerts()">
-                            <i class="bi bi-bell"></i> Send Automated Alerts
-                        </button>
-                        <button class="btn btn-outline-info btn-sm" onclick="updateAIModels()">
-                            <i class="bi bi-arrow-repeat"></i> Update AI Models
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Model Performance -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Model Performance</h5>
-                </div>
-                <div class="card-body">
-                    <div class="model-stats">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>Accuracy</span>
-                            <span class="badge bg-success">94.2%</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>Precision</span>
-                            <span class="badge bg-info">91.8%</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>Recall</span>
-                            <span class="badge bg-warning">89.5%</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Last Updated</span>
-                            <small class="text-muted">2 hours ago</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- High Risk RMPs Table -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-danger text-white">
+            <!-- Staff Performance -->
+            {% if staff_performance %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header ">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        High Risk RMPs Requiring Attention
+                        <i class="fas fa-user-tie text-info"></i>
+                        Staff Performance
                     </h5>
                 </div>
                 <div class="card-body">
@@ -340,63 +237,123 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>RMP Name</th>
-                                    <th>MMC Number</th>
-                                    <th>Risk Score</th>
-                                    <th>Primary Risk</th>
-                                    <th>Last Activity</th>
-                                    <th>CPD Points</th>
-                                    <th>Actions</th>
+                                    <th>Staff Member</th>
+                                    <th>Applications Processed</th>
+                                    <th>Avg Processing Time</th>
+                                    <th>Approval Rate</th>
+                                    <th>Performance</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                {% for staff in staff_performance %}
                                 <tr>
+                                    <td>{{ staff.user__full_name }}</td>
+                                    <td>{{ staff.total_processed }}</td>
+                                    <td>{{ staff.avg_processing_time }} days</td>
+                                    <td>{{ staff.approval_rate }}%</td>
                                     <td>
-                                        <strong>Dr. Rajesh Kumar</strong>
-                                        <br>
-                                        <small class="text-muted">Cardiology</small>
-                                    </td>
-                                    <td>MMC/2023/12345</td>
-                                    <td>
-                                        <span class="badge bg-danger">92/100</span>
-                                    </td>
-                                    <td>Low CPD Participation</td>
-                                    <td>45 days ago</td>
-                                    <td>
-                                        <span class="badge bg-warning">8/30</span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-warning">Notify</button>
-                                            <button class="btn btn-outline-info">View</button>
-                                        </div>
+                                        <span class="badge bg-{% if staff.performance >= 80 %}success{% elif staff.performance >= 60 %}warning{% else %}danger{% endif %}">
+                                            {{ staff.performance }}%
+                                        </span>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>
-                                        <strong>Dr. Priya Singh</strong>
-                                        <br>
-                                        <small class="text-muted">Pediatrics</small>
-                                    </td>
-                                    <td>MMC/2022/67890</td>
-                                    <td>
-                                        <span class="badge bg-danger">88/100</span>
-                                    </td>
-                                    <td>Pending Applications</td>
-                                    <td>62 days ago</td>
-                                    <td>
-                                        <span class="badge bg-success">25/30</span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-warning">Notify</button>
-                                            <button class="btn btn-outline-info">View</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <!-- More rows would be here in real implementation -->
+                                {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- CPD Analytics -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap text-success"></i>
+                        CPD Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Programs
+                            <span class="badge bg-primary rounded-pill">{{ cpd_analytics.total_programs }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Active Programs
+                            <span class="badge bg-success rounded-pill">{{ cpd_analytics.active_programs }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Upcoming Programs
+                            <span class="badge bg-info rounded-pill">{{ cpd_analytics.upcoming_programs }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Participations
+                            <span class="badge bg-warning rounded-pill">{{ cpd_analytics.total_participations }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Avg Attendance Rate
+                            <span class="badge bg-secondary rounded-pill">{{ cpd_analytics.avg_attendance_rate }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Predictive Trends -->
+            {% if predictive_trends %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-crystal-ball text-purple"></i>
+                        Predictive Trends
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for trend in predictive_trends %}
+                    <div class="alert alert-{% if trend.trend == 'up' %}success{% else %}warning{% endif %} mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ trend.metric }}</strong>
+                                <br>
+                                <small>{{ trend.prediction }}</small>
+                            </div>
+                            <div class="text-end">
+                                <i class="fas fa-arrow-{% if trend.trend == 'up' %}up{% else %}down{% endif %}"></i>
+                                <br>
+                                <small>{{ trend.confidence }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt text-warning"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'admin_ai_insights' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-brain"></i> View AI Insights
+                        </a>
+                        <a href="{% url 'application_list' %}" class="btn btn-outline-success">
+                            <i class="fas fa-tasks"></i> Manage Applications
+                        </a>
+                        <a href="{% url 'admin_cpd_management' %}" class="btn btn-outline-info">
+                            <i class="fas fa-graduation-cap"></i> CPD Management
+                        </a>
+                        <a href="{% url 'reports_dashboard' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-chart-pie"></i> Generate Reports
+                        </a>
                     </div>
                 </div>
             </div>
@@ -429,91 +386,28 @@
     });
   </script>
 {% endif %}
-
 <script>
-function refreshAIData() {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Refreshing...';
-    
-    // Simulate API call
-    setTimeout(() => {
-        location.reload();
-    }, 2000);
-}
-
-function runPerformanceAnalysis() {
-    if (confirm('Run performance analysis on all RMPs? This may take several minutes.')) {
-        // Simulate analysis
-        alert('Performance analysis started. You will be notified when complete.');
-    }
-}
-
-function generateRiskReport() {
-    // Implement risk report generation
-    alert('Risk report generation started.');
-}
-
-function sendAlerts() {
-    if (confirm('Send automated alerts to high-risk RMPs?')) {
-        // Implement alert sending
-        alert('Alerts sent successfully.');
-    }
-}
-
-function updateAIModels() {
-    if (confirm('Update AI models with latest data? This will improve prediction accuracy.')) {
-        // Implement model update
-        alert('AI models update started.');
-    }
-}
-
-// Period filtering
-document.addEventListener('DOMContentLoaded', function() {
-    const periodButtons = document.querySelectorAll('[data-period]');
-    
-    periodButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const period = this.getAttribute('data-period');
-            
-            // Update active button
-            periodButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            // In real implementation, this would fetch data for the selected period
-            console.log('Loading data for period:', period);
+// Real-time data updates
+function updateMetrics() {
+    fetch('/api/ai/analytics/')
+        .then(response => response.json())
+        .then(data => {
+            // Update metrics here
+            console.log('Metrics updated:', data);
         });
+}
+
+// Update every 2 minutes
+setInterval(updateMetrics, 120000);
+
+// Add animations
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.metric-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('animate__animated', 'animate__fadeInUp');
     });
 });
-
-// Add spinning animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    .spin {
-        animation: spin 1s linear infinite;
-    }
-    
-    .predictive-item {
-        border-bottom: 1px solid #dee2e6;
-        padding-bottom: 1rem;
-    }
-    
-    .predictive-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-    
-    .model-stats {
-        font-size: 0.9rem;
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}
 

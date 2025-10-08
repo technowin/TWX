@@ -1,0 +1,477 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+.risk-card {
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+.risk-high { border-left-color: #dc3545; }
+.risk-medium { border-left-color: #ffc107; }
+.risk-low { border-left-color: #28a745; }
+.insight-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+.insight-card:hover {
+    transform: translateY(-2px);
+}
+.system-health-card {
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+.alert-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+}
+.risk-score {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+
+{% block title %}Admin AI Insights - MMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">Admin AI Insights</h1>
+                    <p class="text-muted">Predictive analytics and risk assessment for MMC administration</p>
+                </div>
+                <div class="btn-group">
+                    <a href="/admin/ai/dashboard/" class="btn btn-outline-primary">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="/admin/ai/insights/" class="btn btn-primary">
+                        <i class="fas fa-brain"></i> Insights
+                    </a>
+                    <a href="/admin/ai/analytics/" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card system-health-card border-0 shadow">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <h2 class="display-4 mb-0">{{ system_health.pending_applications }}</h2>
+                            <p class="mb-0">Pending Applications</p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h2 class="display-4 mb-0">{{ system_health.sla_violations }}</h2>
+                            <p class="mb-0">SLA Violations</p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h2 class="display-4 mb-0">{{ system_health.pending_payments }}</h2>
+                            <p class="mb-0">Pending Payments</p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h2 class="display-4 mb-0">{{ system_health.cpd_completion_rate|floatformat:1 }}%</h2>
+                            <p class="mb-0">CPD Completion Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column - Risk Assessment -->
+        <div class="col-lg-8">
+            <!-- High Risk Applications -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header  d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        High Risk Applications
+                    </h5>
+                    <span class="badge bg-danger">{{ high_risk_applications|length }} Critical</span>
+                </div>
+                <div class="card-body">
+                    {% if high_risk_applications %}
+                        {% for application in high_risk_applications %}
+                        <div class="risk-card card mb-3 risk-high">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">
+                                                #{{ application.application_id }} - {{ application.get_application_type_display }}
+                                            </h6>
+                                            <span class="risk-score text-danger">{{ application.risk_score }}</span>
+                                        </div>
+                                        <p class="card-text mb-2">
+                                            <strong>Applicant:</strong> {{ application.rmp.user.full_name }}<br>
+                                            <strong>Submitted:</strong> {{ application.submitted_date|date:"M d, Y" }}<br>
+                                            <strong>Status:</strong> 
+                                            <span class="badge bg-warning">{{ application.get_status_display }}</span>
+                                        </p>
+                                        {% if application.verification_notes %}
+                                        <div class="alert alert-warning py-2 mb-2">
+                                            <small><strong>Notes:</strong> {{ application.verification_notes|truncatewords:20 }}</small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ms-3">
+                                        <a href="/admin/applications/{{ application.application_id }}/" 
+                                           class="btn btn-sm btn-outline-danger">
+                                            Review
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>No High Risk Applications</h5>
+                            <p class="text-muted">All applications are within acceptable risk parameters.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Compliance Alerts -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt text-warning"></i>
+                        Compliance Alerts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if compliance_alerts %}
+                        {% for alert in compliance_alerts %}
+                        <div class="alert alert-{% if alert.severity == 'high' %}danger{% else %}warning{% endif %} d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong>{{ alert.rmp.user.full_name }}</strong>
+                                    <span class="badge bg-{% if alert.severity == 'high' %}danger{% else %}warning{% endif %}">
+                                        {{ alert.type|title }}
+                                    </span>
+                                </div>
+                                <p class="mb-1">{{ alert.message }}</p>
+                                <small class="text-muted">MMC ID: {{ alert.rmp.mmc_registration_number }}</small>
+                            </div>
+                            <div class="ms-3">
+                                <a href="/admin/rmp/{{ alert.rmp.id }}/" class="btn btn-sm btn-outline-{% if alert.severity == 'high' %}danger{% else %}warning{% endif %}">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <p class="text-muted mb-0">No compliance alerts at this time.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Analytics & Predictions -->
+        <div class="col-lg-4">
+            <!-- Performance Predictions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line text-info"></i>
+                        Performance Predictions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if performance_predictions %}
+                        {% for prediction in performance_predictions %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div>
+                                <h6 class="mb-1">{{ prediction.rmp.user.full_name }}</h6>
+                                <small class="text-muted">{{ prediction.rmp.specialization|default:"General" }}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="risk-score text-{% if prediction.overall_score < 50 %}danger{% elif prediction.overall_score < 70 %}warning{% else %}success{% endif %}">
+                                    {{ prediction.overall_score }}
+                                </div>
+                                <small class="text-muted">Score</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-3">No performance predictions available.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Fraud Detection Alerts -->
+            {% if fraud_alerts %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-search text-danger"></i>
+                        Fraud Detection
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for fraud in fraud_alerts %}
+                    <div class="alert alert-danger">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ fraud.type|title }}</strong>
+                                <p class="mb-1 small">{{ fraud.description }}</p>
+                                <small class="text-muted">Count: {{ fraud.count }} | Severity: {{ fraud.severity|title }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Stats -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie text-success"></i>
+                        Quick Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total RMPs
+                            <span class="badge bg-primary rounded-pill">{{ total_rmps }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Applications
+                            <span class="badge bg-warning rounded-pill">{{ pending_applications }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            High Risk RMPs
+                            <span class="badge bg-danger rounded-pill">
+                                {{ performance_predictions|length }}
+                            </span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            SLA Compliance
+                            <span class="badge bg-{% if system_health.sla_compliance_rate >= 90 %}success{% else %}warning{% endif %} rounded-pill">
+                                {{ system_health.sla_compliance_rate|floatformat:1 }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Required -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt text-warning"></i>
+                        Immediate Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if high_risk_applications %}
+                        <a href="/admin/applications/?status=under_review&risk=high" class="btn btn-danger">
+                            <i class="fas fa-exclamation-circle"></i> Review High Risk Applications
+                        </a>
+                        {% endif %}
+                        
+                        {% if compliance_alerts %}
+                        <a href="/admin/compliance/alerts/" class="btn btn-warning">
+                            <i class="fas fa-shield-alt"></i> Address Compliance Issues
+                        </a>
+                        {% endif %}
+                        
+                        <a href="/admin/ai/dashboard/" class="btn btn-outline-primary">
+                            <i class="fas fa-tachometer-alt"></i> View Full Dashboard
+                        </a>
+                        
+                        <a href="/admin/reports/ai/" class="btn btn-outline-info">
+                            <i class="fas fa-download"></i> Generate AI Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictive Analytics Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-crystal-ball text-purple"></i>
+                        Predictive Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-calendar-times fa-2x text-warning mb-2"></i>
+                                <h5>Renewal Forecast</h5>
+                                <p class="text-muted">Upcoming registration renewals in next 30 days</p>
+                                <h3 class="text-warning">
+                                    {% with renewals=compliance_alerts|length %}
+                                    {{ renewals }}
+                                    {% endwith %}
+                                </h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-graduation-cap fa-2x text-info mb-2"></i>
+                                <h5>CPD Compliance</h5>
+                                <p class="text-muted">RMPs at risk of CPD non-compliance</p>
+                                <h3 class="text-info">
+                                    {{ compliance_alerts|filter_by_type:"cpd_deficit"|length }}
+                                </h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-file-alt fa-2x text-success mb-2"></i>
+                                <h5>Application Trend</h5>
+                                <p class="text-muted">Expected applications in next week</p>
+                                <h3 class="text-success">+15%</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+// Auto-refresh insights every 3 minutes
+setTimeout(function() {
+    window.location.reload();
+}, 180000);
+
+// Add smooth animations
+document.addEventListener('DOMContentLoaded', function() {
+    const riskCards = document.querySelectorAll('.risk-card');
+    riskCards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('animate__animated', 'animate__fadeInLeft');
+    });
+
+    const alertCards = document.querySelectorAll('.alert');
+    alertCards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.15}s`;
+        card.classList.add('animate__animated', 'animate__fadeInRight');
+    });
+});
+
+// Real-time updates for critical alerts
+function checkForNewAlerts() {
+    fetch('/api/ai/analytics/')
+        .then(response => response.json())
+        .then(data => {
+            // Update critical alert counts
+            console.log('Updated analytics:', data);
+        });
+}
+
+// Check for new alerts every 2 minutes
+setInterval(checkForNewAlerts, 120000);
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

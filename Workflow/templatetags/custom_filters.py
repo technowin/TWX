@@ -323,3 +323,15 @@ def get_processing_time(app_type):
         'duplicate': '5 days',
     }
     return times.get(app_type, '15-30 days')
+
+
+@register.filter
+def approved_count(applications):
+    """Returns the number of approved applications."""
+    return applications.filter(status='approved').count()
+
+
+@register.filter
+def filter_by_type(alerts, alert_type):
+    """Filter alerts by type"""
+    return [alert for alert in alerts if getattr(alert, 'type', None) == alert_type]

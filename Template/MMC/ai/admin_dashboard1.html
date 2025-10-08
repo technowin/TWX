@@ -1,0 +1,541 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="bi bi-robot"></i>
+            AI Analytics Dashboard
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshAIData()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="bi bi-graph-up-arrow fs-1 text-primary mb-2"></i>
+                    <h3 class="text-primary">{{ total_analyzed }}</h3>
+                    <p class="text-muted mb-0">RMPs Analyzed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="bi bi-speedometer2 fs-1 text-success mb-2"></i>
+                    <h3 class="text-success">{{ avg_scores.avg_overall|floatformat:1 }}</h3>
+                    <p class="text-muted mb-0">Avg Performance</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="bi bi-exclamation-triangle fs-1 text-warning mb-2"></i>
+                    <h3 class="text-warning">{{ high_risk_rmps }}</h3>
+                    <p class="text-muted mb-0">High Risk RMPs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <i class="bi bi-lightbulb fs-1 text-info mb-2"></i>
+                    <h3 class="text-info">156</h3>
+                    <p class="text-muted mb-0">AI Insights</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Performance Analytics -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Performance Analytics</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary active" data-period="week">Week</button>
+                        <button class="btn btn-sm btn-outline-primary" data-period="month">Month</button>
+                        <button class="btn btn-sm btn-outline-primary" data-period="quarter">Quarter</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-primary mb-1">{{ avg_scores.avg_overall|floatformat:1 }}</h4>
+                                <small class="text-muted">Overall Score</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-success mb-1">{{ avg_scores.avg_cpd|floatformat:1 }}</h4>
+                                <small class="text-muted">CPD Performance</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-warning mb-1">{{ avg_scores.avg_compliance|floatformat:1 }}</h4>
+                                <small class="text-muted">Compliance</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-info mb-1">84.2</h4>
+                                <small class="text-muted">Patient Care</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Chart Placeholder -->
+                    <div class="text-center py-5 border rounded bg-light">
+                        <i class="bi bi-bar-chart fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Performance trends and analytics charts will be displayed here</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Analysis -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Risk Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Risk Distribution</h6>
+                            <div class="risk-distribution">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Low Risk</span>
+                                    <span class="badge bg-success">65%</span>
+                                </div>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-success" style="width: 65%"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Medium Risk</span>
+                                    <span class="badge bg-warning">25%</span>
+                                </div>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-warning" style="width: 25%"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>High Risk</span>
+                                    <span class="badge bg-danger">10%</span>
+                                </div>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-danger" style="width: 10%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Top Risk Factors</h6>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Low CPD Participation</span>
+                                    <span class="badge bg-danger">42%</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Pending Applications</span>
+                                    <span class="badge bg-warning">28%</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Complaint History</span>
+                                    <span class="badge bg-warning">15%</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Registration Expiry</span>
+                                    <span class="badge bg-info">8%</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Document Issues</span>
+                                    <span class="badge bg-info">7%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Insights & Actions -->
+        <div class="col-md-4">
+            <!-- System Alerts -->
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0 text-white">
+                        <i class="bi bi-bell"></i> System Alerts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>High Risk Detected:</strong> 15 RMPs show critical performance issues
+                        <button class="btn btn-sm btn-outline-danger float-end">View</button>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-clock"></i>
+                        <strong>CPD Deadline:</strong> 234 RMPs need CPD points in next 30 days
+                        <button class="btn btn-sm btn-outline-warning float-end">Notify</button>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-graph-up"></i>
+                        <strong>Performance Trend:</strong> Overall scores improved by 5.2% this month
+                    </div>
+                </div>
+            </div>
+
+            <!-- Predictive Analytics -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Predictive Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="predictive-item mb-3">
+                        <h6>Registration Renewals</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Next 30 days:</span>
+                            <span class="badge bg-primary">156</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Next 90 days:</span>
+                            <span class="badge bg-warning">423</span>
+                        </div>
+                    </div>
+                    
+                    <div class="predictive-item mb-3">
+                        <h6>CPD Compliance</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>At risk:</span>
+                            <span class="badge bg-danger">89</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Need improvement:</span>
+                            <span class="badge bg-warning">234</span>
+                        </div>
+                    </div>
+                    
+                    <div class="predictive-item">
+                        <h6>Complaint Prediction</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>High risk:</span>
+                            <span class="badge bg-danger">12</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Medium risk:</span>
+                            <span class="badge bg-warning">45</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">AI Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="runPerformanceAnalysis()">
+                            <i class="bi bi-graph-up"></i> Run Performance Analysis
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="generateRiskReport()">
+                            <i class="bi bi-file-earmark-text"></i> Generate Risk Report
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="sendAlerts()">
+                            <i class="bi bi-bell"></i> Send Automated Alerts
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="updateAIModels()">
+                            <i class="bi bi-arrow-repeat"></i> Update AI Models
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Performance -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Model Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="model-stats">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Accuracy</span>
+                            <span class="badge bg-success">94.2%</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Precision</span>
+                            <span class="badge bg-info">91.8%</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Recall</span>
+                            <span class="badge bg-warning">89.5%</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Last Updated</span>
+                            <small class="text-muted">2 hours ago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Risk RMPs Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        High Risk RMPs Requiring Attention
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>RMP Name</th>
+                                    <th>MMC Number</th>
+                                    <th>Risk Score</th>
+                                    <th>Primary Risk</th>
+                                    <th>Last Activity</th>
+                                    <th>CPD Points</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Dr. Rajesh Kumar</strong>
+                                        <br>
+                                        <small class="text-muted">Cardiology</small>
+                                    </td>
+                                    <td>MMC/2023/12345</td>
+                                    <td>
+                                        <span class="badge bg-danger">92/100</span>
+                                    </td>
+                                    <td>Low CPD Participation</td>
+                                    <td>45 days ago</td>
+                                    <td>
+                                        <span class="badge bg-warning">8/30</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-warning">Notify</button>
+                                            <button class="btn btn-outline-info">View</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <strong>Dr. Priya Singh</strong>
+                                        <br>
+                                        <small class="text-muted">Pediatrics</small>
+                                    </td>
+                                    <td>MMC/2022/67890</td>
+                                    <td>
+                                        <span class="badge bg-danger">88/100</span>
+                                    </td>
+                                    <td>Pending Applications</td>
+                                    <td>62 days ago</td>
+                                    <td>
+                                        <span class="badge bg-success">25/30</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-warning">Notify</button>
+                                            <button class="btn btn-outline-info">View</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- More rows would be here in real implementation -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+function refreshAIData() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Refreshing...';
+    
+    // Simulate API call
+    setTimeout(() => {
+        location.reload();
+    }, 2000);
+}
+
+function runPerformanceAnalysis() {
+    if (confirm('Run performance analysis on all RMPs? This may take several minutes.')) {
+        // Simulate analysis
+        alert('Performance analysis started. You will be notified when complete.');
+    }
+}
+
+function generateRiskReport() {
+    // Implement risk report generation
+    alert('Risk report generation started.');
+}
+
+function sendAlerts() {
+    if (confirm('Send automated alerts to high-risk RMPs?')) {
+        // Implement alert sending
+        alert('Alerts sent successfully.');
+    }
+}
+
+function updateAIModels() {
+    if (confirm('Update AI models with latest data? This will improve prediction accuracy.')) {
+        // Implement model update
+        alert('AI models update started.');
+    }
+}
+
+// Period filtering
+document.addEventListener('DOMContentLoaded', function() {
+    const periodButtons = document.querySelectorAll('[data-period]');
+    
+    periodButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const period = this.getAttribute('data-period');
+            
+            // Update active button
+            periodButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // In real implementation, this would fetch data for the selected period
+            console.log('Loading data for period:', period);
+        });
+    });
+});
+
+// Add spinning animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    .predictive-item {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1rem;
+    }
+    
+    .predictive-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .model-stats {
+        font-size: 0.9rem;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}
