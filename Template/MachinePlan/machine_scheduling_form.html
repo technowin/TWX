@@ -13,6 +13,8 @@
 <link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
 <!-- Bootstrap Timepicker css -->
 <link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -29,17 +31,14 @@
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-calendar-week me-2"></i>Machine Scheduling Details</h2>
+    <h2><i class="bi bi-calendar-week me-2"></i>Machine Planning Details</h2>
 </div>
 
 <div class="container-fluid">
-    <!-- Card 1: General Info -->
+    <!-- Machine Planning Form -->
     <div class="card mb-3">
-    <div class="container-fluid">
-    <!-- Card 1: General Info -->
-    <div class="card mb-3">
-        <form method="post" id="scheduleForm" action="{% if schedule %}{% url 'mcp:machine_scheduling_update' schedule.id %}{% else %}{% url 'mcp:machine_scheduling_create' %}{% endif %}">
-
+        <form method="post" id="scheduleForm"
+            action="{% if schedule %}{% url 'mcp:machine_scheduling_update' schedule.id %}{% else %}{% url 'mcp:machine_scheduling_create' %}{% endif %}">
             {% csrf_token %}
             <div class="card-header bg-primary text-white">General Info</div>
             <div class="card-body">
@@ -54,9 +53,9 @@
                         <select id="id_production_order" name="production_order" class="form-select">
                             <option value="">-- Select Production Order --</option>
                             {% for po in production_orders %}
-                                <option value="{{ po.id }}" {% if schedule.production_order_id == po.id %}selected{% endif %}>
-                                    {{ po.order_number }}
-                                </option>
+                            <option value="{{ po.id }}" {% if schedule.production_order_id == po.id %}selected{% endif %}>
+                                {{ po.order_number }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -68,387 +67,185 @@
                         <select id="id_component" name="component" class="form-select">
                             <option value="">-- Select Component --</option>
                             {% for comp in components %}
-                                <option value="{{ comp.id }}" {% if schedule.component_id == comp.id %}selected{% endif %}>
-                                    {{ comp.name }}
-                                </option>
+                            <option value="{{ comp.id }}" {% if schedule.component_id == comp.id %}selected{% endif %}>
+                                {{ comp.name }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
+
                     <div class="col-md-3">
                         <label for="id_scheduled_start" class="form-label">Scheduled Start</label>
                         <input type="datetime-local" id="id_scheduled_start" name="scheduled_start"
                             class="form-control"
                             {% if schedule.scheduled_start %}
-                                value="{{ schedule.scheduled_start|date:'Y-m-d\\TH:i' }}"
+                            value="{{ schedule.scheduled_start|date:'Y-m-d\\TH:i' }}"
                             {% endif %}>
-
                     </div>
+
                     <div class="col-md-3">
                         <label for="id_scheduled_end" class="form-label">Scheduled End</label>
                         <input type="datetime-local" id="id_scheduled_end" name="scheduled_end"
                             class="form-control"
                             {% if schedule.scheduled_end %}
-                                value="{{ schedule.scheduled_end|date:'Y-m-d\\TH:i' }}"
+                            value="{{ schedule.scheduled_end|date:'Y-m-d\\TH:i' }}"
                             {% endif %}>
-
                     </div>
                 </div>
 
-                <!-- Button to load routings -->
+                <!-- Button -->
                 <div class="row">
                     <div class="col-md-12 text-end">
                         <button type="button" id="checkRoutingBtn" class="btn btn-success">
-                            Check Routings
+                            <i class="bi bi-search me-1"></i> Check Routings
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Card 2: Routing Tabs (hidden until button click) -->
-        <div id="routing-card" class="card mb-3 d-none">
-            <div class="card-header bg-info text-white">Routing & Operations</div>
-            <div class="card-body">
-                <!-- Tabs dynamically injected -->
-                <ul class="nav nav-tabs" id="routingTabs"></ul>
-                <div class="tab-content mt-3" id="routingContent"></div>
+            <!-- Calendar -->
+            <div id="calendar" class="mt-4"></div>
 
-                   <div id="productionOrdersWrapper"></div>
-
-                   <input type="hidden" id="assignments_json" name="assignments_json" value="{{ assignments_json|default:'[]' }}">
+            <!-- Hidden Routing Info -->
+            <div id="routing-card" class="card mb-3 d-none mt-4">
+                <div class="card-header bg-info text-white">Routing & Operations</div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="routingTabs"></ul>
+                    <div class="tab-content mt-3" id="routingContent"></div>
+                    <div id="productionOrdersWrapper"></div>
+                    <input type="hidden" id="assignments_json" name="assignments_json"
+                        value="{{ assignments_json|default:'[]' }}">
+                </div>
             </div>
-        </div>
 
-        <!-- Save/Cancel -->
-        <div class="d-flex justify-content-between mb-4">
-            <a href="{% url 'mcp:machine_scheduling_list' %}" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary">Save Schedule</button>
-        </div>
-    </form>
+            <!-- Save/Cancel -->
+            <div class="d-flex justify-content-between mb-4">
+                <a href="{% url 'mcp:machine_scheduling_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Schedule</button>
+            </div>
+        </form>
+    </div>
 </div>
 
-</div>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- FullCalendar -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
+$(document).ready(function() {
 
-    document.addEventListener("DOMContentLoaded", function() {
-    const routingCard = document.getElementById("routing-card");
-    const routingTabs = document.getElementById("routingTabs");
-    const routingContent = document.getElementById("routingContent");
-    const poTableWrapper = document.getElementById("productionOrdersWrapper"); // ✅ new wrapper
+    let calendar; // FullCalendar instance
 
-    document.getElementById("checkRoutingBtn").addEventListener("click", function() {
-        const componentId = document.getElementById("id_component").value;
-        const startDate = document.getElementById("id_scheduled_start").value;
-        const endDate = document.getElementById("id_scheduled_end").value;
+    // Fetch component by production order
+    $('#id_production_order').change(function() {
+        const productionOrderId = $(this).val();
 
-        if (!componentId || !startDate || !endDate) {
-            alert("Please select component, start date, and end date first.");
+        if (productionOrderId) {
+            $.ajax({
+                url: '{% url "mcp:get_component_by_production" %}',
+                type: 'GET',
+                data: { 'production_order_id': productionOrderId },
+                success: function(response) {
+                    if (response.component_id && response.component_name) {
+                        const componentSelect = $('#id_component');
+                        componentSelect.empty().append(
+                            $('<option>', {
+                                value: response.component_id,
+                                text: response.component_name,
+                                selected: true
+                            })
+                        );
+                    }
+                },
+                error: function() {
+                    console.error('Error fetching component.');
+                }
+            });
+        } else {
+            $('#id_component').empty().append('<option value="">-- Select Component --</option>');
+        }
+    });
+
+    // Fetch routing data
+    $('#checkRoutingBtn').on('click', function() {
+        const componentId = $('#id_component').val();
+
+        if (!componentId) {
+            alert("Please select a component first!");
             return;
         }
 
-        fetch(`/mcp/get_routings/${componentId}/?start_date=${startDate}&end_date=${endDate}`)
-            .then(response => response.json())
-            .then(data => {
-                routingTabs.innerHTML = "";
-                routingContent.innerHTML = "";
-                poTableWrapper.innerHTML = ""; // clear old production order table
-
-                let allProductionOrders = [];
-
-                data.forEach((routing, index) => {
-                    let activeClass = index === 0 ? "active" : "";
-
-                    // ✅ Add tab
-                    routingTabs.innerHTML += `
-                        <li class="nav-item">
-                            <a class="nav-link ${activeClass}" data-bs-toggle="tab" href="#routing-${index}">
-                                ${routing.name}
-                            </a>
-                        </li>
-                    `;
-
-                    // Routing rows
-                    let rowsHtml = routing.rows.map(row => `
-                        <tr>
-                            <td>${row.operation_name}</td>
-                            <td>${row.sequence}</td>
-                            <td>${row.work_center}</td>
-                            <td>${row.employee_need}</td>
-                            <td>${row.skill}</td>
-                            <td>${row.min_proficiency}</td>
-                        </tr>
-                    `).join("");
-
-                    // ✅ Save production orders for global table
-                    allProductionOrders.push(...routing.production_orders.map(po => ({
-                        routing: routing.name,
-                        production_order: po.production_order,
-                        status: po.status
-                    })));
-
-                    // Tab content
-                    routingContent.innerHTML += `
-                        <div class="tab-pane fade ${activeClass ? 'show active' : ''}" id="routing-${index}">
-                            <div class="container-fluid">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5>${routing.name}</h5>
-                                    <div>
-                                        <label class="form-check-label me-2">Assign?</label>
-                                        <input type="checkbox" class="form-check-input toggle-assignment" 
-                                            data-routing-id="${routing.rows[0].id}" 
-                                            data-target="assignment-${index}">
-                                    </div>
-                                </div>
-                                <table class="table table-bordered table-striped mt-2">
-                                    <thead>
-                                        <tr>
-                                            <th>Operation</th>
-                                            <th>Sequence</th>
-                                            <th>Work Center</th>
-                                            <th>Employee Needed</th>
-                                            <th>Skill</th>
-                                            <th>Proficiency</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${rowsHtml}</tbody>
-                                </table>
-
-                                <!-- Hidden Assignment Table -->
-                                <div id="assignment-${index}" class="assignment-form d-none mt-3">
-                                    <h6>Assignment Details</h6>
-                                    <table class="table table-bordered assignment-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Operation</th>
-                                                <th>Skill</th>
-                                                <th>Sequence</th>
-                                                <th>Hours Allocated</th>
-                                                <th>Machine</th>
-                                                <th>Employee(s)</th>
-                                                <th>Schedule Start</th>
-                                                <th>Schedule End</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                // ✅ Create fixed Production Orders table
-                if (allProductionOrders.length > 0) {
-                    let poRows = allProductionOrders.map(po => `
-                        <tr>
-                            <td>${po.routing}</td>
-                            <td>${po.production_order}</td>
-                            <td>${po.status}</td>
-                        </tr>
-                    `).join("");
-
-                    poTableWrapper.innerHTML = `
-                        <h5 class="mt-4">Production Orders</h5>
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Routing</th>
-                                    <th>Production Order</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>${poRows}</tbody>
-                        </table>
-                    `;
+        $.ajax({
+            url: "{% url 'mcp:get_routing_data' %}",
+            type: "POST",
+            data: {
+                component_id: componentId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.schedules && response.schedules.length > 0) {
+                    renderFullCalendar(response.schedules);
+                } else {
+                    $('#calendar').html("<p class='text-danger'>No schedules found.</p>");
                 }
-
-                routingCard.classList.remove("d-none");
-
-                // ✅ Checkbox toggle logic (only one allowed)
-                document.querySelectorAll(".toggle-assignment").forEach(chk => {
-                    chk.addEventListener("change", function() {
-                        if (this.checked) {
-                            // uncheck all other checkboxes
-                            document.querySelectorAll(".toggle-assignment").forEach(otherChk => {
-                                if (otherChk !== this) {
-                                    otherChk.checked = false;
-                                    const otherTarget = document.getElementById(otherChk.getAttribute("data-target"));
-                                    if (otherTarget) otherTarget.classList.add("d-none");
-                                }
-                            });
-                        }
-
-                        const targetId = this.getAttribute("data-target");
-                        const routingId = this.getAttribute("data-routing-id");
-                        const target = document.getElementById(targetId);
-                        const tableBody = target.querySelector("tbody");
-
-                        if (this.checked) {
-                            // Fetch assignment data
-                            fetch(`/mcp/get_assignment_data/${routingId}/`)
-                            .then(response => response.json())
-                            .then(result => {
-                                tableBody.innerHTML = "";
-
-                                result.rows.forEach(row => {
-                                    let machineOptions = row.machines.map(m => 
-                                        `<option value="${m.id}">${m.name}</option>`
-                                    ).join("");
-
-                                    let employeeOptions = row.employees.map(e => 
-                                        `<option value="${e.id}">${e.employee_name}</option>`
-                                    ).join("");
-
-                                    tableBody.innerHTML += `
-                                        <tr>
-                                            <td>${row.operation}</td>   <!-- Operation Name -->
-                                            <td>${row.skill}</td>       <!-- Skill -->
-                                            <td>${row.sequence}</td>
-                                            <td><input type="number" name="hours_${row.row_id}" class="form-control" placeholder="hrs"></td>
-                                            <td>
-                                                <select name="machine_${row.row_id}" class="form-select">
-                                                    <option value="">-- Select Machine --</option>
-                                                    ${machineOptions}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <select name="employee_${row.row_id}[]" class="form-select employee-multiselect" multiple>
-                                                    ${employeeOptions}
-                                                </select>
-                                            </td>
-                                            <td><input type="datetime-local" name="start_${row.row_id}" class="form-control"></td>
-                                            <td><input type="datetime-local" name="end_${row.row_id}" class="form-control"></td>
-
-                                        </tr>
-                                    `;
-
-                                });
-
-                                target.classList.remove("d-none");
-
-                                // Re-init multiselect
-                                $(target).find(".employee-multiselect").selectize({
-                                    plugins: ["remove_button"],
-                                    maxItems: null,
-                                    placeholder: "Select employees..."
-                                });
-                            })
-                            .catch(err => {
-                                console.error("Error fetching assignment data:", err);
-                            });
-                        } else {
-                            target.classList.add("d-none");
-                        }
-                    });
-                });
-            })
-            .catch(error => {
-                console.error("Error fetching routings:", error);
-                alert("Something went wrong while fetching routings.");
-            });
-    });
-});
-
-document.getElementById("scheduleForm").addEventListener("submit", function(e) {
-    let assignments = [];
-
-    document.querySelectorAll(".assignment-table tbody tr").forEach(row => {
-        let rowId = row.querySelector("[name^='hours_']")?.name.split("_")[1];
-
-        assignments.push({
-            row_id: rowId,
-            hours: row.querySelector(`[name='hours_${rowId}']`)?.value || null,
-            machine: row.querySelector(`[name='machine_${rowId}']`)?.value || null,
-            employees: Array.from(row.querySelector(`[name='employee_${rowId}[]']`)?.selectedOptions || []).map(opt => opt.value),
-            start: row.querySelector(`[name='start_${rowId}']`)?.value || null,
-            end: row.querySelector(`[name='end_${rowId}']`)?.value || null
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+                alert("Error fetching routing data.");
+            }
         });
     });
 
-    document.getElementById("assignments_json").value = JSON.stringify(assignments);
-});
-
-document.addEventListener("DOMContentLoaded", function() {
-    let preAssignments = [];
-    try {
-        preAssignments = JSON.parse(document.getElementById("assignments_json").value);
-    } catch(e) { preAssignments = []; }
-
-    if (preAssignments.length > 0) {
-        const componentId = document.getElementById("id_component").value;
-        const startDate = document.getElementById("id_scheduled_start").value;
-        const endDate = document.getElementById("id_scheduled_end").value;
-
-        if (componentId && startDate && endDate) {
-            document.getElementById("checkRoutingBtn").click();
-
-            // wait fetch, then inject assignments
-            setTimeout(() => {
-                preAssignments.forEach(assignment => {
-                    let chk = document.querySelector(`.toggle-assignment[data-routing-id='${assignment.row_id}']`);
-                    if (chk) {
-                        chk.checked = true;
-                        chk.dispatchEvent(new Event("change"));
-
-                        setTimeout(() => {
-                            let row = document.querySelector(`[name='hours_${assignment.row_id}']`)?.closest("tr");
-                            if (row) {
-                                row.querySelector(`[name='hours_${assignment.row_id}']`).value = assignment.hours || "";
-                                row.querySelector(`[name='machine_${assignment.row_id}']`).value = assignment.machine || "";
-                                let empSelect = row.querySelector(`[name='employee_${assignment.row_id}[]']`);
-                                if (empSelect) {
-                                    Array.from(empSelect.options).forEach(opt => {
-                                        if (assignment.employees.includes(opt.value)) {
-                                            opt.selected = true;
-                                        }
-                                    });
-                                }
-                                row.querySelector(`[name='start_${assignment.row_id}']`).value = assignment.start || "";
-                                row.querySelector(`[name='end_${assignment.row_id}']`).value = assignment.end || "";
-                            }
-                        }, 600);
-                    }
-                });
-            }, 1200);
+    // Render FullCalendar dynamically
+    function renderFullCalendar(scheduleData) {
+        if (calendar) {
+            calendar.destroy(); // reinitialize if already exists
         }
+
+        const calendarEl = document.getElementById('calendar');
+        const events = scheduleData.map(item => ({
+            title: "Production: " + item.production_order,
+            start: item.start_date,
+            end: item.end_date,  // ✅ Added this line
+            allDay: true,
+            backgroundColor: '#4099ff',
+            borderColor: '#4099ff'
+        }));
+
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: 650,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            events: events,
+            themeSystem: 'bootstrap5',
+            selectable: true,
+            editable: false,
+        });
+
+        calendar.render();
     }
 });
-
-
-</script> 
-
-
-
-
-
-
-
+</script>
 
 {% block extra_javascript %}
-
-{% include "bootstrap/partials/syntax-highlight.html" %}
-
 <!-- Third party js -->
 <script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
 <script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
-    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
-<!-- Third party js ends -->
-
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
 <script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
-
+<script src="{% static 'js/selectize.min.js' %}"></script>
 <!-- Init js -->
 <script src="{% static 'js/pages/demo.typehead.js' %}"></script>
 <script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Init js end -->
-
-<!-- Selectize.js JS -->
-<script src="{% static 'js/selectize.min.js' %}"></script>
+{% endblock %}
 
 {% endblock %}
 
-
-
-{% endblock %}

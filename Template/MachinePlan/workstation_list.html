@@ -163,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteButtons = document.querySelectorAll('.delete-btn');
     
     deleteButtons.forEach(button => {
+        debugger;
         button.addEventListener('click', function() {
             const url = this.getAttribute('data-url');
             const name = this.getAttribute('data-name');

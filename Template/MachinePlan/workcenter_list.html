@@ -64,6 +64,7 @@
             <tr>
                 <th>Code</th>
                 <th>Name</th>
+                <th>Work Station</th>
                 <th>Description</th>
                 <th>Created by</th>
                 <th>Actions</th>
@@ -74,26 +75,28 @@
             <tr>
                 <td>{{ workcenter.code }}</td>
                 <td>{{ workcenter.name }}</td>
+                <td>{{ workcenter.workstation }}</td>
                 <td>{{ workcenter.description|truncatechars:50 }}</td>
                 <td>{{ workcenter.created_by }}</td>
                 <td>
-                    <button class="btn btn-sm btn-warning" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#editWorkCenterModal"
-                            data-id="{{ workcenter.id }}"
-                            data-code="{{ workcenter.code }}"
-                            data-name="{{ workcenter.name }}"
-                            data-description="{{ workcenter.description }}">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#deleteModal"
-                            data-id="{{ workcenter.id }}"
-                            data-name="{{ workcenter.code }} - {{ workcenter.name }}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
+                <button class="btn btn-sm btn-warning" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#editWorkCenterModal"
+                        data-id="{{ workcenter.id }}"
+                        data-code="{{ workcenter.code }}"
+                        data-name="{{ workcenter.name }}"
+                        data-workstation="{{ workcenter.workstation.id }}"  
+                        data-description="{{ workcenter.description }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#deleteModal"
+                        data-id="{{ workcenter.id }}"
+                        data-name="{{ workcenter.code }} - {{ workcenter.name }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
             </tr>
             {% empty %}
             <tr>
@@ -110,6 +113,7 @@
 {% include 'MachinePlan/pagination.html' %}
 
 <!-- Add Work Center Modal -->
+<!-- Add Work Center Modal -->
 <div class="modal fade" id="addWorkCenterModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -122,15 +126,24 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label class="form-label">Code</label>
-                        <input type="text" name="code" class="form-control" required>
+                        <input type="text" name="code" class="form-control" required maxlength="10">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="name" class="form-control" required maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Workstation</label>
+                        <select name="workstation" class="form-select" required id="addWorkstation">
+                            <option value="">Select Workstation</option>
+                            {% for workstation in workstations %}
+                            <option value="{{ workstation.id }}">{{ workstation.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
+                        <textarea name="description" class="form-control" rows="3" maxlength="200"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -142,6 +155,7 @@
     </div>
 </div>
 
+<!-- Edit Work Center Modal -->
 <!-- Edit Work Center Modal -->
 <div class="modal fade" id="editWorkCenterModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -155,15 +169,24 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label class="form-label">Code</label>
-                        <input type="text" name="code" class="form-control" required id="editCode">
+                        <input type="text" name="code" class="form-control" required id="editCode" maxlength="10">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required id="editName">
+                        <input type="text" name="name" class="form-control" required id="editName" maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Workstation</label>
+                        <select name="workstation" class="form-select" required id="editWorkstation">
+                            <option value="">Select Workstation</option>
+                            {% for workstation in workstations %}
+                            <option value="{{ workstation.id }}">{{ workstation.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3" id="editDescription"></textarea>
+                        <textarea name="description" class="form-control" rows="3" id="editDescription" maxlength="200"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -185,11 +208,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Edit modal setup
     const editModal = document.getElementById('editWorkCenterModal');
     if (editModal) {
+        debugger;
         editModal.addEventListener('show.bs.modal', function(event) {
             const button = event.relatedTarget;
             const id = button.getAttribute('data-id');
             const code = button.getAttribute('data-code');
             const name = button.getAttribute('data-name');
+            const workstationId = button.getAttribute('data-workstation'); // Get workstation ID
             const description = button.getAttribute('data-description');
             
             const form = editModal.querySelector('form');
@@ -198,10 +223,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editCode').value = code;
             document.getElementById('editName').value = name;
             document.getElementById('editDescription').value = description;
+            
+            // Set the selected workstation
+            if (workstationId) {
+                document.getElementById('editWorkstation').value = workstationId;
+            }
         });
     }
     
-    // Delete modal setup (same as before)
+    // Delete modal setup (keep your existing code)
     const deleteModal = document.getElementById('deleteModal');
     if (deleteModal) {
         deleteModal.addEventListener('show.bs.modal', function(event) {
