@@ -87,7 +87,7 @@ class Shift(models.Model):
         return f"{self.shift_code} - {self.shift_name} ({self.start_time.strftime('%H:%M')} to {self.end_time.strftime('%H:%M')})"
 
 class LaborRequirement(models.Model):
-    routing = models.ForeignKey("MachinePlanning.Routing", on_delete=models.CASCADE, related_name='labor_requirements')
+    routing = models.ForeignKey("MachinePlanning.RoutingMaster", on_delete=models.CASCADE, related_name='labor_requirements')
     schedule = models.ForeignKey("MachinePlanning.MachineScheduling", on_delete=models.CASCADE,null=True,blank=True )
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE, verbose_name="Required Skill")
     employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="Employees Needed")

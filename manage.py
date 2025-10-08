@@ -3,6 +3,8 @@
 import os
 import sys
 
+os.environ["G_MESSAGES_DEBUG"] = "none"
+
 
 def main():
     """Run administrative tasks."""

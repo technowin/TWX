@@ -18,7 +18,7 @@ from ManpowerPlan.models import EmployeeSkill, Proficeincy,Skill
 from MaterialPlan.models import ProductionOrder
 from .models import *
 from .forms import *
-from .forms import WorkStationForm
+from .forms import *
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Q
 from django.utils import timezone
@@ -263,7 +263,7 @@ class RoutingCreateView(View):
 
     def get(self, request, *args, **kwargs):
         context = {
-            'form': RoutingForm(),
+            # 'form': RoutingForm(),
             'components': BOMHeader.objects.all(),
             'operations': Operation.objects.all(),
             'work_centers': WorkCenters.objects.all(),
@@ -295,7 +295,7 @@ class RoutingCreateView(View):
                 return redirect(request.path)
 
             for i in range(len(operations)):
-                routing = Routing.objects.create(
+                routing = RoutingMaster.objects.create(
                     name=name,
                     component_id=component_id if component_id else None,
                     notes=notes,
@@ -326,14 +326,14 @@ class RoutingCreateView(View):
 
 
 class RoutingUpdateView(UpdateView):
-    model = Routing
-    form_class = RoutingForm
+    model = RoutingMaster
+    # form_class = RoutingForm
     template_name = 'MachinePlan/routing_edit_form.html'
     success_url = reverse_lazy('mcp:routing_list')
 
 
 class RoutingDeleteView(DeleteView):
-    model = Routing
+    model = RoutingMaster
     template_name = 'MachinePlan/routing_confirm_delete.html'
     success_url = reverse_lazy('mcp:routing_list')
 
@@ -457,10 +457,16 @@ class OperationDeleteView(DeleteView):
 
 class WorkCenterListView(ListView):
     model = WorkCenters
-    template_name = 'MachinePlan/workcenter_list.html'
+    template_name = 'MachinePlan/workcenter_list.html'  # Your current template name
     context_object_name = 'workcenters'
-    paginate_by = 20
-
+    paginate_by = 10
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add workstations to the context
+        # context['workstations'] = WorkStation.objects.all()  # Or filter as needed
+        return context
+    
 class WorkCenterCreateView(CreateView):
     model = WorkCenters
     form_class = WorkCenterForm
@@ -811,7 +817,7 @@ def load_routings(request):
         component_id = request.GET.get('component_id')
         if component_id:
             # Get routings for the component
-            routings = Routing.objects.filter(component_id=component_id).order_by('sequence')
+            routings = RoutingMaster.objects.filter(component_id=component_id).order_by('sequence')
             
             # Prepare routing data for JSON response
             routing_data = []
@@ -854,7 +860,7 @@ def load_machines(request):
             return JsonResponse({'success': False, 'error': 'No routing ID provided'}, status=400)
         
         # Get routing and work center
-        routing = Routing.objects.get(id=routing_id)
+        routing = RoutingMaster.objects.get(id=routing_id)
         work_center = routing.work_center
         
         # Get machines for this work center
@@ -910,7 +916,7 @@ def load_machines(request):
             }
         })
         
-    except Routing.DoesNotExist:
+    except RoutingMaster.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Routing not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
@@ -968,7 +974,7 @@ def get_routings(request, component_id):
             routing_status_map[rid] = po_status
 
     # ✅ get routings for this component
-    routings = Routing.objects.filter(component=component).select_related(
+    routings = RoutingMaster.objects.filter(component=component).select_related(
         "operation", "work_center", "skill"
     )
 
@@ -1014,10 +1020,10 @@ def get_assignment_data(request, routing_id):
     Return machine and employee list for each routing row based on work_center and skill.
     """
     try:
-        routing = get_object_or_404(Routing, id=routing_id)
+        routing = get_object_or_404(RoutingMaster, id=routing_id)
 
         # Get all rows that belong to the same routing (same name)
-        rows = Routing.objects.filter(name=routing.name)
+        rows = RoutingMaster.objects.filter(name=routing.name)
 
         assignment_rows = []
         for row in rows:
@@ -1061,7 +1067,7 @@ class MachineScheduleCreateView(View):
 
     def get(self, request, *args, **kwargs):
         context = {
-            "production_orders": ProductionOrder.objects.all(),
+            "production_orders": ProductionOrder.objects.filter(machineschedule__isnull=True),
             "components": BOMHeader.objects.all(),
         }
         return render(request, self.template_name, context)
@@ -1083,7 +1089,7 @@ class MachineScheduleCreateView(View):
                 assignments = json.loads(assignments_json)
 
                 for row in assignments:
-                    routing = Routing.objects.filter(id=row.get("row_id")).first()
+                    routing = RoutingMaster.objects.filter(id=row.get("row_id")).first()
                     if not routing:
                         continue
 
@@ -1159,7 +1165,7 @@ class MachineScheduleUpdateView(View):
             if assignments_json:
                 assignments = json.loads(assignments_json)
                 for row in assignments:
-                    routing = Routing.objects.filter(id=row.get("row_id")).first()
+                    routing = RoutingMaster.objects.filter(id=row.get("row_id")).first()
                     if not routing:
                         continue
 
@@ -1251,55 +1257,99 @@ def routing_create(request, pk=None):
     }
     return render(request, "MachinePlan/routing_form.html", context)
 
-class WorkStationListView(ListView):
-    model = WorkStation
-    template_name = 'MachinePlan/workstation_list.html'
-    context_object_name = 'workstations'
+# class WorkStationListView(ListView):
+#     model = WorkStation
+#     template_name = 'MachinePlan/workstation_list.html'
+#     context_object_name = 'workstations'
     
-    def get_queryset(self):
-        return WorkStation.objects.select_related('machine', 'employee').all()
+#     def get_queryset(self):
+#         return WorkStation.objects.select_related('machine', 'employee').all()
 
-class WorkStationCreateView(CreateView):
-    model = WorkStation
-    form_class = WorkStationForm  # Use the custom form
-    template_name = 'MachinePlan/workstation_form.html'
-    success_url = reverse_lazy('workstations:index')
+# class WorkStationCreateView(CreateView):
+#     model = WorkStation
+#     form_class = WorkStationForm  # Use the custom form
+#     template_name = 'MachinePlan/workstation_form.html'
+#     success_url = reverse_lazy('mcp:workstation_list')
     
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        messages.success(self.request, 'WorkStation created successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         form.instance.created_by = self.request.user
+#         messages.success(self.request, 'WorkStation created successfully!')
+#         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Create WorkStation'
-        context['submit_text'] = 'Create'
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['title'] = 'Create WorkStation'
+#         context['submit_text'] = 'Create'
+#         return context
 
-class WorkStationUpdateView(UpdateView):
-    model = WorkStation
-    form_class = WorkStationForm  # Use the custom form
-    template_name = 'MachinePlan/workstation_form.html'
-    success_url = reverse_lazy('workstations:index')
+# class WorkStationUpdateView(UpdateView):
+#     model = WorkStation
+#     form_class = WorkStationForm  # Use the custom form
+#     template_name = 'MachinePlan/workstation_form.html'
+#     success_url = reverse_lazy('mcp:workstation_list')
     
-    def form_valid(self, form):
-        form.instance.updated_by = self.request.user
-        messages.success(self.request, 'WorkStation updated successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         form.instance.updated_by = self.request.user
+#         messages.success(self.request, 'WorkStation updated successfully!')
+#         return super().form_valid(form)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Update WorkStation'
-        context['submit_text'] = 'Update'
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['title'] = 'Update WorkStation'
+#         context['submit_text'] = 'Update'
+#         return context
 
-class WorkStationDeleteView(DeleteView):
-    model = WorkStation
-    success_url = reverse_lazy('workstations:index')
+# class WorkStationDeleteView(DeleteView):
+#     model = WorkStation
+#     success_url = reverse_lazy('mcp:workstation_list')
     
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'WorkStation deleted successfully!')
-        return super().delete(request, *args, **kwargs)
+#     def delete(self, request, *args, **kwargs):
+#         messages.success(request, 'WorkStation deleted successfully!')
+#         return super().delete(request, *args, **kwargs)
     
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
+#     def get(self, request, *args, **kwargs):
+#         return self.delete(request, *args, **kwargs)
+    
+def get_component_by_production_order(request):
+    production_order_id = request.GET.get('production_order_id')
+
+    try:
+        po = ProductionOrder.objects.get(id=production_order_id)
+        component = po.bom
+        return JsonResponse({
+            'component_id': component.id,
+            'component_name': component.name
+        })
+    except ProductionOrder.DoesNotExist:
+        return JsonResponse({'error': 'Production order not found'}, status=404)
+    
+def get_routing_data(request):
+    component_id = request.POST.get("component_id")
+
+    try:
+        # ✅ Step 1: Get routing for that component
+        routing = RoutingMaster.objects.filter(component=component_id).first()
+        if not routing:
+            return JsonResponse({"schedules": []})
+
+        # ✅ Step 2: Get related routing details
+        routing_details = RoutingDetail.objects.filter(routing=routing)
+        routing_detail_ids = routing_details.values_list("id", flat=True)
+
+        # ✅ Step 3: Get matching machine schedules
+        machine_schedules = MachineSchedule.objects.filter(component_id=component_id)
+
+        # ✅ Step 4: Prepare response data (with start and end dates)
+        data = []
+        for schedule in machine_schedules:
+            data.append({
+                "start_date": schedule.scheduled_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                "end_date": schedule.scheduled_end.strftime("%Y-%m-%dT%H:%M:%S") if schedule.scheduled_end else None,
+                "production_order": schedule.production_order.order_number
+                    if hasattr(schedule.production_order, "order_number") else str(schedule.production_order.id),
+            })
+
+        return JsonResponse({"schedules": data})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

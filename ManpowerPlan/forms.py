@@ -1,7 +1,7 @@
 # forms.py
 from django import forms
 
-from MachinePlanning.models import MachineScheduling, Routing
+from MachinePlanning.models import MachineScheduling, RoutingMaster
 from .models import (
     Employee, Skill, EmployeeSkill, Shift, LaborRequirement, 
     LaborAssignment, EmployeeAvailability, Attendance, LeaveRequest
@@ -84,7 +84,7 @@ class LaborRequirementForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['routing'].queryset = Routing.objects.all().order_by('component')
+        self.fields['routing'].queryset = RoutingMaster.objects.all().order_by('component')
         self.fields['skill'].queryset = Skill.objects.all().order_by('skill_name')
         # Set the choices for min_proficiency field
 class LaborAssignmentForm(forms.ModelForm):

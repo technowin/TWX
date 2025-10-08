@@ -125,57 +125,57 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
             }),
         }
 
-class RoutingForm(forms.ModelForm):
-    class Meta:
-        model = Routing
-        fields = [
-            'name','component','sequence','operation','work_center','setup_time','run_time_per_unit',
-            'skill','employees_needed', 'min_proficiency','notes',
-        ]
-        widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter routing name'
-            }),
-            'component': forms.Select(attrs={'class': 'form-select'}),
-            'operation': forms.Select(attrs={'class': 'form-select'}),
-            'work_center': forms.Select(attrs={'class': 'form-select'}),
-            'sequence': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 1
-            }),
-            'setup_time': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 0,
-                'step': 1
-            }),
-            'run_time_per_unit': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 0,
-                'step': 1
-            }),
-            'skill': forms.Select(attrs={'class': 'form-select'}),
-            'employees_needed': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 1,
-                'step': 1
-            }),
-            'min_proficiency': forms.Select(attrs={'class': 'form-select'}),
-            'notes': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Enter any additional notes...'
-            }),
-        }
-        labels = {
-            'run_time_per_unit': 'Run Time (min/unit)',
-            'employees_needed': 'Employees Needed',
-            'skill': 'Required Skill',
-            'min_proficiency': 'Minimum Proficiency',
-        }
+# class RoutingForm(forms.ModelForm):
+#     class Meta:
+#         model = Routing
+#         fields = [
+#             'name','component','sequence','operation','work_center','setup_time','run_time_per_unit',
+#             'skill','employees_needed', 'min_proficiency','notes',
+#         ]
+#         widgets = {
+#             'name': forms.TextInput(attrs={
+#                 'class': 'form-control',
+#                 'placeholder': 'Enter routing name'
+#             }),
+#             'component': forms.Select(attrs={'class': 'form-select'}),
+#             'operation': forms.Select(attrs={'class': 'form-select'}),
+#             'work_center': forms.Select(attrs={'class': 'form-select'}),
+#             'sequence': forms.NumberInput(attrs={
+#                 'class': 'form-control',
+#                 'min': 1
+#             }),
+#             'setup_time': forms.NumberInput(attrs={
+#                 'class': 'form-control',
+#                 'min': 0,
+#                 'step': 1
+#             }),
+#             'run_time_per_unit': forms.NumberInput(attrs={
+#                 'class': 'form-control',
+#                 'min': 0,
+#                 'step': 1
+#             }),
+#             'skill': forms.Select(attrs={'class': 'form-select'}),
+#             'employees_needed': forms.NumberInput(attrs={
+#                 'class': 'form-control',
+#                 'min': 1,
+#                 'step': 1
+#             }),
+#             'min_proficiency': forms.Select(attrs={'class': 'form-select'}),
+#             'notes': forms.Textarea(attrs={
+#                 'class': 'form-control',
+#                 'rows': 3,
+#                 'placeholder': 'Enter any additional notes...'
+#             }),
+#         }
+#         labels = {
+#             'run_time_per_unit': 'Run Time (min/unit)',
+#             'employees_needed': 'Employees Needed',
+#             'skill': 'Required Skill',
+#             'min_proficiency': 'Minimum Proficiency',
+#         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
 
 
 class MachinePlanningForm(forms.ModelForm):
@@ -260,7 +260,7 @@ class OperationForm(forms.ModelForm):
 class WorkCenterForm(forms.ModelForm):
     class Meta:
         model = WorkCenters
-        fields = ['code', 'name','description']
+        fields = ['code', 'name', 'description']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -270,12 +270,21 @@ class WorkCenterForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter work center name'
             }),
+            # 'workstation': forms.Select(attrs={
+            #     'class': 'form-select',
+            #     'id': 'workstation-select'  # Add ID for easy targeting
+            # }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Enter description...'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # You can customize the queryset for workstation if needed
+        # self.fields['workstation'].queryset = WorkStation.objects.all()
 
 class MachineSchedulingForm(forms.ModelForm):
     class Meta:
@@ -301,23 +310,23 @@ class MachineSchedulingForm(forms.ModelForm):
         if 'component' in self.data:
             try:
                 component_id = int(self.data.get('component'))
-                self.fields['routing'].queryset = Routing.objects.filter(component_id=component_id).order_by('sequence')
+                self.fields['routing'].queryset = RoutingMaster.objects.filter(component_id=component_id).order_by('sequence')
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
             self.fields['routing'].queryset = self.instance.component.routing_set.order_by('sequence')
         else:
-            self.fields['routing'].queryset = Routing.objects.none()
+            self.fields['routing'].queryset = RoutingMaster.objects.none()
         
         # Filter machines based on work center from routing
         if 'routing' in self.data:
             try:
                 routing_id = int(self.data.get('routing'))
-                routing = Routing.objects.get(id=routing_id)
+                routing = RoutingMaster.objects.get(id=routing_id)
                 self.fields['machine'].queryset = Machine.objects.filter(
                     work_center=routing.work_center
                 )
-            except (ValueError, TypeError, Routing.DoesNotExist):
+            except (ValueError, TypeError, RoutingMaster.DoesNotExist):
                 pass
         elif self.instance.pk and self.instance.routing:
             self.fields['machine'].queryset = Machine.objects.filter(
@@ -351,23 +360,23 @@ class MachineTrackingForm(forms.ModelForm):
         if 'component' in self.data:
             try:
                 component_id = int(self.data.get('component'))
-                self.fields['routing'].queryset = Routing.objects.filter(component_id=component_id).order_by('sequence')
+                self.fields['routing'].queryset = RoutingMaster.objects.filter(component_id=component_id).order_by('sequence')
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
             self.fields['routing'].queryset = self.instance.component.routing_set.order_by('sequence')
         else:
-            self.fields['routing'].queryset = Routing.objects.none()
+            self.fields['routing'].queryset = RoutingMaster.objects.none()
         
         # Filter machines based on work center from routing
         if 'routing' in self.data:
             try:
                 routing_id = int(self.data.get('routing'))
-                routing = Routing.objects.get(id=routing_id)
+                routing = RoutingMaster.objects.get(id=routing_id)
                 self.fields['machine'].queryset = Machine.objects.filter(
                     work_center=routing.work_center
                 )
-            except (ValueError, TypeError, Routing.DoesNotExist):
+            except (ValueError, TypeError, RoutingMaster.DoesNotExist):
                 pass
         elif self.instance.pk and self.instance.routing:
             self.fields['machine'].queryset = Machine.objects.filter(
@@ -444,53 +453,53 @@ MachineScheduleDetailFormSet = forms.inlineformset_factory(
     can_delete=True
 )
 
-class WorkStationForm(forms.ModelForm):
-    class Meta:
-        model = WorkStation
-        fields = ['name', 'machine', 'employee']
-        widgets = {'name': forms.TextInput(attrs={'class': 'form-control','placeholder': 'Enter workstation name'}),
-                   'machine': forms.Select(attrs={'class': 'form-select'}),
-                   'employee': forms.Select(attrs={'class': 'form-select'}),
-        }
-        labels = {
-            'name': 'WorkStation Name',
-            'machine': 'Machine',
-            'employee': 'Assigned Employee',
-        }
+# class WorkStationForm(forms.ModelForm):
+#     class Meta:
+#         model = WorkStation
+#         fields = ['name', 'machine', 'employee']
+#         widgets = {'name': forms.TextInput(attrs={'class': 'form-control','placeholder': 'Enter workstation name'}),
+#                    'machine': forms.Select(attrs={'class': 'form-select'}),
+#                    'employee': forms.Select(attrs={'class': 'form-select'}),
+#         }
+#         labels = {
+#             'name': 'WorkStation Name',
+#             'machine': 'Machine',
+#             'employee': 'Assigned Employee',
+#         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
         
-        # Add form-control class to all fields automatically
-        for field_name, field in self.fields.items():
-            if field.widget.attrs.get('class'):
-                field.widget.attrs['class'] += ' form-control'
-            else:
-                field.widget.attrs['class'] = 'form-control'
+#         # Add form-control class to all fields automatically
+#         for field_name, field in self.fields.items():
+#             if field.widget.attrs.get('class'):
+#                 field.widget.attrs['class'] += ' form-control'
+#             else:
+#                 field.widget.attrs['class'] = 'form-control'
             
-            # Add placeholder for text fields
-            if isinstance(field.widget, forms.TextInput):
-                field.widget.attrs['placeholder'] = f'Enter {field.label.lower()}'
+#             # Add placeholder for text fields
+#             if isinstance(field.widget, forms.TextInput):
+#                 field.widget.attrs['placeholder'] = f'Enter {field.label.lower()}'
 
-    def clean(self):
-        cleaned_data = super().clean()
-        machine = cleaned_data.get('machine')
-        employee = cleaned_data.get('employee')
+#     def clean(self):
+#         cleaned_data = super().clean()
+#         machine = cleaned_data.get('machine')
+#         employee = cleaned_data.get('employee')
 
-        # Check for unique_together constraint
-        if machine and employee:
-            existing = WorkStation.objects.filter(
-                machine=machine, 
-                employee=employee
-            )
+#         # Check for unique_together constraint
+#         if machine and employee:
+#             existing = WorkStation.objects.filter(
+#                 machine=machine, 
+#                 employee=employee
+#             )
             
-            # If updating, exclude current instance
-            if self.instance.pk:
-                existing = existing.exclude(pk=self.instance.pk)
+#             # If updating, exclude current instance
+#             if self.instance.pk:
+#                 existing = existing.exclude(pk=self.instance.pk)
             
-            if existing.exists():
-                raise forms.ValidationError(
-                    'This employee is already assigned to this machine.'
-                )
+#             if existing.exists():
+#                 raise forms.ValidationError(
+#                     'This employee is already assigned to this machine.'
+#                 )
         
-        return cleaned_data
+#         return cleaned_data

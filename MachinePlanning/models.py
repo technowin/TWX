@@ -140,6 +140,7 @@ class WorkCenters(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    workstation = models.ForeignKey('MachinePlanning.WorkStations',on_delete=models.SET_NULL,null=True,blank=True,related_name='workstation_id',verbose_name="Work Station")
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='workcenter_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='workcenter_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -149,37 +150,6 @@ class WorkCenters(models.Model):
         return f"{self.code} - {self.name}"
     
 
-
-class Routing(models.Model):
-    name = models.TextField(null=True,blank=True)
-    component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
-    operation = models.ForeignKey( Operation, on_delete=models.CASCADE, null=True, blank=True)
-    production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True, blank=True)
-    sequence = models.PositiveIntegerField()
-    work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE)
-    setup_time = models.PositiveIntegerField(help_text="Setup time in minutes")
-    run_time_per_unit = models.PositiveIntegerField(help_text="Run time per unit in minutes")
-    skill = models.ForeignKey('ManpowerPlan.Skill', on_delete=models.CASCADE, verbose_name="rou_Required Skill",null=True,blank=True)
-    employees_needed = models.PositiveSmallIntegerField(default=1, verbose_name="rou_Employees Needed",null=True,blank=True)
-    min_proficiency = models.ForeignKey('ManpowerPlan.Proficeincy', on_delete=models.CASCADE, related_name='rou_require_proficiency', null=True, blank=True)
-    notes = models.TextField(blank=True, verbose_name="Additional Notes")
-    created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='routing_created_by',verbose_name="Created By")
-    updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='routing_updated_by',verbose_name="Updated By")
-    created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True,null=True, blank=True)
-
-    class Meta:
-        unique_together = ('component', 'sequence')
-        ordering = ['component', 'sequence']
-        verbose_name = "BOM Routing"
-        verbose_name_plural = "BOM Routings"
-
-    def __str__(self):
-        return f"{self.name} "
-
-    def get_absolute_url(self):
-        return reverse('routing_list')
-    
 
 class RoutingMaster(models.Model):
     name = models.TextField(null=True, blank=True)
@@ -232,7 +202,7 @@ class MachinePlanning(models.Model):
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE,null=True,blank=True)
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
-    routing = models.ForeignKey(Routing, on_delete=models.CASCADE,null=True,blank=True)
+    routing = models.ForeignKey(RoutingMaster, on_delete=models.CASCADE,null=True,blank=True)
     machine = models.ForeignKey('Machine', on_delete=models.CASCADE,null=True,blank=True)
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
@@ -263,7 +233,7 @@ class MachinePlanning(models.Model):
 class MachineScheduling(models.Model):
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
     component = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, verbose_name="BOM Component")
-    routing = models.ForeignKey(Routing, on_delete=models.CASCADE)
+    routing = models.ForeignKey(RoutingMaster, on_delete=models.CASCADE)
     seq = models.TextField(null= True, blank=True)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
     work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE)  
@@ -324,7 +294,7 @@ class MachineScheduling(models.Model):
 class MachineSchedule(models.Model):
     name = models.CharField(max_length=255, verbose_name="Schedule Name", null=True, blank=True)
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder', on_delete=models.CASCADE, null=True, blank=True)
-    routing = models.ForeignKey('MachinePlanning.Routing', on_delete=models.CASCADE, null=True, blank=True)
+    routing = models.ForeignKey('MachinePlanning.RoutingMaster', on_delete=models.CASCADE, null=True, blank=True)
     component = models.ForeignKey('BOM.BOMHeader', on_delete=models.CASCADE, verbose_name="BOM Component")
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
@@ -356,8 +326,9 @@ class MachineSchedule(models.Model):
 class MachineScheduleDetail(models.Model):
     schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='details')
     seq = models.TextField(null=True, blank=True)
-    routing = models.ForeignKey(Routing, on_delete=models.CASCADE)
+    routing = models.ForeignKey(RoutingMaster, on_delete=models.CASCADE)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    workstation = models.ForeignKey('MachinePlanning.WorkStations',on_delete=models.CASCADE, null=True, blank=True)
     work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE, null=True, blank=True)  
     employee = models.TextField(verbose_name="Assigned Employee", null=True, blank=True)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True)
@@ -424,27 +395,27 @@ class MachineScheduleDetail(models.Model):
                     production_order.save(update_fields=["order_status"])
 
 
-CustomUser = get_user_model()
-
-class WorkStation(models.Model):
+class WorkStations(models.Model):
     """Workstation linking machines and employees"""
 
     name = models.TextField(null=True,blank=True)
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE,related_name='workstations',verbose_name="Machine")
-    employee = models.ForeignKey(Employee,on_delete=models.CASCADE,related_name='workstations',verbose_name="Assigned Employee")
-    created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True, blank=True,related_name='workstation_created_by',verbose_name="Created By")
-    updated_by = models.ForeignKey( CustomUser,on_delete=models.SET_NULL, null=True,blank=True,related_name='workstation_updated_by',verbose_name="Updated By")
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE,related_name='workstation',verbose_name="Machine")
+    employee = models.TextField(null=True,blank=True)
+    created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True, blank=True,related_name='workstations_created_by',verbose_name="Created By")
+    updated_by = models.ForeignKey( CustomUser,on_delete=models.SET_NULL, null=True,blank=True,related_name='workstations_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated At")
 
     class Meta:
         verbose_name = "Work Station"
         verbose_name_plural = "Work Stations"
-        unique_together = ('machine', 'employee')  # Ensures an employee isn't linked to the same machine twice
         ordering = ['machine__machine_id']
 
     def __str__(self):
-        return f"WorkStation: {self.machine.name} - {self.employee.employee_name}"
+        return f"WorkStation: {self.name} - {self.machine.name}"
+
+
+
 
 
 

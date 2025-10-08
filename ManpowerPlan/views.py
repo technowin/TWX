@@ -33,7 +33,7 @@ from .forms import (
     LaborRequirementForm, LaborAssignmentForm, EmployeeAvailabilityForm,
     AttendanceForm, LeaveRequestForm
 )
-from MachinePlanning.models import MachinePlanning, MachineScheduling, Routing
+from MachinePlanning.models import MachinePlanning, MachineScheduling, RoutingMaster
     
 class EmployeeListView(LoginRequiredMixin, ListView):
     model = Employee
@@ -260,7 +260,7 @@ class LaborRequirementListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['skills'] = Skill.objects.all().order_by('skill_name')
-        context['routings'] = Routing.objects.all().order_by('id')
+        context['routings'] = RoutingMaster.objects.all().order_by('id')
         return context
 
 class LaborRequirementCreateView(LoginRequiredMixin, CreateView):
@@ -908,7 +908,7 @@ def skill_gaps_report(request):
     return render(request, 'Manpower/skill_gaps.html', context)
 
 def routing_assignments(request, routing_id):
-    routing = get_object_or_404(Routing, pk=routing_id)
+    routing = get_object_or_404(RoutingMaster, pk=routing_id)
     assignments = LaborAssignment.objects.filter(
         schedule__routing=routing
     ).select_related(
