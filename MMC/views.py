@@ -1677,7 +1677,6 @@ def admin_dashboard1(request):
 
 # RMP Profile Management
 @login_required
-@user_passes_test(is_rmp)
 def rmp_profile_create(request):
     rmp_profile = get_rmp_profile(request.user)
     if rmp_profile:
@@ -1717,7 +1716,6 @@ def rmp_profile_create(request):
     return render(request, 'MMC/rmp/profile_create.html', {'form': form})
 
 @login_required
-@user_passes_test(is_rmp)
 def rmp_profile_edit(request):
     rmp_profile = get_object_or_404(RMPProfile, user=request.user)
     
@@ -1744,7 +1742,6 @@ def rmp_profile_edit(request):
     return render(request, 'MMC/rmp/profile_edit.html', {'form': form})
 
 @login_required
-@user_passes_test(is_rmp)
 def rmp_qualifications(request):
     rmp_profile = get_rmp_profile(request.user)
     qualifications = MedicalQualification.objects.filter(rmp=rmp_profile)
@@ -1767,7 +1764,6 @@ def rmp_qualifications(request):
     return render(request, 'MMC/rmp/qualifications.html', context)
 
 @login_required
-@user_passes_test(is_rmp)
 def rmp_experience(request):
     rmp_profile = get_rmp_profile(request.user)
     experiences = Experience.objects.filter(rmp=rmp_profile)
@@ -1790,7 +1786,6 @@ def rmp_experience(request):
     return render(request, 'MMC/rmp/experience.html', context)
 
 @login_required
-@user_passes_test(is_rmp)
 def rmp_publications(request):
     rmp_profile = get_rmp_profile(request.user)
     publications = Publication.objects.filter(rmp=rmp_profile)
@@ -1813,7 +1808,6 @@ def rmp_publications(request):
     return render(request, 'MMC/rmp/publications.html', context)
 
 @login_required
-@user_passes_test(is_rmp)
 def rmp_awards(request):
     rmp_profile = get_rmp_profile(request.user)
     awards = Award.objects.filter(rmp=rmp_profile)
@@ -1838,7 +1832,6 @@ def rmp_awards(request):
 
 # ============ PROFILE & SETTINGS ============
 @login_required
-@rmp_required
 def rmp_profile_view(request):
     profile, created = RMPProfile.objects.get_or_create(user=request.user)
     
@@ -1880,7 +1873,7 @@ def generate_mmc_number():
 
 # Application Management Views
 # @login_required
-# @user_passes_test(is_rmp)
+# 
 # def application_wizard(request, application_type=None):
 #     if application_type is None:
 #         if request.method == 'POST':
@@ -1917,7 +1910,7 @@ def generate_mmc_number():
 #     return redirect('application_wizard')
 
 # @login_required
-# @user_passes_test(is_rmp)
+# 
 # def application_step(request, application_id, step):
 #     application = get_object_or_404(Application, application_id=application_id, rmp__user=request.user)
     
@@ -2906,7 +2899,6 @@ def validate_step_data(request, application_id, step):
     return JsonResponse({'valid': True, 'errors': []})
 
 @login_required
-@user_passes_test(is_rmp)
 def application_list(request):
     rmp_profile = get_rmp_profile(request.user)
     applications = Application.objects.filter(rmp=rmp_profile).order_by('-submitted_date')
@@ -2937,7 +2929,6 @@ def application_list(request):
 
 # Document Management
 @login_required
-@user_passes_test(is_rmp)
 def mmc_upload_document(request, application_id):
     application = get_object_or_404(Application, application_id=application_id, rmp__user=request.user)
     
@@ -2973,7 +2964,6 @@ def mmc_upload_document(request, application_id):
     return JsonResponse({'success': False, 'message': 'Upload failed'})
 
 @login_required
-@user_passes_test(is_rmp)
 def mmc_delete_document(request, document_id):
     document = get_object_or_404(Document, id=document_id, application__rmp__user=request.user)
     document.delete()
@@ -2993,7 +2983,6 @@ def mmc_delete_document(request, document_id):
 
 # Good Standing Certificate
 @login_required
-@rmp_required
 def request_good_standing(request, certificate_type):
     if request.method == 'POST':
         form = GoodStandingRequestForm(request.POST)
@@ -3028,7 +3017,6 @@ def request_good_standing(request, certificate_type):
 
 # NOC Request
 @login_required
-@rmp_required
 def request_noc(request):
     if request.method == 'POST':
         form = NOCRequestForm(request.POST)
@@ -3055,7 +3043,6 @@ def request_noc(request):
 
 # Change Requests (Name, Address, Qualification)
 @login_required
-@rmp_required
 def request_change(request, change_type):
     if request.method == 'POST':
         form = ChangeRequestForm(request.POST, request.FILES)
@@ -3090,7 +3077,6 @@ def request_change(request, change_type):
 
 # Termination Request
 @login_required
-@rmp_required
 def request_termination(request):
     if request.method == 'POST':
         form = TerminationRequestForm(request.POST, request.FILES)
@@ -3118,7 +3104,6 @@ def request_termination(request):
 
 # Certificate Management
 @login_required
-@rmp_required
 def certificate_list(request):
     certificates = Certificate.objects.filter(user=request.user).order_by('-issue_date')
     context = {
@@ -3127,7 +3112,6 @@ def certificate_list(request):
     return render(request, 'MMC/certificates/certificate_list.html', context)
 
 @login_required
-@rmp_required
 def request_certificate(request):
     if request.method == 'POST':
         form = CertificateRequestForm(request.POST)
@@ -3151,7 +3135,6 @@ def request_certificate(request):
 
 # ID Card Generation
 @login_required
-@rmp_required
 def id_card_view(request):
     try:
         id_card = IDCard.objects.get(user=request.user, is_active=True)
@@ -3164,7 +3147,6 @@ def id_card_view(request):
     return render(request, 'MMC/id_cards/id_card_view.html', context)
 
 @login_required
-@rmp_required
 def request_id_card(request):
     if request.method == 'POST':
         # Check if user has active registration
@@ -3277,7 +3259,6 @@ class CPDProgramListView(LoginRequiredMixin, ListView):
 
 
 @login_required
-@rmp_required
 def cpd_program_detail(request, program_id):
     program = get_object_or_404(CPDProgram, program_id=program_id)
     
@@ -3296,7 +3277,6 @@ def cpd_program_detail(request, program_id):
     return render(request, 'MMC/cpd/program_detail.html', context)
 
 @login_required
-@rmp_required
 def cpd_program_register(request, program_id):
     program = get_object_or_404(CPDProgram, program_id=program_id)
     
@@ -3358,7 +3338,6 @@ def cpd_program_register(request, program_id):
     return redirect('cpd_program_detail', program_id=program_id)
 
 @login_required
-@rmp_required
 def cpd_my_programs(request):
     participations = CPDParticipation.objects.filter(
         participant=request.user
@@ -3383,7 +3362,6 @@ def cpd_my_programs(request):
     return render(request, 'MMC/cpd/my_programs.html', context)
 
 @login_required
-@rmp_required
 def cpd_program_unregister(request, program_id):
     program = get_object_or_404(CPDProgram, program_id=program_id)
     participation = get_object_or_404(
@@ -3408,7 +3386,6 @@ def cpd_program_unregister(request, program_id):
 
 # CPD Program Views
 @login_required
-@user_passes_test(is_rmp)
 def cpd_programs(request):
     programs = CPDProgram.objects.filter(is_active=True).order_by('start_date')
     rmp_profile = get_rmp_profile(request.user)
@@ -3438,7 +3415,6 @@ def cpd_programs(request):
     return render(request, 'MMC/cpd/programs.html', context)
 
 @login_required
-@user_passes_test(is_rmp)
 def cpd_attendance(request, program_id):
     program = get_object_or_404(CPDProgram, id=program_id, is_active=True)
     rmp_profile = get_rmp_profile(request.user)
@@ -3482,7 +3458,6 @@ def cpd_attendance(request, program_id):
     return redirect('cpd_programs')
 
 @login_required
-@user_passes_test(is_rmp)
 def cpd_certificates(request):
     rmp_profile = get_rmp_profile(request.user)
     certificates = CPDAttendance.objects.filter(
@@ -3498,7 +3473,6 @@ def cpd_certificates(request):
 
 # CPD Management Views
 @login_required
-@user_passes_test(is_admin_or_staff)
 def create_cpd_program(request):
     if request.method == 'POST':
         form = CPDProgramForm(request.POST)
@@ -3512,7 +3486,6 @@ def create_cpd_program(request):
     return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def delete_cpd_program(request, program_id):
     if request.method == 'DELETE':
         program = get_object_or_404(CPDProgram, id=program_id)
@@ -3521,7 +3494,6 @@ def delete_cpd_program(request, program_id):
     return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 @login_required
-@user_passes_test(is_rmp)
 def cpd_points_summary(request):
     rmp_profile = get_rmp_profile(request.user)
     
@@ -3554,7 +3526,6 @@ def cpd_points_summary(request):
 
 # ============ CPD ACCREDITATION VIEWS ============
 @login_required
-@rmp_required
 def cpd_accreditation_apply(request):
     """Apply for CPD accreditation as organization or speaker"""
     if request.method == 'POST':
@@ -3575,7 +3546,6 @@ def cpd_accreditation_apply(request):
     return render(request, 'MMC/cpd/accreditation_apply.html', context)
 
 @login_required
-@rmp_required
 def cpd_accreditation_status(request):
     """View accreditation application status"""
     accreditations = Accreditation.objects.filter(
@@ -3686,12 +3656,10 @@ def payment_page(request, application_id):
 
 # Admin Views
 @login_required
-@user_passes_test(is_admin_or_staff)
 def admin_dashboard(request):
     return redirect('dashboard')
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def admin_applications(request):
     applications = Application.objects.select_related('rmp', 'assigned_to').all()
     
@@ -3735,7 +3703,6 @@ def admin_applications(request):
     return render(request, 'MMC/admin/applications.html', context)
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def admin_application_review(request, application_id):
     application = get_object_or_404(Application, application_id=application_id)
     
@@ -3932,7 +3899,6 @@ def admin_application_detail(request, application_id):
 
 # ============ CERTIFICATE MANAGEMENT ============
 @login_required
-@rmp_required
 def generate_certificate(request, certificate_id):
     """Generate and download certificate"""
     certificate = get_object_or_404(Certificate, certificate_id=certificate_id, user=request.user)
@@ -3973,7 +3939,6 @@ def admin_certificate_management(request):
     return render(request, 'MMC/admin/certificate_management.html', context)
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def admin_cpd_management(request):
     programs = CPDProgram.objects.all().order_by('-created_date')
     accreditations = Accreditation.objects.all().order_by('-created_date')
@@ -3995,7 +3960,6 @@ def admin_cpd_management(request):
     return render(request, 'MMC/admin/cpd_management.html', context)
 
 @login_required
-@user_passes_test(is_admin)
 def admin_user_management(request):
     users = CustomUser.objects.all().order_by('-date_joined')
     
@@ -4245,7 +4209,6 @@ def admin_cpd_program_edit(request, program_id):
 
 # Reports Views
 @login_required
-@user_passes_test(is_admin_or_staff)
 def reports_dashboard(request):
     # Basic report data
     applications_by_type = Application.objects.values('application_type').annotate(
@@ -4377,7 +4340,6 @@ def application_reports(request):
     return render(request, 'MMC/reports/application_reports.html', context)
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def generate_report(request):
     if request.method == 'POST':
         form = ReportGenerationForm(request.POST)
@@ -4623,7 +4585,6 @@ def export_reports(request, report_type):
 
 # AI Integration Views
 @login_required
-@user_passes_test(is_rmp)
 def ai_insights(request):
     rmp_profile = get_rmp_profile(request.user)
     
@@ -4727,7 +4688,6 @@ def generate_ai_insights(user):
 
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def ai_dashboard(request):
     # AI dashboard for admin with overall statistics
     performance_scores = AIPerformanceScore.objects.all()
@@ -4760,7 +4720,6 @@ def ai_insights(request):
         return admin_ai_insights(request)
 
 @login_required
-@rmp_required
 def rmp_ai_insights(request):
     user = request.user
     insights = AIInsight.objects.filter(user=user, is_active=True).order_by('-generated_at')
@@ -4981,7 +4940,6 @@ class NotificationAPI(View):
 
 # User Management Views
 @login_required
-@user_passes_test(is_admin)
 def mmc_create_user(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -4993,7 +4951,6 @@ def mmc_create_user(request):
     return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 @login_required
-@user_passes_test(is_admin)
 def toggle_user_status(request, user_id):
     if request.method == 'POST':
         user = get_object_or_404(CustomUser, id=user_id)
@@ -5010,7 +4967,6 @@ def toggle_user_status(request, user_id):
 
 # Document Verification View
 @login_required
-@user_passes_test(is_admin_or_staff)
 def verify_document(request, document_id):
     if request.method == 'POST':
         document = get_object_or_404(Document, id=document_id)
@@ -5238,7 +5194,6 @@ from io import BytesIO
 
 # ============ SERVICE-SPECIFIC VIEWS ============
 @login_required
-@rmp_required
 def service_selection1(request):
     """Service selection page for all 23 registration services"""
     services = {
@@ -5287,7 +5242,6 @@ def service_selection1(request):
     return render(request, 'MMC/landing/service_selection.html', context)
 
 @login_required
-@rmp_required
 def initiate_service1(request, service_type):
     """Initiate a specific service based on type"""
     if service_type not in dict(Application.APPLICATION_TYPES):
