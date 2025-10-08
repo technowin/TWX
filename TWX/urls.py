@@ -573,11 +573,25 @@ urlpatterns = [
     path('update_complaint_status/<int:complaint_id>', update_complaint_status, name='update_complaint_status'),
 
     # AI Integration
-    path('ai/insights/', ai_insights, name='ai_insights'),
-    path('admin/ai/insights/', admin_ai_insights, name='admin_ai_insights'),
-    path('rmp/ai/insights/', rmp_ai_insights, name='rmp_ai_insights'),
-    path('ai/dashboard/', ai_dashboard, name='ai_dashboard'),
-    path('ai_analytics_dashboard/', ai_analytics_dashboard, name='ai_analytics_dashboard'),
+
+    # AI Integration URLs
+    path('ai/insights/',ai_insights, name='ai_insights'),
+    path('ai/dashboard/',ai_dashboard, name='ai_dashboard'),
+    path('ai/analytics/',ai_analytics_dashboard, name='ai_analytics_dashboard'),
+    
+    # RMP-specific AI URLs
+    path('rmp/ai/insights/',rmp_ai_insights, name='rmp_ai_insights'),
+    path('rmp/ai/dashboard/',rmp_ai_dashboard, name='rmp_ai_dashboard'),
+    
+    # Admin-specific AI URLs
+    path('admin/ai/insights/',admin_ai_insights, name='admin_ai_insights'),
+    path('admin/ai/dashboard/',admin_ai_dashboard, name='admin_ai_dashboard'),
+    path('admin/ai/analytics/',admin_analytics_dashboard, name='admin_analytics_dashboard'),
+    
+    # AJAX endpoints
+    path('api/ai/metrics/',get_ai_metrics, name='get_ai_metrics'),
+    path('api/ai/analytics/',get_realtime_analytics, name='get_realtime_analytics'),
+
     path('notification_list/', notification_list, name='notification_list'),
     
     # API Endpoints

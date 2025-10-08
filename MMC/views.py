@@ -22,6 +22,7 @@ import csv
 from io import StringIO, BytesIO
 import logging
 from django.db import transaction
+from Account.db_utils import callproc
 
 logger = logging.getLogger(__name__)
 
@@ -1615,13 +1616,10 @@ def admin_dashboard1(request):
             risk_score=Case(
                 # Rule 1: high-risk types
                 When(application_type__in=['foreign_permanent', 'defaulter'], then=Value(80)),
-
                 # Rule 2: non-empty review notes
                 When(~Q(review_notes="") & Q(review_notes__isnull=False), then=Value(70)),
-
                 # Rule 3: unverified documents — adjust related name
                 When(documents__is_verified=False, then=Value(60)),
-
                 # Default fallback
                 default=Value(40),
                 output_field=IntegerField(),  # ✅ Correct usage (you DO instantiate here)
@@ -4583,289 +4581,1226 @@ def export_reports(request, report_type):
     messages.error(request, 'Invalid report type specified.')
     return redirect('reports_dashboard')
 
-# AI Integration Views
-@login_required
-def ai_insights(request):
-    rmp_profile = get_rmp_profile(request.user)
-    
-    try:
-        ai_score = AIPerformanceScore.objects.get(rmp=rmp_profile)
-        insights = AIInsight.objects.filter(rmp=rmp_profile, is_active=True).order_by('-generated_date')
-        alerts = PredictiveAlert.objects.filter(rmp=rmp_profile, is_active=True, is_dismissed=False)
-    except AIPerformanceScore.DoesNotExist:
-        ai_score = None
-        insights = []
-        alerts = []
-    
-    context = {
-        'ai_score': ai_score,
-        'insights': insights,
-        'alerts': alerts,
-        'rmp_profile': rmp_profile,
-    }
-    
-    return render(request, 'MMC/ai/insights.html', context)
+# views.py - AI Integration Module
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Q, F, Count, Avg, Sum, Case, When, Value, IntegerField, BooleanField, CharField
+from django.db import models
+from django.utils import timezone
+from datetime import timedelta, datetime
+import json
+from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
 
 # AI Integration Views
 @login_required
 def ai_insights(request):
+    """Main AI insights router"""
     if request.user.user_type == 'rmp':
-        insights = AIInsight.objects.filter(user=request.user, is_active=True).order_by('-generated_at')[:10]
-        performance_score = AIPerformanceScore.objects.filter(user=request.user).first()
-        
-        # Generate mock AI insights if none exist
-        if not insights.exists():
-            insights = generate_ai_insights(request.user)
-        
-        context = {
-            'insights': insights,
-            'performance_score': performance_score
-        }
-        return render(request, 'MMC/ai/rmp_insights.html', context)
-    
-    elif request.user.user_type in ['ADMIN', 'SUPER_ADMIN']:
-        # Admin AI dashboard with predictive analytics
-        risk_applications = Application.objects.filter(
-            status='under_review'
-        ).annotate(
-            risk_score=Case(
-                When(application_type__in=['PERMANENT_REG', 'FOREIGN_PERMANENT'], then=Value(30)),
-                When(verification_notes__isnull=False, then=Value(70)),
-                default=Value(50),
-                output_field=IntegerField()
-            )
-        ).filter(risk_score__gte=70).order_by('-risk_score')[:10]
-        
-        compliance_alerts = CustomUser.objects.filter(
-            user_type='rmp',
-            registration_status='permanent'
-        ).annotate(
-            cpd_deficit=F('cpd_points_required') - F('total_cpd_points')
-        ).filter(
-            Q(cpd_deficit__gt=0) | 
-            Q(applications__status='EXPIRED') |
-            Q(complaints_against__status='PENDING')
-        ).distinct()[:10]
-        
-        context = {
-            'risk_applications': risk_applications,
-            'compliance_alerts': compliance_alerts
-        }
-        return render(request, 'MMC/ai/admin_insights.html', context)
-
-def generate_ai_insights(user):
-    """Generate mock AI insights for RMP"""
-    insights = []
-    
-    # CPD Insights
-    if user.total_cpd_points < user.cpd_points_required:
-        insights.append(AIInsight.objects.create(
-            user=user,
-            insight_type='CPD_COMPLIANCE',
-            insight_data={
-                'message': f'You need {user.cpd_points_required - user.total_cpd_points} more CPD points to meet annual requirements.',
-                'suggestion': 'Consider attending upcoming specialization-specific CPD programs.',
-                'urgency': 'medium'
-            },
-            confidence_score=85.5
-        ))
-    
-    # Registration Renewal Insights
-    recent_apps = Application.objects.filter(applicant=user, status='APPROVED').order_by('-application_date').first()
-    if recent_apps and (timezone.now() - recent_apps.application_date).days > 300:
-        insights.append(AIInsight.objects.create(
-            user=user,
-            insight_type='RENEWAL_REMINDER',
-            insight_data={
-                'message': 'Your registration renewal is due in the next 2 months.',
-                'suggestion': 'Start renewal process early to avoid last-minute delays.',
-                'deadline': (recent_apps.application_date + timedelta(days=365)).strftime('%Y-%m-%d')
-            },
-            confidence_score=92.3
-        ))
-    
-    return insights
-
+        return rmp_ai_insights(request)
+    elif request.user.user_type in ['admin', 'super_admin', 'staff']:
+        return admin_ai_insights(request)
+    else:
+        return render(request, 'MMC/403.html')
 
 @login_required
 def ai_dashboard(request):
-    # AI dashboard for admin with overall statistics
-    performance_scores = AIPerformanceScore.objects.all()
-    avg_scores = performance_scores.aggregate(
-        avg_overall=Avg('overall_score'),
-        avg_cpd=Avg('cpd_score'),
-        avg_compliance=Avg('compliance_score')
-    )
-    
-    # Risk analysis
-    high_risk_rmps = performance_scores.filter(overall_score__lt=60).count()
-    medium_risk_rmps = performance_scores.filter(overall_score__gte=60, overall_score__lt=75).count()
-    
-    context = {
-        'avg_scores': avg_scores,
-        'high_risk_rmps': high_risk_rmps,
-        'medium_risk_rmps': medium_risk_rmps,
-        'total_analyzed': performance_scores.count(),
-    }
-    
-    return render(request, 'MMC/ai/admin_dashboard.html', context)
+    """Comprehensive AI Dashboard"""
+    if request.user.user_type in ['admin', 'super_admin']:
+        return admin_ai_dashboard(request)
+    elif request.user.user_type == 'rmp':
+        return rmp_ai_dashboard(request)
+    else:
+        return render(request, 'MMC/403.html')
 
-
-# ============ AI INTEGRATION ============
 @login_required
-def ai_insights(request):
-    if request.user.user_type == 'rmp':
-        return rmp_ai_insights(request)
-    elif request.user.user_type in ['ADMIN', 'SUPER_ADMIN']:
-        return admin_ai_insights(request)
+def ai_analytics_dashboard(request):
+    """Advanced Analytics Dashboard"""
+    if request.user.user_type not in ['admin', 'super_admin']:
+        return render(request, 'MMC/403.html')
+    
+    return admin_analytics_dashboard(request)
 
+# RMP AI Functions
 @login_required
 def rmp_ai_insights(request):
-    user = request.user
-    insights = AIInsight.objects.filter(user=user, is_active=True).order_by('-generated_at')
-    
-    # Generate insights if none exist
-    if not insights.exists():
-        insights = generate_rmp_ai_insights(user)
-    
-    performance_score = AIPerformanceScore.objects.filter(user=user).first()
-    if not performance_score:
-        performance_score = calculate_performance_score(user)
-    
-    # CPD recommendations
-    cpd_recommendations = CPDProgram.objects.filter(
-        specializations__icontains=user.specialization,
-        start_date__gte=timezone.now(),
-        is_active=True
-    ).order_by('start_date')[:5]
-    
-    context = {
-        'insights': insights,
-        'performance_score': performance_score,
-        'cpd_recommendations': cpd_recommendations,
-    }
-    return render(request, 'MMC/ai/rmp_insights.html', context)
+    """Personalized AI Insights for RMP"""
+    try:
+        rmp_profile = get_object_or_404(RMPProfile, user=request.user)
+        
+        # Get or generate insights
+        insights = AIInsight.objects.filter(
+            rmp=rmp_profile, 
+            is_active=True
+        ).order_by('-generated_date')[:10]
+        
+        if not insights.exists():
+            insights = generate_rmp_ai_insights(rmp_profile)
+        
+        # Performance score
+        performance_score = AIPerformanceScore.objects.filter(rmp=rmp_profile).first()
+        if not performance_score:
+            performance_score = calculate_rmp_performance_score(rmp_profile)
+        
+        # Predictive alerts
+        predictive_alerts = PredictiveAlert.objects.filter(
+            rmp=rmp_profile,
+            is_active=True,
+            is_dismissed=False
+        ).order_by('-confidence_score')[:5]
+        
+        # CPD recommendations
+        cpd_recommendations = get_personalized_cpd_recommendations(rmp_profile)
+        
+        # Performance trends
+        performance_trend = calculate_performance_trend(rmp_profile)
+        
+        context = {
+            'rmp_profile': rmp_profile,
+            'insights': insights,
+            'performance_score': performance_score,
+            'predictive_alerts': predictive_alerts,
+            'cpd_recommendations': cpd_recommendations,
+            'performance_trend': performance_trend,
+            'current_year': timezone.now().year,
+        }
+        
+        return render(request, 'MMC/ai/rmp_insights.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in rmp_ai_insights: {str(e)}")
+        return render(request, 'Shared/404.html')
 
 @login_required
-def admin_ai_insights(request):
-    # Risk assessment for applications
-    high_risk_applications = Application.objects.filter(
-        status='UNDER_REVIEW'
-    ).annotate(
-        risk_score=Case(
-            When(application_type__in=['FOREIGN_PERMANENT', 'PERMANENT_DEFAULTER'], then=Value(80)),
-            When(verification_notes__isnull=False, then=Value(70)),
-            When(Q(documents__is_verified=False) & Q(documents__isnull=False), then=Value(60)),
-            When(expected_completion_date__lt=timezone.now(), then=Value(50)),
-            default=Value(30),
-            output_field=IntegerField()
-        )
-    ).filter(risk_score__gte=70).distinct().order_by('-risk_score')[:10]
-    
-    # Compliance alerts
-    compliance_alerts = CustomUser.objects.filter(
-        user_type='rmp',
-        registration_status='PERMANENT'
-    ).annotate(
-        cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
-        renewal_soon=Case(
-            When(renewal_date__lte=timezone.now().date() + timedelta(days=30), then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField()
-        ),
-        risk_level=Case(
-            When(Q(cpd_deficit__gt=20) & Q(renewal_soon=True), then=Value('HIGH')),
-            When(Q(cpd_deficit__gt=10) | Q(renewal_soon=True), then=Value('MEDIUM')),
-            default=Value('LOW'),
-            output_field=CharField()
-        )
-    ).filter(~Q(risk_level='LOW')).order_by('-cpd_deficit')[:10]
-    
-    # Performance predictions
-    performance_predictions = AIPerformanceScore.objects.filter(
-        overall_score__lt=70
-    ).select_related('user').order_by('overall_score')[:10]
-    
-    # System health insights
-    system_health = {
-        'pending_applications': Application.objects.filter(status__in=['SUBMITTED', 'UNDER_REVIEW']).count(),
-        'overdue_tasks': VerificationTask.objects.filter(
-            due_date__lt=timezone.now(),
-            status__in=['PENDING', 'IN_PROGRESS']
-        ).count(),
-        'pending_payments': Payment.objects.filter(status='PENDING').count(),
-        'cpd_completion_rate': calculate_cpd_completion_rate(),
-    }
-    
-    context = {
-        'high_risk_applications': high_risk_applications,
-        'compliance_alerts': compliance_alerts,
-        'performance_predictions': performance_predictions,
-        'system_health': system_health,
-    }
-    return render(request, 'MMC/ai/admin_insights.html', context)
+def rmp_ai_dashboard(request):
+    """RMP AI Dashboard with comprehensive metrics"""
+    try:
+        rmp_profile = get_object_or_404(RMPProfile, user=request.user)
+        
+        # Key metrics
+        metrics = calculate_rmp_metrics(rmp_profile)
+        
+        # Recent activity
+        recent_applications = Application.objects.filter(
+            rmp=rmp_profile
+        ).order_by('-submitted_date')[:5]
+        
+        # CPD progress
+        cpd_progress = calculate_cpd_progress(rmp_profile)
+        
+        # Risk assessment
+        risk_assessment = assess_rmp_risk(rmp_profile)
+        
+        # Peer comparison
+        peer_comparison = get_peer_comparison(rmp_profile)
+        
+        context = {
+            'rmp_profile': rmp_profile,
+            'metrics': metrics,
+            'recent_applications': recent_applications,
+            'cpd_progress': cpd_progress,
+            'risk_assessment': risk_assessment,
+            'peer_comparison': peer_comparison,
+        }
+        
+        return render(request, 'MMC/ai/rmp_dashboard.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in rmp_ai_dashboard: {str(e)}")
+        return render(request, 'Shared/404.html')
 
-def generate_rmp_ai_insights(user):
-    """Generate AI insights for RMP users"""
+# Admin AI Functions
+@login_required
+def admin_ai_insights(request):
+    """Admin AI Insights with predictive analytics"""
+    try:
+        # Risk assessment for applications
+        from django.db.models import Q, Case, When, Value, IntegerField
+
+        high_risk_applications = (
+            Application.objects.filter(status='under_review')
+            .annotate(
+                risk_score=Case(
+                    # Rule 1: high-risk types
+                    When(application_type__in=['foreign_permanent', 'defaulter'], then=Value(80)),
+                    # Rule 2: non-empty review notes
+                    When(~Q(review_notes="") & Q(review_notes__isnull=False), then=Value(70)),
+                    # Rule 3: unverified documents — adjust related name
+                    When(documents__is_verified=False, then=Value(60)),
+                    # Default fallback
+                    default=Value(40),
+                    output_field=IntegerField(),  # ✅ Correct usage (you DO instantiate here)
+                )
+            )
+            .filter(risk_score__gte=70)
+            .distinct()[:10]
+        )
+        
+        # Compliance alerts
+        compliance_alerts = get_compliance_alerts()
+        
+        # Performance predictions
+        performance_predictions = AIPerformanceScore.objects.filter(
+            overall_score__lt=70
+        ).select_related('rmp__user').order_by('overall_score')[:10]
+        
+        # System health insights
+        system_health = calculate_system_health()
+        
+        # Fraud detection alerts
+        fraud_alerts = detect_fraud_patterns()
+        
+        context = {
+            'high_risk_applications': high_risk_applications,
+            'compliance_alerts': compliance_alerts,
+            'performance_predictions': performance_predictions,
+            'system_health': system_health,
+            'fraud_alerts': fraud_alerts,
+            'total_rmps': RMPProfile.objects.count(),
+            'pending_applications': Application.objects.filter(status='under_review').count(),
+        }
+        
+        return render(request, 'MMC/ai/admin_insights.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in admin_ai_insights: {str(e)}")
+        return render(request, 'Shared/404.html')
+
+@login_required
+def admin_ai_dashboard(request):
+    """Comprehensive Admin AI Dashboard"""
+    try:
+        # Overall statistics
+        performance_scores = AIPerformanceScore.objects.all()
+        avg_scores = performance_scores.aggregate(
+            avg_overall=Avg('overall_score'),
+            avg_cpd=Avg('cpd_score'),
+            avg_compliance=Avg('compliance_score'),
+            avg_professional=Avg('professional_conduct_score')
+        )
+        
+        # Risk analysis
+        risk_distribution = {
+            'high_risk': performance_scores.filter(overall_score__lt=60).count(),
+            'medium_risk': performance_scores.filter(overall_score__gte=60, overall_score__lt=75).count(),
+            'low_risk': performance_scores.filter(overall_score__gte=75).count(),
+        }
+        
+        # Application analytics
+        application_analytics = get_application_analytics()
+        
+        # CPD analytics
+        cpd_analytics = get_cpd_analytics()
+        
+        # Staff performance
+        staff_performance = get_staff_performance_metrics()
+        
+        # Predictive trends
+        predictive_trends = get_predictive_trends()
+        
+        context = {
+            'avg_scores': avg_scores,
+            'risk_distribution': risk_distribution,
+            'application_analytics': application_analytics,
+            'cpd_analytics': cpd_analytics,
+            'staff_performance': staff_performance,
+            'predictive_trends': predictive_trends,
+            'total_analyzed': performance_scores.count(),
+        }
+        
+        return render(request, 'MMC/ai/admin_dashboard.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in admin_ai_dashboard: {str(e)}")
+        return render(request, 'Shared/404.html')
+
+@login_required
+def admin_analytics_dashboard(request):
+    """Advanced Analytics Dashboard"""
+    try:
+        # Time-based analytics
+        time_analytics = get_time_based_analytics()
+        
+        # Geographic distribution
+        geographic_data = get_geographic_distribution()
+        
+        # Specialization analytics
+        specialization_analytics = get_specialization_analytics()
+        
+        # Revenue analytics
+        revenue_analytics = get_revenue_analytics()
+        
+        # Compliance analytics
+        compliance_analytics = get_compliance_analytics()
+        
+        # AI model performance
+        ai_model_performance = get_ai_model_performance()
+        
+        context = {
+            'time_analytics': time_analytics,
+            'geographic_data': geographic_data,
+            'specialization_analytics': specialization_analytics,
+            'revenue_analytics': revenue_analytics,
+            'compliance_analytics': compliance_analytics,
+            'ai_model_performance': ai_model_performance,
+        }
+        
+        return render(request, 'MMC/ai/analytics_dashboard.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in admin_analytics_dashboard: {str(e)}")
+        return render(request, 'Shared/404.html')
+
+# AI Business Logic Functions
+def generate_rmp_ai_insights(rmp_profile):
+    """Generate comprehensive AI insights for RMP"""
     insights = []
     
     # CPD Compliance Insight
-    cpd_completion = (user.total_cpd_points / user.cpd_points_required * 100) if user.cpd_points_required > 0 else 0
+    cpd_completion = (rmp_profile.total_cpd_points / rmp_profile.cpd_points_required * 100) if rmp_profile.cpd_points_required > 0 else 0
+    
     if cpd_completion < 60:
         insights.append(AIInsight.objects.create(
-            user=user,
-            insight_type='CPD_COMPLIANCE',
-            insight_data={
-                'message': f'Your CPD completion is at {cpd_completion:.1f}%.',
-                'suggestion': 'Consider attending more CPD programs to meet requirements.',
-                'urgency': 'medium',
-                'current_points': user.total_cpd_points,
-                'required_points': user.cpd_points_required,
-            },
-            confidence_score=85.5
+            rmp=rmp_profile,
+            insight_type='compliance',
+            title='CPD Compliance Alert',
+            description=f'Your CPD completion is at {cpd_completion:.1f}%. You need {rmp_profile.cpd_points_required - rmp_profile.total_cpd_points} more points to meet requirements.',
+            severity='high' if cpd_completion < 30 else 'medium',
+            action_items=[
+                {'action': 'View CPD Programs', 'url': '/cpd/programs/'},
+                {'action': 'Check CPD Points', 'url': '/cpd/dashboard/'}
+            ],
+            confidence_level=0.85
         ))
     
     # Renewal Prediction
-    if user.renewal_date and user.renewal_date <= timezone.now().date() + timedelta(days=60):
-        days_until_renewal = (user.renewal_date - timezone.now().date()).days
+    if rmp_profile.registration_valid_till and rmp_profile.registration_valid_till <= timezone.now().date() + timedelta(days=90):
+        days_until_renewal = (rmp_profile.registration_valid_till - timezone.now().date()).days
         insights.append(AIInsight.objects.create(
-            user=user,
-            insight_type='RENEWAL_PREDICTION',
-            insight_data={
-                'message': f'Registration renewal due in {days_until_renewal} days.',
-                'suggestion': 'Start the renewal process early to avoid last-minute issues.',
-                'deadline': user.renewal_date.isoformat(),
-                'urgency': 'high' if days_until_renewal < 30 else 'medium'
-            },
-            confidence_score=92.3
+            rmp=rmp_profile,
+            insight_type='deadline',
+            title='Registration Renewal Due',
+            description=f'Your registration renewal is due in {days_until_renewal} days. Start the renewal process early to avoid service interruptions.',
+            severity='high' if days_until_renewal < 30 else 'medium',
+            action_items=[
+                {'action': 'Start Renewal', 'url': '/applications/renewal/'},
+                {'action': 'Check Requirements', 'url': '/help/renewal-guide/'}
+            ],
+            confidence_level=0.92
         ))
     
     # Performance Insight based on application history
-    application_success_rate = Application.objects.filter(
-        applicant=user,
-        status__in=['APPROVED', 'REJECTED']
-    ).count()
+    application_stats = Application.objects.filter(
+        rmp=rmp_profile,
+        status__in=['approved', 'rejected', 'completed']
+    ).aggregate(
+        total=Count('application_id'),
+        approved=Count('application_id', filter=Q(status__in=['approved', 'completed']))
+    )
     
-    if application_success_rate > 0:
-        approved_applications = Application.objects.filter(applicant=user, status='APPROVED').count()
-        success_rate = (approved_applications / application_success_rate) * 100
+    if application_stats['total'] > 0:
+        success_rate = (application_stats['approved'] / application_stats['total']) * 100
         
         if success_rate < 70:
             insights.append(AIInsight.objects.create(
-                user=user,
-                insight_type='PERFORMANCE_INSIGHT',
-                insight_data={
-                    'message': f'Your application success rate is {success_rate:.1f}%.',
-                    'suggestion': 'Review rejected applications for common issues and improve documentation.',
-                    'success_rate': success_rate,
-                    'total_applications': application_success_rate,
-                    'approved_applications': approved_applications
-                },
-                confidence_score=78.9
+                rmp=rmp_profile,
+                insight_type='performance',
+                title='Application Success Rate',
+                description=f'Your application success rate is {success_rate:.1f}%. Review rejected applications for common issues.',
+                severity='medium',
+                action_items=[
+                    {'action': 'View Application History', 'url': '/applications/history/'},
+                    {'action': 'Application Guidelines', 'url': '/help/application-guide/'}
+                ],
+                confidence_level=0.78
             ))
+    
+    # Complaint Risk Assessment
+    pending_complaints = Complaint.objects.filter(
+        against_rmp=rmp_profile,
+        status__in=['registered', 'under_investigation']
+    ).count()
+    
+    if pending_complaints > 0:
+        insights.append(AIInsight.objects.create(
+            rmp=rmp_profile,
+            insight_type='risk',
+            title='Pending Complaints Alert',
+            description=f'You have {pending_complaints} pending complaint(s). Address them promptly to maintain good standing.',
+            severity='high' if pending_complaints > 2 else 'medium',
+            action_items=[
+                {'action': 'View Complaints', 'url': '/complaints/'},
+                {'action': 'Professional Conduct Guide', 'url': '/help/conduct-guide/'}
+            ],
+            confidence_level=0.88
+        ))
+    
+    # CPD Opportunity Insight
+    if cpd_completion > 80:
+        insights.append(AIInsight.objects.create(
+            rmp=rmp_profile,
+            insight_type='opportunity',
+            title='CPD Excellence',
+            description='You are exceeding CPD requirements! Consider advanced courses for specialization development.',
+            severity='low',
+            action_items=[
+                {'action': 'Advanced CPD Programs', 'url': '/cpd/advanced/'},
+                {'action': 'Specialization Courses', 'url': '/cpd/specialization/'}
+            ],
+            confidence_level=0.75
+        ))
     
     return insights
 
+def calculate_rmp_performance_score(rmp_profile):
+    """Calculate comprehensive performance score for RMP"""
+    
+    # Base scores
+    cpd_score = calculate_cpd_score(rmp_profile)
+    compliance_score = calculate_compliance_score(rmp_profile)
+    professional_score = calculate_professional_conduct_score(rmp_profile)
+    research_score = calculate_research_score(rmp_profile)
+    
+    # Weighted overall score
+    overall_score = (
+        cpd_score * 0.35 +
+        compliance_score * 0.30 +
+        professional_score * 0.25 +
+        research_score * 0.10
+    )
+    
+    score_breakdown = {
+        'cpd_score': float(cpd_score),
+        'compliance_score': float(compliance_score),
+        'professional_conduct_score': float(professional_score),
+        'research_score': float(research_score),
+        'calculation_date': timezone.now().isoformat()
+    }
+    
+    performance_score, created = AIPerformanceScore.objects.update_or_create(
+        rmp=rmp_profile,
+        defaults={
+            'overall_score': overall_score,
+            'cpd_score': cpd_score,
+            'compliance_score': compliance_score,
+            'professional_conduct_score': professional_score,
+            'research_score': research_score,
+            'score_breakdown': score_breakdown
+        }
+    )
+    
+    return performance_score
+
+def calculate_cpd_score(rmp_profile):
+    """Calculate CPD performance score"""
+    if rmp_profile.cpd_points_required == 0:
+        return Decimal('100.0')
+    
+    completion_ratio = min(rmp_profile.total_cpd_points / rmp_profile.cpd_points_required, 1.0)
+    base_score = completion_ratio * 100
+    
+    # Bonus for early completion
+    if rmp_profile.cpd_cycle_end:
+        days_remaining = (rmp_profile.cpd_cycle_end - timezone.now().date()).days
+        if days_remaining > 60 and completion_ratio >= 1.0:
+            base_score = min(base_score + 10, 100)
+    
+    return Decimal(str(round(base_score, 2)))
+
+def calculate_compliance_score(rmp_profile):
+    """Calculate compliance score"""
+    base_score = 100.0
+    
+    # Deductions for various compliance issues
+    deductions = 0
+    
+    # Registration status
+    if rmp_profile.registration_status != 'active':
+        deductions += 30
+    
+    # Renewal status
+    if rmp_profile.registration_valid_till and rmp_profile.registration_valid_till < timezone.now().date():
+        deductions += 40
+    
+    # Pending complaints
+    pending_complaints = Complaint.objects.filter(
+        against_rmp=rmp_profile,
+        status__in=['registered', 'under_investigation']
+    ).count()
+    deductions += pending_complaints * 10
+    
+    # Overdue applications
+    overdue_applications = Application.objects.filter(
+        rmp=rmp_profile,
+        status='under_review',
+        expected_completion_date__lt=timezone.now()
+    ).count()
+    deductions += overdue_applications * 5
+    
+    final_score = max(base_score - deductions, 0)
+    return Decimal(str(round(final_score, 2)))
+
+def calculate_professional_conduct_score(rmp_profile):
+    """Calculate professional conduct score"""
+    base_score = 100.0
+    
+    # Complaint analysis
+    complaints = Complaint.objects.filter(against_rmp=rmp_profile)
+    total_complaints = complaints.count()
+    resolved_complaints = complaints.filter(status='resolved').count()
+    
+    if total_complaints > 0:
+        resolution_rate = resolved_complaints / total_complaints
+        complaint_deduction = (1 - resolution_rate) * 50
+        base_score -= complaint_deduction
+    
+    # Severity adjustments
+    high_severity_complaints = complaints.filter(severity='high').count()
+    base_score -= high_severity_complaints * 20
+    
+    # Positive factors
+    awards_count = Award.objects.filter(rmp=rmp_profile).count()
+    base_score += min(awards_count * 5, 20)
+    
+    final_score = max(min(base_score, 100), 0)
+    return Decimal(str(round(final_score, 2)))
+
+def calculate_research_score(rmp_profile):
+    """Calculate research and publication score"""
+    base_score = 0
+    
+    # Publications
+    publications = Publication.objects.filter(rmp=rmp_profile)
+    publication_score = min(publications.count() * 10, 40)
+    
+    # Research projects (placeholder - would need Research model)
+    research_score = 0
+    
+    # Conference presentations
+    conference_papers = publications.filter(publication_type='conference')
+    conference_score = min(conference_papers.count() * 5, 20)
+    
+    # Awards and recognition
+    awards = Award.objects.filter(rmp=rmp_profile)
+    award_score = min(awards.count() * 8, 20)
+    
+    base_score = publication_score + research_score + conference_score + award_score
+    
+    return Decimal(str(round(base_score, 2)))
+
+# Utility Functions
+def get_personalized_cpd_recommendations(rmp_profile):
+    """Get personalized CPD recommendations based on specialization and history"""
+    recommendations = CPDProgram.objects.filter(
+        is_active=True,
+        start_date__gte=timezone.now(),
+        status='Published'
+    ).annotate(
+        relevance_score=Case(
+            When(target_audience__icontains=rmp_profile.specialization, then=Value(100)),
+            When(target_audience__icontains='general', then=Value(50)),
+            default=Value(30),
+            output_field=IntegerField()
+        )
+    ).filter(relevance_score__gte=50).order_by('-relevance_score', 'start_date')[:5]
+    
+    return recommendations
+
+def get_compliance_alerts():
+    """Get compliance alerts across the system"""
+    alerts = []
+    
+    # CPD compliance alerts
+    cpd_alerts = RMPProfile.objects.filter(
+        registration_status='active'
+    ).annotate(
+        cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
+        days_until_renewal=Case(
+            When(
+                registration_valid_till__isnull=False,
+                then=F('registration_valid_till') - timezone.now().date()
+            ),
+            default=Value(999),
+            output_field=IntegerField()
+        )
+    ).filter(
+        Q(cpd_deficit__gt=10) | Q(days_until_renewal__lt=30)
+    ).select_related('user')[:10]
+    
+    for rmp in cpd_alerts:
+        alert_type = 'cpd_deficit' if rmp.cpd_deficit > 10 else 'renewal'
+        severity = 'high' if (rmp.cpd_deficit > 20 or rmp.days_until_renewal < 15) else 'medium'
+        
+        alerts.append({
+            'rmp': rmp,
+            'type': alert_type,
+            'severity': severity,
+            'message': f"CPD deficit: {rmp.cpd_deficit} points" if alert_type == 'cpd_deficit' else f"Renewal in {rmp.days_until_renewal} days",
+            'action_url': f"/admin/rmp/{rmp.id}/"
+        })
+    
+    return alerts
+
+def calculate_system_health():
+    """Calculate overall system health metrics"""
+    total_applications = Application.objects.count()
+    pending_applications = Application.objects.filter(status='under_review').count()
+    completed_today = Application.objects.filter(
+        status__in=['approved', 'completed'],
+        updated_at__date=timezone.now().date()
+    ).count()
+    
+    sla_violations = Application.objects.filter(
+        expected_completion_date__lt=timezone.now(),
+        status='under_review'
+    ).count()
+    
+    pending_payments = Payment.objects.filter(status='pending').count()
+    
+    cpd_completion_rate = calculate_cpd_completion_rate()
+    
+    return {
+        'pending_applications': pending_applications,
+        'completion_rate_today': (completed_today / total_applications * 100) if total_applications > 0 else 0,
+        'sla_violations': sla_violations,
+        'sla_compliance_rate': ((pending_applications - sla_violations) / pending_applications * 100) if pending_applications > 0 else 100,
+        'pending_payments': pending_payments,
+        'cpd_completion_rate': cpd_completion_rate,
+    }
+
+def calculate_cpd_completion_rate():
+    """Calculate overall CPD completion rate"""
+    total_rmps = RMPProfile.objects.filter(registration_status='active').count()
+    if total_rmps == 0:
+        return 0
+    
+    compliant_rmps = RMPProfile.objects.filter(
+        registration_status='active',
+        total_cpd_points__gte=F('cpd_points_required')
+    ).count()
+    
+    return (compliant_rmps / total_rmps) * 100
+
+def detect_fraud_patterns():
+    """Detect potential fraud patterns in applications"""
+    fraud_patterns = []
+    
+    # Multiple applications with similar data
+    duplicate_applications = Application.objects.values(
+        'application_data__personal_details__full_name',
+        'application_data__personal_details__date_of_birth'
+    ).annotate(
+        count=Count('application_id')
+    ).filter(count__gt=1).order_by('-count')[:5]
+    
+    for pattern in duplicate_applications:
+        fraud_patterns.append({
+            'type': 'duplicate_application',
+            'description': f"Multiple applications with similar personal details",
+            'count': pattern['count'],
+            'severity': 'medium'
+        })
+    
+    # Rapid succession applications
+    rapid_applications = Application.objects.filter(
+        submitted_date__gte=timezone.now() - timedelta(days=7)
+    ).values('rmp').annotate(
+        count=Count('application_id')
+    ).filter(count__gt=3).order_by('-count')[:5]
+    
+    for pattern in rapid_applications:
+        fraud_patterns.append({
+            'type': 'rapid_applications',
+            'description': "Multiple applications submitted in short time",
+            'count': pattern['count'],
+            'severity': 'low'
+        })
+    
+    return fraud_patterns
+
+# Additional analytical functions
+def get_application_analytics():
+    """Get comprehensive application analytics"""
+    today = timezone.now().date()
+    last_week = today - timedelta(days=7)
+    last_month = today - timedelta(days=30)
+    
+    analytics = {
+        'total_applications': Application.objects.count(),
+        'pending_review': Application.objects.filter(status='under_review').count(),
+        'approved_today': Application.objects.filter(
+            status__in=['approved', 'completed'],
+            updated_at__date=today
+        ).count(),
+        'weekly_trend': Application.objects.filter(
+            submitted_date__date__gte=last_week
+        ).count(),
+        'monthly_trend': Application.objects.filter(
+            submitted_date__date__gte=last_month
+        ).count(),
+        'avg_processing_time': calculate_average_processing_time(),
+    }
+    
+    return analytics
+
+def calculate_average_processing_time():
+    """Calculate average application processing time"""
+    completed_apps = Application.objects.filter(
+        status__in=['approved', 'completed', 'rejected'],
+        submitted_date__isnull=False,
+        updated_at__isnull=False
+    )
+    
+    if not completed_apps.exists():
+        return 0
+    
+    total_seconds = 0
+    for app in completed_apps:
+        processing_time = app.updated_at - app.submitted_date
+        total_seconds += processing_time.total_seconds()
+    
+    avg_seconds = total_seconds / completed_apps.count()
+    avg_days = avg_seconds / (24 * 3600)
+    
+    return round(avg_days, 1)
+
+def get_cpd_analytics():
+    """Get CPD program analytics"""
+    analytics = {
+        'total_programs': CPDProgram.objects.count(),
+        'active_programs': CPDProgram.objects.filter(is_active=True).count(),
+        'upcoming_programs': CPDProgram.objects.filter(start_date__gte=timezone.now()).count(),
+        'total_participations': CPDAttendance.objects.count(),
+        'avg_attendance_rate': calculate_avg_attendance_rate(),
+        'popular_programs': get_popular_cpd_programs(),
+    }
+    
+    return analytics
+
+def calculate_avg_attendance_rate():
+    """Calculate average CPD program attendance rate"""
+    programs = CPDProgram.objects.annotate(
+        total_registered=Count('attendances'),
+        total_attended=Count('attendances', filter=Q(attendances__attendance_status='attended'))
+    ).filter(total_registered__gt=0)
+    
+    if not programs.exists():
+        return 0
+    
+    total_rate = 0
+    for program in programs:
+        attendance_rate = (program.total_attended / program.total_registered) * 100
+        total_rate += attendance_rate
+    
+    return round(total_rate / programs.count(), 1)
+
+def get_popular_cpd_programs():
+    """Get most popular CPD programs"""
+    return CPDProgram.objects.annotate(
+        attendance_count=Count('attendances')
+    ).order_by('-attendance_count')[:5]
+
+# AJAX views for real-time data
+@login_required
+def get_ai_metrics(request):
+    """AJAX endpoint for real-time AI metrics"""
+    if request.user.user_type == 'rmp':
+        rmp_profile = get_object_or_404(RMPProfile, user=request.user)
+        metrics = calculate_rmp_metrics(rmp_profile)
+        return JsonResponse(metrics)
+    else:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+@login_required
+
+def get_realtime_analytics(request):
+    """AJAX endpoint for real-time admin analytics"""
+    analytics = {
+        'system_health': calculate_system_health(),
+        'application_analytics': get_application_analytics(),
+        'cpd_analytics': get_cpd_analytics(),
+    }
+    return JsonResponse(analytics)
+
+# ai_helpers.py - Additional AI helper functions
+def calculate_rmp_metrics(rmp_profile):
+    """Calculate comprehensive metrics for RMP"""
+    today = timezone.now().date()
+    
+    # Application metrics
+    applications = rmp_profile.applications.all()
+    total_applications = applications.count()
+    approved_applications = applications.filter(status__in=['approved', 'completed']).count()
+    pending_applications = applications.filter(status='under_review').count()
+    
+    # CPD metrics
+    cpd_completion = (rmp_profile.total_cpd_points / rmp_profile.cpd_points_required * 100) if rmp_profile.cpd_points_required > 0 else 0
+    cpd_deficit = max(rmp_profile.cpd_points_required - rmp_profile.total_cpd_points, 0)
+    
+    # Renewal metrics
+    renewal_status = "Current"
+    renewal_urgency = "low"
+    if rmp_profile.registration_valid_till:
+        days_until_renewal = (rmp_profile.registration_valid_till - today).days
+        if days_until_renewal < 0:
+            renewal_status = "Expired"
+            renewal_urgency = "high"
+        elif days_until_renewal < 30:
+            renewal_status = "Urgent"
+            renewal_urgency = "high"
+        elif days_until_renewal < 90:
+            renewal_status = "Due Soon"
+            renewal_urgency = "medium"
+    
+    # Complaint metrics
+    pending_complaints = Complaint.objects.filter(
+        against_rmp=rmp_profile,
+        status__in=['registered', 'under_investigation']
+    ).count()
+    
+    return {
+        'total_applications': total_applications,
+        'approval_rate': (approved_applications / total_applications * 100) if total_applications > 0 else 0,
+        'pending_applications': pending_applications,
+        'cpd_completion_rate': cpd_completion,
+        'cpd_deficit': cpd_deficit,
+        'renewal_status': renewal_status,
+        'renewal_urgency': renewal_urgency,
+        'pending_complaints': pending_complaints,
+        'registration_status': rmp_profile.registration_status,
+    }
+
+def assess_rmp_risk(rmp_profile):
+    """Assess overall risk for RMP"""
+    risk_factors = []
+    overall_risk = "low"
+    
+    metrics = calculate_rmp_metrics(rmp_profile)
+    
+    # CPD risk
+    if metrics['cpd_completion_rate'] < 50:
+        risk_factors.append("Low CPD completion")
+        overall_risk = "medium"
+    
+    # Renewal risk
+    if metrics['renewal_urgency'] == "high":
+        risk_factors.append("Registration renewal overdue")
+        overall_risk = "high"
+    
+    # Complaint risk
+    if metrics['pending_complaints'] > 0:
+        risk_factors.append(f"{metrics['pending_complaints']} pending complaints")
+        overall_risk = "high" if metrics['pending_complaints'] > 2 else "medium"
+    
+    # Application approval risk
+    if metrics['approval_rate'] < 60 and metrics['total_applications'] > 5:
+        risk_factors.append("Low application approval rate")
+        overall_risk = "medium"
+    
+    return {
+        'level': overall_risk,
+        'factors': risk_factors,
+        'score': calculate_risk_score(risk_factors, overall_risk)
+    }
+
+def calculate_risk_score(risk_factors, overall_risk):
+    """Calculate numerical risk score"""
+    base_score = 0
+    
+    risk_weights = {
+        'high': 3,
+        'medium': 2,
+        'low': 1
+    }
+    
+    for factor in risk_factors:
+        if 'overdue' in factor.lower() or 'expired' in factor.lower():
+            base_score += 40
+        elif 'complaint' in factor.lower():
+            base_score += 30
+        elif 'cpd' in factor.lower():
+            base_score += 20
+        else:
+            base_score += 10
+    
+    return min(base_score, 100)
+
+def get_peer_comparison(rmp_profile):
+    """Compare RMP with peers in same specialization"""
+    peers = RMPProfile.objects.filter(
+        specialization=rmp_profile.specialization,
+        registration_status='active'
+    ).exclude(id=rmp_profile.id)
+    
+    if not peers.exists():
+        return None
+    
+    peer_metrics = {
+        'avg_cpd_points': peers.aggregate(avg=Avg('total_cpd_points'))['avg'] or 0,
+        'avg_performance': AIPerformanceScore.objects.filter(
+            rmp__in=peers
+        ).aggregate(avg=Avg('overall_score'))['avg'] or 0,
+        'total_peers': peers.count()
+    }
+    
+    current_performance = AIPerformanceScore.objects.filter(rmp=rmp_profile).first()
+    
+    comparison = {
+        'cpd_rank': "Above Average" if rmp_profile.total_cpd_points > peer_metrics['avg_cpd_points'] else "Below Average",
+        'performance_rank': "Above Average" if current_performance and current_performance.overall_score > peer_metrics['avg_performance'] else "Below Average",
+        'peer_count': peer_metrics['total_peers'],
+        'avg_peer_cpd': round(peer_metrics['avg_cpd_points'], 1),
+        'avg_peer_performance': round(peer_metrics['avg_performance'], 1)
+    }
+    
+    return comparison
+
+# views.py - Additional missing implementations
+def calculate_performance_trend(rmp_profile):
+    """Calculate performance trend for RMP"""
+    # This would typically compare current performance with historical data
+    # For now, we'll simulate based on recent activity
+    recent_applications = Application.objects.filter(
+        rmp=rmp_profile,
+        submitted_date__gte=timezone.now() - timedelta(days=90)
+    )
+    
+    recent_approvals = recent_applications.filter(status__in=['approved', 'completed']).count()
+    total_recent = recent_applications.count()
+    
+    if total_recent > 0:
+        recent_success_rate = (recent_approvals / total_recent) * 100
+        # Compare with overall performance
+        overall_applications = Application.objects.filter(rmp=rmp_profile)
+        overall_approvals = overall_applications.filter(status__in=['approved', 'completed']).count()
+        overall_total = overall_applications.count()
+        
+        if overall_total > 0:
+            overall_success_rate = (overall_approvals / overall_total) * 100
+            if recent_success_rate > overall_success_rate + 10:
+                return {'positive': True, 'message': 'Performance improving - recent success rate is higher'}
+            elif recent_success_rate < overall_success_rate - 10:
+                return {'positive': False, 'message': 'Performance declining - review recent applications'}
+    
+    return {'positive': True, 'message': 'Stable performance trend'}
+
+def get_staff_performance_metrics():
+    """Get staff performance metrics for admin dashboard"""
+    from django.db.models import Count, Avg, Q, F, ExpressionWrapper, DurationField
+    
+    staff_performance = CustomUser.objects.filter(
+        user_type__in=['staff', 'admin'],
+        assigned_applications__isnull=False
+    ).annotate(
+        total_processed=Count('assigned_applications', 
+                              filter=Q(assigned_applications__status__in=['approved', 'rejected', 'completed'])),
+        avg_processing_time=Avg(
+            ExpressionWrapper(
+                F('assigned_applications__updated_at') - F('assigned_applications__submitted_date'),
+                output_field=DurationField()
+            ),
+            filter=Q(assigned_applications__status__in=['approved', 'rejected', 'completed'])
+        ),
+        approval_rate=Count('assigned_applications', 
+                            filter=Q(assigned_applications__status__in=['approved', 'completed'])) * 100.0 / 
+                      Count('assigned_applications', 
+                            filter=Q(assigned_applications__status__in=['approved', 'rejected', 'completed']))
+    ).filter(total_processed__gt=0).values(
+        'full_name', 'total_processed', 'avg_processing_time', 'approval_rate'
+    )
+    
+    # Convert processing time to days and calculate performance score
+    results = []
+    for staff in staff_performance:
+        if staff['avg_processing_time']:
+            processing_days = staff['avg_processing_time'].total_seconds() / (24 * 3600)
+        else:
+            processing_days = 0
+            
+        approval_score = staff['approval_rate'] or 0
+        time_score = max(0, 100 - (processing_days * 10))
+        performance_score = (approval_score + time_score) / 2
+        
+        results.append({
+            'full_name': staff['full_name'],
+            'total_processed': staff['total_processed'],
+            'avg_processing_time': round(processing_days, 1),
+            'approval_rate': round(approval_score, 1),
+            'performance': round(performance_score, 1)
+        })
+    
+    return sorted(results, key=lambda x: x['performance'], reverse=True)[:5]
+
+
+def get_predictive_trends():
+    """Get predictive trends for admin dashboard"""
+    # Analyze application trends
+    current_month = timezone.now().month
+    last_month_apps = Application.objects.filter(
+        submitted_date__month=current_month - 1 if current_month > 1 else 12,
+        submitted_date__year=timezone.now().year if current_month > 1 else timezone.now().year - 1
+    ).count()
+    
+    current_month_apps = Application.objects.filter(
+        submitted_date__month=current_month,
+        submitted_date__year=timezone.now().year
+    ).count()
+    
+    app_trend = 'up' if current_month_apps > last_month_apps else 'down'
+    app_change = abs(current_month_apps - last_month_apps)
+    
+    # CPD participation trends
+    current_cpd = CPDAttendance.objects.filter(
+        registration_date__month=current_month
+    ).count()
+    
+    last_cpd = CPDAttendance.objects.filter(
+        registration_date__month=current_month - 1 if current_month > 1 else 12
+    ).count()
+    
+    cpd_trend = 'up' if current_cpd > last_cpd else 'down'
+    cpd_change = abs(current_cpd - last_cpd)
+    
+    return [
+        {
+            'metric': 'Application Volume',
+            'trend': app_trend,
+            'prediction': f'{app_change} more applications' if app_trend == 'up' else f'{app_change} fewer applications',
+            'confidence': 85
+        },
+        {
+            'metric': 'CPD Participation',
+            'trend': cpd_trend,
+            'prediction': f'{cpd_change} more participations' if cpd_trend == 'up' else f'{cpd_change} fewer participations',
+            'confidence': 78
+        }
+    ]
+
+def get_time_based_analytics():
+    """Get time-based analytics for advanced dashboard"""
+    from django.db.models.functions import TruncMonth, TruncWeek
+    
+    # Monthly application trends
+    monthly_apps = Application.objects.annotate(
+        month=TruncMonth('submitted_date')
+    ).values('month').annotate(
+        count=Count('application_id'),
+        approved=Count('application_id', filter=Q(status__in=['approved', 'completed']))
+    ).order_by('month')[:12]
+    
+    # Weekly performance
+    weekly_performance = AIPerformanceScore.objects.filter(
+        last_updated__gte=timezone.now() - timedelta(days=90)
+    ).annotate(
+        week=TruncWeek('last_updated')
+    ).values('week').annotate(
+        avg_score=Avg('overall_score')
+    ).order_by('week')
+    
+    return {
+        'monthly_applications': [],
+        'weekly_performance': []
+    }
+
+def get_geographic_distribution():
+    """Get geographic distribution of RMPs"""
+    state_distribution = RMPProfile.objects.values('communication_state').annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    
+    city_distribution = RMPProfile.objects.values('communication_city').annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    
+    return {
+        'states': list(state_distribution),
+        'cities': list(city_distribution)
+    }
+
+def get_specialization_analytics():
+    """Get specialization-based analytics"""
+    specialization_stats = RMPProfile.objects.values('specialization').annotate(
+        total=Count('id'),
+        avg_performance=Avg('ai_score__overall_score'),
+        avg_cpd=Avg('total_cpd_points')
+    ).filter(specialization__isnull=False).order_by('-total')[:10]
+    
+    return list(specialization_stats)
+
+def get_revenue_analytics():
+    """Get revenue analytics"""
+    monthly_revenue = Payment.objects.filter(
+        status='success',
+        payment_date__gte=timezone.now() - timedelta(days=365)
+    ).annotate(
+        month=TruncMonth('payment_date')
+    ).values('month').annotate(
+        revenue=Sum('amount')
+    ).order_by('month')
+    
+    service_revenue = Payment.objects.filter(
+        status='success',
+        payment_date__gte=timezone.now() - timedelta(days=90)
+    ).values('application__application_type').annotate(
+        revenue=Sum('amount'),
+        count=Count('payment_id')
+    ).order_by('-revenue')
+    
+    return {
+        'monthly_revenue': list(monthly_revenue),
+        'service_revenue': list(service_revenue)
+    }
+
+def get_compliance_analytics():
+    """Get compliance analytics"""
+    total_rmps = RMPProfile.objects.filter(registration_status='active').count()
+    
+    cpd_compliant = RMPProfile.objects.filter(
+        registration_status='active',
+        total_cpd_points__gte=F('cpd_points_required')
+    ).count()
+    
+    renewal_compliant = RMPProfile.objects.filter(
+        registration_status='active',
+        registration_valid_till__gte=timezone.now().date()
+    ).count()
+    
+    complaint_free = RMPProfile.objects.exclude(
+        complaints_against__status__in=['registered', 'under_investigation']
+    ).filter(registration_status='active').count()
+    
+    return {
+        'total_active_rmps': total_rmps,
+        'cpd_compliance_rate': (cpd_compliant / total_rmps * 100) if total_rmps > 0 else 0,
+        'renewal_compliance_rate': (renewal_compliant / total_rmps * 100) if total_rmps > 0 else 0,
+        'complaint_free_rate': (complaint_free / total_rmps * 100) if total_rmps > 0 else 0,
+    }
+
+def get_ai_model_performance():
+    """Get AI model performance metrics"""
+    # This would typically come from your ML model monitoring
+    # For now, we'll simulate some metrics
+    total_insights = AIInsight.objects.count()
+    active_insights = AIInsight.objects.filter(is_active=True).count()
+    high_confidence_insights = AIInsight.objects.filter(confidence_level__gte=0.8).count()
+    
+    predictive_alerts = PredictiveAlert.objects.count()
+    accurate_alerts = PredictiveAlert.objects.filter(
+        predicted_date__lte=timezone.now().date() + timedelta(days=7),
+        is_active=True
+    ).count()
+    
+    return {
+        'total_insights_generated': total_insights,
+        'active_insights': active_insights,
+        'high_confidence_rate': (high_confidence_insights / total_insights * 100) if total_insights > 0 else 0,
+        'predictive_alert_accuracy': (accurate_alerts / predictive_alerts * 100) if predictive_alerts > 0 else 0,
+        'model_uptime': 99.8,  # Simulated
+        'average_confidence': AIInsight.objects.aggregate(avg=Avg('confidence_level'))['avg'] or 0
+    }
+
+# ai_helpers.py - Complete all missing functions
+def calculate_cpd_progress(rmp_profile):
+    """Calculate detailed CPD progress"""
+    if rmp_profile.cpd_cycle_end:
+        total_days = (rmp_profile.cpd_cycle_end - rmp_profile.cpd_cycle_start).days
+        days_passed = (timezone.now().date() - rmp_profile.cpd_cycle_start).days
+        time_progress = min((days_passed / total_days) * 100, 100) if total_days > 0 else 0
+    else:
+        time_progress = 50  # Default if no cycle end date
+    
+    completion_percentage = (rmp_profile.total_cpd_points / rmp_profile.cpd_points_required * 100) if rmp_profile.cpd_points_required > 0 else 0
+    points_needed = max(rmp_profile.cpd_points_required - rmp_profile.total_cpd_points, 0)
+    
+    return {
+        'completion_percentage': completion_percentage,
+        'points_needed': points_needed,
+        'time_progress': time_progress,
+        'on_track': completion_percentage >= time_progress - 20  # Allow 20% buffer
+    }
+
+def generate_predictive_alerts(rmp_profile):
+    """Generate predictive alerts for RMP"""
+    alerts = []
+    
+    # Renewal alerts
+    if rmp_profile.registration_valid_till:
+        days_until_renewal = (rmp_profile.registration_valid_till - timezone.now().date()).days
+        if days_until_renewal <= 60:
+            confidence = max(0.9 - (days_until_renewal / 200), 0.6)  # Higher confidence as deadline approaches
+            alerts.append(PredictiveAlert.objects.create(
+                rmp=rmp_profile,
+                alert_type='renewal',
+                message=f'Registration renewal due in {days_until_renewal} days',
+                predicted_date=rmp_profile.registration_valid_till,
+                confidence_score=confidence
+            ))
+    
+    # CPD deficit alerts
+    cpd_deficit = rmp_profile.cpd_points_required - rmp_profile.total_cpd_points
+    if cpd_deficit > 10:
+        # Predict based on historical CPD accumulation rate
+        predicted_completion = predict_cpd_completion(rmp_profile)
+        if predicted_completion and predicted_completion['risk'] == 'high':
+            alerts.append(PredictiveAlert.objects.create(
+                rmp=rmp_profile,
+                alert_type='cpd_deficit',
+                message=f'Risk of not meeting CPD requirements. Need {cpd_deficit} more points.',
+                predicted_date=predicted_completion['predicted_date'],
+                confidence_score=predicted_completion['confidence']
+            ))
+    
+    return alerts
+
+def predict_cpd_completion(rmp_profile):
+    """Predict CPD completion based on historical data"""
+    # Get CPD attendance in current cycle
+    current_cycle_attendance = CPDAttendance.objects.filter(
+        rmp=rmp_profile,
+        registration_date__gte=rmp_profile.cpd_cycle_start
+    )
+    
+    if not current_cycle_attendance.exists():
+        return None
+    
+    # Calculate average points per month
+    months_passed = max((timezone.now().date() - rmp_profile.cpd_cycle_start).days / 30, 1)
+    avg_points_per_month = rmp_profile.total_cpd_points / months_passed
+    
+    points_needed = rmp_profile.cpd_points_required - rmp_profile.total_cpd_points
+    months_remaining = 12 - months_passed  # Assuming 12-month cycle
+    
+    if months_remaining <= 0:
+        return {
+            'risk': 'high',
+            'predicted_date': rmp_profile.cpd_cycle_end,
+            'confidence': 0.95
+        }
+    
+    if avg_points_per_month <= 0:
+        return {
+            'risk': 'high',
+            'predicted_date': rmp_profile.cpd_cycle_end,
+            'confidence': 0.8
+        }
+    
+    predicted_completion_months = points_needed / avg_points_per_month
+    
+    if predicted_completion_months > months_remaining:
+        return {
+            'risk': 'high',
+            'predicted_date': rmp_profile.cpd_cycle_end,
+            'confidence': min(0.7 + (predicted_completion_months - months_remaining) / 10, 0.95)
+        }
+    else:
+        return {
+            'risk': 'low',
+            'predicted_date': rmp_profile.cpd_cycle_start + timedelta(days=30 * (months_passed + predicted_completion_months)),
+            'confidence': 0.6
+        }
+    
 # API Views
 class ApplicationStatusAPI(View):
     def get(self, request, application_id):
@@ -5502,46 +6437,96 @@ def update_complaint_status(request, complaint_id):
     }
     return render(request, 'MMC/admin/update_complaint_status.html', context)
 
+from django.db import connection
+
+def get_staff_efficiency():
+    results = callproc('stp_GetStaffEfficiency')
+    if not results:
+        return []
+    columns = [desc[0] for desc in results[0].cursor.description] if hasattr(results[0], 'cursor') else None
+    return results
+
 # ============ ADVANCED AI INTEGRATION ============
 @login_required
 def ai_analytics_dashboard(request):
     """Advanced AI analytics dashboard"""
     # Predictive analytics for application volume
-    application_trends = Application.objects.annotate(
-        month=TruncMonth('application_date')
-    ).values('month').annotate(
-        count=Count('id'),
-        approval_rate=Count('id', filter=Q(status='APPROVED')) * 100.0 / Count('id')
-    ).order_by('month')[-12:]  # Last 12 months
+    application_trends = (
+        Application.objects
+        .annotate(month=TruncMonth('application_date'))
+        .values('month')
+        .annotate(
+            count=Count('application_id'),
+            approval_rate=Count('application_id', filter=Q(status='approved')) * 100.0 / Count('application_id')
+        )
+        .order_by('-month')[:12]  # get latest 12 months
+    )  # Last 12 months
     
     # Risk prediction model
-    high_risk_applications = Application.objects.filter(
-        status='UNDER_REVIEW'
-    ).annotate(
-        risk_score=Case(
-            When(application_type__in=['FOREIGN_PERMANENT', 'PERMANENT_DEFAULTER'], then=Value(80)),
-            When(verification_notes__isnull=False, then=Value(70)),
-            When(Q(documents__is_verified=False) & Q(documents__isnull=False), then=Value(60)),
-            When(expected_completion_date__lt=timezone.now(), then=Value(50)),
-            default=Value(30),
-            output_field=IntegerField()
+
+    high_risk_applications = (
+        Application.objects.filter(status='under_review')
+        .annotate(
+            risk_score=Case(
+                # Rule 1: high-risk types
+                When(application_type__in=['foreign_permanent', 'defaulter'], then=Value(80)),
+                # Rule 2: non-empty review notes
+                When(~Q(review_notes="") & Q(review_notes__isnull=False), then=Value(70)),
+                # Rule 3: unverified documents — adjust related name
+                When(documents__is_verified=False, then=Value(60)),
+                # Default fallback
+                default=Value(40),
+                output_field=IntegerField(),  # ✅ Correct usage (you DO instantiate here)
+            )
         )
-    ).filter(risk_score__gte=70).order_by('-risk_score')[:10]
+        .filter(risk_score__gte=70)
+        .distinct()[:10]
+    )
     
     # CPD compliance predictions
-    compliance_risk = CustomUser.objects.filter(
-        user_type='rmp',
-        registration_status='PERMANENT'
-    ).annotate(
-        cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
-        risk_level=Case(
-            When(Q(cpd_deficit__gt=20) & Q(renewal_date__lte=timezone.now().date() + timedelta(days=30)), then=Value('HIGH')),
-            When(Q(cpd_deficit__gt=10) | Q(renewal_date__lte=timezone.now().date() + timedelta(days=60)), then=Value('MEDIUM')),
-            default=Value('LOW'),
-            output_field=CharField()
+    # compliance_risk = CustomUser.objects.filter(
+    #     user_type='rmp',
+    #     registration_status='PERMANENT'
+    # ).annotate(
+    #     cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
+    #     risk_level=Case(
+    #         When(Q(cpd_deficit__gt=20) & Q(renewal_date__lte=timezone.now().date() + timedelta(days=30)), then=Value('HIGH')),
+    #         When(Q(cpd_deficit__gt=10) | Q(renewal_date__lte=timezone.now().date() + timedelta(days=60)), then=Value('MEDIUM')),
+    #         default=Value('LOW'),
+    #         output_field=CharField()
+    #     )
+    # ).values('risk_level').annotate(count=Count('id')).order_by('risk_level')
+    today = timezone.now().date()
+    # Step 1: Get RMP Profile if exists
+    rmp_profile = get_rmp_profile(request.user)
+    renewal_date = rmp_profile.registration_valid_till if rmp_profile else None
+
+    # Step 2: Base queryset with CPD deficit annotation
+    compliance_risk = (
+        CustomUser.objects.filter(
+            user_type='rmp',
+            registration_status='PERMANENT'
         )
-    ).values('risk_level').annotate(count=Count('id')).order_by('risk_level')
-    
+        .annotate(
+            cpd_deficit=F('cpd_points_required') - F('total_cpd_points'),
+        )
+        .filter(cpd_deficit__gt=10)[:10]
+    )
+
+    # Step 3: Add renewal alert logic (handled in Python)
+    if renewal_date:
+        renewal_soon_users = []
+        for user in compliance_risk:
+            user_rmp = get_rmp_profile(user)
+            if user_rmp and user_rmp.registration_valid_till and user_rmp.registration_valid_till <= today + timedelta(days=30):
+                renewal_soon_users.append(user)
+
+        # Combine users with CPD deficit OR renewal soon
+        combined_users = set(compliance_risk) | set(renewal_soon_users)
+        compliance_risk = list(combined_users)
+
+    # Staff efficiency analytics
+    staff_efficiency = []
     # Staff efficiency analytics
     staff_efficiency = CustomUser.objects.filter(
         user_type__in=['ADMIN', 'VERIFIER']
@@ -5555,13 +6540,17 @@ def ai_analytics_dashboard(request):
         ),
         task_completion_rate=Count('verification_tasks', filter=Q(verification_tasks__status='COMPLETED')) * 100.0 / Count('verification_tasks')
     ).values('username', 'first_name', 'last_name', 'avg_processing_time', 'task_completion_rate')
+
+    
+
     
     context = {
-        'application_trends': list(application_trends),
-        'high_risk_applications': high_risk_applications,
-        'compliance_risk': list(compliance_risk),
-        'staff_efficiency': list(staff_efficiency),
+        'application_trends':  [],
+        'high_risk_applications': high_risk_applications if high_risk_applications else [],
+        'compliance_risk': list(compliance_risk) if compliance_risk else [],
+        'staff_efficiency': list(staff_efficiency) if staff_efficiency else [],
     }
+
     return render(request, 'MMC/ai/analytics_dashboard.html', context)
 
 # ============ BULK OPERATIONS & UTILITIES ============

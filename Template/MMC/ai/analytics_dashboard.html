@@ -1,0 +1,439 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+.analytics-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.analytics-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+.metric-large {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+.trend-up { color: #28a745; }
+.trend-down { color: #dc3545; }
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+</style>
+
+{% endblock %}
+
+{% block title %}Advanced Analytics - MMC Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">Advanced Analytics Dashboard</h1>
+                    <p class="text-muted">Deep insights and predictive analytics for MMC operations</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'admin_ai_insights' %}" class="btn btn-outline-primary">Insights</a>
+                    <a href="{% url 'admin_ai_dashboard' %}" class="btn btn-outline-primary">Dashboard</a>
+                    <a href="{% url 'admin_analytics_dashboard' %}" class="btn btn-primary">Advanced Analytics</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compliance Analytics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card analytics-card">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt text-primary"></i>
+                        Compliance Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3">
+                                <div class="metric-large text-primary">
+                                    {{ compliance_analytics.cpd_compliance_rate|floatformat:1 }}%
+                                </div>
+                                <p class="mb-0">CPD Compliance Rate</p>
+                                <small class="text-muted">Active RMPs meeting CPD requirements</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3">
+                                <div class="metric-large text-success">
+                                    {{ compliance_analytics.renewal_compliance_rate|floatformat:1 }}%
+                                </div>
+                                <p class="mb-0">Renewal Compliance</p>
+                                <small class="text-muted">RMPs with current registration</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3">
+                                <div class="metric-large text-info">
+                                    {{ compliance_analytics.complaint_free_rate|floatformat:1 }}%
+                                </div>
+                                <p class="mb-0">Complaint Free Rate</p>
+                                <small class="text-muted">RMPs with no pending complaints</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3">
+                                <div class="metric-large text-warning">
+                                    {{ compliance_analytics.total_active_rmps }}
+                                </div>
+                                <p class="mb-0">Total Active RMPs</p>
+                                <small class="text-muted">Currently registered practitioners</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Geographic Distribution -->
+            <div class="card analytics-card mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt text-danger"></i>
+                        Geographic Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Top States</h6>
+                            {% for state in geographic_data.states %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>{{ state.communication_state|default:"Unknown" }}</span>
+                                <span class="badge bg-primary">{{ state.count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Top Cities</h6>
+                            {% for city in geographic_data.cities %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>{{ city.communication_city|default:"Unknown" }}</span>
+                                <span class="badge bg-success">{{ city.count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Specialization Analytics -->
+            <div class="card analytics-card mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-stethoscope text-info"></i>
+                        Specialization Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Specialization</th>
+                                    <th>RMP Count</th>
+                                    <th>Avg Performance</th>
+                                    <th>Avg CPD Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for spec in specialization_analytics %}
+                                <tr>
+                                    <td>{{ spec.specialization|default:"General" }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ spec.total }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if spec.avg_performance >= 80 %}success{% elif spec.avg_performance >= 60 %}warning{% else %}danger{% endif %}">
+                                            {{ spec.avg_performance|floatformat:1 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ spec.avg_cpd|floatformat:1 }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Analytics -->
+            <div class="card analytics-card">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line text-success"></i>
+                        Revenue Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>Revenue by Service Type</h6>
+                    {% for service in revenue_analytics.service_revenue %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-capitalize">{{ service.application__application_type|default:"Unknown" }}</span>
+                            <span class="fw-bold">₹{{ service.revenue|floatformat:2 }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: {{ service.revenue|divisibleby:revenue_analytics.service_revenue.0.revenue|default:1|floatformat:0 }}%">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ service.count }} transactions</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- AI Model Performance -->
+            <div class="card analytics-card mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot text-purple"></i>
+                        AI Model Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Insights Generated
+                            <span class="badge bg-primary rounded-pill">{{ ai_model_performance.total_insights_generated }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Active Insights
+                            <span class="badge bg-success rounded-pill">{{ ai_model_performance.active_insights }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            High Confidence Rate
+                            <span class="badge bg-info rounded-pill">{{ ai_model_performance.high_confidence_rate|floatformat:1 }}%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Alert Accuracy
+                            <span class="badge bg-warning rounded-pill">{{ ai_model_performance.predictive_alert_accuracy|floatformat:1 }}%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Model Uptime
+                            <span class="badge bg-success rounded-pill">{{ ai_model_performance.model_uptime }}%</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Avg Confidence
+                            <span class="badge bg-primary rounded-pill">{{ ai_model_performance.average_confidence|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time-based Trends -->
+            <div class="card analytics-card mb-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar text-warning"></i>
+                        Application Trends
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>Last 12 Months</h6>
+                    {% for month in time_analytics.monthly_applications %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small>{{ month.month|date:"M Y" }}</small>
+                        <div>
+                            <span class="badge bg-primary">{{ month.count }}</span>
+                            <small class="text-muted ms-1">({{ month.approved }} approved)</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Performance Trends -->
+            <div class="card analytics-card">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-trending-up text-success"></i>
+                        Performance Trends
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>Weekly Average Scores</h6>
+                    {% for week in time_analytics.weekly_performance %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small>{{ week.week|date:"M d" }}</small>
+                        <span class="badge bg-{% if week.avg_score >= 80 %}success{% elif week.avg_score >= 60 %}warning{% else %}danger{% endif %}">
+                            {{ week.avg_score|floatformat:1 }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="card analytics-card mt-4">
+                <div class="card-header ">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-download text-primary"></i>
+                        Export Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary">
+                            <i class="fas fa-file-pdf"></i> Export PDF Report
+                        </button>
+                        <button class="btn btn-outline-success">
+                            <i class="fas fa-file-excel"></i> Export Excel Data
+                        </button>
+                        <button class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar"></i> Generate Custom Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+// Initialize charts and analytics
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth animations
+    const cards = document.querySelectorAll('.analytics-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('animate__animated', 'animate__fadeInUp');
+    });
+
+    // Real-time data updates
+    function updateAnalytics() {
+        fetch('/api/ai/analytics/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Analytics updated:', data);
+                // Update specific elements with new data
+            });
+    }
+
+    // Update every 3 minutes
+    setInterval(updateAnalytics, 180000);
+});
+
+// Export functionality
+document.querySelectorAll('.btn-outline-primary, .btn-outline-success, .btn-outline-info').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const type = this.querySelector('i').className;
+        let format = 'pdf';
+        
+        if (type.includes('file-excel')) format = 'excel';
+        if (type.includes('chart-bar')) format = 'custom';
+        
+        // Simulate export
+        alert(`Exporting ${format.toUpperCase()} report...`);
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}
