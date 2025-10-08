@@ -72,14 +72,14 @@
                 <label for="id_date_range" class="form-label">Date Range</label>
                 {{ filter_form.date_range }}
             </div>
-            <div class="col-md-3">
+            {% comment %} <div class="col-md-3">
                 <label for="id_start_date" class="form-label">Start Date</label>
                 {{ filter_form.start_date }}
             </div>
             <div class="col-md-3">
                 <label for="id_end_date" class="form-label">End Date</label>
                 {{ filter_form.end_date }}
-            </div>
+            </div> {% endcomment %}
             <div class="col-md-3">
                 <label for="id_payment_method" class="form-label">Payment Method</label>
                 {{ filter_form.payment_method }}
@@ -88,7 +88,8 @@
                 <label for="id_payment_status" class="form-label">Status</label>
                 {{ filter_form.payment_status }}
             </div>
-            <div class="col-12">
+            <div class="col-md-3">
+                 <label class="form-label mt-4">&nbsp;</label>
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-filter"></i> Apply Filters
                 </button>

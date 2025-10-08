@@ -58,13 +58,13 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
                             Total Applications
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-white">
+                        <div class="h5 mb-0 font-weight-bold ">
                             {{ stats.total_applications|intcomma }}
                         </div>
-                        <div class="mt-2 mb-0 text-white">
+                        <div class="mt-2 mb-0 ">
                             <span class="text-success mr-2">
                                 <i class="bi bi-arrow-up"></i> 
                                 {{ stats.pending_applications }} pending
@@ -72,7 +72,7 @@
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-files fa-2x text-white-50"></i>
+                        <i class="bi bi-files fa-2x "></i>
                     </div>
                 </div>
             </div>
@@ -84,18 +84,18 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
                             Total Revenue
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-white">
+                        <div class="h5 mb-0 font-weight-bold ">
                             ₹{{ stats.revenue_month|floatformat:0|intcomma }}
                         </div>
-                        <div class="mt-2 mb-0 text-white">
+                        <div class="mt-2 mb-0 ">
                             <small>This month</small>
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-currency-rupee fa-2x text-white-50"></i>
+                        <i class="bi bi-currency-rupee fa-2x "></i>
                     </div>
                 </div>
             </div>
@@ -107,20 +107,20 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
                             Registered RMPs
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-white">
+                        <div class="h5 mb-0 font-weight-bold ">
                             {{ stats.total_rmps|intcomma }}
                         </div>
-                        <div class="mt-2 mb-0 text-white">
+                        <div class="mt-2 mb-0 ">
                             <span class="text-success">
                                 <i class="bi bi-person-check"></i> Active
                             </span>
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-people fa-2x text-white-50"></i>
+                        <i class="bi bi-people fa-2x "></i>
                     </div>
                 </div>
             </div>
@@ -132,20 +132,20 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
                             CPD Programs
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-white">
+                        <div class="h5 mb-0 font-weight-bold ">
                             {{ stats.cpd_programs|intcomma }}
                         </div>
-                        <div class="mt-2 mb-0 text-white">
+                        <div class="mt-2 mb-0 ">
                             <span class="text-warning">
                                 <i class="bi bi-award"></i> Active
                             </span>
                         </div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-award fa-2x text-white-50"></i>
+                        <i class="bi bi-award fa-2x "></i>
                     </div>
                 </div>
             </div>
