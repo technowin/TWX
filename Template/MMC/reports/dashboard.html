@@ -37,20 +37,25 @@
 
 
 {% block title %}MMC Reports Dashboard{% endblock %}
-{% block page_title %}<h4>Reports Dashboard</h4>{% endblock %}
-
-{% block header_buttons %}
-<div class="btn-group me-2">
-    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportReport('excel')">
-        <i class="bi bi-file-earmark-excel"></i> Export
-    </button>
-    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
-        <i class="bi bi-printer"></i> Print
-    </button>
-</div>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>Reports Dashboard</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+<!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>Reports Dashboard</h4>        
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>&nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
 <!-- Quick Stats -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-4">

@@ -37,25 +37,30 @@
 
 
 {% block title %}MMC AI Performance Reports{% endblock %}
-{% block page_title %}<h4>AI Performance & Insights Reports</h4>{% endblock %}
-
-{% block header_buttons %}
-<div class="btn-group me-2">
-    <div class="export-btn-group">
-        <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
-            <i class="bi bi-file-earmark-excel"></i> Excel
-        </button>
-        <button type="button" class="btn btn-sm btn-danger" onclick="exportReport('pdf')">
-            <i class="bi bi-file-earmark-pdf"></i> PDF
-        </button>
-    </div>
-</div>
-<button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
-    <i class="bi bi-printer"></i> Print
-</button>
-{% endblock %}
+{% comment %} {% block page_title %}<h4>AI Performance & Insights Reports</h4>{% endblock %} {% endcomment %}
 
 {% block content %}
+<!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>AI Performance & Insights Reports</h4>        
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>&nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-danger" onclick="exportReport('pdf')">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+
 <!-- AI Performance Overview -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-4">

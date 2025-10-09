@@ -33,11 +33,7 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
-{% endblock %}
 
-{% block title %}My Awards - MMC Portal{% endblock %}
-
-{% block extra_css %}
 <style>
     .award-card {
         border: none;
@@ -111,7 +107,10 @@
     .level-institutional { background: #fff3cd; color: #856404; }
     .level-international { background: #f8d7da; color: #721c24; }
 </style>
+
 {% endblock %}
+
+{% block title %}My Awards - MMC Portal{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -330,7 +329,7 @@
                         <div class="col-6">
                             <h3 class="text-success">
                                 {% if awards %}
-                                {{ awards|dictsort:"year"|last.year }}
+                                {% comment %} {{ awards|dictsort:"year"|last.year }} {% endcomment %}
                                 {% else %}
                                 0
                                 {% endif %}
@@ -378,7 +377,7 @@
                         <div class="col-4">
                             <h5 class="text-warning">
                                 {% if awards %}
-                                {{ awards|dictsort:"year"|first.year }}
+                                {% comment %} {{ awards|dictsort:"year"|first.year }} {% endcomment %}
                                 {% else %}
                                 -
                                 {% endif %}
@@ -388,7 +387,7 @@
                         <div class="col-4">
                             <h5 class="text-success">
                                 {% if awards %}
-                                {{ awards|dictsort:"year"|last.year }}
+                                {% comment %} {{ awards|dictsort:"year"|last.year }} {% endcomment %}
                                 {% else %}
                                 -
                                 {% endif %}
