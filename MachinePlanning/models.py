@@ -140,7 +140,7 @@ class WorkCenters(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    workstation = models.ForeignKey('MachinePlanning.WorkStations',on_delete=models.SET_NULL,null=True,blank=True,related_name='workstation_id',verbose_name="Work Station")
+    workstation = models.TextField(null=True,blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='workcenter_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='workcenter_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -360,35 +360,35 @@ class MachineScheduleDetail(models.Model):
     def __str__(self):
         return f"{self.schedule.name} - {self.routing.operation} on {self.machine}"
 
-    def save(self, *args, **kwargs):
-        # --- AUTO SET WORK_CENTER FROM ROUTING ---
-        if self.routing and not self.work_center:
-            self.work_center = self.routing.work_center
+    # def save(self, *args, **kwargs):
+    #     # --- AUTO SET WORK_CENTER FROM ROUTING ---
+    #     if self.routing and not self.work_center:
+    #         self.work_center = self.routing.work_center
         
-        super().save(*args, **kwargs)
+    #     super().save(*args, **kwargs)
 
-        # --- UPDATE PRODUCTION ORDER STATUS ---
-        production_order = self.schedule.production_order
-        component = self.schedule.component
+    #     # --- UPDATE PRODUCTION ORDER STATUS ---
+    #     production_order = self.schedule.production_order
+    #     component = self.schedule.component
 
-        if production_order:
-            from .services import update_production_order_status  # adjust to your path
-            update_production_order_status(production_order)
+    #     if production_order:
+    #         from .services import update_production_order_status  # adjust to your path
+    #         update_production_order_status(production_order)
 
-        # --- NEW LOGIC: Check last schedule for this production order & component ---
-        if production_order and component:
-            last_schedule = (
-                MachineScheduleDetail.objects.filter(
-                    schedule__production_order=production_order,
-                    schedule__component=component
-                )
-                .order_by("-seq")
-                .first()
-            )
-            if last_schedule and last_schedule.actual_end:
-                if last_schedule.actual_end < now():
-                    production_order.order_status = get_object_or_404(StatusAction, id=7)
-                    production_order.save(update_fields=["order_status"])
+    #     # --- NEW LOGIC: Check last schedule for this production order & component ---
+    #     if production_order and component:
+    #         last_schedule = (
+    #             MachineScheduleDetail.objects.filter(
+    #                 schedule__production_order=production_order,
+    #                 schedule__component=component
+    #             )
+    #             .order_by("-seq")
+    #             .first()
+    #         )
+    #         if last_schedule and last_schedule.actual_end:
+    #             if last_schedule.actual_end < now():
+    #                 production_order.order_status = get_object_or_404(StatusAction, id=7)
+    #                 production_order.save(update_fields=["order_status"])
 
 
 class WorkStations(models.Model):

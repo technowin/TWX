@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 from itertools import count
 import json
+import re
 import traceback
 from django.contrib import messages
 from django.forms import inlineformset_factory
@@ -1083,26 +1084,29 @@ class MachineScheduleCreateView(View):
                 scheduled_end=parse_datetime(request.POST.get("scheduled_end")),
             )
 
-            # --- Load assignments from JSON ---
+            # --- Save Routing + Workstation assignments ---
             assignments_json = request.POST.get("assignments_json")
             if assignments_json:
                 assignments = json.loads(assignments_json)
 
                 for row in assignments:
-                    routing = RoutingMaster.objects.filter(id=row.get("row_id")).first()
-                    if not routing:
+                    routing_detail_id = row.get("routing_detail_id")
+                    workstation_id = row.get("workstation_id")
+                    machine = get_object_or_404(WorkStations, id  = workstation_id).machine
+
+                    routing_detail = RoutingDetail.objects.filter(id=routing_detail_id).first()
+                    if not routing_detail:
                         continue
+
+                    
 
                     MachineScheduleDetail.objects.create(
                         schedule=schedule,
-                        seq=routing.sequence,
-                        routing=routing,
-                        machine_id=row.get("machine") or None,
-                        work_center=routing.work_center,
-                        employee=",".join(row.get("employees", [])),
-                        hours_allocated=row.get("hours") or None,
-                        scheduled_start=parse_datetime(row.get("start")),
-                        scheduled_end=parse_datetime(row.get("end")),
+                        routing = routing_detail.routing,
+                        machine=machine,
+                        seq=routing_detail.sequence,
+                        workstation_id=workstation_id,
+                        work_center=routing_detail.work_center,
                     )
 
             return redirect(reverse("mcp:machine_scheduling_list"))
@@ -1113,84 +1117,34 @@ class MachineScheduleCreateView(View):
                 "components": BOMHeader.objects.all(),
                 "error": str(e)
             })
-        
-class MachineScheduleUpdateView(View):
 
+        
+# views.py
+class MachineScheduleUpdateView(View):
     template_name = "MachinePlan/machine_scheduling_form.html"
 
     def get(self, request, pk, *args, **kwargs):
-        try:
-            schedule = get_object_or_404(MachineSchedule, pk=pk)
-
-            # Load details already saved
-            details = schedule.details.select_related("routing", "work_center")
-
-            # Prepare assignments JSON (so JS can reuse it)
-            pre_assignments = []
-            for d in details:
-                pre_assignments.append({
-                    "row_id": d.routing.id,
-                    "hours": float(d.hours_allocated) if d.hours_allocated is not None else None,
-                    "machine": d.machine_id,
-                    "employees": d.employee.split(",") if d.employee else [],
-                    "start": d.scheduled_start.isoformat() if d.scheduled_start else None,
-                    "end": d.scheduled_end.isoformat() if d.scheduled_end else None,
-                })
-
-            context = {
-                "schedule": schedule,
-                "production_orders": ProductionOrder.objects.all(),
-                "components": BOMHeader.objects.all(),
-                "assignments_json": json.dumps(pre_assignments),  # ✅ pass to JS
-            }
-            return render(request, self.template_name, context)
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
-
-    def post(self, request, pk, *args, **kwargs):
         schedule = get_object_or_404(MachineSchedule, pk=pk)
-        try:
-            # --- Update Master Schedule ---
-            schedule.name = request.POST.get("name")
-            schedule.production_order_id = request.POST.get("production_order")
-            schedule.component_id = request.POST.get("component")
-            schedule.scheduled_start = parse_datetime(request.POST.get("scheduled_start"))
-            schedule.scheduled_end = parse_datetime(request.POST.get("scheduled_end"))
-            schedule.save()
+        details = schedule.details.select_related("routing", "work_center")
 
-            # --- Update details ---
-            schedule.details.all().delete()  # clear old assignments
-            assignments_json = request.POST.get("assignments_json")
-
-            if assignments_json:
-                assignments = json.loads(assignments_json)
-                for row in assignments:
-                    routing = RoutingMaster.objects.filter(id=row.get("row_id")).first()
-                    if not routing:
-                        continue
-
-                    MachineScheduleDetail.objects.create(
-                        schedule=schedule,
-                        seq=routing.sequence,
-                        routing=routing,
-                        machine_id=row.get("machine") or None,
-                        work_center=routing.work_center,
-                        employee=",".join(row.get("employees", [])),
-                        hours_allocated=row.get("hours") or None,
-                        scheduled_start=parse_datetime(row.get("start")),
-                        scheduled_end=parse_datetime(row.get("end")),
-                    )
-
-            return redirect(reverse("mcp:machine_scheduling_list"))
-
-        except Exception as e:
-            return render(request, self.template_name, {
-                "schedule": schedule,
-                "production_orders": ProductionOrder.objects.all(),
-                "components": BOMHeader.objects.all(),
-                "assignments_json": request.POST.get("assignments_json", "[]"),
-                "error": str(e),
+        pre_assignments = []
+        for d in details:
+            pre_assignments.append({
+                "row_id": d.routing.id,
+                "sequence": d.seq,
+                "machine": d.machine_id,
+                "workstation_id": d.workstation_id,  # Use machine_id as workstation id
+                "employees": d.employee.split(",") if d.employee else [],
             })
+
+        context = {
+            "schedule": schedule,
+            "production_orders": ProductionOrder.objects.all(),
+            "components": BOMHeader.objects.all(),
+            "assignments_json": json.dumps(pre_assignments),
+        }
+        return render(request, self.template_name, context)
+
 
 def routing_create(request, pk=None):
     """
@@ -1367,11 +1321,38 @@ def get_routing_details(request):
             return JsonResponse({"error": "Missing routing_id"}, status=400)
 
         routing_details = RoutingDetail.objects.filter(routing_id=routing_id).order_by("sequence")
-
         data = []
+
         for detail in routing_details:
+            print(detail.id)
+            # Get work center
+            work_center = getattr(detail, "work_center", None)
+            work_center_name = work_center.name if work_center else ""
+            work_center_id = work_center.id if work_center else None
+
+            # 🔹 Prepare workstation dropdown data
+            workstation_dropdown = []
+            if work_center and getattr(work_center, "workstation", None):
+                workstation_ids = [
+                    int(w.strip()) for w in work_center.workstation.split(",") if w.strip().isdigit()
+                ]
+
+                for ws in WorkStations.objects.filter(id__in=workstation_ids):
+                    # Count employees from comma-separated employee_ids
+                    emp_count = (
+                        len([e for e in ws.employee.split(",") if e.strip().isdigit()])
+                        if ws.employee else 0
+                    )
+                    workstation_dropdown.append({
+                        "id": ws.id,
+                        "name": ws.name,
+                        "employee_count": emp_count,
+                    })
+
+            # 🔹 Construct row data
             data.append({
                 "sequence": detail.sequence,
+                "routing_detail_id":detail.id,
                 "operation": getattr(detail.operation, "name", "") if detail.operation else "",
                 "employee_needed": detail.employees_needed,
                 "proficiency": (
@@ -1382,9 +1363,122 @@ def get_routing_details(request):
                     else ""
                 ),
                 "skill": getattr(detail.skill, "skill_name", "") if detail.skill else "",
+                "work_center": work_center_name,
+                "work_center_id": work_center_id,
+                "workstations": workstation_dropdown,  # ✅ include dropdown data here
             })
 
         return JsonResponse({"routing_details": data})
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+    
+def get_workstation_details(request):
+    workstation_id = request.GET.get("workstation_id")
+
+    if not workstation_id:
+        return JsonResponse({"success": False, "error": "Missing workstation_id"}, status=400)
+
+    try:
+        ws = WorkStations.objects.get(id=workstation_id)
+
+        # 🔹 Machine info
+        machine_name = ws.machine.name if ws.machine else "N/A"
+        capacity = getattr(ws.machine, "capacity", "N/A")
+        status = getattr(ws.machine, "status", "N/A")
+
+        # 🔹 Employees linked (comma-separated)
+        employee_data = []
+        if ws.employee:
+            emp_ids = [int(e.strip()) for e in ws.employee.split(",") if e.strip().isdigit()]
+
+            for emp in Employee.objects.filter(id__in=emp_ids):
+                emp_skills = EmployeeSkill.objects.filter(employee=emp)
+                skills_data = [
+                    {"skill_name": s.skill.skill_name, "proficiency": s.proficiency.name}
+                    for s in emp_skills
+                ]
+
+                employee_data.append({
+                    "id": emp.id,
+                    "name": emp.employee_name,
+                    "skills": skills_data
+                })
+
+        return JsonResponse({
+            "success": True,
+            "machine_name": machine_name,
+            "capacity": capacity,
+            "status": status,
+            "employees": employee_data
+        })
+
+    except WorkStations.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Workstation not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+
+def get_component_qty(production_id):
+    try:
+        po = ProductionOrder.objects.get(id=production_id)
+        return po.quantity  # or po.component.quantity if stored on component
+    except ProductionOrder.DoesNotExist:
+        return 0
+    
+def get_machines_by_workstation(workstation_id):
+
+    try:
+        workstation = WorkStations.objects.get(id=workstation_id)
+        # return as a list to keep compatibility with loops
+        return [workstation.machine]
+    except WorkStations.DoesNotExist:
+        return []
+
+
+def get_numeric_capacity(capacity_str):
+    """
+    Extract numeric part from a string like "50 units/hour"
+    Returns float
+    """
+    match = re.search(r'\d+\.?\d*', capacity_str)  # matches integers or decimals
+    if match:
+        return float(match.group())
+    return 0
+
+
+def calculate_end_date(request):
+    if request.method == "POST":
+        import json
+        from datetime import datetime, timedelta
+
+        production_id = request.POST.get("production_id")
+        workstation_ids = json.loads(request.POST.get("workstation_ids", "[]"))
+        scheduled_start = request.POST.get("scheduled_start")
+
+        # get component quantity
+        try:
+            po = ProductionOrder.objects.get(id=production_id)
+            component_qty = po.quantity
+        except ProductionOrder.DoesNotExist:
+            return JsonResponse({"error": "Invalid production ID"}, status=400)
+
+        total_hours_needed = 0
+
+        for ws_id in workstation_ids:
+            machines = get_machines_by_workstation(ws_id)
+            for machine in machines:
+                # extract number from "50 units/hour"
+                capacity_per_shift = get_numeric_capacity(machine.capacity)
+                if capacity_per_shift > 0:
+                    total_hours_needed += (component_qty / capacity_per_shift) * 8
+
+        start_dt = datetime.strptime(scheduled_start, "%Y-%m-%dT%H:%M")
+        end_dt = start_dt + timedelta(hours=total_hours_needed)
+
+        return JsonResponse({"end_date": end_dt.strftime("%Y-%m-%dT%H:%M")})
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
