@@ -1,0 +1,515 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+
+{% block title %}MMC AI Performance Reports{% endblock %}
+{% comment %} {% block page_title %}<h4>AI Performance & Insights Reports</h4>{% endblock %} {% endcomment %}
+
+{% block content %}
+<!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>AI Performance & Insights Reports</h4>        
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>&nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-danger" onclick="exportReport('pdf')">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+<!-- AI Performance Overview -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Avg Overall Score</h6>
+                <h2 class="text-primary">{{ score_stats.avg_overall|default:0|floatformat:1 }}</h2>
+                <div class="progress progress-thin mt-2">
+                    <div class="progress-bar bg-primary" role="progressbar" 
+                         style="width: {{ score_stats.avg_overall|default:0 }}%">
+                    </div>
+                </div>
+                <p class="mb-0 small text-muted">Out of 100</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Avg CPD Score</h6>
+                <h2 class="text-success">{{ score_stats.avg_cpd|default:0|floatformat:1 }}</h2>
+                <div class="progress progress-thin mt-2">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ score_stats.avg_cpd|default:0 }}%">
+                    </div>
+                </div>
+                <p class="mb-0 small text-muted">Professional Development</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Avg Compliance Score</h6>
+                <h2 class="text-warning">{{ score_stats.avg_compliance|default:0|floatformat:1 }}</h2>
+                <div class="progress progress-thin mt-2">
+                    <div class="progress-bar bg-warning" role="progressbar" 
+                         style="width: {{ score_stats.avg_compliance|default:0 }}%">
+                    </div>
+                </div>
+                <p class="mb-0 small text-muted">Regulatory Compliance</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body text-center">
+                <h6 class="card-title text-muted">Total RMPs Scored</h6>
+                <h2 class="text-info">{{ score_stats.total_rmps|default:0|intcomma }}</h2>
+                <p class="mb-0 small text-muted">AI Performance Tracking</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Score Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i> Performance Score Distribution
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="scoreDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Specialization Performance -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Top Specializations
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="specializationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Score Ranges Table -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-speedometer2"></i> Performance Score Ranges
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Performance Range</th>
+                        <th>RMP Count</th>
+                        <th>Percentage</th>
+                        <th>Average Score</th>
+                        <th>Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for range in score_ranges %}
+                    <tr>
+                        <td>
+                            <span class="badge 
+                                {% if 'Excellent' in range.score_range %}bg-success
+                                {% elif 'Good' in range.score_range %}bg-warning
+                                {% elif 'Average' in range.score_range %}bg-info
+                                {% else %}bg-danger{% endif %}">
+                                {{ range.score_range }}
+                            </span>
+                        </td>
+                        <td>{{ range.count }}</td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar 
+                                    {% if 'Excellent' in range.score_range %}bg-success
+                                    {% elif 'Good' in range.score_range %}bg-warning
+                                    {% elif 'Average' in range.score_range %}bg-info
+                                    {% else %}bg-danger{% endif %}" 
+                                    role="progressbar" 
+                                    style="width: {{ range.count|div:score_stats.total_rmps|mul:100 }}%">
+                                </div>
+                            </div>
+                            <small>{{ range.count|div:score_stats.total_rmps|mul:100|floatformat:1 }}%</small>
+                        </td>
+                        <td>
+                            <strong>{{ range.avg_score|default:0|floatformat:1 }}</strong>
+                        </td>
+                        <td>
+                            {% if 'Excellent' in range.score_range %}
+                            <span class="text-success">Maintain Excellence</span>
+                            {% elif 'Good' in range.score_range %}
+                            <span class="text-warning">Continue Improvement</span>
+                            {% elif 'Average' in range.score_range %}
+                            <span class="text-info">Focus on Weak Areas</span>
+                            {% else %}
+                            <span class="text-danger">Immediate Attention Needed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No score range data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Specialization Performance -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-heart-pulse"></i> Specialization Performance
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Specialization</th>
+                        <th>RMP Count</th>
+                        <th>Avg Overall Score</th>
+                        <th>Avg CPD Score</th>
+                        <th>Avg Compliance Score</th>
+                        <th>Performance Tier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for spec in specialization_performance %}
+                    <tr>
+                        <td>
+                            <strong>{{ spec.rmp__specialization|default:"General Practice" }}</strong>
+                        </td>
+                        <td>{{ spec.count }}</td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                     style="width: {{ spec.avg_overall|default:0 }}%">
+                                </div>
+                            </div>
+                            <small>{{ spec.avg_overall|default:0|floatformat:1 }}</small>
+                        </td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ spec.avg_cpd|default:0 }}%">
+                                </div>
+                            </div>
+                            <small>{{ spec.avg_cpd|default:0|floatformat:1 }}</small>
+                        </td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar bg-warning" role="progressbar" 
+                                     style="width: {{ spec.avg_compliance|default:0 }}%">
+                                </div>
+                            </div>
+                            <small>{{ spec.avg_compliance|default:0|floatformat:1 }}</small>
+                        </td>
+                        <td>
+                            {% if spec.avg_overall > 85 %}
+                            <span class="badge bg-success">Tier 1</span>
+                            {% elif spec.avg_overall > 70 %}
+                            <span class="badge bg-warning">Tier 2</span>
+                            {% elif spec.avg_overall > 60 %}
+                            <span class="badge bg-info">Tier 3</span>
+                            {% else %}
+                            <span class="badge bg-danger">Tier 4</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No specialization data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- AI Insights -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-lightbulb"></i> AI Performance Insights
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for insight in ai_insights %}
+            <div class="col-md-6 mb-3">
+                <div class="card border-{% if insight.overall_score < 50 %}danger{% else %}warning{% endif %}">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            {{ insight.rmp.full_name }}
+                            <small class="text-muted">({{ insight.rmp.mmc_registration_number }})</small>
+                        </h6>
+                        <p class="card-text small">
+                            Overall Score: <strong>{{ insight.overall_score }}</strong><br>
+                            Specialization: {{ insight.rmp.specialization|default:"Not Specified" }}<br>
+                            <span class="text-{% if insight.overall_score < 50 %}danger{% else %}warning{% endif %}">
+                                Needs improvement in professional development and compliance areas.
+                            </span>
+                        </p>
+                        <div class="progress progress-thin mb-2">
+                            <div class="progress-bar bg-{% if insight.overall_score < 50 %}danger{% else %}warning{% endif %}" 
+                                 role="progressbar" style="width: {{ insight.overall_score }}%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center text-muted">
+                No AI insights available
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Predictive Alerts -->
+<div class="card report-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-bell"></i> Predictive Risk Alerts
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Specialization</th>
+                        <th>At Risk RMPs</th>
+                        <th>Common Issues</th>
+                        <th>Risk Level</th>
+                        <th>Recommended Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in predictive_alerts %}
+                    <tr>
+                        <td>
+                            <strong>{{ alert.rmp__specialization|default:"General Practice" }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-danger rounded-pill">{{ alert.count }}</span>
+                        </td>
+                        <td>
+                            <small>Low CPD compliance, Pending renewals</small>
+                        </td>
+                        <td>
+                            {% if alert.count > 5 %}
+                            <span class="badge bg-danger">High Risk</span>
+                            {% elif alert.count > 2 %}
+                            <span class="badge bg-warning">Medium Risk</span>
+                            {% else %}
+                            <span class="badge bg-info">Low Risk</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>Send compliance reminders, Schedule reviews</small>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No predictive alerts available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Score Distribution Chart
+    const scoreDistCtx = document.getElementById('scoreDistributionChart').getContext('2d');
+    const scoreDistChart = new Chart(scoreDistCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for range in score_ranges %}
+                    '{{ range.score_range }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'RMP Count',
+                data: [
+                    {% for range in score_ranges %}
+                        {{ range.count }},
+                    {% endfor %}
+                ],
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6c757d'],
+                borderColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6c757d'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Specialization Chart
+    const specCtx = document.getElementById('specializationChart').getContext('2d');
+    const specChart = new Chart(specCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for spec in specialization_performance|slice:":5" %}
+                    '{{ spec.rmp__specialization|default:"General" }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for spec in specialization_performance|slice:":5" %}
+                        {{ spec.avg_overall|default:0 }},
+                    {% endfor %}
+                ],
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6c757d'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

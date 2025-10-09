@@ -1,0 +1,596 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block title %}MMC Complaint Analysis Reports{% endblock %}
+{% comment %} {% block page_title %}<h4>Complaint Analysis Reports</h4>{% endblock %} {% endcomment %}
+
+{% block content %}
+<!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>Complaint Analysis Reports</h4>        
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>&nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-danger" onclick="exportReport('pdf')">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-secondary" onclick="exportReport('csv')">
+                    <i class="bi bi-file-earmark-text"></i> CSV
+                </button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+<!-- Filters -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-funnel"></i> Complaint Filters
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="id_date_range" class="form-label">Date Range</label>
+                {{ filter_form.date_range }}
+            </div>
+            {% comment %} <div class="col-md-3">
+                <label for="id_start_date" class="form-label">Start Date</label>
+                {{ filter_form.start_date }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_end_date" class="form-label">End Date</label>
+                {{ filter_form.end_date }}
+            </div> {% endcomment %}
+            <div class="col-md-3">
+                <label for="id_severity" class="form-label">Severity</label>
+                {{ filter_form.severity }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_status" class="form-label">Status</label>
+                {{ filter_form.status }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mt-4">&nbsp;</label>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+                <a href="{% url 'complaint_analysis_reports' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Total Complaints</h6>
+                        <h3 class="text-primary">{{ stats.total_complaints|default:0|intcomma }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-exclamation-triangle text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Resolved</h6>
+                        <h3 class="text-success">{{ stats.resolved|default:0|intcomma }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Under Investigation</h6>
+                        <h3 class="text-warning">{{ stats.under_investigation|default:0|intcomma }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-search text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card report-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">Avg Resolution</h6>
+                        <h3 class="text-info">
+                            {% if stats.avg_resolution_days %}
+                            {{ stats.avg_resolution_days.days }} days
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-speedometer2 text-info" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Severity Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Complaint Severity Distribution
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="severityDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Trend -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-graph-up"></i> Monthly Complaint Trend
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Severity Analysis -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-bar-chart"></i> Severity Analysis
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Severity Level</th>
+                        <th>Total Complaints</th>
+                        <th>Resolved</th>
+                        <th>Resolution Rate</th>
+                        <th>Avg Resolution Time</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for severity in severity_dist %}
+                    <tr>
+                        <td>
+                            <span class="badge 
+                                {% if severity.severity == 'critical' %}bg-danger
+                                {% elif severity.severity == 'high' %}bg-warning
+                                {% elif severity.severity == 'medium' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ severity.severity|title }}
+                            </span>
+                        </td>
+                        <td>{{ severity.count|intcomma }}</td>
+                        <td class="text-success">{{ severity.resolved|intcomma }}</td>
+                        <td>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ severity.resolution_rate|default:0 }}%">
+                                </div>
+                            </div>
+                            <small>{{ severity.resolution_rate|default:0|floatformat:1 }}%</small>
+                        </td>
+                        <td>
+                            {% if severity.avg_resolution_days %}
+                            <span class="text-info">{{ severity.avg_resolution_days.days }} days</span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if severity.resolution_rate > 80 %}
+                            <span class="text-success"><i class="bi bi-arrow-up"></i> Improving</span>
+                            {% else %}
+                            <span class="text-warning"><i class="bi bi-arrow-down"></i> Needs Attention</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No severity data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Category Analysis -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-tags"></i> Category Analysis
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Complaint Count</th>
+                        <th>Avg Resolution Days</th>
+                        <th>Most Common Severity</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in category_analysis %}
+                    <tr>
+                        <td>
+                            <strong>{{ category.category|default:"Uncategorized" }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ category.count|intcomma }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if category.avg_resolution_days %}
+                            <span class="text-info">{{ category.avg_resolution_days.days }} days</span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">Medium</span>
+                        </td>
+                        <td>
+                            {% if category.count > 10 %}
+                            <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> High Volume</span>
+                            {% else %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Normal</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No category data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Top RMPs with Complaints -->
+<div class="card report-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-person-x"></i> RMPs with Most Complaints
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>RMP</th>
+                        <th>MMC Number</th>
+                        <th>Total Complaints</th>
+                        <th>Resolved</th>
+                        <th>Severe Complaints</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rmp in top_rmps %}
+                    <tr>
+                        <td>
+                            <strong>{{ rmp.against_rmp__full_name }}</strong>
+                        </td>
+                        <td>
+                            <code>{{ rmp.against_rmp__mmc_registration_number }}</code>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ rmp.complaint_count }}
+                            </span>
+                        </td>
+                        <td class="text-success">{{ rmp.resolved_count }}</td>
+                        <td class="text-danger">{{ rmp.severe_count }}</td>
+                        <td>
+                            {% if rmp.severe_count > 2 %}
+                            <span class="badge bg-danger">High Risk</span>
+                            {% elif rmp.complaint_count > 3 %}
+                            <span class="badge bg-warning">Medium Risk</span>
+                            {% else %}
+                            <span class="badge bg-success">Low Risk</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No RMP complaint data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Complaints List -->
+<div class="card report-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-list-ul"></i> Complaint Details
+        </h6>
+        <span class="badge bg-primary">{{ complaints.count }} complaints</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Complaint ID</th>
+                        <th>Against RMP</th>
+                        <th>Filed By</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Category</th>
+                        <th>Filed Date</th>
+                        <th>Assigned To</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for complaint in complaints %}
+                    <tr>
+                        <td>
+                            <strong>#{{ complaint.complaint_id }}</strong>
+                        </td>
+                        <td>
+                            <strong>{{ complaint.against_rmp.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ complaint.against_rmp.mmc_registration_number }}</small>
+                        </td>
+                        <td>
+                            {{ complaint.filed_by.full_name }}
+                            <br>
+                            <small class="text-muted">{{ complaint.filed_by.mmc_registration_number }}</small>
+                        </td>
+                        <td>
+                            {% if complaint.severity == 'critical' %}
+                            <span class="badge bg-danger">Critical</span>
+                            {% elif complaint.severity == 'high' %}
+                            <span class="badge bg-warning">High</span>
+                            {% elif complaint.severity == 'medium' %}
+                            <span class="badge bg-info">Medium</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Low</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if complaint.status == 'resolved' %}
+                            <span class="badge bg-success">Resolved</span>
+                            {% elif complaint.status == 'under_investigation' %}
+                            <span class="badge bg-warning">Under Investigation</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ complaint.status|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ complaint.category|default:"Not Specified" }}</small>
+                        </td>
+                        <td>
+                            <small>{{ complaint.filed_date|date:"M d, Y" }}</small>
+                        </td>
+                        <td>
+                            {% if complaint.assigned_to %}
+                            <span class="text-primary">{{ complaint.assigned_to.get_full_name }}</span>
+                            {% else %}
+                            <span class="text-muted">Not Assigned</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">No complaints found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Severity Distribution Chart
+    const severityCtx = document.getElementById('severityDistributionChart').getContext('2d');
+    const severityChart = new Chart(severityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Critical', 'High', 'Medium', 'Low'],
+            datasets: [{
+                data: [5, 15, 25, 55], // Sample data
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#28a745'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Monthly Trend Chart
+    const monthlyCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+    const monthlyChart = new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: [
+                
+            ],
+            datasets: [{
+                label: 'Complaints Filed',
+                data: [
+                   
+                ],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }, {
+                label: 'Complaints Resolved',
+                data: [
+                    
+                ],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

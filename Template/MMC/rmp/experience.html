@@ -33,11 +33,6 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
-{% endblock %}
-
-{% block title %}My Experience - MMC Portal{% endblock %}
-
-{% block extra_css %}
 <style>
     .experience-card {
         border: none;
@@ -99,6 +94,8 @@
     }
 </style>
 {% endblock %}
+
+{% block title %}My Experience - MMC Portal{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -306,7 +303,8 @@
                     <div class="mt-3">
                         <small class="text-muted">
                             <i class="bi bi-building me-1"></i>
-                            Latest: {{ experiences|dictsort:"start_date"|last.organization }}
+                            Latest: 
+                            {% comment %} {{ experiences|dictsort:"start_date"|last.organization }} {% endcomment %}
                         </small>
                     </div>
                     {% endif %}

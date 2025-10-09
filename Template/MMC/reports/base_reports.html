@@ -1,0 +1,275 @@
+<!-- templates/MMC/reports/base_reports.html -->
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="{% if request.session.theme == 'dark' %}dark{% else %}light{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MMC Reports{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: var(--bs-dark-bg-subtle);
+        }
+        .report-card {
+            transition: transform 0.2s;
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--bs-primary);
+            border-color: var(--bs-primary);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .export-btn-group .btn {
+            border-radius: 0;
+        }
+        .export-btn-group .btn:first-child {
+            border-top-left-radius: 0.375rem;
+            border-bottom-left-radius: 0.375rem;
+        }
+        .export-btn-group .btn:last-child {
+            border-top-right-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+        }
+        .table-responsive {
+            max-height: 600px;
+        }
+        .badge-sla {
+            background-color: #28a745;
+        }
+        .badge-overdue {
+            background-color: #dc3545;
+        }
+        .progress-thin {
+            height: 6px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'reports_dashboard' %}">
+                <i class="bi bi-graph-up"></i> MMC Reports
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/">Admin Panel</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ request.user.get_full_name }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-moon-stars"></i> Theme</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar d-md-block collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" 
+                               href="{% url 'reports_dashboard' %}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'payments' %}active{% endif %}" 
+                               href="{% url 'payment_reports' %}">
+                                <i class="bi bi-credit-card"></i> Payment Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'applications' %}active{% endif %}" 
+                               href="{% url 'application_reports' %}">
+                                <i class="bi bi-files"></i> Application Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'cpd' %}active{% endif %}" 
+                               href="{% url 'cpd_reports' %}">
+                                <i class="bi bi-award"></i> CPD Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'comprehensive' %}active{% endif %}" 
+                               href="{% url 'comprehensive_reports' %}">
+                                <i class="bi bi-bar-chart"></i> Comprehensive Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'manual_verification' %}active{% endif %}" 
+                               href="{% url 'manual_verification_reports' %}">
+                                <i class="bi bi-clipboard-check"></i> Manual Verification
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'staff_performance' %}active{% endif %}" 
+                               href="{% url 'staff_performance_reports' %}">
+                                <i class="bi bi-people"></i> Staff Performance
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'complaints' %}active{% endif %}" 
+                               href="{% url 'complaint_analysis_reports' %}">
+                                <i class="bi bi-exclamation-triangle"></i> Complaint Analysis
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'ai_performance' %}active{% endif %}" 
+                               href="{% url 'ai_performance_reports' %}">
+                                <i class="bi bi-cpu"></i> AI Performance
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'generate' %}active{% endif %}" 
+                               href="{% url 'generate_report' %}">
+                                <i class="bi bi-download"></i> Generate Report
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Messages -->
+                {% if messages %}
+                <div class="mt-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Page Header -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">{% block page_title %}Reports Dashboard{% endblock %}</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        {% block header_buttons %}{% endblock %}
+                    </div>
+                </div>
+
+                <!-- Content -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Theme Toggle
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-bs-theme', newTheme);
+            
+            // Save preference (you might want to send this to server)
+            fetch('/theme-toggle/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({theme: newTheme})
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Date Range Toggle
+        function toggleCustomDate() {
+            const dateRange = document.getElementById('id_date_range');
+            const startDate = document.getElementById('id_start_date');
+            const endDate = document.getElementById('id_end_date');
+            
+            if (dateRange.value === 'CUSTOM') {
+                startDate.parentElement.style.display = 'block';
+                endDate.parentElement.style.display = 'block';
+            } else {
+                startDate.parentElement.style.display = 'none';
+                endDate.parentElement.style.display = 'none';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleCustomDate();
+            
+            // Initialize all tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        // Export functionality
+        function exportReport(format, reportType = null) {
+            const urlParams = new URLSearchParams(window.location.search);
+            let url = `{% url 'export_reports' 'TYPE' %}`.replace('TYPE', reportType || '{{ active_tab }}');
+            url += '?' + urlParams.toString() + '&format=' + format;
+            window.location.href = url;
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

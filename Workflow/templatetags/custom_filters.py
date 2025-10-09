@@ -335,3 +335,29 @@ def approved_count(applications):
 def filter_by_type(alerts, alert_type):
     """Filter alerts by type"""
     return [alert for alert in alerts if getattr(alert, 'type', None) == alert_type]
+
+@register.filter
+def percentage(value, total):
+    """Calculate percentage"""
+    try:
+        return (float(value) / float(total)) * 100
+    except (ValueError, ZeroDivisionError):
+        return 0
+    
+@register.filter
+def get_item(dictionary, key):
+    """Get item from dictionary"""
+    return dictionary.get(key)
+
+@register.filter
+def times(number):
+    """Create range for star ratings"""
+    return range(number)
+
+@register.filter
+def center(number):
+    """Create range for number"""
+    try:
+        return range(int(number))
+    except (ValueError, TypeError):
+        return range(0)

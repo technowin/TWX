@@ -33,11 +33,7 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
-{% endblock %}
 
-{% block title %}My Qualifications - MMC Portal{% endblock %}
-
-{% block extra_css %}
 <style>
     .qualification-card {
         border: none;
@@ -108,7 +104,10 @@
         border: 2px solid white;
     }
 </style>
+
 {% endblock %}
+
+{% block title %}My Qualifications - MMC Portal{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">

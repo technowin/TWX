@@ -854,43 +854,6 @@ class BulkActionForm(forms.Form):
         
         return cleaned_data
 
-class ReportGenerationForm(forms.Form):
-    REPORT_CHOICES = (
-        ('payment_summary', 'Payment Summary Report'),
-        ('application_status', 'Application Status Report'),
-        ('cpd_participation', 'CPD Participation Report'),
-        ('staff_performance', 'Staff Performance Report'),
-        ('revenue_analysis', 'Revenue Analysis Report'),
-        ('registration_trends', 'Registration Trends Report'),
-        ('complaint_analysis', 'Complaint Analysis Report'),
-        ('ai_performance', 'AI Performance Report'),
-        ('sla_compliance', 'SLA Compliance Report'),
-    )
-    
-    report_type = forms.ChoiceField(choices=REPORT_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
-    date_from = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
-    )
-    date_to = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
-    )
-    format = forms.ChoiceField(
-        choices=(('pdf', 'PDF'), ('excel', 'Excel'), ('csv', 'CSV')),
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        date_from = cleaned_data.get('date_from')
-        date_to = cleaned_data.get('date_to')
-        
-        if date_from and date_to and date_from > date_to:
-            raise ValidationError("End date cannot be before start date")
-        
-        return cleaned_data
-
 class AIPerformanceFilterForm(forms.Form):
     SPECIALIZATION_CHOICES = (
         ('', 'All Specializations'),
@@ -1011,52 +974,211 @@ class EmailTemplateForm(forms.Form):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
 
+# forms.py - Reports Module Forms
 class ReportFilterForm(forms.Form):
     DATE_RANGE_CHOICES = (
-        ('', 'Select Date Range'),
         ('TODAY', 'Today'),
         ('YESTERDAY', 'Yesterday'),
         ('THIS_WEEK', 'This Week'),
         ('THIS_MONTH', 'This Month'),
         ('LAST_MONTH', 'Last Month'),
-        ('CUSTOM', 'Custom Range'),
+        ('CUSTOM', 'Custom Date Range'),
     )
-    
+
+    APPLICATION_TYPES = (
+        ('', 'All Types'),
+        ('provisional', 'Provisional Registration'),
+        ('permanent', 'Permanent Registration'),
+        ('foreign_provisional', 'Foreign Provisional Registration'),
+        ('additional_qualification', 'Additional Qualification'),
+        ('renewal', 'Renewal of Registration'),
+        ('manual_verification', 'Manual Document Verification'),
+    )
+
+    PAYMENT_STATUS = (
+        ('', 'All Status'),
+        ('success', 'Success'),
+        ('pending', 'Pending'),
+        ('failed', 'Failed'),
+    )
+
+    PAYMENT_METHODS = (
+        ('', 'All Methods'),
+        ('online', 'Online Payment'),
+        ('bank_transfer', 'Bank Transfer'),
+        ('cheque', 'Cheque'),
+    )
+
+    COMPLAINT_SEVERITY = (
+        ('', 'All Severity'),
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    )
+
     date_range = forms.ChoiceField(
-        choices=DATE_RANGE_CHOICES, 
-        required=False, 
-        widget=forms.Select(attrs={'class': 'form-select', 'onchange': 'toggleCustomDateRange(this.value)'})
+        choices=DATE_RANGE_CHOICES,
+        required=False,
+        initial='THIS_MONTH',
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'date_range_f',
+            'onchange': 'toggleCustomDate()'
+        })
     )
+
     start_date = forms.DateField(
-        required=False, 
-        widget=forms.DateInput(attrs={'type': 'date'})
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'id': 'start_date_f',
+            'type': 'date',
+            'placeholder': 'Start Date',
+            'style': 'display: none;'
+        })
     )
+
     end_date = forms.DateField(
-        required=False, 
-        widget=forms.DateInput(attrs={'type': 'date'})
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'id': 'end_date_f',
+            'type': 'date',
+            'placeholder': 'End Date',
+            'style': 'display: none;'
+        })
     )
+
     application_type = forms.ChoiceField(
-        choices=[('', 'All Types')] + list(Application.APPLICATION_TYPES), 
-        required=False, 
-        widget=forms.Select(attrs={'class': 'form-select'})
+        choices=APPLICATION_TYPES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'application_type_f'
+        })
     )
+
     status = forms.ChoiceField(
-        choices=[('', 'All Statuses')] + list(Application.APPLICATION_STATUS), 
-        required=False, 
-        widget=forms.Select(attrs={'class': 'form-select'})
+        choices=(
+            ('', 'All Status'),
+            ('submitted', 'Submitted'),
+            ('under_review', 'Under Review'),
+            ('approved', 'Approved'),
+            ('rejected', 'Rejected'),
+        ),
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'status_f'
+        })
     )
-    
+
+    payment_status = forms.ChoiceField(
+        choices=PAYMENT_STATUS,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'payment_status_f'
+        })
+    )
+
+    payment_method = forms.ChoiceField(
+        choices=PAYMENT_METHODS,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'payment_method_f'
+        })
+    )
+
+    severity = forms.ChoiceField(
+        choices=COMPLAINT_SEVERITY,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'severity_f'
+        })
+    )
+
     def clean(self):
         cleaned_data = super().clean()
         date_range = cleaned_data.get('date_range')
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
+
+        if date_range == 'CUSTOM' and (not start_date or not end_date):
+            raise forms.ValidationError("Please select both start and end dates for custom range.")
+
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("Start date cannot be after end date.")
+
+        return cleaned_data
+
+class ReportGenerationForm(forms.Form):
+    REPORT_TYPES = (
+        ('payment_summary', 'Payment Summary Report'),
+        ('application_status', 'Application Status Report'),
+        ('cpd_participation', 'CPD Participation Report'),
+        ('staff_performance', 'Staff Performance Report'),
+        ('complaint_analysis', 'Complaint Analysis Report'),
+        ('manual_verification', 'Manual Verification Report'),
+        ('revenue_analysis', 'Revenue Analysis Report'),
+        ('registration_trends', 'Registration Trends Report'),
+    )
+    
+    FORMAT_CHOICES = (
+        ('excel', 'Excel (.xls)'),
+        ('pdf', 'PDF (.pdf)'),
+        ('csv', 'CSV (.csv)'),
+    )
+    
+    report_type = forms.ChoiceField(
+        choices=REPORT_TYPES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    
+    format = forms.ChoiceField(
+        choices=FORMAT_CHOICES,
+        initial='excel',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        date_from = cleaned_data.get('date_from')
+        date_to = cleaned_data.get('date_to')
         
-        if date_range == 'CUSTOM':
-            if not start_date or not end_date:
-                raise ValidationError("Both start date and end date are required for custom range.")
-            if start_date > end_date:
-                raise ValidationError("Start date cannot be after end date.")
+        if date_from and date_to and date_from > date_to:
+            raise forms.ValidationError("Start date cannot be after end date.")
+        
+        return cleaned_data
+
+class DateRangeForm(forms.Form):
+    start_date = forms.DateField(
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("Start date cannot be after end date.")
         
         return cleaned_data
 

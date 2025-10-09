@@ -35,235 +35,122 @@
 <link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
 {% endblock %}
 
+
+{% block title %}MMC Reports Dashboard{% endblock %}
+{% comment %} {% block page_title %}<h4>Reports Dashboard</h4>{% endblock %} {% endcomment %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Reports & Analytics</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="generatePDF()">
-                    <i class="bi bi-file-pdf"></i> PDF
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="exportToExcel()">
+<!-- Header Row -->
+    <div class="row">
+        <div class="col">
+            <h4>Reports Dashboard</h4>        
+        </div>
+        <div class="col-auto mt-2">
+            <div class="btn-group mb-2">
+                <button type="button" class="btn btn-sm btn-success" onclick="exportReport('excel')">
                     <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>&nbsp;&nbsp;&nbsp;
+                <button type="button" class="btn btn-sm btn-secondary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
                 </button>
             </div>
         </div>
     </div>
-
-    <!-- Report Type Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-primary">
-                <div class="card-body">
-                    <h5 class="card-title">Payment Reports</h5>
-                    <p class="card-text">Detailed payment transactions and summaries</p>
-                    <a href="#payment-reports" class="btn btn-light btn-sm">View Reports</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-success">
-                <div class="card-body">
-                    <h5 class="card-title">Application Reports</h5>
-                    <p class="card-text">Application status and approval statistics</p>
-                    <a href="#application-reports" class="btn btn-light btn-sm">View Reports</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-warning">
-                <div class="card-body">
-                    <h5 class="card-title">CPD Reports</h5>
-                    <p class="card-text">CPD program participation and points</p>
-                    <a href="#cpd-reports" class="btn btn-light btn-sm">View Reports</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-info">
-                <div class="card-body">
-                    <h5 class="card-title">Operational Reports</h5>
-                    <p class="card-text">Staff performance and workflow metrics</p>
-                    <a href="#operational-reports" class="btn btn-light btn-sm">View Reports</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="row mb-4">
-        <div class="col-md-2 col-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 class="text-primary">{{ total_applications }}</h3>
-                    <small class="text-muted">Total Applications</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2 col-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 class="text-success">{{ payment_summary.total_count }}</h3>
-                    <small class="text-muted">Successful Payments</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2 col-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 class="text-warning">₹{{ payment_summary.total_amount|default:0 }}</h3>
-                    <small class="text-muted">Total Revenue</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2 col-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 class="text-info">{{ total_rmps }}</h3>
-                    <small class="text-muted">Registered RMPs</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2 col-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 class="text-danger">{{ pending_applications }}</h3>
-                    <small class="text-muted">Pending Review</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2 col-6">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 class="text-secondary">0</h3>
-                    <small class="text-muted">Active CPD Programs</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Applications by Type</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="applicationsByTypeChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Applications by Status</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="applicationsByStatusChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Reports -->
-    <div class="row mb-4" id="payment-reports">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Payment Reports</h5>
-                    <div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="generatePaymentReport()">
-                            <i class="bi bi-download"></i> Generate Report
-                        </button>
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
+                            Total Applications
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold ">
+                            {{ stats.total_applications|intcomma }}
+                        </div>
+                        <div class="mt-2 mb-0 ">
+                            <span class="text-success mr-2">
+                                <i class="bi bi-arrow-up"></i> 
+                                {{ stats.pending_applications }} pending
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Transaction ID</th>
-                                    <th>Application Type</th>
-                                    <th>RMP Name</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Payment Method</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Sample data - replace with actual data -->
-                                <tr>
-                                    <td>15/01/2024</td>
-                                    <td>TXN001234</td>
-                                    <td>Permanent Registration</td>
-                                    <td>Dr. Rajesh Kumar</td>
-                                    <td>₹2,500</td>
-                                    <td><span class="badge bg-success">Success</span></td>
-                                    <td>Online</td>
-                                </tr>
-                                <tr>
-                                    <td>14/01/2024</td>
-                                    <td>TXN001233</td>
-                                    <td>Provisional Registration</td>
-                                    <td>Dr. Priya Singh</td>
-                                    <td>₹1,500</td>
-                                    <td><span class="badge bg-success">Success</span></td>
-                                    <td>Online</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="col-auto">
+                        <i class="bi bi-files fa-2x "></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Application Reports -->
-    <div class="row mb-4" id="application-reports">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Application Summary Reports</h5>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
+                            Total Revenue
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold ">
+                            ₹{{ stats.revenue_month|floatformat:0|intcomma }}
+                        </div>
+                        <div class="mt-2 mb-0 ">
+                            <small>This month</small>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-currency-rupee fa-2x "></i>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Approved Applications</h6>
-                            <ul class="list-group">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Provisional Registration
-                                    <span class="badge bg-primary rounded-pill">24</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Permanent Registration
-                                    <span class="badge bg-primary rounded-pill">156</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Renewal of Registration
-                                    <span class="badge bg-primary rounded-pill">89</span>
-                                </li>
-                            </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
+                            Registered RMPs
                         </div>
-                        <div class="col-md-6">
-                            <h6>Pending Applications</h6>
-                            <ul class="list-group">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Additional Qualification
-                                    <span class="badge bg-warning rounded-pill">12</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Change of Address
-                                    <span class="badge bg-warning rounded-pill">8</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Good Standing Certificate
-                                    <span class="badge bg-warning rounded-pill">15</span>
-                                </li>
-                            </ul>
+                        <div class="h5 mb-0 font-weight-bold ">
+                            {{ stats.total_rmps|intcomma }}
                         </div>
+                        <div class="mt-2 mb-0 ">
+                            <span class="text-success">
+                                <i class="bi bi-person-check"></i> Active
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-people fa-2x "></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold  text-uppercase mb-1">
+                            CPD Programs
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold ">
+                            {{ stats.cpd_programs|intcomma }}
+                        </div>
+                        <div class="mt-2 mb-0 ">
+                            <span class="text-warning">
+                                <i class="bi bi-award"></i> Active
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-award fa-2x "></i>
                     </div>
                 </div>
             </div>
@@ -271,6 +158,97 @@
     </div>
 </div>
 
+<div class="row">
+    <!-- Recent Reports -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-clock-history"></i> Recent Reports
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if recent_reports %}
+                <div class="list-group list-group-flush">
+                    {% for report in recent_reports %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ report.title }}</h6>
+                            <small class="text-muted">
+                                Generated by {{ report.generated_by.get_full_name }}
+                                on {{ report.generated_date|date:"M d, Y H:i" }}
+                            </small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            {{ report.get_report_type_display }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No reports generated yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Status Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Application Status
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="applicationStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quick Links -->
+    <div class="col-12 mb-4">
+        <div class="card report-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-link"></i> Quick Report Links
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'payment_reports' %}" class="btn btn-outline-primary w-100 h-100 py-3">
+                            <i class="bi bi-credit-card d-block mb-2" style="font-size: 2rem;"></i>
+                            Payment Reports
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'application_reports' %}" class="btn btn-outline-success w-100 h-100 py-3">
+                            <i class="bi bi-files d-block mb-2" style="font-size: 2rem;"></i>
+                            Application Reports
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'cpd_reports' %}" class="btn btn-outline-warning w-100 h-100 py-3">
+                            <i class="bi bi-award d-block mb-2" style="font-size: 2rem;"></i>
+                            CPD Reports
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'comprehensive_reports' %}" class="btn btn-outline-info w-100 h-100 py-3">
+                            <i class="bi bi-bar-chart d-block mb-2" style="font-size: 2rem;"></i>
+                            Comprehensive
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
@@ -298,83 +276,65 @@
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-// Initialize Charts
-document.addEventListener('DOMContentLoaded', function() {
-    // Applications by Type Chart
-    const typeCtx = document.getElementById('applicationsByTypeChart').getContext('2d');
-    const typeChart = new Chart(typeCtx, {
+    // Application Status Chart
+    const statusCtx = document.getElementById('applicationStatusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
         type: 'doughnut',
         data: {
             labels: [
-                {% for item in applications_by_type %}
-                '{{ item.application_type }}',
+                {% for item in app_status_dist %}
+                    '{{ item.status|title }}',
                 {% endfor %}
             ],
             datasets: [{
                 data: [
-                    {% for item in applications_by_type %}
-                    {{ item.count }},
+                    {% for item in app_status_dist %}
+                        {{ item.count }},
                     {% endfor %}
                 ],
                 backgroundColor: [
-                    '#0d6efd', '#198754', '#ffc107', '#dc3545',
-                    '#6f42c1', '#e83e8c', '#fd7e14', '#20c997'
-                ]
+                    '#28a745', '#ffc107', '#dc3545', '#6c757d', '#17a2b8'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
                 }
             }
         }
     });
 
-    // Applications by Status Chart
-    const statusCtx = document.getElementById('applicationsByStatusChart').getContext('2d');
-    const statusChart = new Chart(statusCtx, {
-        type: 'bar',
-        data: {
-            labels: [
-                {% for item in applications_by_status %}
-                '{{ item.status }}',
-                {% endfor %}
-            ],
-            datasets: [{
-                label: 'Applications',
-                data: [
-                    {% for item in applications_by_status %}
-                    {{ item.count }},
-                    {% endfor %}
-                ],
-                backgroundColor: '#0d6efd'
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-});
+    // Update stats periodically
+    function updateStats() {
+        fetch('{% url "get_application_stats" %}')
+            .then(response => response.json())
+            .then(data => {
+                // Update your stats here if needed
+                console.log('Updated stats:', data);
+            });
+    }
 
-function generatePDF() {
-    alert('PDF generation functionality will be implemented');
-}
-
-function exportToExcel() {
-    alert('Excel export functionality will be implemented');
-}
-
-function generatePaymentReport() {
-    alert('Payment report generation will be implemented');
-}
+    // Update every 5 minutes
+    setInterval(updateStats, 300000);
 </script>
 {% endblock %}
 
