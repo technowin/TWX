@@ -74,23 +74,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-3">
-                        <label for="id_scheduled_start" class="form-label">Scheduled Start</label>
-                        <input type="datetime-local" id="id_scheduled_start" name="scheduled_start"
-                            class="form-control"
-                            {% if schedule.scheduled_start %}
-                            value="{{ schedule.scheduled_start|date:'Y-m-d\\TH:i' }}"
-                            {% endif %}>
-                    </div>
-
-                    <div class="col-md-3">
-                        <label for="id_scheduled_end" class="form-label">Scheduled End</label>
-                        <input type="datetime-local" id="id_scheduled_end" name="scheduled_end"
-                            class="form-control"
-                            {% if schedule.scheduled_end %}
-                            value="{{ schedule.scheduled_end|date:'Y-m-d\\TH:i' }}"
-                            {% endif %}>
-                    </div>
+                    
                 </div>
 
                 <!-- Button -->
@@ -101,36 +85,59 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            
 
             <!-- Calendar -->
             <div id="calendar" class="mt-4"></div>
 
-            <div id="routing-card" class="card mb-3 d-none">
-                <div class="card-header bg-info text-white">Routing & Operations</div>
-                <div class="card-body">
-                    <div id="routingContent"></div>
+            <!-- 🔹 Schedule Start and End below calendar -->
+            <div class="row mt-4">
+            <div class="col-md-6" id="start_date" hidden>
+                <label for="id_scheduled_start" class="form-label">Scheduled Start</label>
+                <input type="datetime-local" id="id_scheduled_start" name="scheduled_start"
+                class="form-control"
+                {% if schedule.scheduled_start %}
+                value="{{ schedule.scheduled_start|date:'Y-m-d\\TH:i' }}"
+                {% endif %}>
+            </div>
+
+            <div class="col-md-6" id="end_date" hidden>
+                <label for="id_scheduled_end" class="form-label">Scheduled End</label>
+                <input type="datetime-local" id="id_scheduled_end" name="scheduled_end"
+                class="form-control"
+                {% if schedule.scheduled_end %}
+                value="{{ schedule.scheduled_end|date:'Y-m-d\\TH:i' }}"
+                {% endif %}>
+            </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-12 text-end">
+                    <button type="button" id="calculateEndDateBtn" class="btn btn-warning">
+                        <i class="bi bi-calculator me-1"></i> Calculate End Date
+                    </button>
                 </div>
             </div>
 
-            <!-- Hidden Routing Info -->
-            {% comment %} <div id="routing-card" class="card mb-3 d-none mt-4">
-                <div class="card-header bg-info text-white">Routing & Operations</div>
-                <div class="card-body">
-                    <ul class="nav nav-tabs" id="routingTabs"></ul>
-                    <div class="tab-content mt-3" id="routingContent"></div>
-                    <div id="productionOrdersWrapper"></div>
-                    <input type="hidden" id="assignments_json" name="assignments_json"
-                        value="{{ assignments_json|default:'[]' }}">
-                </div>
-            </div> {% endcomment %}
+
+        <!-- Routing details -->
+        <div id="routing-card" class="card mb-3 d-none mt-4">
+          <div class="card-header bg-info text-white">Routing & Operations</div>
+          <div class="card-body">
+            <div id="routingContent"></div>
+          </div>
+        </div>
+        <input type="hidden" id="assignments_json" name="assignments_json" value="{{ assignments_json|default:'[]' }}">
+
+
 
             <!-- Save/Cancel -->
             <div class="d-flex justify-content-between mb-4">
                 <a href="{% url 'mcp:machine_scheduling_list' %}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Save Schedule</button>
+                <button type="submit" class="btn btn-primary">Save Plan</button>
             </div>
         </form>
+    </div>
     </div>
 </div>
 
@@ -142,32 +149,37 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-$(document).ready(function() {
+     let calendar; // FullCalendar instance
+$(document).ready(function () {
 
-    let calendar; // FullCalendar instance
+    //let calendar; // FullCalendar instance
 
-    // Fetch component by production order
-    $('#id_production_order').change(function() {
+    // 🔹 Step 1: Fetch component when production order changes
+    $('#id_production_order').change(function () {
         const productionOrderId = $(this).val();
 
         if (productionOrderId) {
             $.ajax({
                 url: '{% url "mcp:get_component_by_production" %}',
                 type: 'GET',
-                data: { 'production_order_id': productionOrderId },
-                success: function(response) {
+                data: { production_order_id: productionOrderId },
+                success: function (response) {
+                    const componentSelect = $('#id_component');
+                    componentSelect.empty();
+
                     if (response.component_id && response.component_name) {
-                        const componentSelect = $('#id_component');
-                        componentSelect.empty().append(
+                        componentSelect.append(
                             $('<option>', {
                                 value: response.component_id,
                                 text: response.component_name,
                                 selected: true
                             })
                         );
+                    } else {
+                        componentSelect.append('<option value="">-- No Component Found --</option>');
                     }
                 },
-                error: function() {
+                error: function () {
                     console.error('Error fetching component.');
                 }
             });
@@ -176,138 +188,388 @@ $(document).ready(function() {
         }
     });
 
-    // Fetch routing data
-    // Fetch routing data
-$('#checkRoutingBtn').on('click', function() {
-    const componentId = $('#id_component').val();
+    // 🔹 Step 2: Fetch routing data and render calendar
+    $('#checkRoutingBtn').on('click', function () {
+        const componentId = $('#id_component').val();
 
-    if (!componentId) {
-        alert("Please select a component first!");
+        if (!componentId) {
+            alert("Please select a component first!");
+            return;
+        }
+
+        $.ajax({
+            url: "{% url 'mcp:get_routing_data' %}",
+            type: "POST",
+            data: {
+                component_id: componentId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function (response) {
+                // ✅ Always store routing ID, even if schedules are empty
+                if (response.routing_id) {
+                    window.currentRoutingId = response.routing_id;
+                } else {
+                    console.warn("No routing ID returned from server.");
+                }
+
+                // ✅ Render calendar based on data
+                if (response.schedules && response.schedules.length > 0) {
+                    renderFullCalendar(response.schedules);
+                } else {
+                    renderFullCalendar([]); // clears the calendar
+                }
+
+                // ✅ Always show date fields after successful load
+                $('#start_date').removeAttr('hidden');
+                $('#end_date').removeAttr('hidden');
+            },
+
+            error: function (xhr, status, error) {
+                console.error("Error fetching routing data:", error);
+                alert("Error fetching routing data.");
+            }
+        });
+
+    });
+
+    // 🔹 Step 3: Render FullCalendar
+    function renderFullCalendar(scheduleData) {
+        if (calendar) {
+            calendar.destroy();
+        }
+
+        const calendarEl = document.getElementById('calendar');
+        const events = scheduleData.map(item => ({
+            title: "Production: " + item.production_order,
+            start: item.start_date,
+            end: item.end_date,
+            allDay: true,
+            backgroundColor: '#4099ff',
+            borderColor: '#4099ff'
+        }));
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: 650,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            events: events,
+            themeSystem: 'bootstrap5',
+            selectable: true,
+            editable: false,
+
+            // 🔹 Click on a date → load routing details
+            dateClick: function (info) {
+                debugger;
+                const selectedDate = info.dateStr; // YYYY-MM-DD
+                $('#id_scheduled_start').val(selectedDate + "T10:00");
+                const routingId = window.currentRoutingId;
+                
+                if (!routingId) {
+                    alert("No routing ID found. Please click 'Check Routings' first.");
+                    return;
+                }
+
+                loadRoutingDetails(routingId);
+            }
+        });
+
+        calendar.render();
+    }
+
+    // 🔹 Step 4: Load Routing Details
+    function loadRoutingDetails(routingId) {
+        $.ajax({
+            url: "{% url 'mcp:get_routing_details' %}",
+            type: "GET",
+            data: { routing_id: routingId },
+            success: function (response) {
+                if (response.routing_details && response.routing_details.length > 0) {
+                    renderRoutingDetailsTable(response.routing_details);
+                    $('#routing-card').removeClass('d-none');
+                } else {
+                    $('#routingContent').html("<p class='text-danger'>No routing details found.</p>");
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error(error);
+                alert("Error fetching routing details.");
+            }
+        });
+    }
+
+    // 🔹 Step 5: Render Routing Table (with workstations & employees)
+ // 🔹 Step 5: Render Routing Table (direct workstation + employee count)
+function renderRoutingDetailsTable(details) {
+    let tableHtml = `
+        <table class="table table-bordered mt-3">
+            <thead class="table-primary">
+                <tr>
+                    <th>Seq</th>
+                    <th>Operation</th>
+                    <th>Emp Needed</th>
+                    <th>Proficiency</th>
+                    <th>Skill</th>
+                    <th>Work Center</th>
+                    <th>Workstation (with Employee Count)</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    details.forEach((d, index) => {
+        tableHtml += `
+             <tr data-routing-detail-id="${d.routing_detail_id}">
+                <td>${d.sequence}</td>
+                <td>${d.operation}</td>
+                <td>${d.employee_needed}</td>
+                <td>${d.proficiency}</td>
+                <td>${d.skill}</td>
+                <td>${d.work_center}</td>
+                <td>
+                    <select class="form-select workstation-select" data-row="${index}">
+                        <option value="">-- Select Workstation --</option>
+                        ${
+                            d.workstations && d.workstations.length > 0
+                            ? d.workstations.map(ws => 
+                                `<option value="${ws.id}">${ws.name} (${ws.employee_count} Employees)</option>`
+                              ).join('')
+                            : '<option value="">No Workstations Available</option>'
+                        }
+                    </select>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `</tbody></table>`;
+    $('#routingContent').html(tableHtml);
+}
+
+
+});
+
+
+// 🔹 Hover over workstation option → show tooltip with details
+
+
+$(document).on("change", ".workstation-select", function (e) {
+    debugger;
+    const $select = $(this);
+    const workstationId = $select.val();
+    if (!workstationId) return;
+
+    // Prevent multiple tooltips/loading at the same time
+    if ($select.attr("data-loading") === "true") return;
+    $select.attr("data-loading", "true");
+
+    $.ajax({
+        url: "{% url 'mcp:get_workstation_details' %}",
+        type: "GET",
+        data: { workstation_id: workstationId },
+        success: function (response) {
+            if (!response.success) return;
+
+            // Remove old tooltip if exists
+            $(".workstation-tooltip").remove();
+
+            // Build HTML for tooltip
+            let tooltipHtml = `
+                <div class="workstation-tooltip card shadow p-2 position-absolute" 
+                     style="z-index:9999; background:white; border-radius:10px; width:320px;">
+                    <h6 class="fw-bold text-primary mb-2"><strong>Machine:</strong>:${response.machine_name}</h6>
+                    <p class="mb-1"><strong>Capacity:</strong> ${response.capacity}</p>
+                    <p class="mb-1"><strong>Status:</strong> ${response.status}</p>
+                    <hr class="my-2"/>
+                    <p class="fw-bold mb-1 text-secondary">Employees</p>
+            `;
+
+            if (response.employees && response.employees.length > 0) {
+                response.employees.forEach(emp => {
+                    tooltipHtml += `
+                        <div class="mb-2 border-bottom pb-1">
+                            <strong>${emp.name}</strong><br>
+                            ${emp.skills.map(s => `${s.skill_name} (${s.proficiency})`).join(", ")}
+                        </div>
+                    `;
+                });
+            } else {
+                tooltipHtml += `<p class="text-muted">No employees assigned</p>`;
+            }
+
+            tooltipHtml += `</div>`;
+
+            // Append tooltip
+            const $tooltip = $(tooltipHtml).appendTo("body");
+
+            // Position tooltip near mouse cursor
+            $(document).on("mousemove.tooltip", function (ev) {
+                $tooltip.css({
+                    top: ev.pageY + 10,
+                    left: ev.pageX + 10
+                });
+            });
+
+            // Remove tooltip on mouseleave
+            $select.on("mouseleave", function () {
+                $(".workstation-tooltip").remove();
+                $(document).off("mousemove.tooltip");
+                $select.removeAttr("data-loading");
+            });
+        },
+        error: function (xhr, status, error) {
+            console.error("Error fetching workstation details:", error);
+            $select.removeAttr("data-loading");
+        }
+    });
+});
+   
+   $('#calculateEndDateBtn').on('click', function () {
+    const productionId = $('#id_production_order').val();
+    const scheduledStart = $('#id_scheduled_start').val();
+
+    if (!productionId) {
+        alert("Please select a production order first!");
         return;
     }
 
-    $.ajax({
-        url: "{% url 'mcp:get_routing_data' %}",
-        type: "POST",
-        data: {
-            component_id: componentId,
-            csrfmiddlewaretoken: '{{ csrf_token }}'
-        },
-        success: function(response) {
-            if (response.schedules && response.schedules.length > 0) {
-                // ✅ Store routing_id globally for later use when clicking on the calendar
-                window.currentRoutingId = response.routing_id;
-
-                renderFullCalendar(response.schedules);
-            } else {
-                $('#calendar').html("<p class='text-danger'>No schedules found.</p>");
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error(error);
-            alert("Error fetching routing data.");
-        }
-    });
-});
-
-
-// Render FullCalendar dynamically
-function renderFullCalendar(scheduleData) {
-    if (calendar) {
-        calendar.destroy();
+    if (!scheduledStart) {
+        alert("Please select a start date first!");
+        return;
     }
 
-    const calendarEl = document.getElementById('calendar');
-    const events = scheduleData.map(item => ({
-        title: "Production: " + item.production_order,
-        start: item.start_date,
-        end: item.end_date,
+    if (!calendar) {
+        alert("Please click 'Check Routings' first to load the calendar!");
+        return;
+    }
+
+    // Collect selected workstation IDs
+    let workstationIds = [];
+    $('.workstation-select').each(function () {
+        const wsId = $(this).val();
+        if (wsId) workstationIds.push(wsId);
+    });
+
+    if (workstationIds.length === 0) {
+        alert("Please select workstations for all operations!");
+        return;
+    }
+
+    // AJAX call to calculate end date
+    $.ajax({
+        url: "{% url 'mcp:calculate_end_date' %}",
+        type: "POST",
+        data: {
+            production_id: productionId,
+            workstation_ids: JSON.stringify(workstationIds),
+            scheduled_start: scheduledStart,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+      success: function(response) {
+    if (response.end_date) {
+        const formattedEndDate = response.end_date.replace(" ", "T");
+        $('#id_scheduled_end').val(formattedEndDate);
+
+        if (!calendar) {
+            alert("Please click 'Check Routing' first to initialize the calendar!");
+            return;
+        }
+
+        const productionTitle = "Production: " + $('#id_production_order option:selected').text();
+        const startDate = $('#id_scheduled_start').val();
+
+        // Remove existing event
+        const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
+        if (existingEvent) existingEvent.remove();
+
+        // Add updated event
+        calendar.addEvent({
+            title: productionTitle,
+            start: startDate,
+            end: formattedEndDate,
+            allDay: true,
+            backgroundColor: '#4099ff',
+            borderColor: '#4099ff'
+        });
+
+       // alert("End date calculated and calendar updated!");
+    } else {
+        alert("Failed to calculate end date.");
+    }
+}
+
+    });
+    // Update calendar when start or end date changes
+$('#id_scheduled_start, #id_scheduled_end').on('change', function() {
+    if (!calendar) return; // calendar must be initialized
+
+    const productionTitle = "Production: " + $('#id_production_order option:selected').text();
+    const startDate = $('#id_scheduled_start').val();
+    const endDate = $('#id_scheduled_end').val();
+
+    if (!startDate || !endDate) return; // both dates required
+
+    // Remove existing event with the same title
+    const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
+    if (existingEvent) {
+        existingEvent.remove();
+    }
+
+    // Add updated event to calendar
+    calendar.addEvent({
+        title: productionTitle,
+        start: startDate,
+        end: endDate,
         allDay: true,
         backgroundColor: '#4099ff',
         borderColor: '#4099ff'
-    }));
-
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        height: 650,
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
-        events: events,
-        themeSystem: 'bootstrap5',
-        selectable: true,
-        editable: false,
-
-        // ✅ Click handler for date
-        dateClick: function(info) {
-            const routingId = window.currentRoutingId; // ✅ use stored routing_id
-            if (!routingId) {
-                alert("No routing ID found. Please click 'Check Routings' first.");
-                return;
-            }
-
-            loadRoutingDetails(routingId);
-        }
     });
-
-    calendar.render();
-}
-
 });
+
+
+    
+});
+
+
+
 </script>
 <script>
-    function loadRoutingDetails(routingId) {
-    $.ajax({
-        url: "{% url 'mcp:get_routing_details' %}",
-        type: "GET",
-        data: { routing_id: routingId },
-        success: function(response) {
-            if (response.routing_details && response.routing_details.length > 0) {
-                let tableHtml = `
-                    <table class="table table-bordered mt-3">
-                        <thead class="table-primary">
-                            <tr>
-                                <th>Sequence</th>
-                                <th>Operation</th>
-                                <th>Employee Needed</th>
-                                <th>Proficiency</th>
-                                <th>Skill</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
 
-                response.routing_details.forEach(detail => {
-                    tableHtml += `
-                        <tr>
-                            <td>${detail.sequence}</td>
-                            <td>${detail.operation}</td>
-                            <td>${detail.employee_needed}</td>
-                            <td>${detail.proficiency}</td>
-                            <td>${detail.skill}</td>
-                        </tr>
-                    `;
-                });
+    $('#scheduleForm').on('submit', function(e) {
+    e.preventDefault();
 
-                tableHtml += `</tbody></table>`;
+    let assignments = [];
 
-                $('#routing-card').removeClass('d-none');
-                $('#routingContent').html(tableHtml);
-            } else {
-                $('#routingContent').html("<p class='text-danger'>No routing details found.</p>");
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error(error);
-            alert("Error fetching routing details.");
+    $('#routingContent tbody tr').each(function() {
+        const routingDetailId = $(this).data('routing-detail-id');
+        const workstationId = $(this).find('.workstation-select').val();
+        const start = $('#id_scheduled_start').val();
+        const end = $('#id_scheduled_end').val();
+
+        if (routingDetailId && workstationId) {
+            assignments.push({
+                routing_detail_id: routingDetailId,
+                workstation_id: workstationId,
+                start: start,
+                end: end
+            });
         }
     });
-}
 
+    if (assignments.length === 0) {
+        alert("Please select at least one workstation.");
+        return;
+    }
+
+    $('#assignments_json').val(JSON.stringify(assignments));
+    this.submit();
+});
 
 </script>
+
 
 
 

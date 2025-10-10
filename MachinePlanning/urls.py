@@ -80,6 +80,10 @@ urlpatterns = [
     path('workstations/<int:pk>/delete/', WorkStationDeleteView.as_view(), name='workstation_delete'),
     path('get-component-by-production/', get_component_by_production_order, name='get_component_by_production'),
     path("get-routing-details/", get_routing_details, name="get_routing_details"),
+    path("get_workstation_details/", get_workstation_details, name="get_workstation_details"),
+    path("calculate_end_date/", calculate_end_date, name="calculate_end_date"),
+
+
 
     path('dashboard/',dashboard, name='dashboard'),
 
