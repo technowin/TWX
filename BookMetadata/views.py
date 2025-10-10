@@ -170,3 +170,9 @@ def copy_users_view(request):
         return JsonResponse({"status": "success", "message": message})
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    
+
+
+def book_gallery(request):
+
+    return render(request, 'BookMetadata/book_gallery.html')
