@@ -256,35 +256,52 @@ class OperationForm(forms.ModelForm):
                 'placeholder': 'Enter description...'
             }),
         }
+from django import forms
+from .models import WorkCenters, WorkStations
 
 class WorkCenterForm(forms.ModelForm):
+    # Use CharField with Selectize for multiple selection
+    workstation_ids = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={
+            'id': 'workstation_ids_field'
+        })
+    )
+
     class Meta:
         model = WorkCenters
-        fields = ['code', 'name', 'description']
+        fields = ['code', 'name', 'workstation_ids', 'description']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter work center code'
+                'placeholder': 'Enter work center code',
+                'required': 'required'
             }),
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter work center name'
+                'placeholder': 'Enter work center name',
+                'required': 'required'
             }),
-            # 'workstation': forms.Select(attrs={
-            #     'class': 'form-select',
-            #     'id': 'workstation-select'  # Add ID for easy targeting
-            # }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Enter description...'
             }),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # You can customize the queryset for workstation if needed
-        # self.fields['workstation'].queryset = WorkStation.objects.all()
+        # Set initial value for workstation_ids if instance exists
+        if self.instance and self.instance.pk:
+            self.fields['workstation_ids'].initial = self.instance.workstation_ids
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # workstation_ids will be saved as comma-separated string
+        if commit:
+            instance.save()
+        return instance
+
 
 class MachineSchedulingForm(forms.ModelForm):
     class Meta:

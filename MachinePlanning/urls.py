@@ -61,7 +61,7 @@ urlpatterns = [
 
     path('workcenters/', WorkCenterListView.as_view(), name='workcenter_list'),
     path('workcenters/create/', WorkCenterCreateView.as_view(), name='workcenter_create'),
-    path('workcenters/<int:pk>/edit/', WorkCenterUpdateView.as_view(), name='workcenter_update'),
+    path('workcenters/<int:pk>/edit/', WorkCenterUpdateView.as_view(), name='workcenter_edit'),
     path('workcenters/<int:pk>/delete/', WorkCenterDeleteView.as_view(), name='workcenter_delete'),
 
     path('machine_scheduling/', MachineScheduleListView.as_view(), name='machine_scheduling_list'),

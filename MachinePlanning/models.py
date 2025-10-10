@@ -140,7 +140,7 @@ class WorkCenters(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    workstation = models.TextField(null=True,blank=True)
+    workstation_ids = models.CharField(max_length=500, blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='workcenter_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='workcenter_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -148,6 +148,17 @@ class WorkCenters(models.Model):
     
     def __str__(self):
         return f"{self.code} - {self.name}"
+    
+    def get_workstation_ids_list(self):
+        """Return list of workstation IDs"""
+        if self.workstation_ids:
+            return [int(id.strip()) for id in self.workstation_ids.split(',') if id.strip()]
+        return []
+
+    def get_workstations(self):
+        """Return actual WorkStation objects"""
+        ids = self.get_workstation_ids_list()
+        return WorkStations.objects.filter(id__in=ids)
     
 
 
@@ -308,7 +319,7 @@ class MachineSchedule(models.Model):
     actual_end = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='machienschedule_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='machienschedule_updated_by',verbose_name="Updated By")
-    ccreated_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True,null=True, blank=True)
     
     class Meta:
@@ -396,7 +407,6 @@ class WorkStations(models.Model):
 
     name = models.TextField(null=True,blank=True)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE,related_name='workstation',verbose_name="Machine")
-    work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE, related_name="work_center_station",null=True,blank=True)
     employee = models.TextField(null=True, blank=True, verbose_name='Assigned Employees')
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True, blank=True,related_name='workstations_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey( CustomUser,on_delete=models.SET_NULL, null=True,blank=True,related_name='workstations_updated_by',verbose_name="Updated By")
@@ -409,7 +419,7 @@ class WorkStations(models.Model):
         ordering = ['machine__machine_id']
 
     def __str__(self):
-        return f"WorkStation: {self.name} - {self.machine.name}"
+        return f"{self.name}"
 
     def get_employee_names(self):
         """Return a readable string of employee names."""

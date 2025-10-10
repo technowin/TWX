@@ -66,7 +66,6 @@
                             <th>Name</th>
                             <th>Machine</th>
                             <th>Employee</th>
-                            <th>Work Center</th>
                             <th>Created At</th>
                             <th>Updated At</th>
                             <th>Actions</th>
@@ -78,7 +77,6 @@
                             <td>{{ workstation.name }}</td>
                             <td>{{ workstation.machine.name }}</td>
                            <td>{{ workstation.get_employee_names }}</td>
-                           <td>{{ workstation.work_center.name }}</td>
                             <td>{{ workstation.created_at|date:"M d, Y H:i" }}</td>
                             <td>{{ workstation.updated_at|date:"M d, Y H:i" }}</td>
                             <td>

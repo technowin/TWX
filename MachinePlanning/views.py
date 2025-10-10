@@ -458,16 +458,20 @@ class OperationDeleteView(DeleteView):
 
 class WorkCenterListView(ListView):
     model = WorkCenters
-    template_name = 'MachinePlan/workcenter_list.html'  # Your current template name
+    template_name = 'MachinePlan/workcenter_list.html'
     context_object_name = 'workcenters'
     paginate_by = 10
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Add workstations to the context
-        # context['workstations'] = WorkStation.objects.all()  # Or filter as needed
-        return context
-    
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Add a dynamic attribute 'workstation_count' to each object
+        for workcenter in queryset:
+            workcenter.workstation_count = len(workcenter.get_workstation_ids_list())
+        return queryset
+
+
+
 class WorkCenterCreateView(CreateView):
     model = WorkCenters
     form_class = WorkCenterForm
@@ -475,12 +479,24 @@ class WorkCenterCreateView(CreateView):
     success_url = reverse_lazy('mcp:workcenter_list')
     
     def form_valid(self, form):
+        workcenter = form.save(commit=False)
+        workcenter.created_by = self.request.user
+        workcenter.save()
+        
         messages.success(self.request, "Work Center created successfully!")
         return super().form_valid(form)
     
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors below.")
         return super().form_invalid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['workstations'] = WorkStations.objects.all().order_by('name')
+        context['workcenter'] = None
+        # Get initial selected workstation IDs for create view
+        context['selected_workstation_ids'] = []
+        return context
 
 class WorkCenterUpdateView(UpdateView):
     model = WorkCenters
@@ -495,6 +511,20 @@ class WorkCenterUpdateView(UpdateView):
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors below.")
         return super().form_invalid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['workstations'] = WorkStations.objects.all().order_by('name')
+        workcenter = self.get_object()
+        context['workcenter'] = workcenter
+        
+        # Get selected workstation IDs as list
+        if workcenter.workstation_ids:
+            context['selected_workstation_ids'] = [int(id.strip()) for id in workcenter.workstation_ids.split(',') if id.strip()]
+        else:
+            context['selected_workstation_ids'] = []
+        
+        return context
 
 
 class WorkCenterDeleteView(DeleteView):
@@ -652,159 +682,6 @@ class MachineScheduleListView(ListView):
 
         return context
 
-
-# ---------------- CREATE VIEW ----------------
-# class MachineScheduleCreateView(CreateView):
-#     model = MachineSchedule
-#     form_class = MachineScheduleForm
-#     template_name = 'MachinePlan/machine_scheduling_form.html'
-#     success_url = reverse_lazy('mcp:machine_scheduling_list')
-
-#     def get_initial(self):
-#         initial = super().get_initial()
-#         po_order = self.request.GET.get('po_order')
-#         if po_order:
-#             try:
-#                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
-#             except ProductionOrder.DoesNotExist:
-#                 pass
-
-#         # Handle Component
-#         component_name = self.request.GET.get('bom_header')
-#         if component_name:
-#             try:
-#                 initial['component'] = BOMHeader.objects.get(name=component_name).pk
-#             except BOMHeader.DoesNotExist:
-#                 pass
-
-#         return initial
-
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         DetailFormset = inlineformset_factory(
-#             MachineSchedule, MachineScheduleDetail,
-#             form=MachineScheduleDetailForm,
-#             extra=1, can_delete=True
-#         )
-
-#         if self.request.POST:
-#             context['detail_formset'] = DetailFormset(self.request.POST)
-#         else:
-#             context['detail_formset'] = DetailFormset()
-
-#         return context
-
-#     def form_valid(self, form):
-#         context = self.get_context_data()
-#         detail_formset = context['detail_formset']
-#         self.object = form.save()
-
-#         if detail_formset.is_valid():
-#             detail_formset.instance = self.object
-#             detail_formset.save()
-#         else:
-#             return self.form_invalid(form)
-
-#         return super().form_valid(form)
-
-#     def get_success_url(self):
-#         po_order = self.request.GET.get('po_order')
-#         bom_header = self.request.GET.get('bom_header')
-#         index = self.request.GET.get('index')
-
-#         if index == "1" and po_order and bom_header:
-#             return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
-#         return super().get_success_url()
-
-# class MachineScheduleCreateView(CreateView):
-#     model = MachineSchedule
-#     template_name = 'MachinePlan/machine_scheduling_form.html'
-#     success_url = reverse_lazy('mcp:machine_scheduling_list')
-
-#     def get_initial(self):
-#         initial = super().get_initial()
-#         po_order = self.request.GET.get('po_order')
-#         if po_order:
-#             try:
-#                 initial['production_order'] = ProductionOrder.objects.get(order_number=po_order).pk
-#             except ProductionOrder.DoesNotExist:
-#                 pass
-
-#         component_name = self.request.GET.get('bom_header')
-#         if component_name:
-#             try:
-#                 initial['component'] = BOMHeader.objects.get(name=component_name).pk
-#             except BOMHeader.DoesNotExist:
-#                 pass
-
-#         return initial
-
-#     def post(self, request, *args, **kwargs):
-#         from django.utils.dateparse import parse_datetime
-#         from django.db import transaction
-
-#         try:
-#             with transaction.atomic():
-#                 schedule = MachineSchedule.objects.create(
-#                     name=request.POST.get("name"),
-#                     production_order_id=request.POST.get("production_order"),
-#                     component_id=request.POST.get("component"),
-#                     scheduled_start=request.POST.get("scheduled_start"),
-#                     scheduled_end=request.POST.get("scheduled_end"),
-#                 )
-
-#                 # 2. Loop through detail rows
-#                 for key, value in request.POST.items():
-#                     if key.startswith("hours_"):
-#                         row_id = key.split("_")[1]
-
-#                         hours = request.POST.get(f"hours_{row_id}")
-#                         machine_id = request.POST.get(f"machine_{row_id}")
-#                         employee_ids = request.POST.getlist(f"employee_{row_id}")  # multi-select
-#                         start = parse_datetime(request.POST.get(f"start_{row_id}"))
-#                         end = parse_datetime(request.POST.get(f"end_{row_id}"))
-
-#                         if machine_id and employee_ids:
-#                             routing = Routing.objects.get(id=row_id)
-#                             MachineScheduleDetail.objects.create(
-#                                 schedule=schedule,
-#                                 seq=routing.sequence,
-#                                 routing=routing,
-#                                 machine_id=machine_id,
-#                                 work_center=routing.work_center,
-#                                 employee=",".join(employee_ids),  # storing CSV
-#                                 hours_allocated=hours or None,
-#                                 scheduled_start=start,
-#                                 scheduled_end=end,
-#                                 status="SCHEDULED",
-#                             )
-
-#             return redirect(self.get_success_url())
-
-#         except Exception as e:
-#             return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-#     def get_success_url(self):
-#         po_order = self.request.GET.get('po_order')
-#         bom_header = self.request.GET.get('bom_header')
-#         index = self.request.GET.get('index')
-
-#         if index == "1" and po_order and bom_header:
-#             return f"{reverse_lazy('mcp:machine_scheduling_list')}?po_order={po_order}&bom_header={bom_header}&index={index}"
-#         return super().get_success_url()
-
-
-# class MachineSchedulingUpdateView(UpdateView):
-#     model = MachineScheduling
-#     form_class = MachineSchedulingForm
-#     template_name = 'MachinePlan/machine_scheduling_form.html'
-#     success_url = reverse_lazy('mcp:machine_scheduling_list')
-    
-#     def form_valid(self, form):
-#         # Set work_center from routing before saving
-#         if form.cleaned_data['routing']:
-#             form.instance.work_center = form.cleaned_data['routing'].work_center
-#         return super().form_valid(form)
 
 class MachineSchedulingDeleteView(DeleteView):
     model = MachineScheduling
@@ -1092,6 +969,8 @@ class MachineScheduleCreateView(View):
                 for row in assignments:
                     routing_detail_id = row.get("routing_detail_id")
                     workstation_id = row.get("workstation_id")
+                    routing_detail_id = row.get("routing_detail_id")
+                    routing = get_object_or_404(RoutingDetail,id = routing_detail_id )
                     machine = get_object_or_404(WorkStations, id  = workstation_id).machine
 
                     routing_detail = RoutingDetail.objects.filter(id=routing_detail_id).first()
@@ -1108,6 +987,8 @@ class MachineScheduleCreateView(View):
                         workstation_id=workstation_id,
                         work_center=routing_detail.work_center,
                     )
+                    schedule.routing = routing_detail.routing
+                    schedule.save()
 
             return redirect(reverse("mcp:machine_scheduling_list"))
 
@@ -1121,20 +1002,48 @@ class MachineScheduleCreateView(View):
         
 # views.py
 class MachineScheduleUpdateView(View):
-    template_name = "MachinePlan/machine_scheduling_form.html"
+    template_name = "MachinePlan/machine_scheduling_edit.html"
 
     def get(self, request, pk, *args, **kwargs):
         schedule = get_object_or_404(MachineSchedule, pk=pk)
-        details = schedule.details.select_related("routing", "work_center")
+
+        # ✅ Fetch all detail rows for this schedule
+        details = (
+            MachineScheduleDetail.objects
+            .filter(schedule=schedule)
+            .select_related("routing", "machine", "workstation", "work_center")
+        )
 
         pre_assignments = []
+
         for d in details:
+            # ✅ Extract all possible workstations for this work_center
+            workstation_list = []
+            if d.work_center and d.work_center.workstation_ids:
+                try:
+                    ws_ids = [int(x) for x in d.work_center.workstation_ids.split(",") if x.strip()]
+                    workstation_list = WorkStations.objects.filter(id__in=ws_ids)
+                except ValueError:
+                    workstation_list = []
+
+            # ✅ Build record for JS
             pre_assignments.append({
-                "row_id": d.routing.id,
-                "sequence": d.seq,
-                "machine": d.machine_id,
-                "workstation_id": d.workstation_id,  # Use machine_id as workstation id
-                "employees": d.employee.split(",") if d.employee else [],
+                "routing_detail_id": d.routing.id if d.routing else None,
+                "sequence": d.seq or "",
+                "operation": getattr(d.routing, "name", ""),  # from RoutingMaster
+                "employee_needed": "",
+                "proficiency": "",
+                "skill": "",
+                "work_center": d.work_center.name if d.work_center else "",
+                "workstation_id": d.workstation.id if d.workstation else None,  # ✅ preselected workstation
+                "workstations": [
+                    {
+                        "id": w.id,
+                        "name": w.name,
+                        "employee_count": getattr(w, "employee_count", 0),
+                    }
+                    for w in workstation_list
+                ],
             })
 
         context = {
@@ -1143,7 +1052,60 @@ class MachineScheduleUpdateView(View):
             "components": BOMHeader.objects.all(),
             "assignments_json": json.dumps(pre_assignments),
         }
+
         return render(request, self.template_name, context)
+
+
+
+
+
+
+    def post(self, request, pk, *args, **kwargs):
+        schedule = get_object_or_404(MachineSchedule, pk=pk)
+
+        name = request.POST.get("name")
+        scheduled_start = request.POST.get("scheduled_start")
+        scheduled_end = request.POST.get("scheduled_end")
+        assignments_json = request.POST.get("assignments_json", "[]")
+
+        # Update schedule main fields
+        schedule.name = name
+        schedule.scheduled_start = scheduled_start
+        schedule.scheduled_end = scheduled_end
+        schedule.save()
+
+        # Delete old MachineScheduleDetail rows
+        schedule.details.all().delete()
+
+        # Create new MachineScheduleDetail rows from assignments_json
+        if assignments_json:
+            assignments = json.loads(assignments_json)
+
+            for row in assignments:
+                routing_detail_id = row.get("routing_detail_id")
+                workstation_id = row.get("workstation_id")
+
+                if not routing_detail_id or not workstation_id:
+                    continue
+
+                routing_detail = get_object_or_404(RoutingDetail, id=routing_detail_id)
+                machine = get_object_or_404(WorkStations, id=workstation_id).machine
+
+                MachineScheduleDetail.objects.create(
+                    schedule=schedule,
+                    routing=routing_detail.routing,
+                    machine=machine,
+                    seq=routing_detail.sequence,
+                    workstation_id=workstation_id,
+                    work_center=routing_detail.work_center,
+                )
+
+            # Update schedule.routing to last routing used
+            schedule.routing = routing_detail.routing
+            schedule.save()
+
+        return redirect(reverse("mcp:machine_scheduling_list"))
+
 
 
 def routing_create(request, pk=None):
@@ -1324,7 +1286,7 @@ def get_routing_details(request):
         data = []
 
         for detail in routing_details:
-            print(detail.id)
+            # print(detail.id)
             # Get work center
             work_center = getattr(detail, "work_center", None)
             work_center_name = work_center.name if work_center else ""
@@ -1332,9 +1294,9 @@ def get_routing_details(request):
 
             # 🔹 Prepare workstation dropdown data
             workstation_dropdown = []
-            if work_center and getattr(work_center, "workstation", None):
+            if work_center and getattr(work_center, "workstation_ids", None):
                 workstation_ids = [
-                    int(w.strip()) for w in work_center.workstation.split(",") if w.strip().isdigit()
+                    int(w.strip()) for w in work_center.workstation_ids.split(",") if w.strip().isdigit()
                 ]
 
                 for ws in WorkStations.objects.filter(id__in=workstation_ids):

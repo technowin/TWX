@@ -9,8 +9,6 @@ class MachineCapabilityInline(admin.TabularInline):
     model = MachineCapability
     extra = 1
 
-
-
 class MaintenanceScheduleInline(admin.TabularInline):
     model = MaintenanceSchedule
     extra = 1
@@ -67,11 +65,11 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
 # #     ordering = ['component', 'sequence']
 
 
-# @admin.register(Operation)
-# class OperationAdmin(admin.ModelAdmin):
-#     list_display = ['code', 'name', 'description']
-#     search_fields = ['code', 'name']
-#     ordering = ['code']
+@admin.register(Operation)
+class OperationAdmin(admin.ModelAdmin):
+    list_display = ['code', 'name', 'description']
+    search_fields = ['code', 'name']
+    ordering = ['code']
 
 # @admin.register(MachinePlanning)
 # class MachinePlanningAdmin(admin.ModelAdmin):
