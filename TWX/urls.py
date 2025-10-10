@@ -171,6 +171,7 @@ urlpatterns = [
     path('book_upload/', BookUploadView.as_view(), name='book_upload'),
     path("test-vertex-ai/", test_vertex_ai, name="test_vertex_ai"),
     path("copy_users_mysql_to_mssql/", copy_users_view, name="copy_users"),
+    path("book_gallery/", book_gallery, name="book_gallery"),
 
     
     # compliance checklist
