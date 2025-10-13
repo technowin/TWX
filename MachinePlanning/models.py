@@ -406,8 +406,8 @@ class WorkStations(models.Model):
     """Workstation linking machines and employees"""
 
     name = models.TextField(null=True,blank=True)
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE,related_name='workstation',verbose_name="Machine")
-    employee = models.TextField(null=True, blank=True, verbose_name='Assigned Employees')
+    machine = models.CharField(null=True,blank=True,max_length=255)
+    employee = models.CharField(null=True, blank=True, verbose_name='Assigned Employees',max_length=255)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True, blank=True,related_name='workstations_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey( CustomUser,on_delete=models.SET_NULL, null=True,blank=True,related_name='workstations_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
@@ -416,19 +416,39 @@ class WorkStations(models.Model):
     class Meta:
         verbose_name = "Work Station"
         verbose_name_plural = "Work Stations"
-        ordering = ['machine__machine_id']
 
     def __str__(self):
         return f"{self.name}"
 
-    def get_employee_names(self):
-        """Return a readable string of employee names."""
-        from .models import Employee  # local import to avoid circular import
+    def get_machine_list(self):
+        """Return queryset of Machine objects corresponding to stored IDs"""
+        if not self.machine:
+            return []
+        machine_ids = [int(m.strip()) for m in self.machine.split(',') if m.strip().isdigit()]
+        return Machine.objects.filter(id__in=machine_ids)
+
+    def get_machine_names(self):
+        """Return a comma-separated string of machine names"""
+        return ', '.join(m.name for m in self.get_machine_list())
+
+    def get_machine_count(self):
+        """Return count of machines"""
+        return self.get_machine_list().count()
+
+    def get_employee_list(self):
+        """Return queryset of Employee objects corresponding to stored IDs"""
         if not self.employee:
-            return ""
-        ids = [int(e) for e in self.employee.split(',') if e.strip().isdigit()]
-        employees = Employee.objects.filter(id__in=ids)
-        return ", ".join(emp.employee_name for emp in employees)
+            return []
+        employee_ids = [int(e.strip()) for e in self.employee.split(',') if e.strip().isdigit()]
+        return Employee.objects.filter(id__in=employee_ids)
+
+    def get_employee_names(self):
+        """Return comma-separated employee names"""
+        return ', '.join(e.employee_name for e in self.get_employee_list())
+
+    def get_employee_count(self):
+        """Return count of assigned employees"""
+        return self.get_employee_list().count()
 
 
 

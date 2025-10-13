@@ -1179,7 +1179,7 @@ class WorkStationListView(ListView):
     context_object_name = 'workstations'
     
     def get_queryset(self):
-        return WorkStations.objects.select_related('machine', 'created_by', 'updated_by')
+        return WorkStations.objects.select_related('created_by', 'updated_by')
 
 class WorkStationCreateView(CreateView):
     model = WorkStations
@@ -1414,8 +1414,6 @@ def get_numeric_capacity(capacity_str):
 
 def calculate_end_date(request):
     if request.method == "POST":
-        import json
-        from datetime import datetime, timedelta
 
         production_id = request.POST.get("production_id")
         workstation_ids = json.loads(request.POST.get("workstation_ids", "[]"))

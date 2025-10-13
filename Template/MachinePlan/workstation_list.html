@@ -60,12 +60,12 @@
     <div class="card shadow">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Name</th>
-                            <th>Machine</th>
-                            <th>Employee</th>
+                            <th>Machines</th>
+                            <th>Employees</th>
                             <th>Created At</th>
                             <th>Updated At</th>
                             <th>Actions</th>
@@ -75,20 +75,39 @@
                         {% for workstation in workstations %}
                         <tr>
                             <td>{{ workstation.name }}</td>
-                            <td>{{ workstation.machine.name }}</td>
-                           <td>{{ workstation.get_employee_names }}</td>
+
+                            <!-- ✅ Machines -->
+                            <td>
+                                {% if workstation.get_machine_count %}
+                                    <span class="badge bg-info">{{ workstation.get_machine_count }}</span>
+                                    <small class="text-muted d-block">{{ workstation.get_machine_names }}</small>
+                                {% else %}
+                                    <span class="text-muted">No machines</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- ✅ Employees -->
+                            <td>
+                                {% if workstation.get_employee_count %}
+                                    <span class="badge bg-success">{{ workstation.get_employee_count }}</span>
+                                    <small class="text-muted d-block">{{ workstation.get_employee_names }}</small>
+                                {% else %}
+                                    <span class="text-muted">No employees</span>
+                                {% endif %}
+                            </td>
+
                             <td>{{ workstation.created_at|date:"M d, Y H:i" }}</td>
                             <td>{{ workstation.updated_at|date:"M d, Y H:i" }}</td>
+
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'mcp:workstation_update' workstation.pk %}" 
-                                       class="btn btn-outline-primary" 
-                                       title="Edit">
+                                    <a href="{% url 'mcp:workstation_update' workstation.pk %}"
+                                    class="btn btn-outline-primary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button" 
-                                            class="btn btn-outline-danger delete-btn" 
-                                            data-bs-toggle="modal" 
+                                    <button type="button"
+                                            class="btn btn-outline-danger delete-btn"
+                                            data-bs-toggle="modal"
                                             data-bs-target="#deleteModal"
                                             data-url="{% url 'mcp:workstation_delete' workstation.pk %}"
                                             data-name="{{ workstation.name }}"
@@ -100,16 +119,19 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-4">
+                            <td colspan="6" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-inbox fa-3x mb-3"></i>
-                                    <p>No workstations found. <a href="{% url 'mcp:workstation_create' %}">Create the first one</a></p>
+                                    <p>No workstations found. 
+                                    <a href="{% url 'mcp:workstation_create' %}">Create the first one</a>
+                                    </p>
                                 </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+
             </div>
         </div>
     </div>
