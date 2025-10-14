@@ -70,6 +70,7 @@ class Shift(models.Model):
     shift_code = models.CharField(max_length=10, unique=True, verbose_name="Shift Code")
     shift_name = models.CharField(max_length=50, verbose_name="Shift Name")
     start_time = models.TimeField(verbose_name="Start Time")
+    break_time_period = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(verbose_name="End Time")
     description = models.CharField(max_length=100, blank=True, verbose_name="Description")
     is_active = models.BooleanField(default=True)

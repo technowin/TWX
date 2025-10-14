@@ -124,6 +124,14 @@
             <div id="routingContent"></div>
           </div>
         </div>
+
+        <div id="shift_table" class="card mb-3 d-none mt-4">
+          <div class="card-header bg-info text-white">Shift Details</div>
+          <div class="card-body">
+            <div id="shiftContent"></div>
+          </div>
+        </div>
+
         <input type="hidden" id="assignments_json" name="assignments_json" value="{{ assignments_json|default:'[]' }}">
 
 
@@ -321,40 +329,116 @@ function renderRoutingDetailsTable(details) {
                     <th>Proficiency</th>
                     <th>Skill</th>
                     <th>Work Center</th>
-                    <th>Workstation (with Employee Count)</th>
+                    <th>Workstation</th>
+                    <th>Machine</th>
+                    <th>Employee</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
     details.forEach((d, index) => {
-        tableHtml += `
-             <tr data-routing-detail-id="${d.routing_detail_id}">
-                <td>${d.sequence}</td>
-                <td>${d.operation}</td>
-                <td>${d.employee_needed}</td>
-                <td>${d.proficiency}</td>
-                <td>${d.skill}</td>
-                <td>${d.work_center}</td>
-                <td>
-                    <select class="form-select workstation-select" data-row="${index}">
-                        <option value="">-- Select Workstation --</option>
-                        ${
-                            d.workstations && d.workstations.length > 0
-                            ? d.workstations.map(ws => 
-                                `<option value="${ws.id}">${ws.name} (${ws.employee_count} Employees)</option>`
-                              ).join('')
-                            : '<option value="">No Workstations Available</option>'
-                        }
-                    </select>
-                </td>
-            </tr>
-        `;
-    });
+    tableHtml += `
+         <tr data-routing-detail-id="${d.routing_detail_id}">
+            <td>${d.sequence}</td>
+            <td>${d.operation}</td>
+            <td>${d.employee_needed}</td>
+            <td>${d.proficiency}</td>
+            <td>${d.skill}</td>
+            <td>${d.work_center}</td>
+            <td>
+                <select class="form-select workstation-select" data-row="${index}">
+                    <option value="">-- Select Workstation --</option>
+                    ${
+                        d.workstations && d.workstations.length > 0
+                        ? d.workstations.map(ws => 
+                            `<option value="${ws.id}">${ws.name} (${ws.employee_count} Employees)</option>`
+                          ).join('')
+                        : '<option value="">No Workstations Available</option>'
+                    }
+                </select>
+            </td>
+            <td>
+                <select class="form-select machine-select" data-row="${index}">
+                    <option value="">-- Select Machine --</option>
+                </select>
+            </td>
+            <td>
+                <select class="form-select employee-select" data-row="${index}">
+                    <option value="">-- Select Employee --</option>
+                </select>
+            </td>
+        </tr>
+    `;
+});
+ // small timeout to ensure DOM is ready
+
 
     tableHtml += `</tbody></table>`;
     $('#routingContent').html(tableHtml);
 }
+$(document).on('change', '.workstation-select', function() {
+    let rowIndex = $(this).data('row');
+    let workstationId = $(this).val();
+
+    if (!workstationId) return;
+
+    $.ajax({
+        url: "{% url 'mcp:get_workstation_details' %}",
+        type: "GET",
+        data: { workstation_id: workstationId },
+        success: function(response) {
+            // Populate machine dropdown (single select)
+            let machineDropdown = $(`.machine-select[data-row="${rowIndex}"]`);
+            machineDropdown.empty();
+            machineDropdown.append('<option value="">-- Select Machine --</option>');
+            response.machines.forEach(machine => {
+                machineDropdown.append(
+                    `<option value="${machine.id}">${machine.name} (Capacity: ${machine.capacity})</option>`
+                );
+            });
+
+            // Populate employee multi-select using Selectize
+           // Populate employee dropdown and convert to multi-select
+        let employeeDropdown = $(`.employee-select[data-row="${rowIndex}"]`);
+
+        // Destroy previous Selectize if exists
+        if (employeeDropdown[0].selectize) {
+            employeeDropdown[0].selectize.destroy();
+        }
+
+        employeeDropdown.empty(); // clear previous options
+
+        // Add a placeholder option with empty value
+
+        // Add employee options
+        response.employees.forEach(emp => {
+            employeeDropdown.append(
+                `<option value="${emp.id}">${emp.name} (Skill: ${emp.skill}, Prof: ${emp.proficiency})</option>`
+            );
+        });
+
+        // Initialize Selectize
+        employeeDropdown.selectize({
+            plugins: ['remove_button'],
+            maxItems: null,       // allow multiple selections
+            placeholder: '-- Select Employees --',
+            create: false,        // disallow creating new items
+            allowEmptyOption: true,
+            searchField: ['text'],
+            onInitialize: function() {
+                // Remove any pre-selected value
+                this.clear();
+            }
+        });
+
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
+            alert("Error fetching workstation details.");
+        }
+    });
+});
 
 
 });
@@ -435,8 +519,10 @@ $(document).on("change", ".workstation-select", function (e) {
 });
    
    $('#calculateEndDateBtn').on('click', function () {
+    debugger;
     const productionId = $('#id_production_order').val();
     const scheduledStart = $('#id_scheduled_start').val();
+    const routingId = window.currentRoutingId; // 👈 Get from global variable
 
     if (!productionId) {
         alert("Please select a production order first!");
@@ -453,15 +539,33 @@ $(document).on("change", ".workstation-select", function (e) {
         return;
     }
 
-    // Collect selected workstation IDs
-    let workstationIds = [];
-    $('.workstation-select').each(function () {
-        const wsId = $(this).val();
-        if (wsId) workstationIds.push(wsId);
+    // Collect workstation, machine, and employee selections per row
+    let routingData = [];
+    $('tr[data-routing-detail-id]').each(function () {
+        const row = $(this);
+        const routingDetailId = row.data('routing-detail-id');
+        const sequence = row.find('td').eq(0).text(); // Assuming first <td> is sequence
+        const workstationId = row.find('.workstation-select').val();
+        const machineId = row.find('.machine-select').val();
+        let employeeIds = row.find('.employee-select')[0].selectize 
+                          ? row.find('.employee-select')[0].selectize.items 
+                          : row.find('.employee-select').val(); // fallback if not Selectize
+
+        if (!employeeIds) employeeIds = [];
+
+        routingData.push({
+            routing_detail_id: routingDetailId,
+            workstation_id: workstationId || null,
+            machine_id: machineId || null,
+            sequence:sequence,
+            employee_ids: employeeIds // array of selected employee IDs
+        });
     });
 
-    if (workstationIds.length === 0) {
-        alert("Please select workstations for all operations!");
+    // Optional: check if any required selections are missing
+    const incomplete = routingData.some(r => !r.workstation_id || !r.machine_id || r.employee_ids.length === 0);
+    if (incomplete) {
+        alert("Please select workstations, machines, and employees for all operations!");
         return;
     }
 
@@ -471,42 +575,115 @@ $(document).on("change", ".workstation-select", function (e) {
         type: "POST",
         data: {
             production_id: productionId,
-            workstation_ids: JSON.stringify(workstationIds),
+            routing_id: routingId,
             scheduled_start: scheduledStart,
+            routing_data: JSON.stringify(routingData), // 👈 send all selections as JSON
             csrfmiddlewaretoken: '{{ csrf_token }}'
         },
-      success: function(response) {
-    if (response.end_date) {
-        const formattedEndDate = response.end_date.replace(" ", "T");
-        $('#id_scheduled_end').val(formattedEndDate);
+      success: function (response) {
+            $('#calculateEndDateBtn').prop('disabled', false).text('Calculate End Date');
 
-        if (!calendar) {
-            alert("Please click 'Check Routing' first to initialize the calendar!");
-            return;
-        }
+            if (response.success) {
+                const formattedEndDate = response.estimated_end_date.replace(" ", "T");
+                $('#id_scheduled_end').val(formattedEndDate);
 
-        const productionTitle = "Production: " + $('#id_production_order option:selected').text();
-        const startDate = $('#id_scheduled_start').val();
+                if (!calendar) {
+                    alert("Please click 'Check Routing' first to initialize the calendar!");
+                    return;
+                }
 
-        // Remove existing event
-        const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
-        if (existingEvent) existingEvent.remove();
+                const productionTitle = "Production: " + $('#id_production_order option:selected').text();
+                const startDate = $('#id_scheduled_start').val();
 
-        // Add updated event
-        calendar.addEvent({
-            title: productionTitle,
-            start: startDate,
-            end: formattedEndDate,
-            allDay: true,
-            backgroundColor: '#4099ff',
-            borderColor: '#4099ff'
-        });
+                // Remove existing event
+                const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
+                if (existingEvent) existingEvent.remove();
 
-       // alert("End date calculated and calendar updated!");
-    } else {
-        alert("Failed to calculate end date.");
-    }
+                // Add updated event
+                calendar.addEvent({
+                    title: productionTitle,
+                    start: startDate,
+                    end: formattedEndDate,
+                    allDay: true,
+                    backgroundColor: '#4099ff',
+                    borderColor: '#4099ff'
+                });
+
+                // ==============================
+                // Build Shift Details Table
+                // ==============================
+                // ==============================
+                // Build Shift Details Table
+                // ==============================
+                const productionPlan = response.production_plan || [];
+
+                if (!productionPlan.length) {
+                    console.warn("No production plan data returned");
+                    return;
+                }
+
+               let processedQty = 0;
+                    const totalQty = response.total_quantity || 0; // ✅ total quantity from backend
+
+                    let tableHtml = `
+                        <table id="shiftTable" class="table table-bordered table-striped">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th>Sequence</th>
+                                    <th>Workstation</th>
+                                    <th>Machine</th>
+                                    <th>Employees</th>
+                                    <th>Shift</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>total Quantity </th>
+                                    <th>Completed Quantity</th> <!-- ✅ new column -->
+                                    <th>Remaining Quantity</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    productionPlan.forEach((item, index) => {
+                        const empList = Array.isArray(item.employee_ids) ? item.employee_ids.join(', ') : item.employee_ids;
+                        processedQty += item.quantity_processed;
+
+                        tableHtml += `
+                            <tr data-index="${index}">
+                                <td>${item.sequence}</td>
+                                <td>${item.workstation}</td>
+                                <td>${item.machine}</td>
+                                <td>${empList}</td>
+                                <td>${item.shift_name}</td>
+                                <td>${item.start}</td>
+                                <td>${item.end}</td>
+                                <td class="completed-qty">${totalQty}</td> <!-- ✅ display full quantity per sequence -->
+                                <td class="qty">${item.quantity_processed}</td>
+                                 <td class="qty">${totalQty}-${item.quantity_processed}</td>
+                                <td><button class="btn btn-danger btn-sm remove-row-btn">Remove</button></td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHtml += `
+                            </tbody>
+                        </table>
+                    `;
+
+                    $('#shiftContent').html(tableHtml);
+                    $('#shift_table').removeClass('d-none');
+
+
+
+            } else {
+                alert(response.error || "Failed to calculate end date.");
+            }
+},
+error: function(xhr) {
+    alert("Error calculating end date: " + xhr.responseText);
 }
+
 
     });
     // Update calendar when start or end date changes

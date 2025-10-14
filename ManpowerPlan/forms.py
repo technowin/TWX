@@ -52,24 +52,16 @@ class ShiftForm(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'break_time_period': forms.TimeInput(attrs={'type': 'time'}),  # 👈 added
             'end_time': forms.TimeInput(attrs={'type': 'time'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),  # 👈 checkbox styling
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
-            if name != 'is_active':  # 👈 skip checkbox field
+            if name != 'is_active':
                 field.widget.attrs.update({'class': 'form-control'})
-    
-    # def clean(self):
-    #     cleaned_data = super().clean()
-    #     start_time = cleaned_data.get('start_time')
-    #     end_time = cleaned_data.get('end_time')
-        
-    #     if start_time and end_time and start_time >= end_time:
-    #         raise ValidationError("End time must be after start time")
-    #     return cleaned_data
 
 
 class LaborRequirementForm(forms.ModelForm):

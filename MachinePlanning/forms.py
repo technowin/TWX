@@ -485,15 +485,9 @@ class WorkStationForm(forms.ModelForm):
         label='Assigned Employees'
     )
 
-    work_center = forms.ModelChoiceField(
-        queryset=WorkCenters.objects.all(),
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        label='Work Center'
-    )
-
     class Meta:
         model = WorkStations
-        fields = ['name', 'machine', 'employee', 'work_center']
+        fields = ['name', 'machine', 'employee']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter workstation name'}),
         }
@@ -501,7 +495,6 @@ class WorkStationForm(forms.ModelForm):
             'name': 'WorkStation Name',
             'machine': 'Machines',
             'employee': 'Assigned Employees',
-            'work_center': 'Work Center'
         }
 
     def __init__(self, *args, **kwargs):

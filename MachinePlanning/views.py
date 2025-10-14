@@ -1338,50 +1338,50 @@ def get_routing_details(request):
 
 
     
-def get_workstation_details(request):
-    workstation_id = request.GET.get("workstation_id")
+# def get_workstation_details(request):
+#     workstation_id = request.GET.get("workstation_id")
 
-    if not workstation_id:
-        return JsonResponse({"success": False, "error": "Missing workstation_id"}, status=400)
+#     if not workstation_id:
+#         return JsonResponse({"success": False, "error": "Missing workstation_id"}, status=400)
 
-    try:
-        ws = WorkStations.objects.get(id=workstation_id)
+#     try:
+#         ws = WorkStations.objects.get(id=workstation_id)
 
-        # 🔹 Machine info
-        machine_name = ws.machine.name if ws.machine else "N/A"
-        capacity = getattr(ws.machine, "capacity", "N/A")
-        status = getattr(ws.machine, "status", "N/A")
+#         # 🔹 Machine info
+#         machine_name = ws.machine.name if ws.machine else "N/A"
+#         capacity = getattr(ws.machine, "capacity", "N/A")
+#         status = getattr(ws.machine, "status", "N/A")
 
-        # 🔹 Employees linked (comma-separated)
-        employee_data = []
-        if ws.employee:
-            emp_ids = [int(e.strip()) for e in ws.employee.split(",") if e.strip().isdigit()]
+#         # 🔹 Employees linked (comma-separated)
+#         employee_data = []
+#         if ws.employee:
+#             emp_ids = [int(e.strip()) for e in ws.employee.split(",") if e.strip().isdigit()]
 
-            for emp in Employee.objects.filter(id__in=emp_ids):
-                emp_skills = EmployeeSkill.objects.filter(employee=emp)
-                skills_data = [
-                    {"skill_name": s.skill.skill_name, "proficiency": s.proficiency.name}
-                    for s in emp_skills
-                ]
+#             for emp in Employee.objects.filter(id__in=emp_ids):
+#                 emp_skills = EmployeeSkill.objects.filter(employee=emp)
+#                 skills_data = [
+#                     {"skill_name": s.skill.skill_name, "proficiency": s.proficiency.name}
+#                     for s in emp_skills
+#                 ]
 
-                employee_data.append({
-                    "id": emp.id,
-                    "name": emp.employee_name,
-                    "skills": skills_data
-                })
+#                 employee_data.append({
+#                     "id": emp.id,
+#                     "name": emp.employee_name,
+#                     "skills": skills_data
+#                 })
 
-        return JsonResponse({
-            "success": True,
-            "machine_name": machine_name,
-            "capacity": capacity,
-            "status": status,
-            "employees": employee_data
-        })
+#         return JsonResponse({
+#             "success": True,
+#             "machine_name": machine_name,
+#             "capacity": capacity,
+#             "status": status,
+#             "employees": employee_data
+#         })
 
-    except WorkStations.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Workstation not found"}, status=404)
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+#     except WorkStations.DoesNotExist:
+#         return JsonResponse({"success": False, "error": "Workstation not found"}, status=404)
+#     except Exception as e:
+#         return JsonResponse({"success": False, "error": str(e)}, status=500)
     
 
 def get_component_qty(production_id):
@@ -1412,33 +1412,310 @@ def get_numeric_capacity(capacity_str):
     return 0
 
 
+# def calculate_end_date(request):
+#     try:
+#         if request.method != "POST":
+#             return JsonResponse({"error": "Invalid request method"}, status=400)
+
+#         production_id = request.POST.get("production_id")
+#         workstation_ids = json.loads(request.POST.get("workstation_ids", "[]"))
+#         scheduled_start = request.POST.get("scheduled_start")
+
+#         # Validate required fields
+#         if not production_id or not workstation_ids or not scheduled_start:
+#             return JsonResponse({"error": "Missing required fields"}, status=400)
+
+#         # Get production quantity
+#         try:
+#             po = ProductionOrder.objects.get(id=production_id)
+#             component_qty = po.quantity
+#         except ProductionOrder.DoesNotExist:
+#             return JsonResponse({"error": "Invalid production ID"}, status=400)
+
+#         # Get total available working hours in a full day from all active shifts
+#         active_shifts = Shift.objects.filter(is_active=1)
+#         if not active_shifts.exists():
+#             return JsonResponse({"error": "No active shifts found"}, status=400)
+
+#         total_shift_hours = 0
+#         for shift in active_shifts:
+#             start = datetime.combine(datetime.today(), shift.start_time)
+#             end = datetime.combine(datetime.today(), shift.end_time)
+
+#             # Handle night shifts (e.g., 22:00–06:00 next day)
+#             if end <= start:
+#                 end += timedelta(days=1)
+
+#             shift_duration = (end - start).total_seconds() / 3600  # convert to hours
+
+#             # Handle break_time_period (TimeField)
+#             break_hours = 0
+#             if shift.break_time_period:
+#                 break_hours = shift.break_time_period.hour + (shift.break_time_period.minute / 60)
+
+#             total_shift_hours += max(0, shift_duration - break_hours)
+
+#         # total_shift_hours = e.g. 21 hours if 3 shifts of 8 hours - 1 break each
+#         if total_shift_hours <= 0:
+#             return JsonResponse({"error": "No valid working time found in shifts"}, status=400)
+
+#         total_hours_needed = 0
+
+#         # Process each workstation
+#         for ws_id in workstation_ids:
+#             try:
+#                 workstation = WorkStations.objects.get(id=ws_id)
+#             except WorkStations.DoesNotExist:
+#                 continue
+
+#             # Take first machine from comma-separated list
+#             if not workstation.machine:
+#                 continue
+
+#             first_machine_id = workstation.machine.split(",")[0].strip()
+
+#             try:
+#                 machine = Machine.objects.get(id=first_machine_id)
+#             except Machine.DoesNotExist:
+#                 continue
+
+#             # Extract numeric capacity (e.g. "50 units/hour")
+#             capacity_per_hour = get_numeric_capacity(machine.capacity)
+
+#             if capacity_per_hour > 0:
+#                 # total_hours_needed = total hours to complete the production
+#                 hours_for_this_machine = component_qty / capacity_per_hour
+#                 total_hours_needed += hours_for_this_machine
+
+#         if total_hours_needed <= 0:
+#             return JsonResponse({"error": "Unable to calculate production time (check machine capacities)"}, status=400)
+
+#         # Convert production hours into actual time considering shift hours/day
+#         # If work continues across multiple days, calculate accordingly
+#         days_needed = total_hours_needed / total_shift_hours
+#         total_production_hours = days_needed * total_shift_hours  # total actual working hours
+
+#         start_dt = datetime.strptime(scheduled_start, "%Y-%m-%dT%H:%M")
+#         end_dt = start_dt + timedelta(hours=total_production_hours)
+
+#         # Prepare active shifts data for dropdown
+#         active_shifts_data = [
+#             {"id": s.id, "name": f"{s.shift_name} ({s.start_time.strftime('%H:%M')} - {s.end_time.strftime('%H:%M')})"}
+#             for s in active_shifts
+#         ]
+
+#         # Collect machine and employee info from WorkStations
+#         machine_employee_list = []
+#         for ws_id in workstation_ids:
+#             try:
+#                 workstation = WorkStations.objects.get(id=ws_id)
+#                 employee_name = getattr(workstation.employee, "employee_name", None)
+
+#                 if workstation.machine:
+#                     first_machine_id = workstation.machine.split(",")[0].strip()
+#                     machine = Machine.objects.get(id=first_machine_id)
+#                     machine_employee_list.append({
+#                         "machine_name": machine.name,
+#                         "employee_name": employee_name
+#                     })
+#             except Exception:
+#                 continue
+
+#         return JsonResponse({
+#             "success": True,
+#             "start_date": start_dt.strftime("%Y-%m-%dT%H:%M"),
+#             "end_date": end_dt.strftime("%Y-%m-%dT%H:%M"),
+#             "total_hours_needed": round(total_hours_needed, 2),
+#             "daily_shift_hours": round(total_shift_hours, 2),
+#             "machine_employee_list": machine_employee_list,
+#             "active_shifts": active_shifts_data,
+#         })
+
+
+#     except Exception as e:
+#         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
 def calculate_end_date(request):
-    if request.method == "POST":
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
 
         production_id = request.POST.get("production_id")
-        workstation_ids = json.loads(request.POST.get("workstation_ids", "[]"))
         scheduled_start = request.POST.get("scheduled_start")
+        routing_data = json.loads(request.POST.get("routing_data", "[]"))
 
-        # get component quantity
+        if not production_id or not routing_data or not scheduled_start:
+            return JsonResponse({"error": "Missing required fields"}, status=400)
+
+        # Production quantity
         try:
             po = ProductionOrder.objects.get(id=production_id)
-            component_qty = po.quantity
+            total_qty = po.quantity
         except ProductionOrder.DoesNotExist:
             return JsonResponse({"error": "Invalid production ID"}, status=400)
 
-        total_hours_needed = 0
+        # Active shifts
+        active_shifts = Shift.objects.filter(is_active=1).order_by('start_time')
+        if not active_shifts.exists():
+            return JsonResponse({"error": "No active shifts found"}, status=400)
 
-        for ws_id in workstation_ids:
-            machines = get_machines_by_workstation(ws_id)
-            for machine in machines:
-                # extract number from "50 units/hour"
-                capacity_per_shift = get_numeric_capacity(machine.capacity)
-                if capacity_per_shift > 0:
-                    total_hours_needed += (component_qty / capacity_per_shift) * 8
+        # Convert shift to hours (consider break)
+        shifts_list = []
+        for s in active_shifts:
+            start = datetime.combine(datetime.today(), s.start_time)
+            end = datetime.combine(datetime.today(), s.end_time)
+            if end <= start:
+                end += timedelta(days=1)
+            shift_hours = (end - start).total_seconds() / 3600
+            if s.break_time_period:
+                shift_hours -= s.break_time_period.hour + s.break_time_period.minute/60
+            shifts_list.append({
+                "id": s.id,
+                "name": s.shift_name,
+                "start": s.start_time,
+                "end": s.end_time,
+                "hours": max(0, shift_hours)
+            })
 
-        start_dt = datetime.strptime(scheduled_start, "%Y-%m-%dT%H:%M")
-        end_dt = start_dt + timedelta(hours=total_hours_needed)
+        # Start datetime
+        current_dt = datetime.strptime(scheduled_start, "%Y-%m-%dT%H:%M")
+        production_plan = []
 
-        return JsonResponse({"end_date": end_dt.strftime("%Y-%m-%dT%H:%M")})
+        # Process each sequence
+        for routing in sorted(routing_data, key=lambda x: int(x.get("sequence", 0))):
+            routing_detail_id = routing.get("routing_detail_id")
+            sequence = routing.get("sequence")
+            ws_id = routing.get("workstation_id")
+            machine_id = routing.get("machine_id")
+            employee_ids = routing.get("employee_ids", [])
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+            employee_ids = routing.get("employee_ids", [])
+
+            # Convert to list of names
+            employee_names = []
+            if employee_ids:
+                # fetch employee names from EmployeeMaster
+                employees = Employee.objects.filter(id__in=employee_ids).values_list("employee_name", flat=True)
+                employee_names = list(employees)
+
+            if not ws_id or not machine_id or not employee_ids:
+                continue
+
+            try:
+                ws = WorkStations.objects.get(id=ws_id)
+                machine = Machine.objects.get(id=machine_id)
+            except:
+                continue
+
+            machine_capacity = get_numeric_capacity(machine.capacity)
+            if machine_capacity <= 0:
+                continue
+
+            qty_remaining = total_qty
+            # Process the sequence across multiple shifts/days
+            while qty_remaining > 0:
+                for shift in shifts_list:
+                    # Determine shift start/end datetime for the current day
+                    shift_start = current_dt.replace(hour=shift["start"].hour, minute=shift["start"].minute)
+                    shift_end = current_dt.replace(hour=shift["end"].hour, minute=shift["end"].minute)
+                    if shift_end <= shift_start:
+                        shift_end += timedelta(days=1)
+
+                    # Move current_dt to shift start if before
+                    if current_dt < shift_start:
+                        current_dt = shift_start
+
+                    available_hours = (shift_end - current_dt).total_seconds() / 3600
+                    if available_hours <= 0:
+                        continue
+
+                    # Quantity that can be processed in this shift
+                    qty_this_shift = min(qty_remaining, available_hours * machine_capacity)
+                    hours_needed = qty_this_shift / machine_capacity
+
+                    shift_plan_entry = {
+                        "routing_detail_id": routing_detail_id,
+                        "sequence": sequence,
+                        "workstation": ws.name,
+                        "machine": machine.name,
+                        "employee_ids": employee_names,
+                        "shift_id": shift["id"],
+                        "shift_name": shift["name"],
+                        "start": current_dt.strftime("%Y-%m-%dT%H:%M"),
+                        "end": (current_dt + timedelta(hours=hours_needed)).strftime("%Y-%m-%dT%H:%M"),
+                        "quantity_processed": round(qty_this_shift,2),
+                        "machine_capacity": machine_capacity
+                    }
+
+                    production_plan.append(shift_plan_entry)
+
+                    # Update remaining quantity and current datetime
+                    qty_remaining -= qty_this_shift
+                    current_dt += timedelta(hours=hours_needed)
+
+                    if qty_remaining <= 0:
+                        break
+
+                # If quantity remains after all shifts, move to next day and repeat
+                if qty_remaining > 0:
+                    current_dt = datetime.combine(current_dt.date() + timedelta(days=1), shifts_list[0]["start"])
+
+        return JsonResponse({
+            "success": True,
+            "production_plan": production_plan,
+             "total_quantity": total_qty,
+            "estimated_end_date": current_dt.strftime("%Y-%m-%dT%H:%M")
+        })
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+
+
+def get_workstation_details(request):
+    workstation_id = request.GET.get("workstation_id")
+    try:
+        if not workstation_id:
+            return JsonResponse({"error": "Missing workstation_id"}, status=400)
+
+        ws = WorkStations.objects.get(id=workstation_id)
+
+        # 🔹 Machines
+        machines = []
+        if ws.machine:
+            machine_ids = [int(m.strip()) for m in ws.machine.split(",") if m.strip().isdigit()]
+            for m in Machine.objects.filter(id__in=machine_ids):
+                machines.append({
+                    "id": m.id,
+                    "name": m.name,
+                    "capacity": m.capacity  # assuming you have a capacity field
+                })
+
+        # 🔹 Employees
+        employees = []
+        if ws.employee:
+            emp_ids = [int(e.strip()) for e in ws.employee.split(",") if e.strip().isdigit()]
+            for emp in Employee.objects.filter(id__in=emp_ids):
+                # Get employee skill & proficiency
+                emp_skill_objs = EmployeeSkill.objects.filter(employee=emp)
+                skill_info = []
+                for es in emp_skill_objs:
+                    skill_name = getattr(es.skill, "skill_name")
+                    prof_name = getattr(es.proficiency, "name") 
+                    skill_info.append(f"{skill_name} ({prof_name})")
+
+                employees.append({
+                    "id": emp.id,
+                    "name": emp.employee_name,
+                    "skill": ", ".join(skill_info) if skill_info else "",
+                })
+
+        return JsonResponse({
+            "machines": machines,
+            "employees": employees
+        })
+
+    except WorkStations.DoesNotExist:
+        return JsonResponse({"error": "Workstation not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
