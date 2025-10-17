@@ -25,7 +25,20 @@ from django.db.models import Q
 from django.utils import timezone
 from django.template.loader import render_to_string
 
+from django.db import transaction
+
 from django.utils.dateparse import parse_datetime
+
+
+def parse_custom_datetime(dt_str):
+    if not dt_str:
+        return None
+    for fmt in ("%d-%m-%Y %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except ValueError:
+            continue
+    return None
 
 class MachineTypeListView(ListView):
     model = MachineType
@@ -940,6 +953,7 @@ def get_assignment_data(request, routing_id):
 
 
 
+
 class MachineScheduleCreateView(View):
     template_name = "MachinePlan/machine_scheduling_form.html"
 
@@ -950,54 +964,99 @@ class MachineScheduleCreateView(View):
         }
         return render(request, self.template_name, context)
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            # --- Save Master Schedule ---
-            schedule = MachineSchedule.objects.create(
-                name=request.POST.get("name"),
-                production_order_id=request.POST.get("production_order"),
-                component_id=request.POST.get("component"),
-                scheduled_start=parse_datetime(request.POST.get("scheduled_start")),
-                scheduled_end=parse_datetime(request.POST.get("scheduled_end")),
-            )
+            # Start transaction
+            with transaction.atomic():
+                # --- 1️⃣ Save Master Schedule ---
+                schedule = MachineSchedule.objects.create(
+                    name=request.POST.get("name"),
+                    production_order_id=request.POST.get("production_order"),
+                    component_id=request.POST.get("component"),
+                    scheduled_start=parse_datetime(request.POST.get("scheduled_start")),
+                    scheduled_end=parse_datetime(request.POST.get("scheduled_end")),
+                    created_by=request.user,
+                )
 
-            # --- Save Routing + Workstation assignments ---
-            assignments_json = request.POST.get("assignments_json")
-            if assignments_json:
-                assignments = json.loads(assignments_json)
+                # --- 2️⃣ Save Routing + Workstation + Machine + Employee Assignments ---
+                assignments_json = request.POST.get("assignments_json")
+                if assignments_json:
+                    assignments = json.loads(assignments_json)
 
-                for row in assignments:
-                    routing_detail_id = row.get("routing_detail_id")
-                    workstation_id = row.get("workstation_id")
-                    routing_detail_id = row.get("routing_detail_id")
-                    routing = get_object_or_404(RoutingDetail,id = routing_detail_id )
-                    machine = get_object_or_404(WorkStations, id  = workstation_id).machine
+                    for row in assignments:
+                        routing_detail_id = row.get("routing_detail_id")
+                        workstation_id = row.get("workstation_id")
+                        machine_id = row.get("machine_id")
+                        employee_ids = row.get("employee_ids", [])
 
-                    routing_detail = RoutingDetail.objects.filter(id=routing_detail_id).first()
-                    if not routing_detail:
-                        continue
+                        routing_detail = get_object_or_404(RoutingDetail, id=routing_detail_id)
 
-                    
+                        MachineScheduleDetail.objects.create(
+                            schedule=schedule,
+                            routing=routing_detail.routing,
+                            machine_id=machine_id,  # 🔹 now using machine from JSON
+                            seq=routing_detail.sequence,
+                            workstation_id=workstation_id,
+                            work_center=routing_detail.work_center,
+                            employee=",".join(map(str, employee_ids)) if employee_ids else "",
+                        )
 
-                    MachineScheduleDetail.objects.create(
-                        schedule=schedule,
-                        routing = routing_detail.routing,
-                        machine=machine,
-                        seq=routing_detail.sequence,
-                        workstation_id=workstation_id,
-                        work_center=routing_detail.work_center,
-                    )
-                    schedule.routing = routing_detail.routing
-                    schedule.save()
+                        # Update schedule routing if not already set
+                        if not schedule.routing_id:
+                            schedule.routing = routing_detail.routing
+                            schedule.save()
 
-            return redirect(reverse("mcp:machine_scheduling_list"))
+                # --- 3️⃣ Save Shift Table Data ---
+                shift_table_json = request.POST.get("shift_table_json")
+                if shift_table_json:
+                    shift_table_data = json.loads(shift_table_json)
+                    production_order_id=request.POST.get("production_order")
+                    component_id=request.POST.get("component")
+
+                    for row in shift_table_data:
+                        seq = row.get("sequence")
+                        employee_names = row.get("employee_ids", [])
+                        employee_ids = list(
+                            Employee.objects.filter(employee_name__in=employee_names)
+                            .values_list("id", flat=True)
+                        )
+                        employee_ids_str = ",".join(map(str, employee_ids))
+                        # Find matching detail record by schedule + sequence
+                        detail = MachineScheduleDetail.objects.filter(schedule=schedule, seq=seq).first()
+                        if not detail:
+                            raise Exception(f"No detail found for sequence {seq}")
+
+                        ShiftTable.objects.create(
+                            machine_schedule=schedule,
+                            machine_schedule_detail=detail,
+                            sequence=seq,
+                            production_order = get_object_or_404(ProductionOrder, id = production_order_id),
+                            bom_component = get_object_or_404(BOMHeader, id = component_id),
+                            workstation=get_object_or_404(WorkStations, name= row.get("workstation", "")),
+                            machine=get_object_or_404(Machine, name = row.get("machine", "")).id,
+                            employees=employee_ids_str,
+                            shift=get_object_or_404(Shift, shift_name = row.get("shift_name", "")),
+                            start_time=parse_custom_datetime(row.get("start")),
+                            end_time=parse_custom_datetime(row.get("end")),
+                            total_quantity=row.get("total_quantity") or 0,
+                            completed_quantity=row.get("completed_quantity") or 0,
+                            remaining_quantity=row.get("remaining_quantity") or 0,
+                            created_by=request.user,
+                        )
+
+
+                return redirect(reverse("mcp:machine_scheduling_list"))
 
         except Exception as e:
+            # Transaction will automatically rollback if exception occurs
+            transaction.set_rollback(True)
             return render(request, self.template_name, {
                 "production_orders": ProductionOrder.objects.all(),
                 "components": BOMHeader.objects.all(),
-                "error": str(e)
+                "error": f"Error while saving schedule: {str(e)}",
             })
+
 
         
 # views.py
@@ -1246,25 +1305,41 @@ def get_routing_data(request):
         # ✅ Step 1: Get routing for that component
         routing = RoutingMaster.objects.filter(component=component_id).first()
         if not routing:
-            return JsonResponse({"schedules": []})
+            return JsonResponse({"schedules": [], "routing_id": None})
 
-        routing_id = routing.id  # ✅ Now safe to access
+        routing_id = routing.id
 
-        # ✅ Step 2: Get related routing details
+        # ✅ Step 2: Get related routing details (optional, if needed for filtering)
         routing_details = RoutingDetail.objects.filter(routing=routing)
         routing_detail_ids = routing_details.values_list("id", flat=True)
 
-        # ✅ Step 3: Get matching machine schedules
+        # ✅ Step 3: Get related machine schedules for this component
         machine_schedules = MachineSchedule.objects.filter(component_id=component_id)
 
-        # ✅ Step 4: Prepare response data (with start and end dates)
+        if not machine_schedules.exists():
+            return JsonResponse({"schedules": [], "routing_id": routing_id})
+
+        # ✅ Step 4: Collect all shift records related to those schedules
+        schedule_ids = machine_schedules.values_list("id", flat=True)
+
+        # Fetch all ShiftTable rows for these schedules
+        shift_rows = (
+            ShiftTable.objects
+            .select_related("machine_schedule", "machine_schedule__production_order")
+            .filter(machine_schedule_id__in=schedule_ids)
+        )
+
+        # ✅ Step 5: Prepare response data for calendar
         data = []
-        for schedule in machine_schedules:
+        for shift in shift_rows:
+            production_order = getattr(shift.machine_schedule.production_order, "order_number", None) or str(shift.machine_schedule.production_order_id)
             data.append({
-                "start_date": schedule.scheduled_start.strftime("%Y-%m-%dT%H:%M:%S"),
-                "end_date": schedule.scheduled_end.strftime("%Y-%m-%dT%H:%M:%S") if schedule.scheduled_end else None,
-                "production_order": getattr(schedule.production_order, "order_number", str(schedule.production_order.id)),
+                "start_date": shift.start_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.start_time else None,
+                "end_date": shift.end_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.end_time else None,
+                "production_order": getattr(shift.production_order, "order_number", str(shift.production_order)),
+                "shift_name": str(shift.shift) if shift.shift else None,  # ✅ Convert Shift object to string
             })
+
 
         return JsonResponse({
             "schedules": data,
@@ -1337,52 +1412,7 @@ def get_routing_details(request):
 
 
 
-    
-# def get_workstation_details(request):
-#     workstation_id = request.GET.get("workstation_id")
 
-#     if not workstation_id:
-#         return JsonResponse({"success": False, "error": "Missing workstation_id"}, status=400)
-
-#     try:
-#         ws = WorkStations.objects.get(id=workstation_id)
-
-#         # 🔹 Machine info
-#         machine_name = ws.machine.name if ws.machine else "N/A"
-#         capacity = getattr(ws.machine, "capacity", "N/A")
-#         status = getattr(ws.machine, "status", "N/A")
-
-#         # 🔹 Employees linked (comma-separated)
-#         employee_data = []
-#         if ws.employee:
-#             emp_ids = [int(e.strip()) for e in ws.employee.split(",") if e.strip().isdigit()]
-
-#             for emp in Employee.objects.filter(id__in=emp_ids):
-#                 emp_skills = EmployeeSkill.objects.filter(employee=emp)
-#                 skills_data = [
-#                     {"skill_name": s.skill.skill_name, "proficiency": s.proficiency.name}
-#                     for s in emp_skills
-#                 ]
-
-#                 employee_data.append({
-#                     "id": emp.id,
-#                     "name": emp.employee_name,
-#                     "skills": skills_data
-#                 })
-
-#         return JsonResponse({
-#             "success": True,
-#             "machine_name": machine_name,
-#             "capacity": capacity,
-#             "status": status,
-#             "employees": employee_data
-#         })
-
-#     except WorkStations.DoesNotExist:
-#         return JsonResponse({"success": False, "error": "Workstation not found"}, status=404)
-#     except Exception as e:
-#         return JsonResponse({"success": False, "error": str(e)}, status=500)
-    
 
 def get_component_qty(production_id):
     try:
@@ -1412,128 +1442,6 @@ def get_numeric_capacity(capacity_str):
     return 0
 
 
-# def calculate_end_date(request):
-#     try:
-#         if request.method != "POST":
-#             return JsonResponse({"error": "Invalid request method"}, status=400)
-
-#         production_id = request.POST.get("production_id")
-#         workstation_ids = json.loads(request.POST.get("workstation_ids", "[]"))
-#         scheduled_start = request.POST.get("scheduled_start")
-
-#         # Validate required fields
-#         if not production_id or not workstation_ids or not scheduled_start:
-#             return JsonResponse({"error": "Missing required fields"}, status=400)
-
-#         # Get production quantity
-#         try:
-#             po = ProductionOrder.objects.get(id=production_id)
-#             component_qty = po.quantity
-#         except ProductionOrder.DoesNotExist:
-#             return JsonResponse({"error": "Invalid production ID"}, status=400)
-
-#         # Get total available working hours in a full day from all active shifts
-#         active_shifts = Shift.objects.filter(is_active=1)
-#         if not active_shifts.exists():
-#             return JsonResponse({"error": "No active shifts found"}, status=400)
-
-#         total_shift_hours = 0
-#         for shift in active_shifts:
-#             start = datetime.combine(datetime.today(), shift.start_time)
-#             end = datetime.combine(datetime.today(), shift.end_time)
-
-#             # Handle night shifts (e.g., 22:00–06:00 next day)
-#             if end <= start:
-#                 end += timedelta(days=1)
-
-#             shift_duration = (end - start).total_seconds() / 3600  # convert to hours
-
-#             # Handle break_time_period (TimeField)
-#             break_hours = 0
-#             if shift.break_time_period:
-#                 break_hours = shift.break_time_period.hour + (shift.break_time_period.minute / 60)
-
-#             total_shift_hours += max(0, shift_duration - break_hours)
-
-#         # total_shift_hours = e.g. 21 hours if 3 shifts of 8 hours - 1 break each
-#         if total_shift_hours <= 0:
-#             return JsonResponse({"error": "No valid working time found in shifts"}, status=400)
-
-#         total_hours_needed = 0
-
-#         # Process each workstation
-#         for ws_id in workstation_ids:
-#             try:
-#                 workstation = WorkStations.objects.get(id=ws_id)
-#             except WorkStations.DoesNotExist:
-#                 continue
-
-#             # Take first machine from comma-separated list
-#             if not workstation.machine:
-#                 continue
-
-#             first_machine_id = workstation.machine.split(",")[0].strip()
-
-#             try:
-#                 machine = Machine.objects.get(id=first_machine_id)
-#             except Machine.DoesNotExist:
-#                 continue
-
-#             # Extract numeric capacity (e.g. "50 units/hour")
-#             capacity_per_hour = get_numeric_capacity(machine.capacity)
-
-#             if capacity_per_hour > 0:
-#                 # total_hours_needed = total hours to complete the production
-#                 hours_for_this_machine = component_qty / capacity_per_hour
-#                 total_hours_needed += hours_for_this_machine
-
-#         if total_hours_needed <= 0:
-#             return JsonResponse({"error": "Unable to calculate production time (check machine capacities)"}, status=400)
-
-#         # Convert production hours into actual time considering shift hours/day
-#         # If work continues across multiple days, calculate accordingly
-#         days_needed = total_hours_needed / total_shift_hours
-#         total_production_hours = days_needed * total_shift_hours  # total actual working hours
-
-#         start_dt = datetime.strptime(scheduled_start, "%Y-%m-%dT%H:%M")
-#         end_dt = start_dt + timedelta(hours=total_production_hours)
-
-#         # Prepare active shifts data for dropdown
-#         active_shifts_data = [
-#             {"id": s.id, "name": f"{s.shift_name} ({s.start_time.strftime('%H:%M')} - {s.end_time.strftime('%H:%M')})"}
-#             for s in active_shifts
-#         ]
-
-#         # Collect machine and employee info from WorkStations
-#         machine_employee_list = []
-#         for ws_id in workstation_ids:
-#             try:
-#                 workstation = WorkStations.objects.get(id=ws_id)
-#                 employee_name = getattr(workstation.employee, "employee_name", None)
-
-#                 if workstation.machine:
-#                     first_machine_id = workstation.machine.split(",")[0].strip()
-#                     machine = Machine.objects.get(id=first_machine_id)
-#                     machine_employee_list.append({
-#                         "machine_name": machine.name,
-#                         "employee_name": employee_name
-#                     })
-#             except Exception:
-#                 continue
-
-#         return JsonResponse({
-#             "success": True,
-#             "start_date": start_dt.strftime("%Y-%m-%dT%H:%M"),
-#             "end_date": end_dt.strftime("%Y-%m-%dT%H:%M"),
-#             "total_hours_needed": round(total_hours_needed, 2),
-#             "daily_shift_hours": round(total_shift_hours, 2),
-#             "machine_employee_list": machine_employee_list,
-#             "active_shifts": active_shifts_data,
-#         })
-
-
-#     except Exception as e:
-#         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 def calculate_end_date(request):
     try:
@@ -1663,12 +1571,254 @@ def calculate_end_date(request):
         return JsonResponse({
             "success": True,
             "production_plan": production_plan,
-             "total_quantity": total_qty,
+            "total_quantity": total_qty,
             "estimated_end_date": current_dt.strftime("%Y-%m-%dT%H:%M")
         })
 
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+   
+
+def relocate_shift(request):
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
+
+        removed_row_id = request.POST.get("removed_row_id")
+        shift_table_data = json.loads(request.POST.get("shift_table_data", "[]"))
+        production_id = request.POST.get("production_id")
+
+        if not removed_row_id or not shift_table_data or not production_id:
+            return JsonResponse({"error": "Missing required data"}, status=400)
+
+        # Get production quantity
+        try:
+            po = ProductionOrder.objects.get(id=production_id)
+            total_qty = po.quantity
+        except ProductionOrder.DoesNotExist:
+            return JsonResponse({"error": "Invalid production ID"}, status=400)
+
+        # Get active shifts
+        active_shifts = Shift.objects.filter(is_active=1).order_by('start_time')
+        if not active_shifts.exists():
+            return JsonResponse({"error": "No active shifts found"}, status=400)
+
+        # Prepare shifts list with proper ordering
+        shifts_list = []
+        for s in active_shifts:
+            start = datetime.combine(datetime.today(), s.start_time)
+            end = datetime.combine(datetime.today(), s.end_time)
+            if end <= start:
+                end += timedelta(days=1)
+            shift_hours = (end - start).total_seconds() / 3600
+            if s.break_time_period:
+                shift_hours -= s.break_time_period.hour + s.break_time_period.minute / 60
+            shifts_list.append({
+                "id": s.id,
+                "name": s.shift_name,
+                "start_time": s.start_time,
+                "end_time": s.end_time,
+                "hours": max(0, shift_hours)
+            })
+
+        # Separate rows: before removed, removed, and after removed
+        rows_before = []
+        removed_row = None
+        rows_after = []
+        
+        for row in shift_table_data:
+            if str(row['row_id']) == str(removed_row_id):
+                removed_row = row
+            elif not removed_row:
+                rows_before.append(row)
+            else:
+                rows_after.append(row)
+
+        if not removed_row:
+            return JsonResponse({"error": "Removed row not found"}, status=400)
+
+        # Calculate the work quantity from removed row
+        try:
+            # Parse the date format from frontend (dd-mm-yyyy HH:MM)
+            removed_start = datetime.strptime(removed_row['start'], "%d-%m-%Y %H:%M")
+            removed_end = datetime.strptime(removed_row['end'], "%d-%m-%Y %H:%M")
+            removed_duration_hours = (removed_end - removed_start).total_seconds() / 3600
+            
+            # Get machine capacity for the removed row
+            try:
+                machine = Machine.objects.get(name=removed_row['machine_name'])
+                machine_capacity = get_numeric_capacity(machine.capacity)
+                removed_quantity = removed_duration_hours * machine_capacity
+            except Machine.DoesNotExist:
+                removed_quantity = removed_row.get('completed_quantity', 0)
+                
+        except (ValueError, KeyError):
+            removed_quantity = removed_row.get('completed_quantity', 0)
+
+        # Find where to insert the relocated work - after the last row before removed row
+        relocation_start_time = None
+        if rows_before:
+            # Start after the last row in 'before' section
+            last_before_row = rows_before[-1]
+            try:
+                relocation_start_time = datetime.strptime(last_before_row['end'], "%d-%m-%Y %H:%M")
+            except (ValueError, KeyError):
+                # If no end time, use the removed row's start time
+                relocation_start_time = datetime.strptime(removed_row['start'], "%d-%m-%Y %H:%M")
+        else:
+            # If no rows before, use removed row's start time
+            relocation_start_time = datetime.strptime(removed_row['start'], "%d-%m-%Y %H:%M")
+
+        current_dt = relocation_start_time
+        relocated_rows = []
+
+        # Relocate the removed work
+        qty_remaining = removed_quantity
+        sequence = removed_row['sequence']
+        
+        try:
+            machine = Machine.objects.get(name=removed_row['machine_name'])
+            machine_capacity = get_numeric_capacity(machine.capacity)
+        except Machine.DoesNotExist:
+            machine_capacity = 1
+
+        workstation_name = removed_row.get('workstation_name', '')
+        employee_names = removed_row.get('employee_names', [])
+
+        # Function to find the next available shift
+        def find_next_available_shift(start_dt):
+            current_date = start_dt.date()
+            max_days_check = 30  # Prevent infinite loop
+            
+            for day in range(max_days_check):
+                for shift in shifts_list:
+                    shift_start = datetime.combine(current_date, shift["start_time"])
+                    shift_end = datetime.combine(current_date, shift["end_time"])
+                    if shift_end <= shift_start:
+                        shift_end += timedelta(days=1)
+                    
+                    # Check if this shift is after our start datetime
+                    if shift_start >= start_dt:
+                        return shift_start, shift, current_date
+                
+                # Move to next day
+                current_date += timedelta(days=1)
+            
+            return start_dt, shifts_list[0], current_date
+
+        # Distribute the removed quantity across shifts
+        while qty_remaining > 0:
+            shift_start_dt, current_shift, current_date = find_next_available_shift(current_dt)
+            current_dt = shift_start_dt
+            
+            shift_end_dt = datetime.combine(current_date, current_shift["end_time"])
+            if shift_end_dt <= shift_start_dt:
+                shift_end_dt += timedelta(days=1)
+
+            # Calculate available hours in this shift
+            available_hours = (shift_end_dt - current_dt).total_seconds() / 3600
+            if available_hours <= 0:
+                current_dt = shift_end_dt
+                continue
+
+            # Calculate how much we can process in available time
+            qty_this_shift = min(qty_remaining, available_hours * machine_capacity)
+            hours_needed = qty_this_shift / machine_capacity
+
+            # Create new plan entry for relocated work
+            new_entry = {
+                "routing_detail_id": removed_row.get('routing_detail_id'),
+                "sequence": sequence,
+                "workstation": workstation_name,
+                "machine": removed_row['machine_name'],
+                "employee_ids": employee_names,
+                "shift_id": current_shift["id"],
+                "shift_name": current_shift["name"],
+                "start": current_dt.strftime("%Y-%m-%dT%H:%M"),
+                "end": (current_dt + timedelta(hours=hours_needed)).strftime("%Y-%m-%dT%H:%M"),
+                "quantity_processed": round(qty_this_shift, 2),
+                "machine_capacity": machine_capacity
+            }
+
+            relocated_rows.append(new_entry)
+            qty_remaining -= qty_this_shift
+            current_dt += timedelta(hours=hours_needed)
+
+        # Now build the final production plan in the correct order
+        production_plan = []
+        
+        # 1. Add all rows before the removed row (unchanged)
+        for row in rows_before:
+            try:
+                production_plan.append({
+                    "routing_detail_id": row.get('routing_detail_id'),
+                    "sequence": row.get('sequence'),
+                    "workstation": row.get('workstation_name'),
+                    "machine": row.get('machine_name'),
+                    "employee_ids": row.get('employee_names', []),
+                    "shift_id": None,
+                    "shift_name": row.get('shift_name'),
+                    "start": datetime.strptime(row['start'], "%d-%m-%Y %H:%M").strftime("%Y-%m-%dT%H:%M"),
+                    "end": datetime.strptime(row['end'], "%d-%m-%Y %H:%M").strftime("%Y-%m-%dT%H:%M"),
+                    "quantity_processed": row.get('completed_quantity', 0),
+                    "machine_capacity": machine_capacity
+                })
+            except (ValueError, KeyError):
+                continue
+
+        # 2. Add relocated rows (the removed row's work redistributed)
+        production_plan.extend(relocated_rows)
+
+        # 3. Add all rows after the removed row (unchanged)
+        for row in rows_after:
+            try:
+                production_plan.append({
+                    "routing_detail_id": row.get('routing_detail_id'),
+                    "sequence": row.get('sequence'),
+                    "workstation": row.get('workstation_name'),
+                    "machine": row.get('machine_name'),
+                    "employee_ids": row.get('employee_names', []),
+                    "shift_id": None,
+                    "shift_name": row.get('shift_name'),
+                    "start": datetime.strptime(row['start'], "%d-%m-%Y %H:%M").strftime("%Y-%m-%dT%H:%M"),
+                    "end": datetime.strptime(row['end'], "%d-%m-%Y %H:%M").strftime("%Y-%m-%dT%H:%M"),
+                    "quantity_processed": row.get('completed_quantity', 0),
+                    "machine_capacity": machine_capacity
+                })
+            except (ValueError, KeyError):
+                continue
+
+        # Calculate the final end date (use the end time of the last row)
+        final_end_date = current_dt
+        if production_plan:
+            try:
+                last_row_end = datetime.strptime(production_plan[-1]['end'], "%Y-%m-%dT%H:%M")
+                final_end_date = max(final_end_date, last_row_end)
+            except (ValueError, KeyError):
+                pass
+
+        # Update row IDs for the frontend
+        for i, plan in enumerate(production_plan):
+            plan['row_id'] = i
+
+        return JsonResponse({
+            "success": True,
+            "production_plan": production_plan,
+            "total_quantity": total_qty,
+            "estimated_end_date": final_end_date.strftime("%Y-%m-%dT%H:%M")
+        })
+
+    except Exception as e:
+        import traceback
+        return JsonResponse({"success": False, "error": str(e) + traceback.format_exc()}, status=500)
+
+
+
+
+
+
+
+
     
 
 

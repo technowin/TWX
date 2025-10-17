@@ -14,6 +14,7 @@
 <!-- Bootstrap Timepicker css -->
 <link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
 <link href="{% static 'css/vendor/fullcalendar.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'css/vendor/loader.css' %}" rel="stylesheet" type="text/css" />
 
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -29,6 +30,16 @@
 {% endblock %}
 
 {% block content %}
+<style>
+
+/* Make calendar date numbers bigger */
+.fc-large-date .fc-daygrid-day-number,
+.fc .fc-col-header-cell-cushion {
+    font-size: 18px; /* Increase as needed */
+    font-weight: bold;
+}
+
+</style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-calendar-week me-2"></i>Machine Planning Details</h2>
@@ -132,7 +143,24 @@
           </div>
         </div>
 
+        <!-- From Uiverse.io by PriyanshuGupta28 --> 
+        <div class="spinner" style="display:none;">
+        <div></div>   
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        <div></div>    
+        </div>
+
         <input type="hidden" id="assignments_json" name="assignments_json" value="{{ assignments_json|default:'[]' }}">
+
+        <input type="hidden" id="shift_table_json" name="shift_table_json" value="{{ shift_table_json|default:'[]' }}">
+
 
 
 
@@ -162,6 +190,7 @@
 
 <script>
      let calendar; // FullCalendar instance
+     let productionPlan = []; // make it global
 $(document).ready(function () {
 
     //let calendar; // FullCalendar instance
@@ -217,21 +246,21 @@ $(document).ready(function () {
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             },
             success: function (response) {
-                // ✅ Always store routing ID, even if schedules are empty
+                // ✅ Always store routing ID
                 if (response.routing_id) {
                     window.currentRoutingId = response.routing_id;
                 } else {
                     console.warn("No routing ID returned from server.");
                 }
 
-                // ✅ Render calendar based on data
+                // ✅ Render calendar with shift-based events
                 if (response.schedules && response.schedules.length > 0) {
                     renderFullCalendar(response.schedules);
                 } else {
-                    renderFullCalendar([]); // clears the calendar
+                    renderFullCalendar([]); // clears calendar
                 }
 
-                // ✅ Always show date fields after successful load
+                // ✅ Show date input fields
                 $('#start_date').removeAttr('hidden');
                 $('#end_date').removeAttr('hidden');
             },
@@ -245,55 +274,90 @@ $(document).ready(function () {
     });
 
     // 🔹 Step 3: Render FullCalendar
-    function renderFullCalendar(scheduleData) {
-        if (calendar) {
-            calendar.destroy();
-        }
+function renderFullCalendar(scheduleData) {
+    if (calendar) {
+        calendar.destroy();
+    }
 
-        const calendarEl = document.getElementById('calendar');
-        const events = scheduleData.map(item => ({
-            title: "Production: " + item.production_order,
+    function formatTime(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        if (hours === 0) hours = 12;
+        return `${hours}:${minutes} ${ampm}`;
+    }
+
+
+    const calendarEl = document.getElementById('calendar');
+
+    // Optional: color per shift (Morning, Evening, Night)
+    const shiftColors = {
+        "Morning": "#28a745", // green
+        "Evening": "#ffc107", // yellow
+        "Night": "#dc3545",   // red
+        "Default": "#4099ff"  // blue
+    };
+
+    const events = scheduleData.map(item => {
+        // Format start and end times in short 12-hour format (e.g., 4:30 AM)
+        const startTime = formatTime(item.start_date);
+        const endTime = formatTime(item.end_date);
+        const title = `${startTime} → ${endTime} | ${item.production_order}`;
+
+
+        // Color based on shift (optional)
+        const color = shiftColors[item.shift_name] || shiftColors["Default"];
+
+        return {
+            title: title,
             start: item.start_date,
             end: item.end_date,
-            allDay: true,
-            backgroundColor: '#4099ff',
-            borderColor: '#4099ff'
-        }));
+            allDay: false,
+            backgroundColor: color,
+            borderColor: color,
+            textColor: 'white' // ✅ all text in white
+        };
+    });
 
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            height: 650,
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-            },
-            events: events,
-            themeSystem: 'bootstrap5',
-            selectable: true,
-            editable: false,
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth', // shows start/end times
+        height: 700,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        themeSystem: 'bootstrap5',
+        events: events,
+        selectable: true,
+        editable: false,
 
-            // 🔹 Click on a date → load routing details
-            dateClick: function (info) {
-                debugger;
-                const selectedDate = info.dateStr; // YYYY-MM-DD
-                $('#id_scheduled_start').val(selectedDate + "T10:00");
-                const routingId = window.currentRoutingId;
-                
-                if (!routingId) {
-                    alert("No routing ID found. Please click 'Check Routings' first.");
-                    return;
-                }
+        // Customize day/cell font size
+        dayCellClassNames: function(arg) {
+            return 'fc-large-date';
+        },
 
-                loadRoutingDetails(routingId);
-                $('#calculateDate').removeAttr('hidden');
-                 $('#savebutton').show();
+        dateClick: function(info) {
+            const selectedDate = info.dateStr;
+            $('#id_scheduled_start').val(selectedDate + "T10:00");
 
+            const routingId = window.currentRoutingId;
+            if (!routingId) {
+                alert("No routing ID found. Please click 'Check Routings' first.");
+                return;
             }
-        });
 
-        calendar.render();
-    }
+            loadRoutingDetails(routingId);
+            $('#calculateDate').removeAttr('hidden');
+            $('#savebutton').show();
+        }
+    });
+
+    calendar.render();
+}
 
     // 🔹 Step 4: Load Routing Details
     function loadRoutingDetails(routingId) {
@@ -323,15 +387,13 @@ function renderRoutingDetailsTable(details) {
         <table class="table table-bordered mt-3">
             <thead class="table-primary">
                 <tr>
-                    <th>Seq</th>
-                    <th>Operation</th>
-                    <th>Emp Needed</th>
-                    <th>Proficiency</th>
-                    <th>Skill</th>
-                    <th>Work Center</th>
-                    <th>Workstation</th>
-                    <th>Machine</th>
-                    <th>Employee</th>
+                    <th width="2%">Seq</th>
+                    <th width="8%">Operation</th>
+                    <th width="15%">Emp need with skill</th>
+                    <th width="10%">Work Center</th>
+                    <th width="15%">Workstation</th>
+                    <th width="15%">Machine</th>
+                    <th width="30%">Employee</th>
                 </tr>
             </thead>
             <tbody>
@@ -342,9 +404,7 @@ function renderRoutingDetailsTable(details) {
          <tr data-routing-detail-id="${d.routing_detail_id}">
             <td>${d.sequence}</td>
             <td>${d.operation}</td>
-            <td>${d.employee_needed}</td>
-            <td>${d.proficiency}</td>
-            <td>${d.skill}</td>
+            <td>${d.employee_needed}-${d.skill}(${d.proficiency})
             <td>${d.work_center}</td>
             <td>
                 <select class="form-select workstation-select" data-row="${index}">
@@ -443,133 +503,54 @@ $(document).on('change', '.workstation-select', function() {
 
 });
 
+function formatDateTime(dateStr) {
+    if (!dateStr) return "";
+    const dt = new Date(dateStr);
+    const day = String(dt.getDate()).padStart(2, '0');
+    const month = String(dt.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = dt.getFullYear();
+    const hours = String(dt.getHours()).padStart(2, '0');
+    const minutes = String(dt.getMinutes()).padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+}
 
-// 🔹 Hover over workstation option → show tooltip with details
-
-
-$(document).on("change", ".workstation-select", function (e) {
-    debugger;
-    const $select = $(this);
-    const workstationId = $select.val();
-    if (!workstationId) return;
-
-    // Prevent multiple tooltips/loading at the same time
-    if ($select.attr("data-loading") === "true") return;
-    $select.attr("data-loading", "true");
-
-    $.ajax({
-        url: "{% url 'mcp:get_workstation_details' %}",
-        type: "GET",
-        data: { workstation_id: workstationId },
-        success: function (response) {
-            if (!response.success) return;
-
-            // Remove old tooltip if exists
-            $(".workstation-tooltip").remove();
-
-            // Build HTML for tooltip
-            let tooltipHtml = `
-                <div class="workstation-tooltip card shadow p-2 position-absolute" 
-                     style="z-index:9999; background:white; border-radius:10px; width:320px;">
-                    <h6 class="fw-bold text-primary mb-2"><strong>Machine:</strong>:${response.machine_name}</h6>
-                    <p class="mb-1"><strong>Capacity:</strong> ${response.capacity}</p>
-                    <p class="mb-1"><strong>Status:</strong> ${response.status}</p>
-                    <hr class="my-2"/>
-                    <p class="fw-bold mb-1 text-secondary">Employees</p>
-            `;
-
-            if (response.employees && response.employees.length > 0) {
-                response.employees.forEach(emp => {
-                    tooltipHtml += `
-                        <div class="mb-2 border-bottom pb-1">
-                            <strong>${emp.name}</strong><br>
-                            ${emp.skills.map(s => `${s.skill_name} (${s.proficiency})`).join(", ")}
-                        </div>
-                    `;
-                });
-            } else {
-                tooltipHtml += `<p class="text-muted">No employees assigned</p>`;
-            }
-
-            tooltipHtml += `</div>`;
-
-            // Append tooltip
-            const $tooltip = $(tooltipHtml).appendTo("body");
-
-            // Position tooltip near mouse cursor
-            $(document).on("mousemove.tooltip", function (ev) {
-                $tooltip.css({
-                    top: ev.pageY + 10,
-                    left: ev.pageX + 10
-                });
-            });
-
-            // Remove tooltip on mouseleave
-            $select.on("mouseleave", function () {
-                $(".workstation-tooltip").remove();
-                $(document).off("mousemove.tooltip");
-                $select.removeAttr("data-loading");
-            });
-        },
-        error: function (xhr, status, error) {
-            console.error("Error fetching workstation details:", error);
-            $select.removeAttr("data-loading");
-        }
-    });
-});
    
-   $('#calculateEndDateBtn').on('click', function () {
-    debugger;
+$('#calculateEndDateBtn').on('click', function () {
     const productionId = $('#id_production_order').val();
     const scheduledStart = $('#id_scheduled_start').val();
-    const routingId = window.currentRoutingId; // 👈 Get from global variable
+    const routingId = window.currentRoutingId;
 
-    if (!productionId) {
-        alert("Please select a production order first!");
-        return;
-    }
+    if (!productionId) { alert("Please select a production order first!"); return; }
+    if (!scheduledStart) { alert("Please select a start date first!"); return; }
+    if (!calendar) { alert("Please click 'Check Routings' first to load the calendar!"); return; }
 
-    if (!scheduledStart) {
-        alert("Please select a start date first!");
-        return;
-    }
-
-    if (!calendar) {
-        alert("Please click 'Check Routings' first to load the calendar!");
-        return;
-    }
-
-    // Collect workstation, machine, and employee selections per row
     let routingData = [];
     $('tr[data-routing-detail-id]').each(function () {
         const row = $(this);
         const routingDetailId = row.data('routing-detail-id');
-        const sequence = row.find('td').eq(0).text(); // Assuming first <td> is sequence
+        const sequence = row.find('td').eq(0).text();
         const workstationId = row.find('.workstation-select').val();
         const machineId = row.find('.machine-select').val();
-        let employeeIds = row.find('.employee-select')[0].selectize 
-                          ? row.find('.employee-select')[0].selectize.items 
-                          : row.find('.employee-select').val(); // fallback if not Selectize
-
-        if (!employeeIds) employeeIds = [];
+        let employeeIds = row.find('.employee-select')[0].selectize
+                          ? row.find('.employee-select')[0].selectize.items
+                          : row.find('.employee-select').val() || [];
 
         routingData.push({
             routing_detail_id: routingDetailId,
             workstation_id: workstationId || null,
             machine_id: machineId || null,
-            sequence:sequence,
-            employee_ids: employeeIds // array of selected employee IDs
+            sequence: sequence,
+            employee_ids: employeeIds
         });
     });
 
-    // Optional: check if any required selections are missing
-    const incomplete = routingData.some(r => !r.workstation_id || !r.machine_id || r.employee_ids.length === 0);
-    if (incomplete) {
+    if (routingData.some(r => !r.workstation_id || !r.machine_id || r.employee_ids.length === 0)) {
         alert("Please select workstations, machines, and employees for all operations!");
         return;
     }
 
-    // AJAX call to calculate end date
+    $('#calculateEndDateBtn').prop('disabled', true).text('Calculating...');
+
     $.ajax({
         url: "{% url 'mcp:calculate_end_date' %}",
         type: "POST",
@@ -577,115 +558,200 @@ $(document).on("change", ".workstation-select", function (e) {
             production_id: productionId,
             routing_id: routingId,
             scheduled_start: scheduledStart,
-            routing_data: JSON.stringify(routingData), // 👈 send all selections as JSON
+            routing_data: JSON.stringify(routingData),
             csrfmiddlewaretoken: '{{ csrf_token }}'
         },
-      success: function (response) {
+        success: function (response) {
             $('#calculateEndDateBtn').prop('disabled', false).text('Calculate End Date');
 
-            if (response.success) {
-                const formattedEndDate = response.estimated_end_date.replace(" ", "T");
-                $('#id_scheduled_end').val(formattedEndDate);
-
-                if (!calendar) {
-                    alert("Please click 'Check Routing' first to initialize the calendar!");
-                    return;
-                }
-
-                const productionTitle = "Production: " + $('#id_production_order option:selected').text();
-                const startDate = $('#id_scheduled_start').val();
-
-                // Remove existing event
-                const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
-                if (existingEvent) existingEvent.remove();
-
-                // Add updated event
-                calendar.addEvent({
-                    title: productionTitle,
-                    start: startDate,
-                    end: formattedEndDate,
-                    allDay: true,
-                    backgroundColor: '#4099ff',
-                    borderColor: '#4099ff'
-                });
-
-                // ==============================
-                // Build Shift Details Table
-                // ==============================
-                // ==============================
-                // Build Shift Details Table
-                // ==============================
-                const productionPlan = response.production_plan || [];
-
-                if (!productionPlan.length) {
-                    console.warn("No production plan data returned");
-                    return;
-                }
-
-               let processedQty = 0;
-                    const totalQty = response.total_quantity || 0; // ✅ total quantity from backend
-
-                    let tableHtml = `
-                        <table id="shiftTable" class="table table-bordered table-striped">
-                            <thead>
-                                <tr class="bg-light">
-                                    <th>Sequence</th>
-                                    <th>Workstation</th>
-                                    <th>Machine</th>
-                                    <th>Employees</th>
-                                    <th>Shift</th>
-                                    <th>Start</th>
-                                    <th>End</th>
-                                    <th>total Quantity </th>
-                                    <th>Completed Quantity</th> <!-- ✅ new column -->
-                                    <th>Remaining Quantity</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-
-                    productionPlan.forEach((item, index) => {
-                        const empList = Array.isArray(item.employee_ids) ? item.employee_ids.join(', ') : item.employee_ids;
-                        processedQty += item.quantity_processed;
-
-                        tableHtml += `
-                            <tr data-index="${index}">
-                                <td>${item.sequence}</td>
-                                <td>${item.workstation}</td>
-                                <td>${item.machine}</td>
-                                <td>${empList}</td>
-                                <td>${item.shift_name}</td>
-                                <td>${item.start}</td>
-                                <td>${item.end}</td>
-                                <td class="completed-qty">${totalQty}</td> <!-- ✅ display full quantity per sequence -->
-                                <td class="qty">${item.quantity_processed}</td>
-                                 <td class="qty">${totalQty}-${item.quantity_processed}</td>
-                                <td><button class="btn btn-danger btn-sm remove-row-btn">Remove</button></td>
-                            </tr>
-                        `;
-                    });
-
-                    tableHtml += `
-                            </tbody>
-                        </table>
-                    `;
-
-                    $('#shiftContent').html(tableHtml);
-                    $('#shift_table').removeClass('d-none');
-
-
-
-            } else {
+            if (!response.success) {
                 alert(response.error || "Failed to calculate end date.");
+                return;
             }
-},
-error: function(xhr) {
-    alert("Error calculating end date: " + xhr.responseText);
-}
 
+            const formattedEndDate = response.estimated_end_date.replace(" ", "T");
+            $('#id_scheduled_end').val(formattedEndDate);
 
+            const productionTitle = "Production: " + $('#id_production_order option:selected').text();
+            const startDate = $('#id_scheduled_start').val();
+
+            // Calendar
+            const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
+            if (existingEvent) existingEvent.remove();
+            calendar.addEvent({
+                title: productionTitle,
+                start: startDate,
+                end: formattedEndDate,
+                allDay: true,
+                backgroundColor: '#4099ff',
+                borderColor: '#4099ff'
+            });
+
+            // Save plan globally
+            productionPlan = response.production_plan || [];
+            const totalQty = response.total_quantity || 0;
+
+            renderShiftTable(productionPlan, totalQty);
+        },
+        error: function (xhr) {
+            alert("Error calculating end date: " + xhr.responseText);
+        }
     });
+});
+
+// Function to render the table
+function renderShiftTable(plan, totalQty) {
+    let remainingBySequence = {};
+    let tableHtml = `
+        <table id="shiftTable" class="table table-bordered table-striped">
+            <thead>
+                <tr class="bg-light">
+                    <th width="5%">Row ID</th>
+                    <th width="5%">Sequence</th>
+                    <th width="10%">Workstation</th>
+                    <th width="10%">Machine</th>
+                    <th width="15%">Employees</th>
+                    <th width="10%">Shift</th>
+                    <th width="10%">Start</th>
+                    <th width="10%">End</th>
+                    <th width="10%">Total Quantity</th>
+                    <th width="10%">Completed Quantity</th>
+                    <th width="10%">Remaining Quantity</th>
+                    <th width="5%">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    plan.forEach((item, index) => {
+        // Format dates properly
+      
+        let empList = "";
+        if (Array.isArray(item.employee_ids)) {
+            empList = item.employee_ids.join(', ');
+        } else if (typeof item.employee_ids === "string") {
+            empList = item.employee_ids;
+        }
+
+        // Initialize per-sequence remaining
+        if (!remainingBySequence[item.sequence]) remainingBySequence[item.sequence] = totalQty;
+
+        // Subtract processed quantity
+        remainingBySequence[item.sequence] -= item.quantity_processed || 0;
+        const remainingQty = Math.max(remainingBySequence[item.sequence], 0);
+
+        tableHtml += `
+            <tr data-row-id="${index}" data-sequence="${item.sequence || ''}" data-routing-detail-id="${item.routing_detail_id || ''}">
+                <td>${index}</td>
+                <td>${item.sequence || ""}</td>
+                <td>${item.workstation || ""}</td>
+                <td>${item.machine || ""}</td>
+                <td>${empList}</td>
+                <td>${item.shift_name || ""}</td>
+                <td>${formatDateTime(item.start)}</td>
+                <td>${formatDateTime(item.end)}</td>
+                <td class="total-qty">${totalQty}</td>
+                <td class="completed-qty">${item.quantity_processed || 0}</td>
+                <td class="remaining-qty">${remainingQty}</td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm remove-row-btn">Remove</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `</tbody></table>`;
+    $('#shiftContent').html(tableHtml);
+    $('#shift_table').removeClass('d-none');
+}
+// Remove shift row and relocate work
+$(document).on("click", ".remove-row-btn", function () {
+    const row = $(this).closest("tr");
+    const removedRowId = row.data("row-id");
+    const productionId = $('#id_production_order').val();
+    
+    if (!productionId) {
+        alert("Please select a production order first!");
+        return;
+    }
+
+    // Collect ALL shift table data with complete information
+    const tableData = [];
+    $("#shiftTable tbody tr").each(function () {
+        const tr = $(this);
+        const employeeNames = tr.find("td").eq(4).text().split(",").map(e => e.trim());
+        tableData.push({
+            row_id: tr.data("row-id"),
+            sequence: parseInt(tr.data("sequence")),
+            routing_detail_id: tr.data("routing-detail-id"),
+            workstation_name: tr.find("td").eq(2).text(),
+            machine_name: tr.find("td").eq(3).text(),
+            employee_names: employeeNames,
+            shift_name: tr.find("td").eq(5).text(),
+            start: tr.find("td").eq(6).text(),
+            end: tr.find("td").eq(7).text(),
+            total_quantity: parseInt(tr.find(".total-qty").text()) || 0,
+            completed_quantity: parseInt(tr.find(".completed-qty").text()) || 0,
+            remaining_quantity: parseInt(tr.find(".remaining-qty").text()) || 0
+        });
+    });
+
+    $(".spinner").show();
+    $("#shift_table").addClass("d-none");
+
+    $.ajax({
+        url: "{% url 'mcp:relocate_shift' %}",
+        type: "POST",
+        data: {
+            removed_row_id: removedRowId,
+            shift_table_data: JSON.stringify(tableData),
+            production_id: productionId,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function (response) {
+            $(".spinner").hide();
+            $('#shift_table').removeClass('d-none');
+
+            if (!response.success) {
+                alert(response.error || "Failed to relocate shift.");
+                return;
+            }
+
+            const formattedEndDate = response.estimated_end_date.replace(" ", "T");
+            $('#id_scheduled_end').val(formattedEndDate);
+
+            // Update calendar
+            const productionTitle = "Production: " + $('#id_production_order option:selected').text();
+            const startDate = $('#id_scheduled_start').val();
+            const existingEvent = calendar.getEvents().find(e => e.title === productionTitle);
+            if (existingEvent) existingEvent.remove();
+            calendar.addEvent({
+                title: productionTitle,
+                start: startDate,
+                end: formattedEndDate,
+                allDay: true,
+                backgroundColor: '#4099ff',
+                borderColor: '#4099ff'
+            });
+
+            // Render updated shift table
+            productionPlan = response.production_plan || [];
+            const totalQty = response.total_quantity || 0;
+            renderShiftTable(productionPlan, totalQty);
+        },
+        error: function (xhr) {
+            $(".spinner").hide();
+            $('#shift_table').removeClass('d-none');
+            alert("Error relocating shifts: " + xhr.responseText);
+        }
+    });
+});
+
+
+
+
+
+    
     // Update calendar when start or end date changes
 $('#id_scheduled_start, #id_scheduled_end').on('change', function() {
     if (!calendar) return; // calendar must be initialized
@@ -711,25 +777,26 @@ $('#id_scheduled_start, #id_scheduled_end').on('change', function() {
         backgroundColor: '#4099ff',
         borderColor: '#4099ff'
     });
-});
-
-
-    
-});
+}); 
 
 
 
 </script>
-<script>
 
-    $('#scheduleForm').on('submit', function(e) {
+<script>
+$('#scheduleForm').on('submit', function(e) {
     e.preventDefault();
 
     let assignments = [];
+    let shifts = [];
+    let shiftTableRows = [];
 
+    // 1️⃣ Collect routing + workstation + machine + employee assignments
     $('#routingContent tbody tr').each(function() {
         const routingDetailId = $(this).data('routing-detail-id');
         const workstationId = $(this).find('.workstation-select').val();
+        const machineId = $(this).find('.machine-select').val();
+        const employeeIds = $(this).find('.employee-select').val(); // multiple employees
         const start = $('#id_scheduled_start').val();
         const end = $('#id_scheduled_end').val();
 
@@ -737,21 +804,72 @@ $('#id_scheduled_start, #id_scheduled_end').on('change', function() {
             assignments.push({
                 routing_detail_id: routingDetailId,
                 workstation_id: workstationId,
+                machine_id: machineId || null,
+                employee_ids: employeeIds && employeeIds.length > 0 ? employeeIds : [],
                 start: start,
                 end: end
             });
         }
     });
 
+    // 2️⃣ Collect general shift info (optional, if used separately)
+    $('#shiftContent tbody tr').each(function() {
+        const shiftId = $(this).data('shift-id');
+        const shiftName = $(this).find('.shift-name').text() || $(this).find('.shift-name').val();
+        const startTime = $(this).find('.shift-start').val();
+        const endTime = $(this).find('.shift-end').val();
+
+        if (shiftId && startTime && endTime) {
+            shifts.push({
+                shift_id: shiftId,
+                shift_name: shiftName,
+                shift_start: startTime,
+                shift_end: endTime
+            });
+        }
+    });
+
+    // 3️⃣ Collect all rows of the rendered shift table from inside #shiftContent
+    $('#shiftContent #shiftTable tbody tr').each(function() {
+        debugger;
+        const tr = $(this);
+        const employeeNames = tr.find("td").eq(4).text().split(",").map(e => e.trim());
+
+        shiftTableRows.push({
+            row_id: tr.data("row-id") || null,
+            sequence: parseInt(tr.data("sequence")) || 0,
+            routing_detail_id: tr.data("routing-detail-id") || null,
+            workstation: tr.find("td").eq(2).text().trim(),
+            machine: tr.find("td").eq(3).text().trim(),
+            employee_ids: employeeNames.filter(e => e !== ""), // keep non-empty
+            shift_name: tr.find("td").eq(5).text().trim(),
+            start: tr.find("td").eq(6).text().trim(),
+            end: tr.find("td").eq(7).text().trim(),
+            total_quantity: parseInt(tr.find(".total-qty").text()) || 0,
+            completed_quantity: parseInt(tr.find(".completed-qty").text()) || 0,
+            remaining_quantity: parseInt(tr.find(".remaining-qty").text()) || 0
+        });
+    });
+
+    // 4️⃣ Validation
     if (assignments.length === 0) {
-        alert("Please select at least one workstation.");
+        alert("⚠️ Please select at least one workstation before saving.");
         return;
     }
 
+    if (shiftTableRows.length === 0) {
+        alert("⚠️ No shift table data found!");
+        return;
+    }
+
+    // 5️⃣ Add hidden input data
     $('#assignments_json').val(JSON.stringify(assignments));
+    $('#shift_json').val(JSON.stringify(shifts));
+    $('#shift_table_json').val(JSON.stringify(shiftTableRows));
+
+    // 6️⃣ Submit form
     this.submit();
 });
-
 </script>
 
 

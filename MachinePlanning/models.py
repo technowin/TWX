@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 
 from MachinePlanning.services import update_production_order_status
 from ManpowerPlan.models import Employee, Shift
+from MaterialPlan.models import ProductionOrder
 from PLM.models import StatusAction
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.timezone import now
@@ -449,7 +450,69 @@ class WorkStations(models.Model):
     def get_employee_count(self):
         """Return count of assigned employees"""
         return self.get_employee_list().count()
+    
+# class MachinePlanShift(models.Modal):
+#     production_order = models.ForeignKey(ProductionOrder,on_delete=models.SET_NULL,null=True, blank=True,related_name='machine_production')
 
+class Holiday(models.Model):
+    """
+    Stores holidays that occur once a year.
+    Example: Christmas, New Year, Independence Day, etc.
+    """
+    name = models.CharField(max_length=100)
+    date = models.DateField(unique=True)
+    description = models.TextField(blank=True, null=True)
+    year = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.name} ({self.date})"
+
+
+class WeeklyOff(models.Model):
+    """
+    Stores weekly off days (like Sunday, Saturday, etc.)
+    You can link it to a company or user if needed.
+    """
+    DAY_CHOICES = [
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    ]
+
+    day = models.CharField(max_length=10, choices=DAY_CHOICES, unique=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.day
+
+class ShiftTable(models.Model):
+    # Foreign Keys
+    machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='shift_tables')
+    production_order = models.ForeignKey(ProductionOrder, on_delete=models.CASCADE, related_name='production_order',null=True,blank=True)
+    week = models.TextField(null=True,blank=True)
+    bom_component = models.ForeignKey(BOMHeader,  on_delete=models.CASCADE, related_name='bom_shift',null=True,blank=True)
+    machine_schedule_detail = models.ForeignKey(MachineScheduleDetail, on_delete=models.CASCADE, related_name='shift_tables')
+    sequence = models.PositiveIntegerField()
+    workstation = models.ForeignKey(WorkStations, on_delete=models.CASCADE, related_name='workstionn')
+    machine = models.IntegerField()
+    employees = models.TextField(help_text="Comma-separated employee IDs")
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='shift_shift',null=True,blank=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    total_quantity = models.IntegerField(default=0)
+    completed_quantity = models.IntegerField(default=0)
+    remaining_quantity = models.IntegerField(default=0)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_shift_tables')
+    updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='updated_shift_tables')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Sequence {self.sequence} - {self.machine} ({self.shift})"
 
 
 

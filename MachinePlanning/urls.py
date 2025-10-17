@@ -82,6 +82,8 @@ urlpatterns = [
     path("get-routing-details/", get_routing_details, name="get_routing_details"),
     path("get_workstation_details/", get_workstation_details, name="get_workstation_details"),
     path("calculate_end_date/", calculate_end_date, name="calculate_end_date"),
+    path("relocate_shift/", relocate_shift, name="relocate_shift"),
+
 
 
 
