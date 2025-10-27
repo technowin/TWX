@@ -1,5 +1,5 @@
 # MachinePlan/views.py
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from itertools import count
 import json
 import re
@@ -969,21 +969,28 @@ class MachineScheduleCreateView(View):
         try:
             # Start transaction
             with transaction.atomic():
-                # --- 1️⃣ Save Master Schedule ---
+            # --- 1️⃣ Save Master Schedule ---
+                scheduled_start = parse_datetime(request.POST.get("scheduled_start"))
+                scheduled_end = parse_datetime(request.POST.get("scheduled_end"))
+
                 schedule = MachineSchedule.objects.create(
                     name=request.POST.get("name"),
                     production_order_id=request.POST.get("production_order"),
                     component_id=request.POST.get("component"),
-                    scheduled_start=parse_datetime(request.POST.get("scheduled_start")),
-                    scheduled_end=parse_datetime(request.POST.get("scheduled_end")),
+                    scheduled_start=scheduled_start,
+                    scheduled_end=scheduled_end,
                     created_by=request.user,
                 )
+
+                # --- Calculate ISO Week Range ---
+                start_week = scheduled_start.isocalendar()[1]
+                end_week = scheduled_end.isocalendar()[1]
+                week_display = f"Week {start_week}" if start_week == end_week else f"Week {start_week} - Week {end_week}"
 
                 # --- 2️⃣ Save Routing + Workstation + Machine + Employee Assignments ---
                 assignments_json = request.POST.get("assignments_json")
                 if assignments_json:
                     assignments = json.loads(assignments_json)
-
                     for row in assignments:
                         routing_detail_id = row.get("routing_detail_id")
                         workstation_id = row.get("workstation_id")
@@ -995,14 +1002,13 @@ class MachineScheduleCreateView(View):
                         MachineScheduleDetail.objects.create(
                             schedule=schedule,
                             routing=routing_detail.routing,
-                            machine_id=machine_id,  # 🔹 now using machine from JSON
+                            machine_id=machine_id,
                             seq=routing_detail.sequence,
                             workstation_id=workstation_id,
                             work_center=routing_detail.work_center,
                             employee=",".join(map(str, employee_ids)) if employee_ids else "",
                         )
 
-                        # Update schedule routing if not already set
                         if not schedule.routing_id:
                             schedule.routing = routing_detail.routing
                             schedule.save()
@@ -1011,8 +1017,8 @@ class MachineScheduleCreateView(View):
                 shift_table_json = request.POST.get("shift_table_json")
                 if shift_table_json:
                     shift_table_data = json.loads(shift_table_json)
-                    production_order_id=request.POST.get("production_order")
-                    component_id=request.POST.get("component")
+                    production_order_id = request.POST.get("production_order")
+                    component_id = request.POST.get("component")
 
                     for row in shift_table_data:
                         seq = row.get("sequence")
@@ -1022,6 +1028,7 @@ class MachineScheduleCreateView(View):
                             .values_list("id", flat=True)
                         )
                         employee_ids_str = ",".join(map(str, employee_ids))
+
                         # Find matching detail record by schedule + sequence
                         detail = MachineScheduleDetail.objects.filter(schedule=schedule, seq=seq).first()
                         if not detail:
@@ -1031,20 +1038,20 @@ class MachineScheduleCreateView(View):
                             machine_schedule=schedule,
                             machine_schedule_detail=detail,
                             sequence=seq,
-                            production_order = get_object_or_404(ProductionOrder, id = production_order_id),
-                            bom_component = get_object_or_404(BOMHeader, id = component_id),
-                            workstation=get_object_or_404(WorkStations, name= row.get("workstation", "")),
-                            machine=get_object_or_404(Machine, name = row.get("machine", "")).id,
+                            production_order=get_object_or_404(ProductionOrder, id=production_order_id),
+                            bom_component=get_object_or_404(BOMHeader, id=component_id),
+                            workstation=get_object_or_404(WorkStations, name=row.get("workstation", "")),
+                            machine=get_object_or_404(Machine, name=row.get("machine", "")).id,
                             employees=employee_ids_str,
-                            shift=get_object_or_404(Shift, shift_name = row.get("shift_name", "")),
+                            shift=get_object_or_404(Shift, shift_name=row.get("shift_name", "")),
                             start_time=parse_custom_datetime(row.get("start")),
                             end_time=parse_custom_datetime(row.get("end")),
                             total_quantity=row.get("total_quantity") or 0,
                             completed_quantity=row.get("completed_quantity") or 0,
                             remaining_quantity=row.get("remaining_quantity") or 0,
                             created_by=request.user,
+                            week=week_display,  # 🆕 Store calculated week value here
                         )
-
 
                 return redirect(reverse("mcp:machine_scheduling_list"))
 
@@ -1059,6 +1066,8 @@ class MachineScheduleCreateView(View):
 
 
         
+
+
 # views.py
 class MachineScheduleUpdateView(View):
     template_name = "MachinePlan/machine_scheduling_edit.html"
@@ -1066,104 +1075,359 @@ class MachineScheduleUpdateView(View):
     def get(self, request, pk, *args, **kwargs):
         schedule = get_object_or_404(MachineSchedule, pk=pk)
 
-        # ✅ Fetch all detail rows for this schedule
-        details = (
-            MachineScheduleDetail.objects
-            .filter(schedule=schedule)
-            .select_related("routing", "machine", "workstation", "work_center")
-        )
-
-        pre_assignments = []
-
-        for d in details:
-            # ✅ Extract all possible workstations for this work_center
-            workstation_list = []
-            if d.work_center and d.work_center.workstation_ids:
-                try:
-                    ws_ids = [int(x) for x in d.work_center.workstation_ids.split(",") if x.strip()]
-                    workstation_list = WorkStations.objects.filter(id__in=ws_ids)
-                except ValueError:
-                    workstation_list = []
-
-            # ✅ Build record for JS
-            pre_assignments.append({
-                "routing_detail_id": d.routing.id if d.routing else None,
-                "sequence": d.seq or "",
-                "operation": getattr(d.routing, "name", ""),  # from RoutingMaster
-                "employee_needed": "",
-                "proficiency": "",
-                "skill": "",
-                "work_center": d.work_center.name if d.work_center else "",
-                "workstation_id": d.workstation.id if d.workstation else None,  # ✅ preselected workstation
-                "workstations": [
-                    {
-                        "id": w.id,
-                        "name": w.name,
-                        "employee_count": getattr(w, "employee_count", 0),
-                    }
-                    for w in workstation_list
-                ],
-            })
-
+        # Get assignments data
+        assignments_data = self.get_assignments(schedule)
+        
+        # Get shift table data
+        shift_table_data = self.get_shift_table(schedule)
+        
+        # DEBUG: Print the actual data before JSON serialization
+        print("=== DEBUG BEFORE JSON SERIALIZATION ===")
+        
+        print("--- ASSIGNMENTS DATA ---")
+        for i, assignment in enumerate(assignments_data):
+            print(f"Assignment {i}:")
+        
+        print("--- SHIFT TABLE DATA ---")
+        print(f"Number of shift records: {len(shift_table_data)}")
+        for i, shift in enumerate(shift_table_data):
+            print(f"Shift {i}:")
+        
+        # Convert to JSON and debug
+        assignments_json = json.dumps(assignments_data, default=str)
+        shift_table_json = json.dumps(shift_table_data, default=str)
+        
+        
         context = {
             "schedule": schedule,
             "production_orders": ProductionOrder.objects.all(),
             "components": BOMHeader.objects.all(),
-            "assignments_json": json.dumps(pre_assignments),
+            "assignments_json": assignments_json,
+            "shift_table_json": shift_table_json,
         }
-
         return render(request, self.template_name, context)
 
+    def get_assignments(self, schedule):
+        details = MachineScheduleDetail.objects.filter(schedule=schedule).select_related(
+            'routing', 'workstation', 'machine', 'work_center'
+        )
+        assignments = []
+        
+        for d in details:
+            # Get the routing detail
+            routing_detail = None
+            if d.routing and d.seq:
+                try:
+                    seq_num = int(d.seq)
+                    routing_detail = RoutingDetail.objects.filter(
+                        routing=d.routing, 
+                        sequence=seq_num
+                    ).select_related('operation', 'skill', 'min_proficiency').first()
+                except (ValueError, TypeError):
+                    routing_detail = None
+            
+            # Get workstations from work_center
+            workstations = []
+            if d.work_center and hasattr(d.work_center, 'workstation_ids') and d.work_center.workstation_ids:
+                try:
+                    workstation_ids = [int(id.strip()) for id in d.work_center.workstation_ids.split(",") if id.strip()]
+                    workstations = WorkStations.objects.filter(id__in=workstation_ids)
+                except Exception:
+                    pass
+            
+            # Get machines and employees for the selected workstation (if available)
+            machines = []
+            employees = []
+            if d.workstation:
+                if hasattr(d.workstation, 'machine') and d.workstation.machine:
+                    try:
+                        machine_ids = [int(id.strip()) for id in d.workstation.machine.split(",") if id.strip()]
+                        machines = Machine.objects.filter(id__in=machine_ids)
+                    except Exception:
+                        pass
+                
+                if hasattr(d.workstation, 'employee') and d.workstation.employee:
+                    try:
+                        employee_ids = [int(id.strip()) for id in d.workstation.employee.split(",") if id.strip()]
+                        employees = Employee.objects.filter(id__in=employee_ids)
+                    except Exception:
+                        pass
+            
+            # Make sure we're using the exact field names that JavaScript expects
+            assignment_data = {
+                "routing_detail_id": d.id,
+                "routing_id": d.routing.id if d.routing else None,
+                "workstation_id": d.workstation.id if d.workstation else None,  # This should be set!
+                "machine_id": d.machine.id if d.machine else None,  # This should be set!
+                "employee_ids": [int(e) for e in d.employee.split(",") if e and e.strip()] if d.employee else [],  # This should be set!
+                "sequence": d.seq,
+                "operation": routing_detail.operation.name if routing_detail and routing_detail.operation else "",
+                "employee_needed": routing_detail.employees_needed if routing_detail else 0,
+                "skill": routing_detail.skill.skill_name if routing_detail and routing_detail.skill else "",
+                "proficiency": routing_detail.min_proficiency if routing_detail and routing_detail.min_proficiency else "",
+                "work_center": d.work_center.name if d.work_center else "",
+                "workstations": [
+                    {"id": ws.id, "name": ws.name, "employee_count": getattr(ws, 'employee_count', 0)} 
+                    for ws in workstations
+                ],
+                "machines": [
+                    {"id": m.id, "name": m.name} 
+                    for m in machines
+                ],
+                "employees": [
+                    {"id": emp.id, "employee_name": emp.employee_name} 
+                    for emp in employees
+                ]
+            }
+            
+            # Debug print to verify the data
+            print(f"Assignment data for detail {d.id}: workstation_id={assignment_data['workstation_id']}, machine_id={assignment_data['machine_id']}, employee_ids={assignment_data['employee_ids']}")
+            
+            assignments.append(assignment_data)
+        
+        return assignments
 
+    def get_shift_table(self, schedule):
+        """Extract data from ShiftTable"""
+        shifts = ShiftTable.objects.filter(machine_schedule=schedule).select_related(
+            'workstation', 'shift'
+        )
+        data = []
+        
+        print("=== DEBUG SHIFT TABLE DATA ===")
+        for s in shifts:
+            
+            # Get employee names
+            employee_names = []
+            if s.employees:
+                try:
+                    employee_ids = [int(i.strip()) for i in s.employees.split(",") if i.strip()]
+                    employee_names = list(
+                        Employee.objects.filter(id__in=employee_ids)
+                        .values_list("employee_name", flat=True)
+                    )
+                except Exception as e:
+                    print(f"Error parsing employees: {e}")
 
+            # Get machine name
+            machine_name = ""
+            if s.machine:  # s.machine is already the machine ID
+                try:
+                    machine_obj = Machine.objects.filter(id=s.machine).first()
+                    machine_name = machine_obj.name if machine_obj else ""
+                except Exception as e:
+                    print(f"Error getting machine: {e}")
 
+            shift_data = {
+                "sequence": s.sequence,
+                "workstation": s.workstation.name if s.workstation else "",
+                "machine": machine_name,
+                "employee_ids": employee_names,
+                "shift_name": s.shift.shift_name if s.shift else "",
+                "start": s.start_time.strftime("%Y-%m-%d %H:%M") if s.start_time else "",
+                "end": s.end_time.strftime("%Y-%m-%d %H:%M") if s.end_time else "",
+                "total_quantity": s.total_quantity,
+                "completed_quantity": s.completed_quantity,
+                "remaining_quantity": s.remaining_quantity,
+            }
+            
+            print(f"Shift data: {shift_data}")
+            data.append(shift_data)
+    
+        return data
 
-
+    
     def post(self, request, pk, *args, **kwargs):
-        schedule = get_object_or_404(MachineSchedule, pk=pk)
+        try:
+            with transaction.atomic():
+                schedule = get_object_or_404(MachineSchedule, pk=pk)
 
-        name = request.POST.get("name")
-        scheduled_start = request.POST.get("scheduled_start")
-        scheduled_end = request.POST.get("scheduled_end")
-        assignments_json = request.POST.get("assignments_json", "[]")
+                # --- 1️⃣ Update Master Schedule ---
+                schedule.name = request.POST.get("name")
+                production_order_id = request.POST.get("production_order")
+                component_id = request.POST.get("component")
+                
+                if production_order_id:
+                    schedule.production_order_id = production_order_id
+                if component_id:
+                    schedule.component_id = component_id
+                    
+                schedule.scheduled_start = parse_datetime(request.POST.get("scheduled_start"))
+                schedule.scheduled_end = parse_datetime(request.POST.get("scheduled_end"))
+                schedule.updated_by = request.user
+                schedule.save()
 
-        # Update schedule main fields
-        schedule.name = name
-        schedule.scheduled_start = scheduled_start
-        schedule.scheduled_end = scheduled_end
-        schedule.save()
+                # --- 2️⃣ Delete old details before re-saving ---
+                MachineScheduleDetail.objects.filter(schedule=schedule).delete()
+                ShiftTable.objects.filter(machine_schedule=schedule).delete()
 
-        # Delete old MachineScheduleDetail rows
-        schedule.details.all().delete()
+                # --- 3️⃣ Save Routing + Assignments ---
+                assignments_json = request.POST.get("assignments_json")
+                if assignments_json:
+                    assignments = json.loads(assignments_json)
+                    for row in assignments:
+                        routing_detail_id = row.get("routing_detail_id")
+                        workstation_id = row.get("workstation_id")
+                        machine_id = row.get("machine_id")
+                        employee_ids = row.get("employee_ids", [])
 
-        # Create new MachineScheduleDetail rows from assignments_json
-        if assignments_json:
-            assignments = json.loads(assignments_json)
+                        routing_detail = get_object_or_404(RoutingDetail, id=routing_detail_id)
 
-            for row in assignments:
-                routing_detail_id = row.get("routing_detail_id")
-                workstation_id = row.get("workstation_id")
+                        MachineScheduleDetail.objects.create(
+                            schedule=schedule,
+                            routing=routing_detail.routing,
+                            machine_id=machine_id,
+                            seq=routing_detail.sequence,
+                            workstation_id=workstation_id,
+                            work_center=routing_detail.work_center,
+                            employee=",".join(map(str, employee_ids)) if employee_ids else "",
+                        )
 
-                if not routing_detail_id or not workstation_id:
-                    continue
+                # --- 4️⃣ Save Shift Table ---
+                shift_table_json = request.POST.get("shift_table_json")
+                if shift_table_json:
+                    shift_table_data = json.loads(shift_table_json)
+                    production_order_id = request.POST.get("production_order")
+                    component_id = request.POST.get("component")
 
-                routing_detail = get_object_or_404(RoutingDetail, id=routing_detail_id)
-                machine = get_object_or_404(WorkStations, id=workstation_id).machine
+                    start_week = schedule.scheduled_start.isocalendar()[1]
+                    end_week = schedule.scheduled_end.isocalendar()[1]
+                    week_display = f"Week {start_week}" if start_week == end_week else f"Week {start_week} - Week {end_week}"
 
-                MachineScheduleDetail.objects.create(
-                    schedule=schedule,
-                    routing=routing_detail.routing,
-                    machine=machine,
-                    seq=routing_detail.sequence,
-                    workstation_id=workstation_id,
-                    work_center=routing_detail.work_center,
-                )
+                    for row in shift_table_data:
+                        seq = row.get("sequence")
+                        employee_names = row.get("employee_ids", [])
+                        employee_ids = list(
+                            Employee.objects.filter(employee_name__in=employee_names)
+                            .values_list("id", flat=True)
+                        )
+                        employee_ids_str = ",".join(map(str, employee_ids))
 
-            # Update schedule.routing to last routing used
-            schedule.routing = routing_detail.routing
-            schedule.save()
+                        detail = MachineScheduleDetail.objects.filter(schedule=schedule, seq=str(seq)).first()
+                        if not detail:
+                            print(f"Warning: No detail found for sequence {seq}")
+                            continue
 
-        return redirect(reverse("mcp:machine_scheduling_list"))
+                        # Parse datetime with error handling
+                        start_time = parse_custom_datetime(row.get("start"))
+                        end_time = parse_custom_datetime(row.get("end"))
+                        
+                        # Debug print to check parsed datetimes
+                        print(f"Parsing datetime - Start: '{row.get('start')}' -> {start_time}")
+                        print(f"Parsing datetime - End: '{row.get('end')}' -> {end_time}")
+                        
+                        if not start_time or not end_time:
+                            print(f"Warning: Invalid datetime for sequence {seq}. Start: {start_time}, End: {end_time}")
+                            continue
+
+                        # Get objects with error handling
+                        workstation_name = row.get("workstation", "")
+                        workstation = WorkStations.objects.filter(name=workstation_name).first()
+                        if not workstation:
+                            print(f"Warning: Workstation '{workstation_name}' not found")
+                            continue
+
+                        machine_name = row.get("machine", "")
+                        machine = Machine.objects.filter(name=machine_name).first()
+                        if not machine:
+                            print(f"Warning: Machine '{machine_name}' not found")
+                            continue
+
+                        shift_name = row.get("shift_name", "")
+                        shift = Shift.objects.filter(shift_name=shift_name).first()
+                        if not shift:
+                            print(f"Warning: Shift '{shift_name}' not found")
+                            continue
+
+                        ShiftTable.objects.create(
+                            machine_schedule=schedule,
+                            machine_schedule_detail=detail,
+                            sequence=seq,
+                            production_order=get_object_or_404(ProductionOrder, id=production_order_id),
+                            bom_component=get_object_or_404(BOMHeader, id=component_id),
+                            workstation=workstation,
+                            machine=machine.id,  # Store the ID, not the object
+                            employees=employee_ids_str,
+                            shift=shift,
+                            start_time=start_time,
+                            end_time=end_time,
+                            total_quantity=row.get("total_quantity") or 0,
+                            completed_quantity=row.get("completed_quantity") or 0,
+                            remaining_quantity=row.get("remaining_quantity") or 0,
+                            created_by=request.user,
+                            week=week_display,
+                        )
+
+                    print(f"Successfully created {len(shift_table_data)} shift table entries")
+
+                return redirect(reverse("mcp:machine_scheduling_list"))
+
+        except Exception as e:
+            transaction.set_rollback(True)
+            schedule = get_object_or_404(MachineSchedule, pk=pk)
+            assignments_data = self.get_assignments(schedule)
+        
+        return render(request, self.template_name, {
+            "schedule": schedule,
+            "production_orders": ProductionOrder.objects.all(),
+            "components": BOMHeader.objects.all(),
+            "assignments_json": json.dumps(assignments_data, default=str),
+            "shift_table_json": json.dumps(self.get_shift_table(schedule), default=str),
+            "error": f"Error while updating schedule: {str(e)}",
+        })
+
+
+
+
+
+
+
+
+    # def post(self, request, pk, *args, **kwargs):
+    #     schedule = get_object_or_404(MachineSchedule, pk=pk)
+
+    #     name = request.POST.get("name")
+    #     scheduled_start = request.POST.get("scheduled_start")
+    #     scheduled_end = request.POST.get("scheduled_end")
+    #     assignments_json = request.POST.get("assignments_json", "[]")
+
+    #     # Update schedule main fields
+    #     schedule.name = name
+    #     schedule.scheduled_start = scheduled_start
+    #     schedule.scheduled_end = scheduled_end
+    #     schedule.save()
+
+    #     # Delete old MachineScheduleDetail rows
+    #     schedule.details.all().delete()
+
+    #     # Create new MachineScheduleDetail rows from assignments_json
+    #     if assignments_json:
+    #         assignments = json.loads(assignments_json)
+
+    #         for row in assignments:
+    #             routing_detail_id = row.get("routing_detail_id")
+    #             workstation_id = row.get("workstation_id")
+
+    #             if not routing_detail_id or not workstation_id:
+    #                 continue
+
+    #             routing_detail = get_object_or_404(RoutingDetail, id=routing_detail_id)
+    #             machine = get_object_or_404(WorkStations, id=workstation_id).machine
+
+    #             MachineScheduleDetail.objects.create(
+    #                 schedule=schedule,
+    #                 routing=routing_detail.routing,
+    #                 machine=machine,
+    #                 seq=routing_detail.sequence,
+    #                 workstation_id=workstation_id,
+    #                 work_center=routing_detail.work_center,
+    #             )
+
+    #         # Update schedule.routing to last routing used
+    #         schedule.routing = routing_detail.routing
+    #         schedule.save()
+
+    #     return redirect(reverse("mcp:machine_scheduling_list"))
 
 
 
@@ -1299,51 +1563,60 @@ def get_component_by_production_order(request):
         return JsonResponse({'error': 'Production order not found'}, status=404)
     
 def get_routing_data(request):
+    from datetime import date
+
     component_id = request.POST.get("component_id")
 
     try:
-        # ✅ Step 1: Get routing for that component
         routing = RoutingMaster.objects.filter(component=component_id).first()
         if not routing:
             return JsonResponse({"schedules": [], "routing_id": None})
 
         routing_id = routing.id
-
-        # ✅ Step 2: Get related routing details (optional, if needed for filtering)
         routing_details = RoutingDetail.objects.filter(routing=routing)
         routing_detail_ids = routing_details.values_list("id", flat=True)
 
-        # ✅ Step 3: Get related machine schedules for this component
         machine_schedules = MachineSchedule.objects.filter(component_id=component_id)
-
         if not machine_schedules.exists():
             return JsonResponse({"schedules": [], "routing_id": routing_id})
 
-        # ✅ Step 4: Collect all shift records related to those schedules
         schedule_ids = machine_schedules.values_list("id", flat=True)
 
-        # Fetch all ShiftTable rows for these schedules
         shift_rows = (
             ShiftTable.objects
             .select_related("machine_schedule", "machine_schedule__production_order")
             .filter(machine_schedule_id__in=schedule_ids)
         )
 
-        # ✅ Step 5: Prepare response data for calendar
         data = []
         for shift in shift_rows:
-            production_order = getattr(shift.machine_schedule.production_order, "order_number", None) or str(shift.machine_schedule.production_order_id)
+            production_order = getattr(
+                shift.machine_schedule.production_order, "order_number", None
+            ) or str(shift.machine_schedule.production_order_id)
+
             data.append({
                 "start_date": shift.start_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.start_time else None,
                 "end_date": shift.end_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.end_time else None,
-                "production_order": getattr(shift.production_order, "order_number", str(shift.production_order)),
-                "shift_name": str(shift.shift) if shift.shift else None,  # ✅ Convert Shift object to string
+                "production_order": production_order,
+                "shift_name": str(shift.shift) if shift.shift else None,
             })
 
+        # ✅ Step 6: Return holiday list with description
+        current_year = date.today().year
+        holidays = list(
+            Holiday.objects.filter(date__year=current_year)
+            .values("date", "description")
+        )
+
+        # ✅ Step 7: Weekly off
+        weekly_off_row = WeeklyOff.objects.first()
+        weekly_off_day = getattr(weekly_off_row, "day") if weekly_off_row else None
 
         return JsonResponse({
             "schedules": data,
-            "routing_id": routing_id
+            "routing_id": routing_id,
+            "holidays": holidays,
+            "weekly_off": weekly_off_day
         })
 
     except Exception as e:
@@ -1455,19 +1728,18 @@ def calculate_end_date(request):
         if not production_id or not routing_data or not scheduled_start:
             return JsonResponse({"error": "Missing required fields"}, status=400)
 
-        # Production quantity
+        # --- 1️⃣ Get Production Order Quantity ---
         try:
             po = ProductionOrder.objects.get(id=production_id)
             total_qty = po.quantity
         except ProductionOrder.DoesNotExist:
             return JsonResponse({"error": "Invalid production ID"}, status=400)
 
-        # Active shifts
+        # --- 2️⃣ Get Active Shifts ---
         active_shifts = Shift.objects.filter(is_active=1).order_by('start_time')
         if not active_shifts.exists():
             return JsonResponse({"error": "No active shifts found"}, status=400)
 
-        # Convert shift to hours (consider break)
         shifts_list = []
         for s in active_shifts:
             start = datetime.combine(datetime.today(), s.start_time)
@@ -1476,7 +1748,7 @@ def calculate_end_date(request):
                 end += timedelta(days=1)
             shift_hours = (end - start).total_seconds() / 3600
             if s.break_time_period:
-                shift_hours -= s.break_time_period.hour + s.break_time_period.minute/60
+                shift_hours -= s.break_time_period.hour + s.break_time_period.minute / 60
             shifts_list.append({
                 "id": s.id,
                 "name": s.shift_name,
@@ -1485,11 +1757,26 @@ def calculate_end_date(request):
                 "hours": max(0, shift_hours)
             })
 
-        # Start datetime
+        # --- 3️⃣ Prepare Holiday and Weekflow Data ---
+        holiday_dates = set(Holiday.objects.values_list("date", flat=True))
+        week_off_days = set(
+            WeeklyOff.objects.filter(is_active=True).values_list("day", flat=True)
+        )  # e.g., {'Sunday', 'Saturday'}
+
+        def is_non_working_day(date_to_check):
+            """Return True if date is a holiday or weekly off."""
+            if date_to_check.date() in holiday_dates:
+                return True
+            if date_to_check.strftime("%A") in week_off_days:
+                return True
+            return False
+
+        # --- 4️⃣ Start Date ---
         current_dt = datetime.strptime(scheduled_start, "%Y-%m-%dT%H:%M")
+
+        # --- 5️⃣ Production Planning ---
         production_plan = []
 
-        # Process each sequence
         for routing in sorted(routing_data, key=lambda x: int(x.get("sequence", 0))):
             routing_detail_id = routing.get("routing_detail_id")
             sequence = routing.get("sequence")
@@ -1497,12 +1784,8 @@ def calculate_end_date(request):
             machine_id = routing.get("machine_id")
             employee_ids = routing.get("employee_ids", [])
 
-            employee_ids = routing.get("employee_ids", [])
-
-            # Convert to list of names
             employee_names = []
             if employee_ids:
-                # fetch employee names from EmployeeMaster
                 employees = Employee.objects.filter(id__in=employee_ids).values_list("employee_name", flat=True)
                 employee_names = list(employees)
 
@@ -1520,16 +1803,24 @@ def calculate_end_date(request):
                 continue
 
             qty_remaining = total_qty
-            # Process the sequence across multiple shifts/days
+
+            # --- 6️⃣ Process Sequences with Non-Working Day Skip ---
             while qty_remaining > 0:
+                # Skip to next valid working day if current day is holiday or week off
+                while is_non_working_day(current_dt):
+                    current_dt += timedelta(days=1)
+                    current_dt = datetime.combine(current_dt.date(), shifts_list[0]["start"])
+
                 for shift in shifts_list:
-                    # Determine shift start/end datetime for the current day
                     shift_start = current_dt.replace(hour=shift["start"].hour, minute=shift["start"].minute)
                     shift_end = current_dt.replace(hour=shift["end"].hour, minute=shift["end"].minute)
                     if shift_end <= shift_start:
                         shift_end += timedelta(days=1)
 
-                    # Move current_dt to shift start if before
+                    # Skip shifts if they fall on a non-working day
+                    if is_non_working_day(shift_start):
+                        continue
+
                     if current_dt < shift_start:
                         current_dt = shift_start
 
@@ -1537,7 +1828,6 @@ def calculate_end_date(request):
                     if available_hours <= 0:
                         continue
 
-                    # Quantity that can be processed in this shift
                     qty_this_shift = min(qty_remaining, available_hours * machine_capacity)
                     hours_needed = qty_this_shift / machine_capacity
 
@@ -1551,22 +1841,24 @@ def calculate_end_date(request):
                         "shift_name": shift["name"],
                         "start": current_dt.strftime("%Y-%m-%dT%H:%M"),
                         "end": (current_dt + timedelta(hours=hours_needed)).strftime("%Y-%m-%dT%H:%M"),
-                        "quantity_processed": round(qty_this_shift,2),
+                        "quantity_processed": round(qty_this_shift, 2),
                         "machine_capacity": machine_capacity
                     }
 
                     production_plan.append(shift_plan_entry)
 
-                    # Update remaining quantity and current datetime
                     qty_remaining -= qty_this_shift
                     current_dt += timedelta(hours=hours_needed)
 
                     if qty_remaining <= 0:
                         break
 
-                # If quantity remains after all shifts, move to next day and repeat
+                # If still remaining, move to next working day
                 if qty_remaining > 0:
-                    current_dt = datetime.combine(current_dt.date() + timedelta(days=1), shifts_list[0]["start"])
+                    current_dt += timedelta(days=1)
+                    while is_non_working_day(current_dt):
+                        current_dt += timedelta(days=1)
+                    current_dt = datetime.combine(current_dt.date(), shifts_list[0]["start"])
 
         return JsonResponse({
             "success": True,

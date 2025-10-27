@@ -46,7 +46,7 @@
 
           <div class="col-md-4">
             <label class="form-label">Production Order</label>
-            <select name="production_order" id="id_production_order" class="form-select" disabled>
+            <select name="production_order" id="id_production_order" class="form-select" >
               {% for po in production_orders %}
               <option value="{{ po.id }}" {% if schedule.production_order_id == po.id %}selected{% endif %}>
                 {{ po.order_number }}
@@ -57,7 +57,7 @@
 
           <div class="col-md-4">
             <label class="form-label">Component</label>
-            <select name="component" id="id_component" class="form-select" disabled>
+            <select name="component" id="id_component" class="form-select">
               {% for comp in components %}
               <option value="{{ comp.id }}" {% if schedule.component_id == comp.id %}selected{% endif %}>
                 {{ comp.name }}
@@ -101,7 +101,16 @@
           </div>
         </div>
 
+        <!-- Shift Table -->
+        <div id="shift_table" class="card mb-3 mt-4">
+          <div class="card-header bg-success text-white">Shift Details</div>
+          <div class="card-body">
+            <div id="shiftContent"></div>
+          </div>
+        </div>
+
         <input type="hidden" id="assignments_json" name="assignments_json" value="{{ assignments_json|default:'[]' }}">
+        <input type="hidden" id="shift_table_json" name="shift_table_json" value="{{ shift_table_json|default:'[]' }}">
 
         <!-- Save / Cancel -->
         <div class="d-flex justify-content-between mb-4">
@@ -117,12 +126,96 @@
 <script src="{% static 'js/vendor/fullcalendar.min.js' %}"></script>
 
 <script>
+// Debug the raw JSON data
+// Debug the raw JSON data
+console.log("=== RAW ASSIGNMENTS JSON ===");
+var assignmentsData = {{ assignments_json|safe }};
+console.log(assignmentsData);
+
+console.log("=== RAW SHIFT TABLE JSON ===");
+var shiftTableData = {{ shift_table_json|safe }};
+console.log("Shift table data:", shiftTableData);
+console.log("Shift table data type:", typeof shiftTableData);
+console.log("Shift table data length:", shiftTableData ? shiftTableData.length : 0);
+
+if (shiftTableData && shiftTableData.length > 0) {
+    console.log("First shift record:", shiftTableData[0]);
+} else {
+    console.log("No shift table data found");
+}
+
+// Store the pre-assignments data globally
+window.preAssignments = assignmentsData;
+window.shiftTableData = shiftTableData;
+
+// Define renderShiftTable function in global scope
+function renderShiftTable(shiftData) {
+    console.log("Rendering shift table:", shiftData);
+    
+    if (!shiftData || shiftData.length === 0) {
+        $("#shiftContent").html('<div class="alert alert-info">No shift data available</div>');
+        return;
+    }
+
+    let tableHtml = `
+        <table class="table table-bordered table-striped">
+            <thead class="table-success">
+                <tr>
+                    <th>Sequence</th>
+                    <th>Workstation</th>
+                    <th>Machine</th>
+                    <th>Employees</th>
+                    <th>Shift</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Total Qty</th>
+                    <th>Completed Qty</th>
+                    <th>Remaining Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    shiftData.forEach(shift => {
+        tableHtml += `
+            <tr>
+                <td>${shift.sequence || ''}</td>
+                <td>${shift.workstation || ''}</td>
+                <td>${shift.machine || ''}</td>
+                <td>${Array.isArray(shift.employee_ids) ? shift.employee_ids.join(', ') : shift.employee_ids || ''}</td>
+                <td>${shift.shift_name || ''}</td>
+                <td>${shift.start || ''}</td>
+                <td>${shift.end || ''}</td>
+                <td>${shift.total_quantity || 0}</td>
+                <td>${shift.completed_quantity || 0}</td>
+                <td>${shift.remaining_quantity || 0}</td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `</tbody></table>`;
+    $("#shiftContent").html(tableHtml);
+    
+    // Show the shift table section
+    $("#shift_table").removeClass('d-none');
+}
+
+// Render shift table immediately
+if (shiftTableData && shiftTableData.length > 0) {
+    renderShiftTable(shiftTableData);
+} else {
+    console.log("No shift data to render");
+    $("#shiftContent").html('<div class="alert alert-warning">No shift data available</div>');
+    $("#shift_table").removeClass('d-none'); // Still show the section even if empty
+}
+</script>
+
+<script>
 let calendar;
 $(document).ready(function() {
   const componentId = "{{ schedule.component_id }}";
   const start = "{{ schedule.scheduled_start|date:'Y-m-d\\TH:i' }}";
   const end = "{{ schedule.scheduled_end|date:'Y-m-d\\TH:i' }}";
-  const preAssignments = JSON.parse($('#assignments_json').val());
 
   // 🔹 Load routing + calendar on load
   if (componentId) {
@@ -142,8 +235,8 @@ $(document).ready(function() {
         else
           renderFullCalendar([]);
 
-        // Load routing table
-        loadRoutingDetails(window.currentRoutingId, preAssignments);
+        // Load routing table WITH pre-assignments
+        loadRoutingDetails(window.currentRoutingId, window.preAssignments);
       },
       error: function() {
         alert("Error loading routing data.");
@@ -191,66 +284,191 @@ $(document).ready(function() {
       type: "GET",
       data: { routing_id: routingId },
       success: function(response) {
-        if (response.routing_details && response.routing_details.length > 0)
-          renderRoutingDetailsTable(response.routing_details, preAssignments);
+        if (response.routing_details && response.routing_details.length > 0) {
+          // Merge the routing details with pre-assignments data
+          const mergedDetails = response.routing_details.map(detail => {
+            // Find matching pre-assignment by sequence
+            const preAssignment = preAssignments.find(pa => 
+              pa.sequence == detail.sequence || pa.routing_detail_id == detail.id
+            );
+            
+            if (preAssignment) {
+              return {
+                ...detail,
+                routing_detail_id: preAssignment.routing_detail_id,
+                workstation_id: preAssignment.workstation_id,
+                machine_id: preAssignment.machine_id,
+                employee_ids: preAssignment.employee_ids,
+                workstations: preAssignment.workstations || detail.workstations,
+                machines: preAssignment.machines || detail.machines,
+                employees: preAssignment.employees || detail.employees
+              };
+            }
+            return detail;
+          });
+          
+          renderRoutingDetailsTable(mergedDetails);
+        }
       }
     });
   }
+function renderRoutingDetailsTable(details) {
+    console.log("=== RENDER FUNCTION DEBUG ===");
+    console.log("Details received:", details);
+    
+    let tableHtml = `
+        <table class="table table-bordered mt-3">
+            <thead class="table-primary">
+                <tr>
+                    <th width="2%">Seq</th>
+                    <th width="8%">Operation</th>
+                    <th width="15%">Emp need with skill</th>
+                    <th width="10%">Work Center</th>
+                    <th width="15%">Workstation</th>
+                    <th width="15%">Machine</th>
+                    <th width="30%">Employee</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
 
-  function renderRoutingDetailsTable(preAssignments) {
-  let tableHtml = `
-    <table class="table table-bordered mt-3">
-      <thead class="table-primary">
-        <tr>
-          <th>Seq</th>
-          <th>Operation</th>
-          <th>Emp Needed</th>
-          <th>Proficiency</th>
-          <th>Skill</th>
-          <th>Work Center</th>
-          <th>Workstation</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
+    details.forEach((d, index) => {
+        console.log(`Processing row ${index}:`, d);
+        
+        // Get values with fallbacks
+        const workstationId = d.workstation_id !== undefined ? d.workstation_id : null;
+        const machineId = d.machine_id !== undefined ? d.machine_id : null;
+        const employeeIds = d.employee_ids !== undefined ? d.employee_ids : [];
+        
+        console.log(`Row ${index} values:`, {
+            workstationId,
+            machineId, 
+            employeeIds
+        });
 
-  preAssignments.forEach(d => {
-    const preselectedId = d.workstation_id || "";
+        tableHtml += `
+            <tr data-routing-detail-id="${d.routing_detail_id}">
+                <td>${d.sequence || ''}</td>
+                <td>${d.operation || ''}</td>
+                <td>${d.employee_needed || 0}-${d.skill || ''}(${d.proficiency || ''})</td>
+                <td>${d.work_center || ''}</td>
+                <td>
+                    <select class="form-select workstation-select" data-row="${index}">
+                        <option value="">-- Select Workstation --</option>
+        `;
+        
+        // Workstation options
+        if (d.workstations && d.workstations.length > 0) {
+            d.workstations.forEach(ws => {
+                const isSelected = ws.id == workstationId;
+                console.log(`Workstation ${ws.id} == ${workstationId}: ${isSelected}`);
+                tableHtml += `<option value="${ws.id}" ${isSelected ? 'selected="selected"' : ''}>${ws.name}</option>`;
+            });
+        }
+        
+        tableHtml += `
+                    </select>
+                </td>
+                <td>
+                    <select class="form-select machine-select" data-row="${index}">
+                        <option value="">-- Select Machine --</option>
+        `;
+        
+        // Machine options
+        if (d.machines && d.machines.length > 0) {
+            d.machines.forEach(machine => {
+                const isSelected = machine.id == machineId;
+                tableHtml += `<option value="${machine.id}" ${isSelected ? 'selected="selected"' : ''}>${machine.name}</option>`;
+            });
+        }
+        
+        tableHtml += `
+                    </select>
+                </td>
+                <td>
+                    <select class="form-select employee-select" data-row="${index}" multiple>
+                        <option value="">-- Select Employee --</option>
+        `;
+        
+        // Employee options
+        if (d.employees && d.employees.length > 0) {
+            d.employees.forEach(employee => {
+                const employeeIdStr = String(employee.id);
+                const isSelected = employeeIds.some(id => String(id) === employeeIdStr);
+                console.log(`Employee ${employeeIdStr} in [${employeeIds.map(e => String(e))}]: selected=${isSelected}`);
+                tableHtml += `<option value="${employee.id}" ${isSelected ? 'selected="selected"' : ''}>${employee.employee_name}</option>`;
+            });
+        }
+        
+        tableHtml += `
+                    </select>
+                </td>
+            </tr>
+        `;
+    });
 
-    tableHtml += `
-      <tr data-routing-detail-id="${d.routing_detail_id}">
-        <td>${d.sequence}</td>
-        <td>${d.operation}</td>
-        <td>${d.employee_needed}</td>
-        <td>${d.proficiency}</td>
-        <td>${d.skill}</td>
-        <td>${d.work_center}</td>
-        <td>
-          <select class="form-select workstation-select">
-            <option value="">-- Select Workstation --</option>
-            ${
-              d.workstations && d.workstations.length
-                ? d.workstations
-                    .map(
-                      ws => `
-                      <option value="${ws.id}" ${ws.id == preselectedId ? "selected" : ""}>
-                        ${ws.name} (${ws.employee_count} Employees)
-                      </option>`
-                    )
-                    .join("")
-                : `<option value="">No Workstations Available</option>`
-            }
-          </select>
-        </td>
-      </tr>`;
-  });
-
-  tableHtml += `</tbody></table>`;
-  $("#routingContent").html(tableHtml);
+    tableHtml += `</tbody></table>`;
+    $("#routingContent").html(tableHtml);
+    
+    // Initialize Selectize on all employee dropdowns
+    initializeSelectize();
+    
+    // Attach event listeners after rendering
+    attachEventListeners();
 }
 
+function initializeSelectize() {
+    $('.employee-select').each(function() {
+        const $select = $(this);
+        const preselectedValues = $select.find('option:selected').map(function() {
+            return $(this).val();
+        }).get();
+        
+        console.log('Initializing Selectize with preselected values:', preselectedValues);
+        
+        $select.selectize({
+            plugins: ['remove_button'],
+            delimiter: ',',
+            persist: false,
+            create: false,
+            maxItems: null,
+            placeholder: 'Select employees...',
+            render: {
+                item: function(data, escape) {
+                    return '<div>"' + escape(data.text) + '"</div>';
+                }
+            },
+            onInitialize: function() {
+                // Set the pre-selected values after initialization
+                const selectize = this;
+                if (preselectedValues.length > 0) {
+                    selectize.setValue(preselectedValues);
+                }
+            }
+        });
+    });
+}
+  function attachEventListeners() {
+    // Workstation change event
+    $('.workstation-select').on('change', function() {
+        const rowIndex = $(this).data('row');
+        const workstationId = $(this).val();
+        const machineSelect = $(`.machine-select[data-row="${rowIndex}"]`);
+        const employeeSelect = $(`.employee-select[data-row="${rowIndex}"]`);
+        
+        // Clear previous options
+        machineSelect.html('<option value="">-- Select Machine --</option>');
+        employeeSelect.html('<option value="">-- Select Employee --</option>');
+        
+        if (workstationId) {
+            // You can add AJAX calls here to dynamically load machines and employees
+            // based on the selected workstation
+            console.log(`Workstation ${workstationId} selected for row ${rowIndex}`);
+        }
+    });
+  }
 
-
+  
 
   // ✅ Keep calculate end date same as create page
   $('#calculateEndDateBtn').on('click', function() {
@@ -281,27 +499,55 @@ $(document).ready(function() {
   });
 
   // ✅ Submit form
-  $('#scheduleForm').on('submit', function(e) {
+ // ✅ Submit form
+$('#scheduleForm').on('submit', function(e) {
     e.preventDefault();
     let assignments = [];
+    
     $('#routingContent tbody tr').each(function() {
-      const routingDetailId = $(this).data('routing-detail-id');
-      const workstationId = $(this).find('.workstation-select').val();
-      const start = $('#id_scheduled_start').val();
-      const end = $('#id_scheduled_end').val();
-      if (routingDetailId && workstationId) {
-        assignments.push({ routing_detail_id: routingDetailId, workstation_id: workstationId, start, end });
-      }
+        const routingDetailId = $(this).data('routing-detail-id');
+        const workstationId = $(this).find('.workstation-select').val();
+        const machineId = $(this).find('.machine-select').val();
+        const employeeSelect = $(this).find('.employee-select');
+        
+        // Get employee IDs from Selectize
+        let employeeIds = [];
+        const selectize = employeeSelect[0].selectize;
+        if (selectize) {
+            employeeIds = selectize.getValue();
+        } else {
+            // Fallback to regular select
+            employeeIds = employeeSelect.val() || [];
+        }
+        
+        console.log(`Row data:`, {
+            routingDetailId,
+            workstationId,
+            machineId,
+            employeeIds
+        });
+        
+        if (routingDetailId && workstationId) {
+            assignments.push({ 
+                routing_detail_id: routingDetailId, 
+                workstation_id: workstationId,
+                machine_id: machineId,
+                employee_ids: employeeIds
+            });
+        }
     });
+    
+    console.log("Final assignments data:", assignments);
     $('#assignments_json').val(JSON.stringify(assignments));
+    
+    // Also update shift table JSON if needed
+    const shiftTableData = window.shiftTableData || [];
+    $('#shift_table_json').val(JSON.stringify(shiftTableData));
+    
     this.submit();
-  });
+});
 });
 </script>
-
-
-
-
 {% block extra_javascript %}
 <!-- Third party js -->
 <script src="{% static 'js/vendor/handlebars.min.js' %}"></script>

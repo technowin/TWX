@@ -39,6 +39,27 @@
     font-weight: bold;
 }
 
+.fc .weekly-off {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.fc .holiday {
+    background-color: #ff0000 !important;
+    color: white !important;
+}
+/* Weekly Off → full red background */
+.fc .weekly-off {
+    background-color: #f44336 !important;
+    color: white !important;
+}
+
+/* Holiday → only red border, normal background */
+.fc .holiday-border {
+    border: 2px solid #ff0000 !important;
+    box-sizing: border-box;
+}
+
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -231,50 +252,51 @@ $(document).ready(function () {
 
     // 🔹 Step 2: Fetch routing data and render calendar
     $('#checkRoutingBtn').on('click', function () {
-        const componentId = $('#id_component').val();
+    const componentId = $('#id_component').val();
 
-        if (!componentId) {
-            alert("Please select a component first!");
-            return;
-        }
+    if (!componentId) {
+        alert("Please select a component first!");
+        return;
+    }
 
-        $.ajax({
-            url: "{% url 'mcp:get_routing_data' %}",
-            type: "POST",
-            data: {
-                component_id: componentId,
-                csrfmiddlewaretoken: '{{ csrf_token }}'
-            },
-            success: function (response) {
-                // ✅ Always store routing ID
-                if (response.routing_id) {
-                    window.currentRoutingId = response.routing_id;
-                } else {
-                    console.warn("No routing ID returned from server.");
-                }
-
-                // ✅ Render calendar with shift-based events
-                if (response.schedules && response.schedules.length > 0) {
-                    renderFullCalendar(response.schedules);
-                } else {
-                    renderFullCalendar([]); // clears calendar
-                }
-
-                // ✅ Show date input fields
-                $('#start_date').removeAttr('hidden');
-                $('#end_date').removeAttr('hidden');
-            },
-
-            error: function (xhr, status, error) {
-                console.error("Error fetching routing data:", error);
-                alert("Error fetching routing data.");
+    $.ajax({
+        url: "{% url 'mcp:get_routing_data' %}",
+        type: "POST",
+        data: {
+            component_id: componentId,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function (response) {
+            // ✅ Store routing ID globally
+            if (response.routing_id) {
+                window.currentRoutingId = response.routing_id;
+            } else {
+                console.warn("No routing ID returned from server.");
             }
-        });
 
+            // ✅ Extract data safely
+            const schedules = response.schedules || [];
+            const holidays = response.holidays || [];
+            const weeklyOff = response.weekly_off || null;
+
+            // ✅ Render calendar with all info (schedules, holidays, weekly off)
+            renderFullCalendar(schedules, holidays, weeklyOff);
+
+            // ✅ Show date input fields
+            $('#start_date').removeAttr('hidden');
+            $('#end_date').removeAttr('hidden');
+        },
+
+        error: function (xhr, status, error) {
+            console.error("Error fetching routing data:", error);
+            alert("Error fetching routing data.");
+        }
     });
+});
+
 
     // 🔹 Step 3: Render FullCalendar
-function renderFullCalendar(scheduleData) {
+function renderFullCalendar(scheduleData, holidays = [], weeklyOffDay = null) {
     if (calendar) {
         calendar.destroy();
     }
@@ -290,40 +312,42 @@ function renderFullCalendar(scheduleData) {
         return `${hours}:${minutes} ${ampm}`;
     }
 
-
     const calendarEl = document.getElementById('calendar');
 
-    // Optional: color per shift (Morning, Evening, Night)
     const shiftColors = {
-        "Morning": "#28a745", // green
-        "Evening": "#ffc107", // yellow
-        "Night": "#dc3545",   // red
-        "Default": "#4099ff"  // blue
+        "Morning": "#28a745",
+        "Evening": "#ffc107",
+        "Night": "#dc3545",
+        "Default": "#4099ff"
     };
 
+    // ✅ Prepare events
     const events = scheduleData.map(item => {
-        // Format start and end times in short 12-hour format (e.g., 4:30 AM)
         const startTime = formatTime(item.start_date);
         const endTime = formatTime(item.end_date);
         const title = `${startTime} → ${endTime} | ${item.production_order}`;
-
-
-        // Color based on shift (optional)
         const color = shiftColors[item.shift_name] || shiftColors["Default"];
 
+        // ✅ Fix 1-day off issue (remove +1)
         return {
             title: title,
             start: item.start_date,
             end: item.end_date,
-            allDay: false,
             backgroundColor: color,
             borderColor: color,
-            textColor: 'white' // ✅ all text in white
+            textColor: 'white'
         };
     });
 
+    // ✅ Convert holidays to dictionary for easy lookup
+    const holidayMap = {};
+    holidays.forEach(h => {
+        const dateStr = new Date(h.date).toLocaleDateString('en-CA');
+        holidayMap[dateStr] = h.description;
+    });
+
     calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth', // shows start/end times
+        initialView: 'dayGridMonth',
         height: 700,
         headerToolbar: {
             left: 'prev,next today',
@@ -335,15 +359,73 @@ function renderFullCalendar(scheduleData) {
         selectable: true,
         editable: false,
 
-        // Customize day/cell font size
-        dayCellClassNames: function(arg) {
-            return 'fc-large-date';
-        },
+        // ✅ Highlight holidays & weekly offs
+       dayCellDidMount: function(arg) {
+    const dateStr = arg.date.toLocaleDateString('en-CA');
+    const dayName = arg.date.toLocaleDateString('en-US', { weekday: 'long' });
+    const cell = arg.el;
 
+    // Ensure relative positioning so inner text can be placed correctly
+    cell.style.position = 'relative';
+
+    // 🩶 Common style for grey backgrounds
+    const greyColor = '#e0e0e0';
+
+    // 🏖️ HOLIDAY
+    if (holidayMap[dateStr]) {
+        cell.style.backgroundColor = greyColor;
+
+        const desc = document.createElement('div');
+        desc.textContent = holidayMap[dateStr];
+        desc.style.position = 'absolute';
+        desc.style.top = '20px'; // just below the date number
+        desc.style.left = '0';
+        desc.style.right = '0';
+        desc.style.textAlign = 'center';
+        desc.style.fontSize = '0.7em';
+        desc.style.color = '#333';
+        desc.style.pointerEvents = 'none'; // prevent clicks on label
+
+        cell.appendChild(desc);
+    }
+
+    // 🕊️ WEEKLY OFF
+    else if (weeklyOffDay && dayName === weeklyOffDay) {
+        cell.style.backgroundColor = greyColor;
+
+        const off = document.createElement('div');
+        off.textContent = 'Weekly Off';
+        off.style.position = 'absolute';
+        off.style.top = '20px'; // below date number
+        off.style.left = '0';
+        off.style.right = '0';
+        off.style.textAlign = 'center';
+        off.style.fontSize = '0.7em';
+        off.style.color = '#333';
+        off.style.pointerEvents = 'none';
+
+        cell.appendChild(off);
+    }
+},
+
+
+        // ✅ Block clicks on holidays & weekly offs
         dateClick: function(info) {
-            const selectedDate = info.dateStr;
-            $('#id_scheduled_start').val(selectedDate + "T10:00");
+            const clickedDate = info.dateStr;
+            const clickedDayName = new Date(clickedDate).toLocaleDateString('en-US', { weekday: 'long' });
 
+            if (weeklyOffDay && clickedDayName === weeklyOffDay) {
+                alert("You can't assign a shift on this Weekly Off day.");
+                return;
+            }
+
+            if (holidayMap[clickedDate]) {
+                alert(`You can't assign a shift on this Holiday: ${holidayMap[clickedDate]}`);
+                return;
+            }
+
+            // ✅ Normal click behavior
+            $('#id_scheduled_start').val(clickedDate + "T10:00");
             const routingId = window.currentRoutingId;
             if (!routingId) {
                 alert("No routing ID found. Please click 'Check Routings' first.");
@@ -358,6 +440,8 @@ function renderFullCalendar(scheduleData) {
 
     calendar.render();
 }
+
+
 
     // 🔹 Step 4: Load Routing Details
     function loadRoutingDetails(routingId) {

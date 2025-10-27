@@ -185,7 +185,7 @@ class RoutingMaster(models.Model):
 
 
 class RoutingDetail(models.Model):
-    routing = models.ForeignKey( RoutingMaster,on_delete=models.CASCADE,related_name="details")
+    routing = models.ForeignKey( RoutingMaster,on_delete=models.CASCADE,related_name="routing_details")
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder',on_delete=models.CASCADE,null=True,blank=True)
     sequence = models.PositiveIntegerField()
