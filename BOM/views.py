@@ -1668,3 +1668,25 @@ def get_bom_item(request):
         return JsonResponse(data)
     except BOMItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+    
+def upload_bom_document(request, bom_id):
+    bom = get_object_or_404(BOMHeader, id=bom_id)  # Get the BOM instance
+    
+    if request.method == 'POST':
+        document_form = DocumentForm(request.POST, request.FILES)
+        if document_form.is_valid():
+            # Save the form but don't commit to database yet
+            document = document_form.save(commit=False)
+            # Set the BOM relationship
+            document.bom = bom
+            # If you have other hidden fields, set them here too
+            # document.uploaded_by = request.user
+            document.save()
+            return redirect('bom_detail', pk=bom_id)  # Make sure this matches your URL name
+    else:
+        document_form = DocumentForm()
+    
+    return render(request, 'your_template.html', {
+        'document_form': document_form,
+        'bom': bom  # Pass bom to template if needed
+    })

@@ -513,6 +513,49 @@ class ShiftTable(models.Model):
 
     def __str__(self):
         return f"Sequence {self.sequence} - {self.machine} ({self.shift})"
+    
+
+class BatchMaster(models.Model):
+    batch_no = models.TextField()
+    production_order = models.ForeignKey('MaterialPlan.ProductionOrder',on_delete=models.CASCADE, related_name='batch_production_order')
+    Machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE,related_name='batch_master_schedule')
+    quanity = models.IntegerField(max_length=10)
+    production_date = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=[
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+        ('PLANNED', 'Planned'),
+    ], default='PLANNED')
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_batch')
+    updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='updated_batch')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Batch No {self.batch_no}"
+    
+# class BatchMaterialLink(models.Model):
+#     batch_id = models.ForeignKey(BatchMaster, on_delete=models.CASCADE, related_name='batch_material_no' )
+
+
+class BatchRoutingLog(models.Model):
+    batch = models.ForeignKey(BatchMaster, on_delete=models.CASCADE, related_name='batch_routing_no' )
+    machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='machine_schedule_id' )
+    machine_schedule_detail = models.ForeignKey(MachineScheduleDetail, on_delete=models.CASCADE, related_name='machine_schedule_detail_id' )
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    machine_id = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name = 'batch_machine')
+    employee = models.CharField(max_length=100)
+    quantity_pass = models.IntegerField()
+    quantity_reject = models.IntegerField()
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_batch_routing_tables')
+    updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='updated_batch_routing_tables')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Batch No {self.batch}"
 
 
 

@@ -1577,8 +1577,8 @@ def get_routing_data(request):
         routing_detail_ids = routing_details.values_list("id", flat=True)
 
         machine_schedules = MachineSchedule.objects.filter(component_id=component_id)
-        if not machine_schedules.exists():
-            return JsonResponse({"schedules": [], "routing_id": routing_id})
+        # if not machine_schedules.exists():
+        #     return JsonResponse({"schedules": [], "routing_id": routing_id})
 
         schedule_ids = machine_schedules.values_list("id", flat=True)
 

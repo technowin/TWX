@@ -828,12 +828,12 @@ def manpower_dashboard(request):
     ).count()
     
     # Skill gaps - now based on Routing's labor requirements
-    skill_gaps = LaborRequirement.objects.filter(
-        routing__production_order__start_date__gte=today
-    ).values('skill__skill_name').annotate(
-        total_needed=Sum('employees_needed'),
-        assigned=Count('routing', distinct=True)
-    ).filter(total_needed__gt=F('assigned'))
+    # skill_gaps = LaborRequirement.objects.filter(
+    #     routing__production_order__start_date__gte=today
+    # ).values('skill__skill_name').annotate(
+    #     total_needed=Sum('employees_needed'),
+    #     assigned=Count('routing', distinct=True)
+    # ).filter(total_needed__gt=F('assigned'))
     
     # Current assignments - now properly linked through Routing
     today_assignments = LaborAssignment.objects.select_related(
@@ -873,7 +873,7 @@ def manpower_dashboard(request):
         'available_today': available_today,
         'on_leave_today': on_leave_today,
         'unavailable_today': total_employees - available_today - on_leave_today,
-        'skill_gaps': skill_gaps,
+        # 'skill_gaps': skill_gaps,
         'today_assignments': today_assignments,
         'shift_distribution': shift_distribution,
         'skill_distribution': skill_distribution,

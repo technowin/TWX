@@ -260,52 +260,61 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th>Supplier</th>
-                            <th>Quantity</th>
-                            <th>Unit Cost</th>
-                            <th>Total Cost</th>
-                            <th>Required By</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for req in purchase_requisitions %}
-                        <tr>
-                            <td>{{ req.component.part_number }}</td>
-                            <td>{{ req.supplier.name }}</td>
-                            <td>{{ req.quantity }}</td>
-                            <td>${{ req.unit_cost }}</td>
-                            <td>${{ req.total_cost }}</td>
-                            <td>{{ req.required_by_date|date:"Y-m-d" }}</td>
-                            <td>
-                                <span class="badge 
-                                    {% if req.status == 'draft' %}bg-secondary
-                                    {% elif req.status == 'submitted' %}bg-primary
-                                    {% elif req.status == 'approved' %}bg-info
-                                    {% elif req.status == 'ordered' %}bg-warning
-                                    {% elif req.status == 'received' %}bg-success
-                                    {% else %}bg-dark{% endif %}">
-                                    {{ req.get_status_display }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if req.status == 'draft' %}
-                                <form method="post" action="{% url 'requisition_submit' pk=req.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-success">
-                                        <i class="fas fa-paper-plane"></i> Submit
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Supplier</th>
+                        <th>Quantity</th>
+                        <th>Unit Cost</th>
+                        <th>Total Cost</th>
+                        <th>Required By</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in purchase_requisitions %}
+                    <tr>
+                        <td>{{ req.component.part_number }}</td>
+                        <td>{{ req.supplier.name }}</td>
+                        <td>{{ req.quantity }}</td>
+                        <td>${{ req.unit_cost }}</td>
+                        <td>${{ req.total_cost }}</td>
+                        <td>{{ req.required_by_date|date:"Y-m-d" }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if req.status == 'draft' %}bg-secondary
+                                {% elif req.status == 'submitted' %}bg-primary
+                                {% elif req.status == 'approved' %}bg-info
+                                {% elif req.status == 'ordered' %}bg-warning
+                                {% elif req.status == 'received' %}bg-success
+                                {% elif req.status == 'reserved' %}bg-info
+                                {% else %}bg-dark{% endif %}">
+                                {{ req.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if req.status == 'draft' %}
+                            <form method="post" action="{% url 'requisition_submit' pk=req.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="fas fa-paper-plane"></i> Submit
+                                </button>
+                            </form>
+                            {% elif req.status != 'reserved' %}
+                            <!-- Show reserve button only if status is NOT reserved -->
+                            <form method="post" action="{% url 'requisition_reserve' pk=req.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-box"></i> Reserve
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
             </div>
         </div>
     </div>

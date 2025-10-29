@@ -796,16 +796,12 @@ urlpatterns = [
     path('bom/<int:pk>/allocate-inventory/', BOMInventoryAllocateView.as_view(), name='bom_allocate_inventory'),
     path('get-bom/', get_bom_for_production_order, name='get_bom'),
     path("get-suppliers/<int:component_id>/", get_suppliers_by_component, name="get_suppliers_by_component"),
-
     path("components/<int:pk>/component_upload_document/", component_upload_document, name="component_upload_document"),
-
     path("get_bom_item", get_bom_item, name="get_bom_item"),
-
     path("plm_index/", plm_index, name="plm_index"),
-
     path("update_inventory/", update_inventory, name="update_inventory"),
-
     path("generate_invoice/", generate_invoice, name="generate_invoice"),
+    path('upload_bom_document/<int:bom_id>/', upload_bom_document, name='upload_bom_document'),
 
 
 
