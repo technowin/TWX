@@ -31,7 +31,7 @@
 <div class="container-fluid py-4">
     <!-- Header Section -->
     <div class="row mb-4">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <div class="d-flex align-items-center">
                 <h1 class="h3 mb-0">Production Planning</h1>
                 <span class="badge bg-primary ms-3 fs-6">Order: {{ production_order.order_number }}</span>
@@ -39,14 +39,28 @@
             </div>
             <p class="text-muted mb-0">Production order details and planning information</p>
         </div>
-        <div class="col-md-4 text-end">
-            {% if machine_schedule %}
-            <a href="{% url 'mcp:machine_scheduling_update' machine_schedule.id %}" 
-               class="btn btn-warning btn-lg">
-                <i class="fas fa-edit me-2"></i>Change in Plan / Edit Plan
-            </a>
-            {% endif %}
-        </div>
+        <div class="col-md-6 text-end">
+                <!-- Status Update Button -->
+                {% if all_batches %}
+                    {% with first_batch=all_batches.0 %}
+                        {% if first_batch.status == 'PLANNED' %}
+                        <form method="post" action="{% url 'mcp:confirm_production_plan' batch.id production_order.id component.id %}" class="d-inline-block me-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle me-2"></i>Confirm Production Plan
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+                
+                {% if machine_schedule %}
+                <a href="{% url 'mcp:machine_scheduling_update' machine_schedule.id %}" 
+                class="btn btn-warning btn-lg d-inline-block">
+                    <i class="fas fa-edit me-2"></i>Change in Plan / Edit Plan
+                </a>
+                {% endif %}
+            </div>
     </div>
 
     <!-- Success Message for Batch Creation -->

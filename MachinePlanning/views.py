@@ -2287,3 +2287,174 @@ def production_planning_with_batch(request):
         # Rollback happens automatically because of @transaction.atomic
         # transaction.set_rollback(True)
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+def confirm_production_plan(request,batch_id, production_order_id, component_id):
+    if request.method == 'POST':
+        try:
+            # Get the production order and component
+            production_order = get_object_or_404(ProductionOrder, id=production_order_id).id
+            component = get_object_or_404(Component, id=component_id)
+
+            batches = get_object_or_404(BatchMaster, id = batch_id)
+            batches.status = 'IN_PROGRESS'
+            batches.save()
+            
+            
+                
+            production_order = get_object_or_404(ProductionOrder, id=production_order_id)
+            production_order.order_status = get_object_or_404(StatusAction, id = 4)
+            production_order.save()
+                
+            messages.success(request, f'Production plan confirmed! moved to In Progress.')
+                
+        except Exception as e:
+            messages.error(request, f'Error confirming production plan: {str(e)}')
+    
+    # Redirect back to the production planning page
+    return redirect('plm_index')
+
+
+
+
+def create_batch_routing_log(request):
+    try:
+        # Get production order and component
+        production_order = get_object_or_404(ProductionOrder, order_number =(request.GET.get('po_order')))
+        component =  get_object_or_404(BOMHeader, name =(request.GET.get('bom_header')))
+        
+        # Get batch for this production order and component
+        batch = get_object_or_404(BatchMaster, production_order=production_order, bom_component=component)
+        
+        # Get machine schedule
+        machine_schedule = get_object_or_404(MachineSchedule, production_order=production_order)
+        
+        # Get all machine schedule details
+        machine_schedule_details = MachineScheduleDetail.objects.filter(schedule=machine_schedule)
+        
+        created_logs = []
+        
+        # Check if routing logs already exist for this batch
+        existing_logs = BatchRoutingLog.objects.filter(batch=batch)
+        if existing_logs.exists():
+            messages.info(request, f'Batch routing logs already exist for this batch. Showing existing {existing_logs.count()} entries.')
+            batch_routing_logs = existing_logs.order_by('machine_schedule_detail__seq')
+        else:
+            # Create BatchRoutingLog entries for each machine schedule detail
+            for detail in machine_schedule_details:
+                # Get employee names as comma separated string
+                employee_names = get_employee_names_from_ids(detail.employee)
+                
+                # Create BatchRoutingLog entry without start_time and end_time
+                routing_log = BatchRoutingLog.objects.create(
+                    batch=batch,
+                    machine_schedule=machine_schedule,
+                    machine_schedule_detail=detail,
+                    start_time=None,  # Will be set by user in frontend
+                    end_time=None,    # Will be set by user in frontend
+                    machine_id=detail.machine,
+                    employee=employee_names,
+                    quantity_pass=0,  # Initial value, will be updated during production
+                    quantity_reject=0, # Initial value, will be updated during production
+                    created_by=request.user
+                )
+                created_logs.append(routing_log)
+            
+            messages.success(request, f'Successfully created {len(created_logs)} batch routing log entries!')
+        
+        # Get all routing logs for this batch to display
+        batch_routing_logs = BatchRoutingLog.objects.filter(batch=batch).order_by('machine_schedule_detail__seq')
+        
+        # Calculate counts
+        total_operations = batch_routing_logs.count()
+        completed_operations = batch_routing_logs.filter(end_time__isnull=False).count()
+        pending_operations = batch_routing_logs.filter(end_time__isnull=True).count()
+        
+        context = {
+            'production_order': production_order,
+            'component': component,
+            'batch': batch,
+            'batch_routing_logs': batch_routing_logs,
+            'created_count': len(created_logs),
+            'total_operations': total_operations,
+            'completed_operations': completed_operations,
+            'pending_operations': pending_operations,
+        }
+        
+        return render(request, 'MachinePlan/production_plan_execution.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Error creating batch routing log: {str(e)}')
+        return redirect('MachinePlan/production_plan_exceution.html')
+
+def get_employee_names_from_ids(employee_ids_str):
+    """
+    Convert comma separated employee IDs to comma separated employee names
+    """
+    if not employee_ids_str:
+        return "Not Assigned"
+    
+    try:
+        # Split the comma separated IDs
+        employee_ids = [eid.strip() for eid in employee_ids_str.split(',') if eid.strip()]
+        
+        # Get employee objects
+        employees = Employee.objects.filter(id__in=employee_ids)
+        
+        # Extract names
+        employee_names = [f"{emp.employee_name}".strip() for emp in employees]
+        
+        return ", ".join(employee_names) if employee_names else "Not Assigned"
+        
+    except Exception as e:
+        # Fallback: return the original IDs if there's any error
+        return employee_ids_str
+    
+def complete_batch_process(request, batch_id):
+    if request.method == 'POST':
+        try:
+            batch = get_object_or_404(BatchMaster, id=batch_id)
+            
+            # Update batch status to COMPLETED
+            batch.status = 'COMPLETED'
+            batch.save()
+            
+            # Update all routing logs with end time
+            BatchRoutingLog.objects.filter(batch=batch).update(
+                end_time=timezone.now(),
+                updated_by=request.user
+            )
+            
+            messages.success(request, f'Batch {batch.batch_no} process completed successfully!')
+            return redirect('mcp:batch_routing_log_view', production_order_id=batch.production_order.id, component_id=batch.bom_component.id)
+            
+        except Exception as e:
+            messages.error(request, f'Error completing batch process: {str(e)}')
+    
+    return redirect('plm_index')
+
+def update_batch_routing_log(request):
+    try:
+        log_id = request.POST.get("log_id")
+        start_time = request.POST.get("start_time")
+        end_time = request.POST.get("end_time")
+        quantity_pass = request.POST.get("quantity_pass")
+        quantity_reject = request.POST.get("quantity_reject")
+
+        log = get_object_or_404(BatchRoutingLog, id=log_id)
+
+        # Update fields
+        if start_time:
+            log.start_time = start_time
+        if end_time:
+            log.end_time = end_time
+        if quantity_pass:
+            log.quantity_pass = quantity_pass
+        if quantity_reject:
+            log.quantity_reject = quantity_reject
+
+        log.save()
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

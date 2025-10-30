@@ -1,0 +1,541 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% csrf_token %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+
+{% block content %}
+
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+    padding-left: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+}
+
+.timeline-item.completed .timeline-marker {
+    color: #28a745;
+}
+
+.timeline-item.pending .timeline-marker {
+    color: #ffc107;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.timeline-item.completed .timeline-content {
+    border-left-color: #28a745;
+}
+
+.timeline-item.pending .timeline-content {
+    border-left-color: #ffc107;
+}
+
+.quantity-pass, .quantity-reject {
+    text-align: center;
+    font-weight: bold;
+}
+
+.quantity-pass {
+    border-color: #28a745;
+}
+
+.quantity-reject {
+    border-color: #dc3545;
+}
+
+.start-time, .end-time {
+    font-size: 0.875rem;
+}
+</style>
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <h1 class="h2 mb-0 text-primary">
+                    <i class="fas fa-project-diagram me-3"></i>Production Planning - Batch Routing
+                </h1>
+                <span class="badge bg-success ms-3 fs-6">Order: {{ production_order.order_number }}</span>
+                <span class="badge bg-info ms-2 fs-6">Component: {{ component.name }}</span>
+                <span class="badge bg-warning ms-2 fs-6">Batch: {{ batch.batch_no }}</span>
+            </div>
+            <p class="text-muted mb-0 mt-2">Batch routing details and production progress tracking</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <form method="post" action="{% url 'mcp:complete_batch_process' batch.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-lg shadow">
+                    <i class="fas fa-flag-checkered me-2"></i>Complete Process
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="fas 
+                {% if message.tags == 'success' %}fa-check-circle
+                {% elif message.tags == 'error' %}fa-exclamation-circle
+                {% elif message.tags == 'warning' %}fa-exclamation-triangle
+                {% else %}fa-info-circle{% endif %} 
+                me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Statistics Cards -->
+  <!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Operations</div>
+                        <div class="h5 mb-0">{{ total_operations }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-cogs fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-success text-white mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Completed</div>
+                        <div class="h5 mb-0">{{ completed_operations }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-warning text-white mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Pending</div>
+                        <div class="h5 mb-0">{{ pending_operations }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-info text-white mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Batch Status</div>
+                        <div class="h5 mb-0">{{ batch.get_status_display }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Batch Routing Log Table -->
+    <div class="card shadow-lg">
+        <div class="card-header bg-gradient-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list-ol me-2"></i>Batch Routing Log Details
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Batch No</th>
+                            <th>Machine</th>
+                            <th>Operation</th>
+                            <th>Employee</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Quantity Pass</th>
+                            <th>Quantity Reject</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in batch_routing_logs %}
+                        <tr>
+                            <td class="fw-bold">{{ forloop.counter }}</td>
+                            <td>
+                                <span class="badge bg-primary fs-6">{{ log.batch.batch_no }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-info">{{ log.machine_id.name }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ log.machine_schedule_detail.operation.name }}</span>
+                            </td>
+                            <td>
+                                {% if employee_names_dict %}
+                                    <!-- If using the alternative approach with dictionary -->
+                                    {% if employee_names_dict|get_item:log.id %}
+                                    <span class="badge bg-light text-dark">{{ employee_names_dict|get_item:log.id }}</span>
+                                    {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                    {% endif %}
+                                {% else %}
+                                    <!-- If storing names directly -->
+                                    {% if log.employee and log.employee != "Not Assigned" %}
+                                    <span class="badge bg-light text-dark">{{ log.employee }}</span>
+                                    {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="width: 180px;">
+                                    <input type="datetime-local" 
+                                           class="form-control form-control-sm start-time" 
+                                           data-log-id="{{ log.id }}"
+                                           id="start-time-{{ log.id }}"
+                                           {% if log.start_time %}value="{{ log.start_time|date:'Y-m-d\TH:i' }}"{% endif %}>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="width: 180px;">
+                                    <input type="datetime-local" 
+                                           class="form-control form-control-sm end-time" 
+                                           data-log-id="{{ log.id }}"
+                                           id="end-time-{{ log.id }}"
+                                           {% if log.end_time %}value="{{ log.end_time|date:'Y-m-d\TH:i' }}"{% endif %}>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="width: 120px;">
+                                    <input type="number" 
+                                           class="form-control form-control-sm quantity-pass" 
+                                           value="{{ log.quantity_pass }}" 
+                                           min="0"
+                                           data-log-id="{{ log.id }}"
+                                           placeholder="Qty Pass">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm" style="width: 120px;">
+                                    <input type="number" 
+                                           class="form-control form-control-sm quantity-reject" 
+                                           value="{{ log.quantity_reject }}" 
+                                           min="0"
+                                           data-log-id="{{ log.id }}"
+                                           placeholder="Qty Reject">
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if log.end_time %}bg-success
+                                    {% else %}bg-warning{% endif %}">
+                                    {% if log.end_time %}Completed{% else %}Pending{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary update-all-data" 
+                                            data-log-id="{{ log.id }}"
+                                            title="Update All Data">
+                                        <i class="fas fa-save"></i> Update
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="12" class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <h5>No Batch Routing Logs Found</h5>
+                                <p class="mb-0">Create batch routing logs to start tracking production progress</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Timeline -->
+    <div class="card shadow-lg mt-4">
+        <div class="card-header bg-gradient-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-stream me-2"></i>Production Progress Timeline
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                {% for log in batch_routing_logs %}
+                <div class="timeline-item {% if log.end_time %}completed{% else %}pending{% endif %}">
+                    <div class="timeline-marker">
+                        {% if log.end_time %}
+                        <i class="fas fa-check-circle"></i>
+                        {% else %}
+                        <i class="fas fa-clock"></i>
+                        {% endif %}
+                    </div>
+                    <div class="timeline-content">
+                        <h6 class="mb-1">{{ log.machine_schedule_detail.operation.name }}</h6>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-cog me-1"></i>{{ log.machine_id.name }}
+                            {% if log.employee %}
+                            <i class="fas fa-user ms-2 me-1"></i>{{ log.employee }}
+                            {% endif %}
+                        </p>
+                        <small class="text-muted">
+                            {% if log.start_time %}
+                            <i class="fas fa-play-circle me-1"></i>{{ log.start_time|date:"M d, Y H:i" }}
+                            {% else %}
+                            <i class="fas fa-play-circle me-1"></i>Not Started
+                            {% endif %}
+                            
+                            {% if log.end_time %}
+                            <i class="fas fa-stop-circle ms-2 me-1"></i>{{ log.end_time|date:"M d, Y H:i" }}
+                            {% else %}
+                            <i class="fas fa-stop-circle ms-2 me-1"></i>Not Completed
+                            {% endif %}
+                        </small>
+                        {% if log.quantity_pass > 0 or log.quantity_reject > 0 %}
+                        <div class="mt-1">
+                            <small>
+                                <span class="badge bg-success me-1">Pass: {{ log.quantity_pass }}</span>
+                                <span class="badge bg-danger">Reject: {{ log.quantity_reject }}</span>
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% comment %} 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update all data functionality
+    document.querySelectorAll('.update-all-data').forEach(button => {
+        button.addEventListener('click', function() {
+            const logId = this.getAttribute('data-log-id');
+            updateLogData(logId);
+        });
+    });
+
+    
+    function showSuccessFeedback(logId) {
+        const button = document.querySelector(`.update-all-data[data-log-id="${logId}"]`);
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Updated!';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-primary');
+        }, 2000);
+    }
+    
+    // Auto-save on input change (optional)
+    document.querySelectorAll('.quantity-pass, .quantity-reject, .start-time, .end-time').forEach(input => {
+        input.addEventListener('change', function() {
+            const logId = this.getAttribute('data-log-id');
+            // Optional: Auto-save on change
+            // updateLogData(logId);
+        });
+    });
+});
+</script> {% endcomment %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".update-all-data").forEach(button => {
+        button.addEventListener("click", function () {
+            const logId = this.dataset.logId;
+            const row = this.closest("tr");
+
+            const startTime = row.querySelector(".start-time").value;
+            const endTime = row.querySelector(".end-time").value;
+            const qtyPass = row.querySelector(".quantity-pass").value;
+            const qtyReject = row.querySelector(".quantity-reject").value;
+
+            // Confirmation before sending
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you want to update this batch routing log?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, update it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading while processing
+                    Swal.fire({
+                        title: 'Updating...',
+                        text: 'Please wait a moment.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Prepare data
+                    const data = {
+                        log_id: logId,
+                        start_time: startTime,
+                        end_time: endTime,
+                        quantity_pass: qtyPass,
+                        quantity_reject: qtyReject,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    };
+
+                    // Send AJAX request
+                    fetch("{% url 'mcp:update_batch_routing_log' %}", {
+                        method: "POST",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        Swal.close(); // Close loading
+
+                        if (result.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Updated!',
+                                text: 'Batch routing log updated successfully.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+
+                            // Update status dynamically
+                            const statusCell = row.querySelector("td span.badge");
+                            if (endTime) {
+                                statusCell.className = "badge bg-success";
+                                statusCell.textContent = "Completed";
+                            } else {
+                                statusCell.className = "badge bg-warning";
+                                statusCell.textContent = "Pending";
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Update Failed!',
+                                text: result.error || 'Something went wrong while updating.'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.close();
+                        console.error("Error:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'An unexpected error occurred.'
+                        });
+                    });
+                }
+            });
+        });
+    });
+});
+</script>
+
+
+
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}

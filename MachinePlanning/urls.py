@@ -85,6 +85,12 @@ urlpatterns = [
     path("relocate_shift/", relocate_shift, name="relocate_shift"),
 
     path('production-planning/', production_planning_with_batch, name='production_planning_with_batch'),
+    path('production-order/<int:batch_id>/<int:production_order_id>/component/<int:component_id>/confirm-plan/',confirm_production_plan,  name='confirm_production_plan'),
+
+    path('production-order/', create_batch_routing_log, name='create_batch_routing_log'),
+    path('batch/<int:batch_id>/complete-process/',complete_batch_process, name='complete_batch_process'),
+    path('update-batch-routing-log/', update_batch_routing_log, name='update_batch_routing_log'),
+
 
 
 
