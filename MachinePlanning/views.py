@@ -958,11 +958,32 @@ class MachineScheduleCreateView(View):
     template_name = "MachinePlan/machine_scheduling_form.html"
 
     def get(self, request, *args, **kwargs):
+    # Get parameters from URL (they might be None)
+        po_order_param = request.GET.get("po_order")
+        bom_header_param = request.GET.get("bom_header")
+
+        po_order = None
+        bom_header = None
+
+        # Only fetch if provided and valid
+        if po_order_param:
+            po_order = ProductionOrder.objects.filter(order_number=po_order_param).first()
+        if bom_header_param:
+            bom_header = BOMHeader.objects.filter(name=bom_header_param).first()
+
+        # Determine index based on data availability
+        index = 1 if (po_order and bom_header) else 0
+
         context = {
             "production_orders": ProductionOrder.objects.filter(machineschedule__isnull=True),
             "components": BOMHeader.objects.all(),
+            "po_order": po_order,
+            "bom_header": bom_header,
+            "index": index,
         }
+
         return render(request, self.template_name, context)
+
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -972,6 +993,8 @@ class MachineScheduleCreateView(View):
             # --- 1️⃣ Save Master Schedule ---
                 scheduled_start = parse_datetime(request.POST.get("scheduled_start"))
                 scheduled_end = parse_datetime(request.POST.get("scheduled_end"))
+                production_order = request.POST.get("production_order")
+                index = request.POST.get("index")
 
                 schedule = MachineSchedule.objects.create(
                     name=request.POST.get("name"),
@@ -1003,6 +1026,7 @@ class MachineScheduleCreateView(View):
                             schedule=schedule,
                             routing=routing_detail.routing,
                             machine_id=machine_id,
+                            operation = routing_detail.operation,
                             seq=routing_detail.sequence,
                             workstation_id=workstation_id,
                             work_center=routing_detail.work_center,
@@ -1052,8 +1076,14 @@ class MachineScheduleCreateView(View):
                             created_by=request.user,
                             week=week_display,  # 🆕 Store calculated week value here
                         )
+                if index =="1":
+                    production = get_object_or_404(ProductionOrder,id = production_order)
+                    production.order_status = get_object_or_404(StatusAction, id = 2)
+                    production.save()
 
-                return redirect(reverse("mcp:machine_scheduling_list"))
+                    return redirect("plm_index")
+                else:
+                    return redirect(reverse("mcp:machine_scheduling_list"))
 
         except Exception as e:
             # Transaction will automatically rollback if exception occurs
@@ -1063,9 +1093,6 @@ class MachineScheduleCreateView(View):
                 "components": BOMHeader.objects.all(),
                 "error": f"Error while saving schedule: {str(e)}",
             })
-
-
-        
 
 
 # views.py
@@ -1277,6 +1304,7 @@ class MachineScheduleUpdateView(View):
                             schedule=schedule,
                             routing=routing_detail.routing,
                             machine_id=machine_id,
+                            operation = routing_detail.operation,
                             seq=routing_detail.sequence,
                             workstation_id=workstation_id,
                             work_center=routing_detail.work_center,
@@ -2161,3 +2189,101 @@ def get_workstation_details(request):
         return JsonResponse({"error": "Workstation not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+def production_planning_with_batch(request):
+    try:
+        # with transaction.atomic():
+            # Get production order and component
+            production_order = get_object_or_404(ProductionOrder, order_number=request.GET.get('po_order'))
+            component = get_object_or_404(BOMHeader, name=request.GET.get('bom_header'))
+            
+            # Get machine schedule for this combination
+            machine_schedule = MachineSchedule.objects.filter(
+                production_order=production_order,
+                component=component
+            ).first()
+            
+            if not machine_schedule:
+                return JsonResponse({'error': 'No machine schedule found for this combination'}, status=404)
+            
+            # Check if batch already exists
+            existing_batch = BatchMaster.objects.filter(
+                production_order=production_order,
+                bom_component=component,
+                machine_schedule=machine_schedule
+            ).first()
+            
+            # Create BatchMaster record if not exists
+            if not existing_batch:
+                # Generate batch number
+                batch_no = f"BATCH-{production_order.order_number}-{component.name}-{production_order.quantity}-{datetime.now().strftime('%Y%m%d%H%M')}"
+                
+                batch = BatchMaster.objects.create(
+                    batch_no=batch_no,
+                    production_order=production_order,
+                    bom_component=component,
+                    machine_schedule=machine_schedule,
+                    quanity=production_order.quantity,
+                    production_date=machine_schedule.scheduled_start,
+                    status='PLANNED',
+                    created_by=request.user if request.user.is_authenticated else None
+                )
+            else:
+                batch = existing_batch
+            
+            # Get machine schedule details
+            machine_schedule_details = MachineScheduleDetail.objects.filter(
+                schedule=machine_schedule
+            ).select_related('schedule', 'routing', 'machine')
+
+            for detail in machine_schedule_details:
+                if detail.employee:
+                    emp_ids = [int(emp_id.strip()) for emp_id in detail.employee.split(',') if emp_id.strip()]
+                    employees = Employee.objects.filter(id__in=emp_ids).values_list('employee_name', flat=True)  # use correct field name
+                    detail.employee = ", ".join(employees)
+                else:
+                    detail.employee = "—"
+            
+            # Get shift data for this machine schedule
+            shifts = ShiftTable.objects.filter(
+                machine_schedule_detail__schedule=machine_schedule
+            ).distinct().select_related('machine_schedule_detail', 'shift')
+
+            for shift in shifts:
+                if shift.employees:
+                    try:
+                        emp_ids = [
+                            int(emp_id.strip())
+                            for emp_id in shift.employees.split(',')
+                            if emp_id.strip().isdigit()
+                        ]
+                        employees = Employee.objects.filter(id__in=emp_ids).values_list('employee_name', flat=True)
+                        shift.employee_names = ", ".join(employees) if employees else "—"
+                    except Exception as e:
+                        shift.employee_names = f"Error: {str(e)}"
+                else:
+                    shift.employee_names = "—"
+
+            
+            # Get all batches for this production order (for the table)
+            all_batches = BatchMaster.objects.filter(production_order=production_order).select_related(
+                'production_order', 'bom_component', 'machine_schedule', 'created_by'
+            )
+            
+            context = {
+                'production_order': production_order,
+                'component': component,
+                'batch': batch,
+                'machine_schedule': machine_schedule,
+                'machine_schedule_details': machine_schedule_details,
+                'shifts': shifts,
+                'all_batches': all_batches,
+            }
+            
+            return render(request, 'MachinePlan/production_planning.html', context)
+    
+    except Exception as e:
+        # Rollback happens automatically because of @transaction.atomic
+        # transaction.set_rollback(True)
+        return JsonResponse({'error': str(e)}, status=500)

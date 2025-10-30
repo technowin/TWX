@@ -84,6 +84,8 @@ urlpatterns = [
     path("calculate_end_date/", calculate_end_date, name="calculate_end_date"),
     path("relocate_shift/", relocate_shift, name="relocate_shift"),
 
+    path('production-planning/', production_planning_with_batch, name='production_planning_with_batch'),
+
 
 
 

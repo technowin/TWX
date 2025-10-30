@@ -1,0 +1,277 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% csrf_token %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <h1 class="h3 mb-0">Production Planning</h1>
+                <span class="badge bg-primary ms-3 fs-6">Order: {{ production_order.order_number }}</span>
+                <span class="badge bg-secondary ms-2 fs-6">Component: {{ component.name }}</span>
+            </div>
+            <p class="text-muted mb-0">Production order details and planning information</p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if machine_schedule %}
+            <a href="{% url 'mcp:machine_scheduling_update' machine_schedule.id %}" 
+               class="btn btn-warning btn-lg">
+                <i class="fas fa-edit me-2"></i>Change in Plan / Edit Plan
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Success Message for Batch Creation -->
+    {% if batch %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Success!</strong> Batch <strong>{{ batch.batch_no }}</strong> has been created successfully with status: <strong>{{ batch.get_status_display }}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Batch Master Table -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list-alt me-2"></i>Batch Master Data
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Batch No</th>
+                            <th>Production Order</th>
+                            <th>BOM Component</th>
+                            <th>Quantity</th>
+                            <th>Production Date</th>
+                            <th>Status</th>
+                            <th>Machine Schedule</th>
+                            <th>Created By</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for batch_item in all_batches %}
+                        <tr>
+                            <td class="fw-bold">{{ batch_item.batch_no }}</td>
+                            <td>{{ batch_item.production_order.order_number }}</td>
+                            <td>{{ batch_item.bom_component.name }}</td>
+                            <td><span class="badge bg-secondary">{{ batch_item.quanity }}</span></td>
+                            <td>{{ batch_item.production_date|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if batch_item.status == 'PLANNED' %}bg-info
+                                    {% elif batch_item.status == 'IN_PROGRESS' %}bg-warning
+                                    {% elif batch_item.status == 'COMPLETED' %}bg-success
+                                    {% elif batch_item.status == 'CANCELLED' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ batch_item.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ batch_item.machine_schedule.name }}</td>
+                            <td>{{ batch_item.created_by.get_full_name|default:batch_item.created_by.username }}</td>
+                            <td>{{ batch_item.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-3"></i><br>
+                                No batches found for this production order
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Machine Schedule Details Table -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-cogs me-2"></i>Machine Schedule Details
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Sequence</th>
+                            <th>Work Center</th>
+                            <th>Workstation</th>
+                            <th>Machine</th>
+                            <th>Operation</th>
+                            <th>Operator</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in machine_schedule_details %}
+                        <tr>
+                            <td><span class="badge bg-primary">{{ detail.seq }}</span></td>
+                            <td class="fw-bold">{{ detail.work_center.name }}</td>
+                             <td class="fw-bold">{{ detail.workstation.name }}</td>
+                            <td class="fw-bold">{{ detail.machine.name }}</td>
+                            <td>{{ detail.operation.name }}</td>
+                            <td>{{ detail.employee }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if detail.status == 'SCHEDULED' %}bg-primary
+                                    {% elif detail.status == 'IN_PROGRESS' %}bg-warning
+                                    {% elif detail.status == 'COMPLETED' %}bg-success
+                                    {% elif detail.status == 'CANCELLED' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ detail.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-cogs fa-2x mb-3"></i><br>
+                                No machine schedule details found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shift Details Table -->
+    <div class="card shadow-lg">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-clock me-2"></i>Shift Details
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Shift Name</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Machine</th>
+                            <th>Operator</th>
+                            <th>Duration (Hours)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shift in shifts %}
+                        <tr>
+                            <td class="fw-bold">{{ shift.shift.shift_name }}</td>
+                            <td class="start-time">{{ shift.start_time|date:"Y-m-d H:i" }}</td>
+                            <td class="end-time">{{ shift.end_time|date:"Y-m-d H:i" }}</td>
+                            <td>{{ shift.machine_schedule_detail.machine.name|default:"-" }}</td>
+                            <td>{{ shift.employee_names }}</td>
+                              <td class="duration"></td>  
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-clock fa-2x mb-3"></i><br>
+                                No shift data found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const rows = document.querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const startCell = row.querySelector(".start-time");
+        const endCell = row.querySelector(".end-time");
+        const durationCell = row.querySelector(".duration");
+
+        if (!startCell || !endCell || !durationCell) return;
+
+        const startText = startCell.textContent.trim();
+        const endText = endCell.textContent.trim();
+
+        // Parse the start and end times
+        const start = new Date(startText);
+        const end = new Date(endText);
+
+        if (!isNaN(start) && !isNaN(end) && end > start) {
+            const diffMs = end - start; // difference in milliseconds
+            const totalMinutes = diffMs / (1000 * 60);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.round(totalMinutes % 60);
+
+            // Display in "X hrs Y mins" format
+            durationCell.textContent = `${hours} hrs ${minutes} mins`;
+        } else {
+            durationCell.textContent = "-";
+        }
+    });
+});
+</script>
+
+
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+    <script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+{% endblock %}
+{% endblock %}

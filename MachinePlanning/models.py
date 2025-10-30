@@ -340,6 +340,7 @@ class MachineScheduleDetail(models.Model):
     seq = models.TextField(null=True, blank=True)
     routing = models.ForeignKey(RoutingMaster, on_delete=models.CASCADE)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    operation =models.ForeignKey(Operation, on_delete=models.CASCADE, null=True, blank=True, related_name = "machine_detail_operation")
     workstation = models.ForeignKey('MachinePlanning.WorkStations',on_delete=models.CASCADE, null=True, blank=True)
     work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE, null=True, blank=True)  
     employee = models.TextField(verbose_name="Assigned Employee", null=True, blank=True)
@@ -518,8 +519,9 @@ class ShiftTable(models.Model):
 class BatchMaster(models.Model):
     batch_no = models.TextField()
     production_order = models.ForeignKey('MaterialPlan.ProductionOrder',on_delete=models.CASCADE, related_name='batch_production_order')
-    Machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE,related_name='batch_master_schedule')
-    quanity = models.IntegerField(max_length=10)
+    bom_component = models.ForeignKey(BOMHeader, on_delete =models.CASCADE, related_name = 'bom_batch_component', null=True,blank=True)
+    machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE,related_name='batch_master_schedule',null=True,blank=True)
+    quanity = models.IntegerField()
     production_date = models.DateTimeField()
     status = models.CharField(max_length=20, choices=[
         ('IN_PROGRESS', 'In Progress'),
@@ -541,7 +543,7 @@ class BatchMaster(models.Model):
 
 class BatchRoutingLog(models.Model):
     batch = models.ForeignKey(BatchMaster, on_delete=models.CASCADE, related_name='batch_routing_no' )
-    machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='machine_schedule_id' )
+    machine_schedule = models.ForeignKey(MachineSchedule, on_delete=models.CASCADE, related_name='machine_schedule_id',null=True,blank=True)
     machine_schedule_detail = models.ForeignKey(MachineScheduleDetail, on_delete=models.CASCADE, related_name='machine_schedule_detail_id' )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()

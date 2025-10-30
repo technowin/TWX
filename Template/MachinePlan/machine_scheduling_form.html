@@ -80,7 +80,8 @@
                         <input type="text" id="id_name" name="name" class="form-control"
                             value="{{ schedule.name|default:'' }}" placeholder="Enter Schedule Name">
                     </div>
-                    <div class="col-md-4">
+
+                    {% comment %} <div class="col-md-4">
                         <label for="id_production_order" class="form-label">Production Order</label>
                         <select id="id_production_order" name="production_order" class="form-select">
                             <option value="">-- Select Production Order --</option>
@@ -101,7 +102,40 @@
                             </option>
                             {% endfor %}
                         </select>
-                    </div>
+                    </div> {% endcomment %}
+                    <input type="hidden" id ="index" name = "index" value = {{ index }}>
+                    <div class="col-md-4">
+                            <label for="id_production_order" class="form-label">Production Order</label>
+                            <select id="id_production_order" name="production_order" class="form-select">
+                                <option value="">-- Select Production Order --</option>
+                                {% for po in production_orders %}
+                                    <option value="{{ po.id }}"
+                                        {% if po_order and po_order|stringformat:"s" == po.id|stringformat:"s" %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ po.order_number }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="id_component" class="form-label">Component</label>
+                            <select id="id_component" name="component" class="form-select">
+                                <option value="">-- Select Component --</option>
+                                {% for comp in components %}
+                                    <option value="{{ comp.id }}"
+                                        {% if bom_header and bom_header|stringformat:"s" == comp.id|stringformat:"s" %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ comp.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
 
                     
                 </div>
@@ -880,6 +914,7 @@ $('#scheduleForm').on('submit', function(e) {
         const routingDetailId = $(this).data('routing-detail-id');
         const workstationId = $(this).find('.workstation-select').val();
         const machineId = $(this).find('.machine-select').val();
+        const operation = $(this).find('.operation').val();
         const employeeIds = $(this).find('.employee-select').val(); // multiple employees
         const start = $('#id_scheduled_start').val();
         const end = $('#id_scheduled_end').val();

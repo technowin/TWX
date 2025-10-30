@@ -40,6 +40,34 @@
 {% block content %}
 
 <style>
+
+    .progress-icons {
+    font-size: 1.1rem;
+}
+
+.progress-icon {
+    text-decoration: none;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.progress-icon.enabled {
+    color: #28a745;
+    cursor: pointer;
+}
+
+.progress-icon.enabled:hover {
+    color: #218838;
+    background-color: #f8f9fa;
+    transform: scale(1.1);
+}
+
+.progress-icon.disabled {
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
     
     .text-gradient {
         background: linear-gradient(90deg, #0d6efd, #6610f2);
@@ -125,58 +153,123 @@
     </div>
 
     <!-- Card Wrapper -->
-    <div class="card shadow-lg border-0 rounded-4">
+    <div class="card shadow-lg border-0 rounded-4 w-100" style="max-width: 1400px;">
         <div class="card-body p-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead class=" rounded-3">
-                        <tr>
-                            <th scope="col">Production Order No</th>
-                            <th scope="col">BOM Component</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Created Date</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in production_orders %}
-                        <tr class="table-row-hover">
-                            <td class="fw-semibold">{{ order.order_number }}</td>
-                            <td>{{ order.bom }}</td>
-                            <td><span class="badge bg-secondary">{{ order.quantity }}</span></td>
-                            <td>{{ order.created_at|date:"Y-m-d" }}</td>
-                            <td>
-                                <span class="badge {{ order.order_status.badge_class }}">
-                                    {{ order.order_status.status }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if order.order_status.action %}
-                                    <button type="button"
-                                            class="btn btn-sm btn-gradient"
-                                            onclick="window.location.href='{% url order.order_status.action_value %}?po_order={{ order.order_number }}&bom_header={{ order.bom }}&quantity={{ order.quantity }}'">
+                <thead class="rounded-3">
+                    <tr>
+                        <th scope="col">Production Order No</th>
+                        <th scope="col">BOM Component</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Created Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">View Progress</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in production_orders %}
+                    <tr class="table-row-hover">
+                        <td class="fw-semibold">{{ order.order_number }}</td>
+                        <td>{{ order.bom }}</td>
+                        <td><span class="badge bg-secondary">{{ order.quantity }}</span></td>
+                        <td>{{ order.created_at|date:"Y-m-d" }}</td>
+                        <td>
+                            <span class="badge {{ order.order_status.badge_class }}">
+                                {{ order.order_status.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="progress-icons d-flex gap-2">
+                                <!-- Master Production Schedule (MPS) Completed -->
+                                <a href="{% if order.order_status.id >= 2 %}#{% else %}javascript:void(0);{% endif %}" 
+                                class="progress-icon {% if order.order_status.id >= 2 %}enabled{% else %}disabled{% endif %}"
+                                title="Master Production Schedule (MPS) Completed">
+                                    <i class="fas fa-calendar-check"></i>
+                                </a>
+                                
+                                <!-- MRP Completed -->
+                                <a href="{% if order.order_status.id >= 3 %}#{% else %}javascript:void(0);{% endif %}" 
+                                class="progress-icon {% if order.order_status.id >= 3 %}enabled{% else %}disabled{% endif %}"
+                                title="MRP Completed">
+                                    <i class="fas fa-calculator"></i>
+                                </a>
+                                
+                                <!-- Check Inventory -->
+                                <a href="{% if order.order_status.id >= 4 %}#{% else %}javascript:void(0);{% endif %}" 
+                                class="progress-icon {% if order.order_status.id >= 4 %}enabled{% else %}disabled{% endif %}"
+                                title="Check Inventory">
+                                    <i class="fas fa-boxes"></i>
+                                </a>
+                                
+                                <!-- Production Planning Completed -->
+                                <a href="{% if order.order_status.id >= 5 %}#{% else %}javascript:void(0);{% endif %}" 
+                                class="progress-icon {% if order.order_status.id >= 5 %}enabled{% else %}disabled{% endif %}"
+                                title="Production Planning Completed">
+                                    <i class="fas fa-tasks"></i>
+                                </a>
+                                
+                                <!-- Production Execution Completed -->
+                                <a href="{% if order.order_status.id >= 6 %}#{% else %}javascript:void(0);{% endif %}" 
+                                class="progress-icon {% if order.order_status.id >= 6 %}enabled{% else %}disabled{% endif %}"
+                                title="Production Execution Completed">
+                                    <i class="fas fa-cogs"></i>
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            {% if order.order_status.action %}
+                                <button type="button"
+                                        class="btn btn-sm btn-gradient"
+                                        onclick="window.location.href='{% url order.order_status.action_value %}?po_order={{ order.order_number }}&bom_header={{ order.bom }}&quantity={{ order.quantity }}'">
                                         {{ order.order_status.action }}
-                                    </button>
-                                {% else %}
-                                    <span class="text-muted fst-italic">No action</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                🚫 No Production Orders Found
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </button>
+                            {% else %}
+                                <span class="text-muted fst-italic">No action</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            🚫 No Production Orders Found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
             </div>
         </div>
     </div>
 </div>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+
 {% endblock %}
+
 
 
  

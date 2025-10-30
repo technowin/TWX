@@ -12,6 +12,8 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
+from PLM.models import StatusAction
+
 
 from .models import (
     MaterialPlan, MaterialPlanItem, PurchaseRequisition,
@@ -100,26 +102,46 @@ class MaterialPlanCreateView(CreateView):
                 initial['bom'] = BOMHeader.objects.get(name=bom_header).pk
             except BOMHeader.DoesNotExist:
                 pass
-
-        # Quantity (simple field → works directly)
         initial['quantity'] = self.request.GET.get('quantity')
+        if po_order and bom_header:
+            self.index = 1
+        else:
+            self.index = 0
 
         return initial
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['index'] = getattr(self, 'index', 0)  # Default to 0 if not set
+        return context
 
     def get_success_url(self):
         # Use the named URL pattern (make sure you have it in urls.py as "plan_detail")
         return reverse_lazy('plan_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
+
+        index = self.request.POST.get('index', 0)
+
         form.instance.created_by = self.request.user
         form.instance.version = 1
         response = super().form_valid(form)
 
-        # Auto-explode BOM after creating the plan
         self.object.calculate_requirements()
+
+        if index == '1' and form.instance.production_order:
+            try:
+                production_order = form.instance.production_order
+                production_order.order_status = get_object_or_404(StatusAction , id =3)  # Update status to 3
+                production_order.save()
+                messages.success(self.request, f"MRP Completed Successfully for  order {production_order.order_number}")
+                return redirect('plm_index')
+            except Exception as e:
+                messages.warning(self.request, f"Material plan created but failed to update production order status: {str(e)}")
 
         messages.success(self.request, "Material plan created successfully. BOM has been exploded.")
         return response
+
 
 
 class MaterialPlanDetailView(DetailView):
