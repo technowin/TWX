@@ -90,6 +90,9 @@ urlpatterns = [
     path('production-order/', create_batch_routing_log, name='create_batch_routing_log'),
     path('batch/<int:batch_id>/complete-process/',complete_batch_process, name='complete_batch_process'),
     path('update-batch-routing-log/', update_batch_routing_log, name='update_batch_routing_log'),
+    path('mps-complete/<int:production_order_id>/<int:component_id>/', mps_complete_redirect, name='mps_complete_redirect'),
+    path('mrp_complete/<int:production_order_id>/<int:component_id>/', mps_complete_redirect, name='mrp_complete_redirect'),
+    path('production_plan_complete/<int:production_order_id>/<int:component_id>/', production_plan_complete_redirect, name='production_plan_complete_redirect'),
 
 
 

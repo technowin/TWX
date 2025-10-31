@@ -16,7 +16,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from Account.db_utils import callproc
 from BOM.models import Component
 from ManpowerPlan.models import EmployeeSkill, Proficeincy,Skill
-from MaterialPlan.models import ProductionOrder
+from MaterialPlan.models import MaterialPlan, ProductionOrder
 from .models import *
 from .forms import *
 from .forms import *
@@ -967,9 +967,9 @@ class MachineScheduleCreateView(View):
 
         # Only fetch if provided and valid
         if po_order_param:
-            po_order = ProductionOrder.objects.filter(order_number=po_order_param).first()
+            po_order = get_object_or_404(ProductionOrder, order_number = po_order_param).id
         if bom_header_param:
-            bom_header = BOMHeader.objects.filter(name=bom_header_param).first()
+            bom_header = get_object_or_404(BOMHeader, name = bom_header_param).id
 
         # Determine index based on data availability
         index = 1 if (po_order and bom_header) else 0
@@ -1100,6 +1100,7 @@ class MachineScheduleUpdateView(View):
     template_name = "MachinePlan/machine_scheduling_edit.html"
 
     def get(self, request, pk, *args, **kwargs):
+        
         schedule = get_object_or_404(MachineSchedule, pk=pk)
 
         # Get assignments data
@@ -2456,5 +2457,63 @@ def update_batch_routing_log(request):
         log.save()
 
         return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+    
+
+def mps_complete_redirect(request, production_order_id, component_id):
+    """
+    Redirect to machine scheduling update view for the given production order and component
+    """
+    try:
+        # Get the production order and component
+        production_order = get_object_or_404(ProductionOrder, id=production_order_id)
+        component = get_object_or_404(BOMHeader, id=component_id)
+        
+        # Get the MachineSchedule object for this combination
+        machine_schedule = get_object_or_404(
+            MachineSchedule, 
+            production_order=production_order,
+            component=component
+        )
+        
+        # Redirect to the machine scheduling update view
+        return redirect('mcp:machine_scheduling_update', pk=machine_schedule.id)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+    
+def mps_complete_redirect(request, production_order_id, component_id):
+    """
+    Redirect to machine scheduling update view for the given production order and component
+    """
+    try:
+        # Get the production order and component
+        production_order = get_object_or_404(ProductionOrder, id=production_order_id)
+        component = get_object_or_404(BOMHeader, id=component_id)
+        
+        # Get the MachineSchedule object for this combination
+        material = get_object_or_404(
+            MaterialPlan, 
+            production_order=production_order,
+            bom=component
+        )
+        
+        # Redirect to the machine scheduling update view
+        return redirect('plan_detail', pk=material.id)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+     
+def production_plan_complete_redirect(request, production_order_id, component_id):
+    """
+    Redirect to machine scheduling update view for the given production order and component
+    """
+    try:
+        # Get the production order and component
+        po_order = get_object_or_404(ProductionOrder, id=production_order_id).order_number
+        bom_header = get_object_or_404(BOMHeader, id=component_id).name
+        
+        # Simple redirect with query parameters
+        return redirect(f"{reverse('mcp:production_planning_with_batch')}?po_order={po_order}&bom_header={bom_header}")
+        
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})

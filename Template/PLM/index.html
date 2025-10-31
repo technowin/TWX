@@ -185,14 +185,14 @@
                         <td>
                             <div class="progress-icons d-flex gap-2">
                                 <!-- Master Production Schedule (MPS) Completed -->
-                                <a href="{% if order.order_status.id >= 2 %}#{% else %}javascript:void(0);{% endif %}" 
-                                class="progress-icon {% if order.order_status.id >= 2 %}enabled{% else %}disabled{% endif %}"
-                                title="Master Production Schedule (MPS) Completed">
-                                    <i class="fas fa-calendar-check"></i>
-                                </a>
+                                  <a href="{% if order.order_status.id >= 2 %}{% url 'mcp:mps_complete_redirect' order.id order.bom.id %}{% else %}javascript:void(0);{% endif %}" 
+                                    class="progress-icon {% if order.order_status.id >= 2 %}enabled{% else %}disabled{% endif %}"
+                                    title="Master Production Schedule (MPS) Completed">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </a>
                                 
                                 <!-- MRP Completed -->
-                                <a href="{% if order.order_status.id >= 3 %}#{% else %}javascript:void(0);{% endif %}" 
+                                <a href="{% if order.order_status.id >= 3 %}{% url 'mcp:mrp_complete_redirect' order.id order.bom.id %}{% else %}javascript:void(0);{% endif %}" 
                                 class="progress-icon {% if order.order_status.id >= 3 %}enabled{% else %}disabled{% endif %}"
                                 title="MRP Completed">
                                     <i class="fas fa-calculator"></i>
@@ -206,7 +206,7 @@
                                 </a>
                                 
                                 <!-- Production Planning Completed -->
-                                <a href="{% if order.order_status.id >= 4 %}#{% else %}javascript:void(0);{% endif %}" 
+                                <a href="{% if order.order_status.id >= 4 %}{% url 'mcp:production_plan_complete_redirect' order.id order.bom.id %}{% else %}javascript:void(0);{% endif %}" 
                                 class="progress-icon {% if order.order_status.id >= 4 %}enabled{% else %}disabled{% endif %}"
                                 title="Production Planning Completed">
                                     <i class="fas fa-tasks"></i>
