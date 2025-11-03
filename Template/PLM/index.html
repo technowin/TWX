@@ -149,10 +149,18 @@
     <div class="container mt-5">
 
     <!-- Page Title -->
-    <div class="text-center mb-4">
-        <h2 class="fw-bold text-gradient">📊 Project Lifecycle & Management</h2>
-        <p class="text-muted">Track your production orders with real-time status and actions</p>
+   <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="text-center flex-grow-1">
+        <h2 class="fw-bold text-gradient mb-0">📊 Project Lifecycle & Management</h2>
+        <p class="text-muted mb-0">Track your production orders with real-time status and actions</p>
     </div>
+    <div>
+        <a href="{% url 'production_order_create' %}" class="btn btn-primary">
+            ➕ Create Production Order
+        </a>
+    </div>
+</div>
+
 
     <!-- Card Wrapper -->
     <div class="card shadow-lg border-0 rounded-4 w-100" style="max-width: 1400px;">

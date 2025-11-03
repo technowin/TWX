@@ -422,29 +422,17 @@ class ProductionOrderCreateView(CreateView):
     template_name = 'MaterialPlan/production_order_create.html'
     
     def get_success_url(self):
-        return reverse_lazy('/production_order_detail', kwargs={'pk': self.object.pk})
+        # ✅ Use the URL name, not the path
+        return reverse_lazy('plm_index')
     
     def form_valid(self, form):
+        # Set user and default status
         form.instance.created_by = self.request.user
+        form.instance.order_status = get_object_or_404(StatusAction, id=1)
+        
         response = super().form_valid(form)
-        
-        # Create a material plan for this production order
-        material_plan = MaterialPlan.objects.create(
-            name=f"Material Plan for {self.object.order_number}",
-            production_order=self.object,
-            bom=self.object.bom,
-            quantity=self.object.quantity,
-            status='draft',
-            created_by=self.request.user,
-            due_date=self.object.start_date,
-        )
-        
-        # Calculate requirements
-        material_plan.calculate_requirements()
-        
         messages.success(self.request, "Production order created with material plan.")
         return response
-
 
 class ProductionOrderDetailView(DetailView):
     model = ProductionOrder
@@ -734,7 +722,7 @@ def confirm_plan(request, pk):
             ProductionOrder.objects.filter(
                 id=plan.production_order_id,
                 bom_id=plan.bom_id
-            ).update(order_status=2)
+            ).update(order_status=3)
 
             # (Optional: your inventory/reservation logic here)
 
@@ -752,7 +740,7 @@ def confirm_plan(request, pk):
             ProductionOrder.objects.filter(
                 id=plan.production_order_id,
                 bom_id=plan.bom_id
-            ).update(order_status=5)
+            ).update(order_status=3)
 
             messages.success(request, "Material plan has been executed and production order updated!")
 

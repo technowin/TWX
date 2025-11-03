@@ -16,6 +16,9 @@
 <link href="{% static 'css/vendor/fullcalendar.min.css' %}" rel="stylesheet" type="text/css" />
 <link href="{% static 'css/vendor/loader.css' %}" rel="stylesheet" type="text/css" />
 
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -31,34 +34,172 @@
 
 {% block content %}
 <style>
-
-/* Make calendar date numbers bigger */
-.fc-large-date .fc-daygrid-day-number,
-.fc .fc-col-header-cell-cushion {
-    font-size: 18px; /* Increase as needed */
-    font-weight: bold;
-}
-
-.fc .weekly-off {
-    background-color: #dc3545 !important;
-    color: white !important;
-}
-
-.fc .holiday {
-    background-color: #ff0000 !important;
-    color: white !important;
-}
-/* Weekly Off → full red background */
-.fc .weekly-off {
-    background-color: #f44336 !important;
-    color: white !important;
-}
-
-/* Holiday → only red border, normal background */
-.fc .holiday-border {
-    border: 2px solid #ff0000 !important;
-    box-sizing: border-box;
-}
+.calendar-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .calendar-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .shift-legend {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        /* FullCalendar customizations */
+        .fc {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .fc-toolbar {
+            padding: 10px;
+            background-color: var(--light-bg);
+            border-radius: var(--border-radius);
+        }
+        
+        .fc-toolbar-title {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .fc-button {
+            background-color: var(--secondary-color) !important;
+            border: none !important;
+            font-weight: 500;
+        }
+        
+        .fc-button:hover {
+            background-color: #2980b9 !important;
+        }
+        
+        .fc-button-active {
+            background-color: var(--primary-color) !important;
+        }
+        
+        .fc-daygrid-day {
+            position: relative;
+        }
+        
+        .fc-daygrid-day-number {
+            font-weight: 600;
+            padding: 5px !important;
+        }
+        
+        .shift-indicators {
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+        }
+        
+        .shift-indicator {
+            height: 4px;
+            flex: 1;
+            max-width: 30px;
+            border-radius: 2px;
+        }
+        
+        .holiday-cell {
+            background-color: #f8d7da !important;
+            position: relative;
+        }
+        
+        .weekly-off-cell {
+            background-color: #e9ecef !important;
+            position: relative;
+        }
+        
+        .holiday-label, .weekly-off-label {
+            position: absolute;
+            top: 22px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.7em;
+            color: #6c757d;
+            pointer-events: none;
+        }
+        
+        .fully-occupied {
+            background-color: #f8d7da !important;
+            position: relative;
+        }
+        
+        .fully-occupied::after {
+            content: "FULL";
+            position: absolute;
+            top: 22px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.7em;
+            color: #721c24;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-available {
+            background-color: #28a745;
+        }
+        
+        .status-partial {
+            background-color: #ffc107;
+        }
+        
+        .status-full {
+            background-color: #dc3545;
+        }
 
 </style>
 
@@ -81,28 +222,6 @@
                             value="{{ schedule.name|default:'' }}" placeholder="Enter Schedule Name">
                     </div>
 
-                    {% comment %} <div class="col-md-4">
-                        <label for="id_production_order" class="form-label">Production Order</label>
-                        <select id="id_production_order" name="production_order" class="form-select">
-                            <option value="">-- Select Production Order --</option>
-                            {% for po in production_orders %}
-                            <option value="{{ po.id }}" {% if schedule.production_order_id == po.id %}selected{% endif %}>
-                                {{ po.order_number }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="id_component" class="form-label">Component</label>
-                        <select id="id_component" name="component" class="form-select">
-                            <option value="">-- Select Component --</option>
-                            {% for comp in components %}
-                            <option value="{{ comp.id }}" {% if schedule.component_id == comp.id %}selected{% endif %}>
-                                {{ comp.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div> {% endcomment %}
                     <input type="hidden" id ="index" name = "index" value = {{ index }}>
                     <div class="col-md-4">
                             <label for="id_production_order" class="form-label">Production Order</label>
@@ -233,6 +352,7 @@
 
 <!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- FullCalendar -->
 
@@ -285,195 +405,318 @@ $(document).ready(function () {
     });
 
     // 🔹 Step 2: Fetch routing data and render calendar
-    $('#checkRoutingBtn').on('click', function () {
-    const componentId = $('#id_component').val();
+     $('#checkRoutingBtn').on('click', function () {
+            const componentId = $('#id_component').val();
 
-    if (!componentId) {
-        alert("Please select a component first!");
-        return;
-    }
-
-    $.ajax({
-        url: "{% url 'mcp:get_routing_data' %}",
-        type: "POST",
-        data: {
-            component_id: componentId,
-            csrfmiddlewaretoken: '{{ csrf_token }}'
-        },
-        success: function (response) {
-            // ✅ Store routing ID globally
-            if (response.routing_id) {
-                window.currentRoutingId = response.routing_id;
-            } else {
-                console.warn("No routing ID returned from server.");
+            if (!componentId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Component Required',
+                    text: 'Please select a component first!',
+                    confirmButtonColor: '#3498db'
+                });
+                return;
             }
 
-            // ✅ Extract data safely
-            const schedules = response.schedules || [];
-            const holidays = response.holidays || [];
-            const weeklyOff = response.weekly_off || null;
+            $.ajax({
+                url: "{% url 'mcp:get_routing_data' %}",
+                type: "POST",
+                data: {
+                    component_id: componentId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    // ✅ Store routing ID globally
+                    if (response.routing_id) {
+                        window.currentRoutingId = response.routing_id;
+                    } else {
+                        console.warn("No routing ID returned from server.");
+                    }
 
-            // ✅ Render calendar with all info (schedules, holidays, weekly off)
-            renderFullCalendar(schedules, holidays, weeklyOff);
+                    // ✅ Extract data safely
+                    const schedules = response.schedules || [];
+                    const holidays = response.holidays || [];
+                    const weeklyOff = response.weekly_off || null;
+                    shiftColors = response.shift_colors || {};
+                    allShifts = response.all_shifts || [];
+                    
+                    // Create shift order array
+                    shiftOrder = allShifts.map(shift => shift.code);
+                    
+                    // ✅ Render calendar with all info (schedules, holidays, weekly off)
+                    renderFullCalendar(schedules, holidays, weeklyOff);
 
-            // ✅ Show date input fields
-            $('#start_date').removeAttr('hidden');
-            $('#end_date').removeAttr('hidden');
-        },
+                    // ✅ Show date input fields
+                    $('#start_date').removeAttr('hidden');
+                    $('#end_date').removeAttr('hidden');
+                },
 
-        error: function (xhr, status, error) {
-            console.error("Error fetching routing data:", error);
-            alert("Error fetching routing data.");
+                error: function (xhr, status, error) {
+                    console.error("Error fetching routing data:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error fetching routing data.',
+                        confirmButtonColor: '#e74c3c'
+                    });
+                }
+            });
+        });
+
+        function renderFullCalendar(scheduleData, holidays = [], weeklyOffDay = null) {
+            if (calendar) {
+                calendar.destroy();
+            }
+
+            const calendarEl = document.getElementById('calendar');
+            
+            // Convert holidays to dictionary for easy lookup
+            const holidayMap = {};
+            holidays.forEach(h => {
+                const dateStr = new Date(h.date).toLocaleDateString('en-CA');
+                holidayMap[dateStr] = h.description;
+            });
+            
+            // Create events for the calendar (for the day grid)
+            const events = [];
+            const dateStatus = {}; // Track which dates are fully occupied
+            
+            scheduleData.forEach(dayData => {
+                const dateStr = dayData.date;
+                const shifts = dayData.shifts || {};
+                const shiftCodes = Object.keys(shifts);
+                
+                // Check if all shifts are occupied
+                const allShiftsOccupied = shiftOrder.every(shiftCode => shifts[shiftCode]);
+                
+                if (allShiftsOccupied) {
+                    dateStatus[dateStr] = 'full';
+                } else if (shiftCodes.length > 0) {
+                    dateStatus[dateStr] = 'partial';
+                }
+                
+                // Add events for each shift
+                shiftCodes.forEach(shiftCode => {
+                    const shiftDetails = shifts[shiftCode];
+                    
+                    shiftDetails.forEach(detail => {
+                        const startTime = detail.start_time ? new Date(detail.start_time) : null;
+                        const endTime = detail.end_time ? new Date(detail.end_time) : null;
+                        
+                        if (startTime && endTime) {
+                            events.push({
+                                title: `${detail.production_order} (${shiftCode})`,
+                                start: startTime,
+                                end: endTime,
+                                backgroundColor: shiftColors[shiftCode] || shiftColors["Default"],
+                                borderColor: shiftColors[shiftCode] || shiftColors["Default"],
+                                textColor: 'white',
+                                extendedProps: {
+                                    production_order: detail.production_order,
+                                    shift_code: shiftCode,
+                                    start_time: detail.start_time,
+                                    end_time: detail.end_time,
+                                    employee: detail.employee,
+                                    quantity: detail.quantity,
+                                    machine: detail.machine
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 700,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                themeSystem: 'standard',
+                events: events,
+                selectable: true,
+                editable: false,
+                dayMaxEvents: 2,
+                
+                // Custom day cell rendering
+                dayCellDidMount: function(arg) {
+                    const dateStr = arg.date.toLocaleDateString('en-CA');
+                    const dayName = arg.date.toLocaleDateString('en-US', { weekday: 'long' });
+                    const cell = arg.el;
+                    
+                    // Add classes based on day status
+                    if (holidayMap[dateStr]) {
+                        cell.classList.add('holiday-cell');
+                        
+                        const desc = document.createElement('div');
+                        desc.textContent = holidayMap[dateStr];
+                        desc.classList.add('holiday-label');
+                        cell.appendChild(desc);
+                    } else if (weeklyOffDay && dayName === weeklyOffDay) {
+                        cell.classList.add('weekly-off-cell');
+                        
+                        const off = document.createElement('div');
+                        off.textContent = 'Weekly Off';
+                        off.classList.add('weekly-off-label');
+                        cell.appendChild(off);
+                    } else if (dateStatus[dateStr] === 'full') {
+                        cell.classList.add('fully-occupied');
+                    }
+                    
+                    // Add shift indicators
+                    if (scheduleData.some(day => day.date === dateStr)) {
+                        const dayData = scheduleData.find(day => day.date === dateStr);
+                        const shifts = dayData.shifts || {};
+                        
+                        const indicators = document.createElement('div');
+                        indicators.classList.add('shift-indicators');
+                        
+                        shiftOrder.forEach(shiftCode => {
+                            if (shifts[shiftCode]) {
+                                const indicator = document.createElement('div');
+                                indicator.classList.add('shift-indicator');
+                                indicator.style.backgroundColor = shiftColors[shiftCode] || shiftColors["Default"];
+                                indicators.appendChild(indicator);
+                            }
+                        });
+                        
+                        cell.appendChild(indicators);
+                    }
+                },
+                
+                // Event click handler
+                eventClick: function(info) {
+                    const event = info.event;
+                    const extendedProps = event.extendedProps;
+                    
+                    let detailsHtml = `
+                        <div class="text-start">
+                            <p><strong>Production Order:</strong> ${extendedProps.production_order}</p>
+                            <p><strong>Shift:</strong> ${extendedProps.shift_code}</p>
+                            <p><strong>Start Time:</strong> ${new Date(extendedProps.start_time).toLocaleString()}</p>
+                            <p><strong>End Time:</strong> ${new Date(extendedProps.end_time).toLocaleString()}</p>
+                    `;
+                    
+                    if (extendedProps.employee) {
+                        detailsHtml += `<p><strong>Employee:</strong> ${extendedProps.employee}</p>`;
+                    }
+                    
+                    if (extendedProps.quantity) {
+                        detailsHtml += `<p><strong>Quantity:</strong> ${extendedProps.quantity}</p>`;
+                    }
+                    
+                    if (extendedProps.machine) {
+                        detailsHtml += `<p><strong>Machine:</strong> ${extendedProps.machine}</p>`;
+                    }
+                    
+                    detailsHtml += `</div>`;
+                    
+                    Swal.fire({
+                        title: 'Shift Details',
+                        html: detailsHtml,
+                        icon: 'info',
+                        confirmButtonColor: '#3498db'
+                    });
+                },
+                
+                // Date click handler
+                dateClick: function(info) {
+                    const clickedDate = info.dateStr;
+                    const clickedDayName = new Date(clickedDate).toLocaleDateString('en-US', { weekday: 'long' });
+                    
+                    // Check for weekly off
+                    if (weeklyOffDay && clickedDayName === weeklyOffDay) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Weekly Off',
+                            text: `You can't assign a shift on this Weekly Off day (${weeklyOffDay}).`,
+                            confirmButtonColor: '#f39c12'
+                        });
+                        return;
+                    }
+                    
+                    // Check for holiday
+                    if (holidayMap[clickedDate]) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Holiday',
+                            text: `You can't assign a shift on this Holiday: ${holidayMap[clickedDate]}`,
+                            confirmButtonColor: '#f39c12'
+                        });
+                        return;
+                    }
+                    
+                    // Check if date is fully occupied
+                    if (dateStatus[clickedDate] === 'full') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Fully Occupied',
+                            text: 'This date is fully occupied with shifts. Please select another date.',
+                            confirmButtonColor: '#e74c3c'
+                        });
+                        return;
+                    }
+                    
+                    // Normal click behavior
+                    $('#id_scheduled_start').val(clickedDate + "T10:00");
+                    const routingId = window.currentRoutingId;
+                    if (!routingId) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Routing Required',
+                            text: 'No routing ID found. Please click "Check Routings" first.',
+                            confirmButtonColor: '#f39c12'
+                        });
+                        return;
+                    }
+                    
+                    loadRoutingDetails(routingId);
+                    $('#calculateDate').removeAttr('hidden');
+                    $('#savebutton').show();
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Date Selected',
+                        text: `You've selected ${clickedDate}. Now you can assign a shift.`,
+                        confirmButtonColor: '#2ecc71',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+
+            calendar.render();
+            
+            // Add legend after calendar is rendered
+            addShiftLegend();
         }
-    });
-});
-
-
-    // 🔹 Step 3: Render FullCalendar
-function renderFullCalendar(scheduleData, holidays = [], weeklyOffDay = null) {
-    if (calendar) {
-        calendar.destroy();
-    }
-
-    function formatTime(dateStr) {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        let hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        if (hours === 0) hours = 12;
-        return `${hours}:${minutes} ${ampm}`;
-    }
-
-    const calendarEl = document.getElementById('calendar');
-
-    const shiftColors = {
-        "Morning": "#28a745",
-        "Evening": "#ffc107",
-        "Night": "#dc3545",
-        "Default": "#4099ff"
-    };
-
-    // ✅ Prepare events
-    const events = scheduleData.map(item => {
-        const startTime = formatTime(item.start_date);
-        const endTime = formatTime(item.end_date);
-        const title = `${startTime} → ${endTime} | ${item.production_order}`;
-        const color = shiftColors[item.shift_name] || shiftColors["Default"];
-
-        // ✅ Fix 1-day off issue (remove +1)
-        return {
-            title: title,
-            start: item.start_date,
-            end: item.end_date,
-            backgroundColor: color,
-            borderColor: color,
-            textColor: 'white'
-        };
-    });
-
-    // ✅ Convert holidays to dictionary for easy lookup
-    const holidayMap = {};
-    holidays.forEach(h => {
-        const dateStr = new Date(h.date).toLocaleDateString('en-CA');
-        holidayMap[dateStr] = h.description;
-    });
-
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        height: 700,
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
-        themeSystem: 'bootstrap5',
-        events: events,
-        selectable: true,
-        editable: false,
-
-        // ✅ Highlight holidays & weekly offs
-       dayCellDidMount: function(arg) {
-    const dateStr = arg.date.toLocaleDateString('en-CA');
-    const dayName = arg.date.toLocaleDateString('en-US', { weekday: 'long' });
-    const cell = arg.el;
-
-    // Ensure relative positioning so inner text can be placed correctly
-    cell.style.position = 'relative';
-
-    // 🩶 Common style for grey backgrounds
-    const greyColor = '#e0e0e0';
-
-    // 🏖️ HOLIDAY
-    if (holidayMap[dateStr]) {
-        cell.style.backgroundColor = greyColor;
-
-        const desc = document.createElement('div');
-        desc.textContent = holidayMap[dateStr];
-        desc.style.position = 'absolute';
-        desc.style.top = '20px'; // just below the date number
-        desc.style.left = '0';
-        desc.style.right = '0';
-        desc.style.textAlign = 'center';
-        desc.style.fontSize = '0.7em';
-        desc.style.color = '#333';
-        desc.style.pointerEvents = 'none'; // prevent clicks on label
-
-        cell.appendChild(desc);
-    }
-
-    // 🕊️ WEEKLY OFF
-    else if (weeklyOffDay && dayName === weeklyOffDay) {
-        cell.style.backgroundColor = greyColor;
-
-        const off = document.createElement('div');
-        off.textContent = 'Weekly Off';
-        off.style.position = 'absolute';
-        off.style.top = '20px'; // below date number
-        off.style.left = '0';
-        off.style.right = '0';
-        off.style.textAlign = 'center';
-        off.style.fontSize = '0.7em';
-        off.style.color = '#333';
-        off.style.pointerEvents = 'none';
-
-        cell.appendChild(off);
-    }
-},
-
-
-        // ✅ Block clicks on holidays & weekly offs
-        dateClick: function(info) {
-            const clickedDate = info.dateStr;
-            const clickedDayName = new Date(clickedDate).toLocaleDateString('en-US', { weekday: 'long' });
-
-            if (weeklyOffDay && clickedDayName === weeklyOffDay) {
-                alert("You can't assign a shift on this Weekly Off day.");
-                return;
-            }
-
-            if (holidayMap[clickedDate]) {
-                alert(`You can't assign a shift on this Holiday: ${holidayMap[clickedDate]}`);
-                return;
-            }
-
-            // ✅ Normal click behavior
-            $('#id_scheduled_start').val(clickedDate + "T10:00");
-            const routingId = window.currentRoutingId;
-            if (!routingId) {
-                alert("No routing ID found. Please click 'Check Routings' first.");
-                return;
-            }
-
-            loadRoutingDetails(routingId);
-            $('#calculateDate').removeAttr('hidden');
-            $('#savebutton').show();
+        
+        function addShiftLegend() {
+            // Remove existing legend if any
+            $('.shift-legend').remove();
+            
+            const legend = $('<div class="shift-legend mt-3"></div>');
+            
+            // Add legend items for each shift
+            shiftOrder.forEach(shiftCode => {
+                const color = shiftColors[shiftCode] || shiftColors["Default"];
+                const shiftName = allShifts.find(s => s.code === shiftCode)?.name || shiftCode;
+                
+                const legendItem = $(`
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: ${color};"></div>
+                        <span>${shiftName}</span>
+                    </div>
+                `);
+                
+                legend.append(legendItem);
+            });
+            
+            $('#calendar').after(legend);
         }
-    });
-
-    calendar.render();
-}
 
 
 

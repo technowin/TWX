@@ -1591,9 +1591,66 @@ def get_component_by_production_order(request):
     except ProductionOrder.DoesNotExist:
         return JsonResponse({'error': 'Production order not found'}, status=404)
     
-def get_routing_data(request):
-    from datetime import date
+# def get_routing_data(request):
 
+#     component_id = request.POST.get("component_id")
+
+#     try:
+#         routing = RoutingMaster.objects.filter(component=component_id).first()
+#         if not routing:
+#             return JsonResponse({"schedules": [], "routing_id": None})
+
+#         routing_id = routing.id
+#         routing_details = RoutingDetail.objects.filter(routing=routing)
+#         routing_detail_ids = routing_details.values_list("id", flat=True)
+
+#         machine_schedules = MachineSchedule.objects.filter(component_id=component_id)
+#         # if not machine_schedules.exists():
+#         #     return JsonResponse({"schedules": [], "routing_id": routing_id})
+
+#         schedule_ids = machine_schedules.values_list("id", flat=True)
+
+#         shift_rows = (
+#             ShiftTable.objects
+#             .select_related("machine_schedule", "machine_schedule__production_order")
+#             .filter(machine_schedule_id__in=schedule_ids)
+#         )
+
+#         data = []
+#         for shift in shift_rows:
+#             production_order = getattr(
+#                 shift.machine_schedule.production_order, "order_number", None
+#             ) or str(shift.machine_schedule.production_order_id)
+
+#             data.append({
+#                 "start_date": shift.start_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.start_time else None,
+#                 "end_date": shift.end_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.end_time else None,
+#                 "production_order": production_order,
+#                 "shift_name": str(shift.shift) if shift.shift else None,
+#             })
+
+#         # ✅ Step 6: Return holiday list with description
+#         current_year = date.today().year
+#         holidays = list(
+#             Holiday.objects.filter(date__year=current_year)
+#             .values("date", "description")
+#         )
+
+#         # ✅ Step 7: Weekly off
+#         weekly_off_row = WeeklyOff.objects.first()
+#         weekly_off_day = getattr(weekly_off_row, "day") if weekly_off_row else None
+
+#         return JsonResponse({
+#             "schedules": data,
+#             "routing_id": routing_id,
+#             "holidays": holidays,
+#             "weekly_off": weekly_off_day
+#         })
+
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+def get_routing_data(request):
     component_id = request.POST.get("component_id")
 
     try:
@@ -1606,29 +1663,70 @@ def get_routing_data(request):
         routing_detail_ids = routing_details.values_list("id", flat=True)
 
         machine_schedules = MachineSchedule.objects.filter(component_id=component_id)
-        # if not machine_schedules.exists():
-        #     return JsonResponse({"schedules": [], "routing_id": routing_id})
-
         schedule_ids = machine_schedules.values_list("id", flat=True)
 
         shift_rows = (
             ShiftTable.objects
-            .select_related("machine_schedule", "machine_schedule__production_order")
+            .select_related(
+                "machine_schedule", 
+                "machine_schedule__production_order",
+                "shift"  # Added to get shift details
+            )
             .filter(machine_schedule_id__in=schedule_ids)
         )
 
-        data = []
+        # Get all shifts from ShiftMaster to know the order
+        all_shifts = Shift.objects.all().order_by('shift_code')
+        shift_order = {shift.id: shift.shift_code for shift in all_shifts}
+        shift_colors = {
+            "Shift1": "#28a745",  # Green
+            "Shift2": "#ffc107",  # Yellow
+            "Shift3": "#dc3545",  # Red
+            "Default": "#4099ff"  # Blue
+        }
+
+        # Group shifts by date and shift code
+        shifts_by_date = {}
         for shift in shift_rows:
+            shift_date = shift.start_time.date() if shift.start_time else None
+            if not shift_date:
+                continue
+                
+            shift_code = shift_order.get(shift.id, "Default")
+            
+            if shift_date not in shifts_by_date:
+                shifts_by_date[shift_date] = {}
+            
+            if shift_code not in shifts_by_date[shift_date]:
+                shifts_by_date[shift_date][shift_code] = []
+                
             production_order = getattr(
                 shift.machine_schedule.production_order, "order_number", None
-            ) or str(shift.machine_schedule.production_order_id)
-
-            data.append({
-                "start_date": shift.start_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.start_time else None,
-                "end_date": shift.end_time.strftime("%Y-%m-%dT%H:%M:%S") if shift.end_time else None,
+            ) or str(shift.machine_schedule.production_order)
+            
+            shifts_by_date[shift_date][shift_code].append({
+                "start_time": shift.start_time,
+                "end_time": shift.end_time,
                 "production_order": production_order,
-                "shift_name": str(shift.shift) if shift.shift else None,
+                "shift_id": shift.id,
+                "shift_code": shift_code,
+                "employee": getattr(shift, 'employee', None),
+                "quantity": getattr(shift, 'quantity', None),
+                "machine": getattr(shift.machine_schedule, 'machine', None),
             })
+
+        # Prepare data for frontend
+        data = []
+        for date_str, shifts in shifts_by_date.items():
+            date_data = {
+                "date": date_str.isoformat(),
+                "shifts": {}
+            }
+            
+            for shift_code, shift_details in shifts.items():
+                date_data["shifts"][shift_code] = shift_details
+                
+            data.append(date_data)
 
         # ✅ Step 6: Return holiday list with description
         current_year = date.today().year
@@ -1645,7 +1743,9 @@ def get_routing_data(request):
             "schedules": data,
             "routing_id": routing_id,
             "holidays": holidays,
-            "weekly_off": weekly_off_day
+            "weekly_off": weekly_off_day,
+            "shift_colors": shift_colors,
+            "all_shifts": list(all_shifts.values('id', 'shift_code', 'shift_name'))
         })
 
     except Exception as e:
