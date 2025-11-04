@@ -240,11 +240,15 @@ class MachinePlanningForm(forms.ModelForm):
 class OperationForm(forms.ModelForm):
     class Meta:
         model = Operation
-        fields = ['code', 'name', 'description']
+        fields = ['code', 'name','cost_per_unit', 'description']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter operation code'
+            }),
+            'cost_per_unit':forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter Per Unit Cost'
             }),
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -256,9 +260,7 @@ class OperationForm(forms.ModelForm):
                 'placeholder': 'Enter description...'
             }),
         }
-from django import forms
-from .models import WorkCenters, WorkStations
-
+        
 class WorkCenterForm(forms.ModelForm):
     # Use CharField with Selectize for multiple selection
     workstation_ids = forms.CharField(

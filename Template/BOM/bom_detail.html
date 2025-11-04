@@ -299,9 +299,21 @@
                                             {% endfor %}
 
                                             <!-- Highlighted Total Row -->
-                                            <tr style="font-weight:bold;">
-                                                <td colspan="9" class="text-end">Total BOM Cost:</td>
+                                             <tr style="font-weight: bold; background-color: #f8f9fa;">
+                                                <td colspan="9" class="text-end">Total Material Cost:</td>
                                                 <td>{{ total_cost }}</td>
+                                            </tr>
+
+                                            <tr style="font-weight: bold; background-color: #f8f9fa;">
+                                                <td colspan="9" class="text-end">
+                                                    Wastage{% if wastage_percentage %} ({{ wastage_percentage }}%) {% endif %}:
+                                                </td>
+                                                <td>{{ wastage_value }}</td>
+                                            </tr>
+
+                                            <tr style="font-weight: bold; background-color: #e9ecef;">
+                                                <td colspan="9" class="text-end">Overall Total Cost:</td>
+                                                <td>{{ overall_cost }}</td>
                                             </tr>
                                         </tbody>
 

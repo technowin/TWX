@@ -61,6 +61,7 @@
             <tr>
                 <th>Code</th>
                 <th>Name</th>
+                <th>Cost Per Operation(Rs)</th>
                 <th>Description</th>
                 <th>Actions</th>
             </tr>
@@ -70,6 +71,7 @@
             <tr>
                 <td>{{ operation.code }}</td>
                 <td>{{ operation.name }}</td>
+                <td>{{ operation.cost_per_unit }}</td>
                 <td>{{ operation.description|truncatechars:50 }}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" 
@@ -78,6 +80,7 @@
                             data-id="{{ operation.id }}"
                             data-code="{{ operation.code }}"
                             data-name="{{ operation.name }}"
+                            data-cost="{{ operation.cost_per_unit }}"
                             data-description="{{ operation.description }}">
                         <i class="bi bi-pencil"></i>
                     </button>
@@ -123,6 +126,10 @@
                         <label class="form-label">Name</label>
                         <input type="text" name="name" class="form-control" required>
                     </div>
+                     <div class="mb-3">
+                        <label class="form-label">Cost Per Operation(Rs)</label>
+                        <input type="text" name="cost_per_unit" class="form-control" required>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea name="description" class="form-control" rows="3"></textarea>
@@ -156,6 +163,10 @@
                         <label class="form-label">Name</label>
                         <input type="text" name="name" class="form-control" required id="editName">
                     </div>
+                      <div class="mb-3">
+                        <label class="form-label">Cost Per Operation(Rs)</label>
+                        <input type="text" name="cost_per_unit" class="form-control" required id="editCost">
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea name="description" class="form-control" rows="3" id="editDescription"></textarea>
@@ -179,14 +190,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    debugger;
     // Edit modal setup
     const editModal = document.getElementById('editOperationModal');
     if (editModal) {
+        debugger;
         editModal.addEventListener('show.bs.modal', function(event) {
+            debugger;
             const button = event.relatedTarget;
             const id = button.getAttribute('data-id');
             const code = button.getAttribute('data-code');
             const name = button.getAttribute('data-name');
+            const cost = button.getAttribute('data-cost');
             const description = button.getAttribute('data-description');
             
             const form = editModal.querySelector('form');
@@ -194,6 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.getElementById('editCode').value = code;
             document.getElementById('editName').value = name;
+            document.getElementById('editCost').value = cost;
             document.getElementById('editDescription').value = description;
         });
     }

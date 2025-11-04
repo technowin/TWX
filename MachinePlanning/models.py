@@ -128,6 +128,7 @@ class MaintenanceSchedule(models.Model):
 class Operation(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
+    cost_per_unit = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='operation_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='operation_updated_by',verbose_name="Updated By")
@@ -558,7 +559,38 @@ class BatchRoutingLog(models.Model):
 
     def __str__(self):
         return f"Batch No {self.batch}"
+    
+class CostElement(models.Model):
+    """Defines the name and unit for each cost element (like electricity, packaging, etc.)"""
+    name = models.CharField(max_length=255, unique=True)
+    unit_of_measure = models.CharField(max_length=50, blank=True, null=True)
+    bom_header = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, related_name='bom_cost_values')
 
+    class Meta:
+        db_table = 'cost_element'
+        verbose_name = 'Cost Element'
+        verbose_name_plural = 'Cost Element'
+
+    def __str__(self):
+        return f"{self.name} ({self.unit_of_measure})" if self.unit_of_measure else self.name
+
+
+class CostElementValue(models.Model):
+    """Stores the actual cost values for each BOM record, linked to a cost element key"""
+    cost_key = models.ForeignKey(CostElement, on_delete=models.CASCADE, related_name='cost_values')
+    value = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cost_values_created')
+    updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cost_values_updated')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'cost_element_value'
+        verbose_name = 'Cost Element Value'
+        verbose_name_plural = 'Cost Element Values'
+
+    def __str__(self):
+        return f"{self.cost_key.name}: {self.value}"
 
 
 

@@ -1,4 +1,5 @@
 from datetime import timezone
+from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
@@ -7,6 +8,8 @@ from django.db.models import Q, Sum, F
 
 from django.http import JsonResponse
 from django.contrib import messages
+
+from MachinePlanning.models import CostElement, CostElementValue
 
 from .models import *
 from .forms import *
@@ -89,6 +92,39 @@ class BOMDetailView(DetailView):
         # Get all BOM items and structure them hierarchically
         items = bom.items.all().order_by('sort_order')
         context['total_cost'] = sum(item.cost for item in bom.items.all()) or 0
+        total_cost = Decimal(context['total_cost']) if context['total_cost'] else Decimal('0')
+
+    # Step 2: Get the wastage cost element key
+        wastage_key = CostElement.objects.filter(name__iexact='Wastage',bom_header=bom).first()
+        wastage_value = Decimal('0')
+
+        if wastage_key:
+            # Step 3: Get the wastage value entry for this BOM
+            cost_entry = CostElementValue.objects.filter(
+                cost_key=wastage_key
+            ).first()
+
+            if cost_entry and cost_entry.value:
+                if wastage_key.unit_of_measure == 'Percentage':
+                    # If wastage is a percentage
+                    wastage_value = (total_cost * Decimal(cost_entry.value)) / Decimal('100')
+                else:
+                    # Otherwise, take the absolute value
+                    wastage_value = Decimal(cost_entry.value)
+
+        # Step 4: Compute overall cost
+        overall_cost = total_cost + wastage_value
+        bom_id = bom.id
+
+        bom_values = BOMHeader.objects.get(id=bom_id)
+        bom_values.total_material_cost = total_cost
+        bom_values.wastage_value = wastage_value
+        bom_values.overall_cost = overall_cost
+        bom_values.save()
+
+        # Step 5: Add both to context
+        context['wastage_value'] = round(wastage_value, 2)
+        context['overall_cost'] = round(overall_cost, 2)
         hierarchical_items = self.build_hierarchy(items)
 
         cost_subquery = ComponentSupplier.objects.filter(

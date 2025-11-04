@@ -206,6 +206,14 @@ class BOMHeader(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     revision = models.CharField(max_length=10, default='1.0')
+    total_material_cost = models.CharField(max_length=255, blank=True, null=True)
+    wastage_value = models.IntegerField(null=True,blank=True)
+    overall_cost = models.CharField(max_length=255, blank=True, null=True)
+    electricity_value = models.IntegerField(null=True,blank=True)
+    maintenanance_value = models.IntegerField(null=True,blank=True)
+    consumables_value = models.IntegerField(null=True,blank=True)
+    depreciation_value = models.IntegerField(null=True,blank=True)
+    overhaed_value = models.IntegerField(null=True,blank=True)
     status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='Draft')
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_boms')
     created_date = models.DateTimeField(auto_now_add=True)
@@ -518,3 +526,4 @@ class ReorderRule(models.Model):
             return inventory.quantity_on_hand <= self.reorder_point
         
         return False
+    

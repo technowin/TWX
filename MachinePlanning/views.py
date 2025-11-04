@@ -438,12 +438,22 @@ class OperationCreateView(CreateView):
     form_class = OperationForm
     template_name = 'MachinePlan/operation_form.html'
     success_url = reverse_lazy('mcp:operation_list')
+    def form_valid(self, form):
+        operation = form.save(commit=False)
+        operation.cost_per_unit = form.cleaned_data['cost_per_unit']
+        operation.save()
+        return super().form_valid(form)
 
 class OperationUpdateView(UpdateView):
     model = Operation
     form_class = OperationForm
     template_name = 'MachinePlan/operation_form.html'
     success_url = reverse_lazy('mcp:operation_list')
+    def form_valid(self, form):
+        operation = form.save(commit=False)
+        operation.cost_per_unit = form.cleaned_data['cost_per_unit']
+        operation.save()
+        return super().form_valid(form)
 
 
 class OperationDeleteView(DeleteView):
