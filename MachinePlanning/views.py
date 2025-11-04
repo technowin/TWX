@@ -2627,3 +2627,5 @@ def production_plan_complete_redirect(request, production_order_id, component_id
         
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+    
+

@@ -46,7 +46,6 @@ urlpatterns = [
     path('routings<int:pk>/edit/', routing_create, name='routing_edit'),
     path('routings/<int:pk>/edit/', RoutingUpdateView.as_view(), name='routing_update'),
     path('routings/<int:pk>/delete/', RoutingDeleteView.as_view(), name='routing_delete'),
-    path('routings/<int:pk>/delete/', RoutingDeleteView.as_view(), name='routing_delete'),
     
     # Machine Planning URLs
     path('machine-plans/', MachinePlanningListView.as_view(), name='machine_planning_list'),
@@ -93,6 +92,7 @@ urlpatterns = [
     path('mps-complete/<int:production_order_id>/<int:component_id>/', mps_complete_redirect, name='mps_complete_redirect'),
     path('mrp_complete/<int:production_order_id>/<int:component_id>/', mps_complete_redirect, name='mrp_complete_redirect'),
     path('production_plan_complete/<int:production_order_id>/<int:component_id>/', production_plan_complete_redirect, name='production_plan_complete_redirect'),
+
 
 
 
