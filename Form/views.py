@@ -21,7 +21,7 @@ import Db
 import bcrypt
 from PyPDF2 import PdfReader
 from django.contrib.auth.decorators import login_required
-from Masters.views import extract_keywords, extract_text_from_pdf
+# from Masters.views import extract_keywords, extract_text_from_pdf
 from TWX.encryption import *
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
