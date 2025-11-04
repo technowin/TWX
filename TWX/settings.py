@@ -23,7 +23,7 @@ from cryptography.fernet import Fernet
 # fernet = Fernet(SECRET_KEY)
 # DECRYPTED_PASSWORD = fernet.decrypt(ENCRYPTED_PASSWORD.encode()).decode()
 
-ALLOWED_HOSTS = ['13.232.86.95']
+ALLOWED_HOSTS = ['65.1.67.38']
 # ALLOWED_HOSTS = ['127.0.0.1']
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -31,7 +31,7 @@ DEBUG = False
 # DEBUG = True   
 
 # SITE_URL = "http://localhost:8000"  # for local development
-SITE_URL = "http://13.232.86.95"  # for production development
+SITE_URL = "http://65.1.67.38"  # for production development
 
 import mimetypes
 mimetypes.add_type("application/javascript", ".mjs")
@@ -44,7 +44,7 @@ DATABASES = {
         'USER': 'root',      # Replace with your database user
         'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
         # 'PASSWORD': 'Shrims8@2420',  # Replace with your database password
-        # 'HOST': '13.232.86.95',       # IP FOR TEST
+        # 'HOST': '65.1.67.38',       # IP FOR TEST
         'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
         "OPTIONS": {
