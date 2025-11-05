@@ -55,12 +55,7 @@ class Machine(models.Model):
     serial_number = models.CharField(max_length=50, blank=True)
     installation_date = models.DateField(null=True, blank=True)
     capacity = models.CharField(max_length=100, help_text="Machine capacity (e.g., 100 units/hour)")
-    operational_hours_per_day = models.DecimalField(
-        max_digits=4, 
-        decimal_places=1,
-        default=8.0,
-        help_text="Standard operational hours per day"
-    )
+    operational_hours_per_day = models.DecimalField( max_digits=4,  decimal_places=1, default=8.0, help_text="Standard operational hours per day")
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -98,7 +93,19 @@ class MachineCapability(models.Model):
 
     def __str__(self):
         return f"{self.machine} can produce {self.component}"
+    
+class MachineCapabilities(models.Model):
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='capability')
+    name = models.TextField()
+    value = models.CharField(max_length=100)
+    unit_of_measure = models.TextField(null=True, blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True,null=True, blank=True)
+    updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='capability_updated_by',verbose_name="Updated By")
 
+    def __str__(self):
+        return f"{self.name} - {self.value}"
 
 
 class MaintenanceSchedule(models.Model):
