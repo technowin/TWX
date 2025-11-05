@@ -54,137 +54,137 @@ logger = logging.getLogger(__name__)
 
 # utils/ocr_utils.py
 
-import pytesseract
-from pdf2image import convert_from_path
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-import os
-import tempfile
-import string
+# import pytesseract
+# from pdf2image import convert_from_path
+# from nltk.corpus import stopwords
+# from nltk.tokenize import word_tokenize
+# import os
+# import tempfile
+# import string
 
-def extract_text_from_pdf(pdf_path):
-    # Convert PDF to images
-    # images = convert_from_path(pdf_path, poppler_path=r'C:\poppler\poppler-24.08.0\Library\bin')
-    # ✅ On Linux, no need to set path if tesseract and poppler-utils are installed globally
-    images = convert_from_path(pdf_path)
+# def extract_text_from_pdf(pdf_path):
+#     # Convert PDF to images
+#     # images = convert_from_path(pdf_path, poppler_path=r'C:\poppler\poppler-24.08.0\Library\bin')
+#     # ✅ On Linux, no need to set path if tesseract and poppler-utils are installed globally
+#     images = convert_from_path(pdf_path)
 
-    full_text = ""
-    # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+#     full_text = ""
+#     # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-    for image in images:
-        text = pytesseract.image_to_string(image)
-        full_text += text + "\n"
+#     for image in images:
+#         text = pytesseract.image_to_string(image)
+#         full_text += text + "\n"
     
-    return full_text.strip()
+#     return full_text.strip()
 
-def extract_keywords(text, num_keywords=100):
-    stop_words = set(stopwords.words('english'))
-    from nltk.tokenize import word_tokenize
-    words = word_tokenize(text.lower())
+# def extract_keywords(text, num_keywords=100):
+#     stop_words = set(stopwords.words('english'))
+#     from nltk.tokenize import word_tokenize
+#     words = word_tokenize(text.lower())
 
-    words = [w for w in words if w.isalpha() and w not in stop_words]
+#     words = [w for w in words if w.isalpha() and w not in stop_words]
     
-    # Frequency distribution
-    freq = {}
-    for word in words:
-        freq[word] = freq.get(word, 0) + 1
+#     # Frequency distribution
+#     freq = {}
+#     for word in words:
+#         freq[word] = freq.get(word, 0) + 1
     
-    sorted_keywords = sorted(freq.items(), key=lambda x: x[1], reverse=True)
-    top_keywords = [kw for kw, _ in sorted_keywords[:num_keywords]]
-    return top_keywords
+#     sorted_keywords = sorted(freq.items(), key=lambda x: x[1], reverse=True)
+#     top_keywords = [kw for kw, _ in sorted_keywords[:num_keywords]]
+#     return top_keywords
 
 
 
-def ocr_files(request):
-    try:
-        from django.utils.timezone import localdate
-        from django.db.models import Max
+# def ocr_files(request):
+#     try:
+#         from django.utils.timezone import localdate
+#         from django.db.models import Max
 
-        today = localdate()  
-        latest_docs = (Document.objects.values('file_path').annotate(latest_id=Max('id')).values_list('latest_id', flat=True))
-        Document.objects.exclude(id__in=latest_docs).delete()
-        docs = Document.objects.filter(keywords__isnull=True,extracted_text__isnull=True)
-        # docs = Document.objects.filter(uploaded_at__date=today,keywords__isnull=True,extracted_text__isnull=True).order_by('-uploaded_at')
-        for doc in docs:
-            if not doc.file_path:
-                continue
-            file_path = os.path.join(MEDIA_ROOT, str(doc.file_path))
-            _, ext = os.path.splitext(file_path) 
-            if ext.lower() != '.pdf':   
-                continue
-            if os.path.exists(file_path):
-                file_size = os.path.getsize(file_path)
-                try:
-                    with open(file_path, 'rb') as f:
-                        reader = PdfReader(f)
-                        num_pages = len(reader.pages)
-                except Exception as e:
-                    num_pages = None
-                text = extract_text_from_pdf(file_path)
-                keywords = extract_keywords(text)  
-                Document.objects.filter(id=doc.id).update(
-                    title=doc.uploaded_name,num_pages=str(num_pages),file_size=str(file_size),
-                    pdf_file=doc.file_path,
-                    extracted_text=text,
-                    keywords=', '.join(keywords)
-                )
-        return HttpResponse(f"<div style='color:green; font-family: Arial;'> OCR Batch Processed Successfully </div>")
-    except Exception as e:
-        tb = traceback.extract_tb(e.__traceback__)
-        fun = tb[0].name
-        error_log.objects.create(method=fun,error=str(e),user="Batch Process")  
-        return HttpResponse(f"<div style='color:red; font-family: Arial;'>Batch failed: {str(e)}</div>")
-        # callproc("stp_error_log",[fun,str(e),user])
+#         today = localdate()  
+#         latest_docs = (Document.objects.values('file_path').annotate(latest_id=Max('id')).values_list('latest_id', flat=True))
+#         Document.objects.exclude(id__in=latest_docs).delete()
+#         docs = Document.objects.filter(keywords__isnull=True,extracted_text__isnull=True)
+#         # docs = Document.objects.filter(uploaded_at__date=today,keywords__isnull=True,extracted_text__isnull=True).order_by('-uploaded_at')
+#         for doc in docs:
+#             if not doc.file_path:
+#                 continue
+#             file_path = os.path.join(MEDIA_ROOT, str(doc.file_path))
+#             _, ext = os.path.splitext(file_path) 
+#             if ext.lower() != '.pdf':   
+#                 continue
+#             if os.path.exists(file_path):
+#                 file_size = os.path.getsize(file_path)
+#                 try:
+#                     with open(file_path, 'rb') as f:
+#                         reader = PdfReader(f)
+#                         num_pages = len(reader.pages)
+#                 except Exception as e:
+#                     num_pages = None
+#                 text = extract_text_from_pdf(file_path)
+#                 keywords = extract_keywords(text)  
+#                 Document.objects.filter(id=doc.id).update(
+#                     title=doc.uploaded_name,num_pages=str(num_pages),file_size=str(file_size),
+#                     pdf_file=doc.file_path,
+#                     extracted_text=text,
+#                     keywords=', '.join(keywords)
+#                 )
+#         return HttpResponse(f"<div style='color:green; font-family: Arial;'> OCR Batch Processed Successfully </div>")
+#     except Exception as e:
+#         tb = traceback.extract_tb(e.__traceback__)
+#         fun = tb[0].name
+#         error_log.objects.create(method=fun,error=str(e),user="Batch Process")  
+#         return HttpResponse(f"<div style='color:red; font-family: Arial;'>Batch failed: {str(e)}</div>")
+#         # callproc("stp_error_log",[fun,str(e),user])
 
       
  
 
-import os
-from django.shortcuts import render, redirect
-from .models import Document
-from django.core.files.storage import FileSystemStorage
-from django.conf import settings
-from PyPDF2 import PdfReader
+# import os
+# from django.shortcuts import render, redirect
+# from .models import Document
+# from django.core.files.storage import FileSystemStorage
+# from django.conf import settings
+# from PyPDF2 import PdfReader
 
-def upload_document(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        pdf_file = request.FILES.get('pdf_file')
+# def upload_document(request):
+#     if request.method == 'POST':
+#         title = request.POST.get('title')
+#         pdf_file = request.FILES.get('pdf_file')
 
-        if title and pdf_file:
-            # Save file to media/documents/
-            fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'ocr_docs'))
-            filename = fs.save(pdf_file.name, pdf_file)
-            file_path = os.path.join(fs.location, filename)
-            file_size = os.path.getsize(file_path)
-            try:
-                with open(file_path, 'rb') as f:
-                    reader = PdfReader(f)
-                    num_pages = len(reader.pages)
-            except Exception as e:
-                num_pages = None
-            # OCR + Keyword extraction
-            text = extract_text_from_pdf(file_path)
-            keywords = extract_keywords(text)
+#         if title and pdf_file:
+#             # Save file to media/documents/
+#             fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'ocr_docs'))
+#             filename = fs.save(pdf_file.name, pdf_file)
+#             file_path = os.path.join(fs.location, filename)
+#             file_size = os.path.getsize(file_path)
+#             try:
+#                 with open(file_path, 'rb') as f:
+#                     reader = PdfReader(f)
+#                     num_pages = len(reader.pages)
+#             except Exception as e:
+#                 num_pages = None
+#             # OCR + Keyword extraction
+#             text = extract_text_from_pdf(file_path)
+#             keywords = extract_keywords(text)
 
-            # Save to DB
-            document = Document.objects.create(
-                title=title,num_pages=str(num_pages),file_size=str(file_size),
-                pdf_file=os.path.join('ocr_docs', filename),
-                extracted_text=text,
-                keywords=', '.join(keywords)
-            )
-            return redirect('document_detail1', pk=document.pk)
+#             # Save to DB
+#             document = Document.objects.create(
+#                 title=title,num_pages=str(num_pages),file_size=str(file_size),
+#                 pdf_file=os.path.join('ocr_docs', filename),
+#                 extracted_text=text,
+#                 keywords=', '.join(keywords)
+#             )
+#             return redirect('document_detail1', pk=document.pk)
     
-    return render(request, 'Master/upload.html')
+#     return render(request, 'Master/upload.html')
 
 
 
-from django.shortcuts import get_object_or_404
+# from django.shortcuts import get_object_or_404
 
-def document_detail1(request, pk):
-    document = get_object_or_404(Document, pk=pk)
-    return render(request, 'Master/document_detail.html', {'document': document})
+# def document_detail1(request, pk):
+#     document = get_object_or_404(Document, pk=pk)
+#     return render(request, 'Master/document_detail.html', {'document': document})
 
 from django.shortcuts import render
 from django.db.models import Q

@@ -64,12 +64,12 @@ urlpatterns = [
     # path("", view=TemplateView.as_view(template_name="bootstrap/landing.html"), name="landing"),
 
     # OCR File Upload
-    path('upload/', upload_document, name='upload_document'),
-    path('document_detail1/<int:pk>/', document_detail1, name='document_detail1'),
+    # path('upload/', upload_document, name='upload_document'),
+    # path('document_detail1/<int:pk>/', document_detail1, name='document_detail1'),
     path('search/', search_documents, name='document_search'),
     path('document/<int:document_id>/', document_detail, name='document_detail'),
     path('ks/<int:document_id>/', ks, name='ks'),
-    path('ocr_files', ocr_files, name='ocr_files'),
+    # path('ocr_files', ocr_files, name='ocr_files'),
 
     # Dashboard
     path('bom/dashboard',DashboardView.as_view(), name='dashboard'),
