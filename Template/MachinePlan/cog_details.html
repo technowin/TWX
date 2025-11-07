@@ -1,0 +1,886 @@
+{% extends "bootstrap/vertical_base.html" %}
+{% load static %}
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+
+<style>
+    :root {
+        --card-bg: #ffffff;
+        --card-border: rgba(0,0,0,0.125);
+        --text-primary: #212529;
+        --text-secondary: #6c757d;
+        --text-muted: #6c757d;
+        --table-striped: rgba(0,0,0,0.02);
+        --table-hover: rgba(0,123,255,0.1);
+        --header-gradient: linear-gradient(135deg, #343a40, #495057);
+        --header-text: #ffffff;
+        --dropdown-bg: #ffffff;
+        --dropdown-text: #212529;
+        --dropdown-border: #ced4da;
+        --tab-inactive-bg: transparent;
+        --tab-inactive-text: #6c757d;
+        --tab-active-bg: linear-gradient(135deg, #007bff, #6f42c1);
+        --tab-active-text: #ffffff;
+        --card-header-bg: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        --chart-bg: #f8f9fa;
+    }
+
+    [data-bs-theme="dark"] {
+        --card-bg: #212529;
+        --card-border: rgba(255,255,255,0.125);
+        --text-primary: #f8f9fa;
+        --text-secondary: #adb5bd;
+        --text-muted: #6c757d;
+        --table-striped: rgba(255,255,255,0.05);
+        --table-hover: rgba(255,255,255,0.075);
+        --header-gradient: linear-gradient(135deg, #495057, #343a40);
+        --header-text: #f8f9fa;
+        --dropdown-bg: #343a40;
+        --dropdown-text: #f8f9fa;
+        --dropdown-border: #495057;
+        --tab-inactive-bg: transparent;
+        --tab-inactive-text: #adb5bd;
+        --tab-active-bg: linear-gradient(135deg, #0d6efd, #6f42c1);
+        --tab-active-text: #ffffff;
+        --card-header-bg: linear-gradient(135deg, #343a40, #495057);
+        --card-header-text: #f8f9fa;
+        --chart-bg: #343a40;
+    }
+
+    .container {
+        margin-top: 20px;
+    }
+    .dropdown-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        margin-bottom: 30px;
+    }
+    .dropdown-container h3 {
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+    .cost-card {
+        background: var(--card-bg);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border: 1px solid var(--card-border);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .cost-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+    #material_cost::before { background: linear-gradient(135deg, #28a745, #20c997); }
+    #routing_cost::before { background: linear-gradient(135deg, #007bff, #6f42c1); }
+    #other_cost::before { background: linear-gradient(135deg, #fd7e14, #e83e8c); }
+    #total_cost::before { background: linear-gradient(135deg, #dc3545, #fd7e14); }
+    
+    .cost-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    .cost-card h5 {
+        margin-bottom: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .cost-card h5 i {
+        font-size: 1.2em;
+    }
+    .cost-card .amount {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    #material_cost_amount { color: #28a745; }
+    #routing_cost_amount { color: #007bff; }
+    #other_cost_amount { color: #fd7e14; }
+    #total_cost_amount { color: #dc3545; }
+    
+    .cost-card .subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    
+    
+    .bom-table {
+        margin-top: 20px;
+    }
+    .table th {
+        background: var(--header-gradient);
+        color: var(--header-text);
+        font-weight: 600;
+        border: none;
+        padding: 15px 12px;
+    }
+    .table td {
+        padding: 12px;
+        vertical-align: middle;
+        border-color: var(--card-border);
+        color: var(--text-primary);
+    }
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: var(--table-striped);
+    }
+    .table-hover tbody tr:hover {
+        background-color: var(--table-hover);
+    }
+    
+    .hidden {
+        display: none;
+    }
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    /* Enhanced Tab Styling */
+    .nav-tabs {
+        border-bottom: 2px solid var(--card-border);
+        margin-bottom: 25px;
+    }
+    .nav-tabs .nav-link {
+        border: none;
+        color: var(--tab-inactive-text);
+        font-weight: 600;
+        padding: 15px 25px;
+        margin-bottom: -2px;
+        border-radius: 10px 10px 0 0;
+        transition: all 0.3s ease;
+        background-color: var(--tab-inactive-bg);
+    }
+    .nav-tabs .nav-link:hover {
+        border: none;
+        color: var(--text-primary);
+        background-color: rgba(0,123,255,0.1);
+    }
+    .nav-tabs .nav-link.active {
+        background: var(--tab-active-bg);
+        color: var(--tab-active-text);
+        border: none;
+        box-shadow: 0 -4px 15px rgba(0,123,255,0.3);
+    }
+    
+    /* Card Styling */
+    .card {
+        border: 1px solid var(--card-border);
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+    }
+    .card-header {
+        background: var(--card-header-bg);
+        border-bottom: 1px solid var(--card-border);
+        padding: 20px 25px;
+        border-radius: 15px 15px 0 0 !important;
+        color: var(--card-header-text);
+    }
+    .card-header h4 {
+        margin: 0;
+        color: var(--card-header-text);
+        font-weight: 700;
+    }
+    
+    /* Summary Cards */
+    .summary-card {
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
+    }
+    .summary-card:hover {
+        transform: scale(1.05);
+    }
+    .bg-material { background: linear-gradient(135deg, #28a745, #20c997); }
+    .bg-routing { background: linear-gradient(135deg, #007bff, #6f42c1); }
+    .bg-other { background: linear-gradient(135deg, #fd7e14, #e83e8c); }
+    .bg-total { background: linear-gradient(135deg, #dc3545, #fd7e14); }
+    
+    /* Production Time Card */
+    .production-time-card {
+        background: linear-gradient(135deg, #17a2b8, #6f42c1);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    /* Form Controls */
+    .form-select {
+        background-color: var(--dropdown-bg);
+        color: var(--dropdown-text);
+        border: 1px solid var(--dropdown-border);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .cost-card {
+            margin-bottom: 15px;
+        }
+        .cost-card .amount {
+            font-size: 22px;
+        }
+        .nav-tabs .nav-link {
+            padding: 12px 15px;
+            font-size: 14px;
+        }
+    }
+    
+    /* Animation for loading */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    .loading-pulse {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    /* Badge Styling */
+    .badge-cost {
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    /* Chart container */
+    .chart-container {
+        background: var(--chart-bg);
+        border-radius: 10px;
+        padding: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- BOM Header Dropdown -->
+    <div class="dropdown-container">
+        <h3 class="text-center mb-4"><i class="fas fa-calculator me-2"></i>Cost Analysis Dashboard</h3>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="mb-3">
+                    <label for="bomDropdown" class="form-label"><strong><i class="fas fa-list-alt me-2"></i>Select BOM Header:</strong></label>
+                    <select class="form-select form-select-lg" id="bomDropdown" style="border-radius: 10px; border: none; padding: 12px 15px;">
+                        <option value="">-- Select a BOM Header --</option>
+                        {% for bom in bom_headers %}
+                        <option value="{{ bom.id }}">
+                            {{ bom.name }} - {{ bom.description }} (Rev: {{ bom.revision }})
+                        </option>
+                        {% empty %}
+                        <option value="">No BOM Headers available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div id="material_cost" class="cost-card hidden">
+                <h5><i class="fas fa-boxes" style="color: #28a745;"></i> Material Cost</h5>
+                <div class="amount" id="material_cost_amount">₹0.00</div>
+                <div class="subtitle">Per Unit Cost</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div id="routing_cost" class="cost-card hidden">
+                <h5><i class="fas fa-cogs" style="color: #007bff;"></i> Routing Cost</h5>
+                <div class="amount" id="routing_cost_amount">₹0.00</div>
+                <div class="subtitle">Manufacturing Operations</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div id="other_cost" class="cost-card hidden">
+                <h5><i class="fas fa-chart-pie" style="color: #fd7e14;"></i> Other Cost</h5>
+                <div class="amount" id="other_cost_amount">₹0.00</div>
+                <div class="subtitle">Overhead & Additional</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div id="total_cost" class="cost-card hidden">
+                <h5><i class="fas fa-file-invoice-dollar" style="color: #dc3545;"></i> Total Cost</h5>
+                <div class="amount" id="total_cost_amount">₹0.00</div>
+                <div class="subtitle">Final Product Cost</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs" id="costTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="material-tab" data-bs-toggle="tab" data-bs-target="#material" type="button" role="tab" aria-controls="material" aria-selected="true">
+                <i class="fas fa-boxes me-2"></i>Material Cost
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="routing-tab" data-bs-toggle="tab" data-bs-target="#routing" type="button" role="tab" aria-controls="routing" aria-selected="false">
+                <i class="fas fa-cogs me-2"></i>Routing Cost
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab" aria-controls="other" aria-selected="false">
+                <i class="fas fa-chart-pie me-2"></i>Other Cost
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="total-tab" data-bs-toggle="tab" data-bs-target="#total" type="button" role="tab" aria-controls="total" aria-selected="false">
+                <i class="fas fa-file-invoice-dollar me-2"></i>Total Cost
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="costTabsContent">
+        <!-- Material Cost Tab -->
+        <div class="tab-pane fade show active" id="material" role="tabpanel" aria-labelledby="material-tab">
+            <div id="bomDetails" class="hidden">
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-list me-2"></i>Bill of Materials</h4>
+                        <span class="badge bg-material badge-cost" id="bomItemCount">0 Items</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-hashtag me-1"></i>Part No.</th>
+                                        <th><i class="fas fa-align-left me-1"></i>Description</th>
+                                        <th><i class="fas fa-sort-amount-up me-1"></i>Qty</th>
+                                        <th><i class="fas fa-tags me-1"></i>Ref Des</th>
+                                        <th><i class="fas fa-shopping-cart me-1"></i>Purchase Type</th>
+                                        <th><i class="fas fa-folder me-1"></i>Category</th>
+                                        <th><i class="fas fa-balance-scale me-1"></i>Unit</th>
+                                        <th><i class="fas fa-tag me-1"></i>Price(₹)</th>
+                                        <th><i class="fas fa-money-bill me-1"></i>Item Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bomTableBody">
+                                   
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Total Costs -->
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <div class="summary-card bg-material">
+                                    <h6>Total Material Cost</h6>
+                                    <h4 id="totalMaterialCost">₹0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="summary-card bg-warning">
+                                    <h6>Wastage Cost</h6>
+                                    <h4 id="wastageCost">₹0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="summary-card bg-success">
+                                    <h6>Overall Material Cost</h6>
+                                    <h4 id="overallCost">₹0.00</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Routing Cost Tab -->
+        <div class="tab-pane fade" id="routing" role="tabpanel" aria-labelledby="routing-tab">
+            <div id="routingDetails" class="hidden">
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-project-diagram me-2"></i>Routing Operations</h4>
+                        <span class="badge bg-routing badge-cost" id="routingOperationCount">0 Operations</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-sort-numeric-up me-1"></i>Seq</th>
+                                        <th><i class="fas fa-cog me-1"></i>Operation</th>
+                                        <th><i class="fas fa-industry me-1"></i>Work Center</th>
+                                        <th><i class="fas fa-robot me-1"></i>Machine Time (hrs)</th>
+                                        <th><i class="fas fa-user-clock me-1"></i>Employee Time (hrs)</th>
+                                        <th><i class="fas fa-microchip me-1"></i>Machine Cost(₹)</th>
+                                        <th><i class="fas fa-users me-1"></i>Employee Cost(₹)</th>
+                                        <th><i class="fas fa-calculator me-1"></i>Total Operation Cost(₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="routingTableBody">
+                                   
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Routing Total Cost -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="summary-card bg-routing">
+                                    <h6>Total Routing Cost</h6>
+                                    <h2 id="totalRoutingCost">₹0.00</h2>
+                                    <small>Sum of all operation costs</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other Cost Tab -->
+        <div class="tab-pane fade" id="other" role="tabpanel" aria-labelledby="other-tab">
+            <div id="otherCostDetails" class="hidden">
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-chart-bar me-2"></i>Other Costs</h4>
+                        <span class="badge bg-other badge-cost" id="otherCostCount">0 Elements</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Production Time Info -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="production-time-card">
+                                    <h6><i class="fas fa-clock me-2"></i>Production Time per Unit</h6>
+                                    <h2 id="productionTimePerUnit">0.0000</h2>
+                                    <small>Hours required to produce 1 unit</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other Costs Table -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-tag me-1"></i>Cost Element</th>
+                                        <th><i class="fas fa-database me-1"></i>Stored Value</th>
+                                        <th><i class="fas fa-ruler me-1"></i>Unit</th>
+                                        <th><i class="fas fa-calculator me-1"></i>Calculated Cost(₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="otherCostsTableBody">
+                                   
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Other Costs Total -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="summary-card bg-other">
+                                    <h6>Total Other Cost</h6>
+                                    <h2 id="totalOtherCost">₹0.00</h2>
+                                    <small>Overhead, Rent, Packaging, etc.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Cost Tab -->
+        <div class="tab-pane fade" id="total" role="tabpanel" aria-labelledby="total-tab">
+            <div id="totalCostDetails" class="hidden">
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h4><i class="fas fa-file-invoice-dollar me-2"></i>Total Cost Summary</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 col-lg-3">
+                                <div class="summary-card bg-material mb-4">
+                                    <i class="fas fa-boxes fa-3x mb-3"></i>
+                                    <h6>Material Cost</h6>
+                                    <h4 id="summaryMaterialCost">₹0.00</h4>
+                                    <small>Raw Materials & Components</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="summary-card bg-routing mb-4">
+                                    <i class="fas fa-cogs fa-3x mb-3"></i>
+                                    <h6>Routing Cost</h6>
+                                    <h4 id="summaryRoutingCost">₹0.00</h4>
+                                    <small>Manufacturing Operations</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="summary-card bg-other mb-4">
+                                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                                    <h6>Other Cost</h6>
+                                    <h4 id="summaryOtherCost">₹0.00</h4>
+                                    <small>Overhead & Additional Costs</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="summary-card bg-total mb-4">
+                                    <i class="fas fa-file-invoice-dollar fa-3x mb-3"></i>
+                                    <h6>Total Cost</h6>
+                                    <h3 id="summaryTotalCost">₹0.00</h3>
+                                    <small>Final Product Cost per Unit</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cost Breakdown Chart Placeholder -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-pie me-2"></i>Cost Distribution</h5>
+                                    </div>
+                                    <div class="card-body text-center chart-container">
+                                        <div id="costBreakdown" style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                                            <div class="text-muted">
+                                                <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                                                <p>Cost breakdown visualization will appear here</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<!-- Include jQuery first -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js for cost breakdown -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    $(document).ready(function() {
+        console.log('Document ready - binding change event');
+        
+        // Bind change event to dropdown
+        $('#bomDropdown').change(function() {
+            console.log('Dropdown changed - value:', $(this).val());
+            loadBomDetails();
+        });
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+
+    function loadBomDetails() {
+        console.log('loadBomDetails function called');
+        const bomId = $('#bomDropdown').val();
+        
+        console.log('Selected BOM ID:', bomId);
+        
+        if (!bomId) {
+            console.log('No BOM ID selected, hiding elements');
+            resetDisplay();
+            return;
+        }
+        
+        // Show loading state with animation
+        $('.cost-card').removeClass('hidden').addClass('loading-pulse');
+        $('#bomDetails, #routingDetails, #otherCostDetails, #totalCostDetails').addClass('hidden');
+        
+        $('.cost-card .amount').text('Loading...');
+        
+        $('#bomDropdown').addClass('loading');
+        
+        console.log('Making AJAX request to:', '{% url "mcp:get_bom_details" %}');
+        
+        // Make AJAX request with GET parameters
+        $.ajax({
+            url: '{% url "mcp:get_bom_details" %}',
+            type: 'GET',
+            data: {
+                'bom_id': bomId
+            },
+            dataType: 'json',
+            success: function(data) {
+                console.log('AJAX success:', data);
+                if (data.success) {
+                    displayBomData(data);
+                } else {
+                    showError('Error loading BOM details: ' + data.error);
+                    resetDisplay();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                console.error('Status:', status);
+                console.error('XHR:', xhr);
+                showError('Error loading BOM details. Please try again.');
+                resetDisplay();
+            },
+            complete: function() {
+                $('#bomDropdown').removeClass('loading');
+                $('.cost-card').removeClass('loading-pulse');
+            }
+        });
+    }
+    
+    function displayBomData(data) {
+        debugger;
+        console.log('Displaying BOM data:', data);
+        const bomHeader = data.bom_header;
+        const bomItems = data.bom_items;
+        const routingData = data.routing_data;
+        const otherCostsData = data.other_costs_data;
+        
+        // FIXED: Use total_material_cost instead of overall_cost for material cost
+        const materialCost = parseFloat(bomHeader.overall_cost) || 0;
+        const routingCost = parseFloat(routingData.total_routing_cost) || 0;
+        const otherCost = parseFloat(otherCostsData.total_other_cost) || 0;
+        // FIXED: Correct total cost calculation
+        const totalCost = materialCost + routingCost + otherCost;
+        
+        // Update cost cards
+        $('#material_cost_amount').text(formatCurrency(materialCost));
+        $('#routing_cost_amount').text(formatCurrency(routingCost));
+        $('#other_cost_amount').text(formatCurrency(otherCost));
+        $('#total_cost_amount').text(formatCurrency(totalCost));
+        
+        // Populate tables
+        displayBomTable(bomItems, bomHeader);
+        displayRoutingTable(routingData);
+        displayOtherCostsTable(otherCostsData);
+        displayTotalCostSummary(materialCost, routingCost, otherCost, totalCost);
+        
+        // Update counts in badges
+        $('#bomItemCount').text(bomItems.length + ' Items');
+        $('#routingOperationCount').text(routingData.routing_details.length + ' Operations');
+        $('#otherCostCount').text(otherCostsData.other_costs_details.length + ' Elements');
+        
+        // Show all sections
+        $('#bomDetails, #routingDetails, #otherCostDetails, #totalCostDetails').removeClass('hidden');
+        
+        // Update cost breakdown chart
+        updateCostBreakdownChart(materialCost, routingCost, otherCost);
+    }
+    
+    function displayBomTable(bomItems, bomHeader) {
+        const tableBody = $('#bomTableBody');
+        tableBody.empty();
+        
+        $.each(bomItems, function(index, item) {
+            const row = `
+                <tr>
+                    <td><strong>${item.part_number || 'N/A'}</strong></td>
+                    <td>${item.description || 'N/A'}</td>
+                    <td>${item.quantity ? item.quantity.toFixed(2) : '0.00'}</td>
+                    <td>${item.ref_des || 'N/A'}</td>
+                    <td><span class="badge bg-secondary">${item.purchase_type || 'N/A'}</span></td>
+                    <td><span class="badge bg-info">${item.category || 'N/A'}</span></td>
+                    <td>${item.unit || 'N/A'}</td>
+                    <td><strong>${formatCurrency(item.price)}</strong></td>
+                    <td><strong class="text-success">${formatCurrency(item.item_cost)}</strong></td>
+                </tr>
+            `;
+            tableBody.append(row);
+        });
+        
+        // Update total costs
+        $('#totalMaterialCost').text(formatCurrency(bomHeader.total_material_cost || 0));
+        $('#wastageCost').text(formatCurrency(bomHeader.wastage_value || 0));
+        $('#overallCost').text(formatCurrency(bomHeader.overall_cost || 0));
+    }
+    
+    function displayRoutingTable(routingData) {
+        const tableBody = $('#routingTableBody');
+        tableBody.empty();
+        
+        $.each(routingData.routing_details, function(index, item) {
+            const row = `
+                <tr>
+                    <td><strong>#${item.sequence}</strong></td>
+                    <td>${item.operation || 'N/A'}</td>
+                    <td>${item.work_center || 'N/A'}</td>
+                    <td>${item.machine_time_per_unit_hr ? parseFloat(item.machine_time_per_unit_hr).toFixed(4) + ' hrs' : 'N/A'}</td>
+                    <td>${item.employee_time_per_unit_hr ? parseFloat(item.employee_time_per_unit_hr).toFixed(4) + ' hrs' : 'N/A'}</td>
+                    <td><strong class="text-primary">${formatCurrency(item.machine_cost)}</strong></td>
+                    <td><strong class="text-info">${formatCurrency(item.employee_cost)}</strong></td>
+                    <td><strong class="text-success">${formatCurrency(item.total_operation_cost)}</strong></td>
+                </tr>
+            `;
+            tableBody.append(row);
+        });
+        
+        // Update routing total cost
+        $('#totalRoutingCost').text(formatCurrency(routingData.total_routing_cost || 0));
+    }
+    
+    function displayOtherCostsTable(otherCostsData) {
+        const tableBody = $('#otherCostsTableBody');
+        tableBody.empty();
+        
+        // Display production time
+        $('#productionTimePerUnit').text(otherCostsData.production_time_per_unit ? otherCostsData.production_time_per_unit.toFixed(4) : '0.0000');
+        
+        // Display other costs
+        $.each(otherCostsData.other_costs_details, function(index, item) {
+            const row = `
+                <tr>
+                    <td><strong>${item.name || 'N/A'}</strong></td>
+                    <td>${formatCurrency(item.value)}</td>
+                    <td><span class="badge bg-secondary">${item.unit || 'N/A'}</span></td>
+                    <td><strong class="text-warning">${formatCurrency(item.calculated_cost)}</strong></td>
+                </tr>
+            `;
+            tableBody.append(row);
+        });
+        
+        // Update other costs total
+        $('#totalOtherCost').text(formatCurrency(otherCostsData.total_other_cost || 0));
+    }
+    
+    function displayTotalCostSummary(materialCost, routingCost, otherCost, totalCost) {
+        $('#summaryMaterialCost').text(formatCurrency(materialCost));
+        $('#summaryRoutingCost').text(formatCurrency(routingCost));
+        $('#summaryOtherCost').text(formatCurrency(otherCost));
+        $('#summaryTotalCost').text(formatCurrency(totalCost));
+    }
+    
+    function updateCostBreakdownChart(materialCost, routingCost, otherCost) {
+        const ctx = document.getElementById('costBreakdown');
+        if (ctx) {
+            // Clear previous content
+            ctx.innerHTML = '';
+            
+            const canvas = document.createElement('canvas');
+            ctx.appendChild(canvas);
+            
+            // Get current theme for chart text color
+            const isDarkTheme = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const textColor = isDarkTheme ? '#f8f9fa' : '#212529';
+            
+            new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Material Cost', 'Routing Cost', 'Other Cost'],
+                    datasets: [{
+                        data: [materialCost, routingCost, otherCost],
+                        backgroundColor: [
+                            '#28a745',
+                            '#007bff', 
+                            '#fd7e14'
+                        ],
+                        borderWidth: 2,
+                        borderColor: isDarkTheme ? '#343a40' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = materialCost + routingCost + otherCost;
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    function formatCurrency(value) {
+        if (!value && value !== 0) return '₹0.00';
+        const num = typeof value === 'string' ? parseFloat(value) : value;
+        return '₹' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    }
+    
+    function showError(message) {
+        // You can use SweetAlert or basic alert
+        alert(message);
+    }
+    
+    function resetDisplay() {
+        $('.cost-card').addClass('hidden');
+        $('#bomDetails, #routingDetails, #otherCostDetails, #totalCostDetails').addClass('hidden');
+        
+        $('.cost-card .amount').text('₹0.00');
+        
+        $('#bomTableBody, #routingTableBody, #otherCostsTableBody').empty();
+        $('#bomItemCount, #routingOperationCount, #otherCostCount').text('0 Items');
+        
+        // Clear chart
+        const costBreakdown = document.getElementById('costBreakdown');
+        if (costBreakdown) {
+            costBreakdown.innerHTML = '<div class="text-muted"><i class="fas fa-chart-pie fa-3x mb-3"></i><p>Cost breakdown visualization will appear here</p></div>';
+        }
+    }
+</script>
+{% include "bootstrap/partials/syntax-highlight.html" %}
+{% endblock %}

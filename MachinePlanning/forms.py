@@ -240,13 +240,13 @@ class MachinePlanningForm(forms.ModelForm):
 class OperationForm(forms.ModelForm):
     class Meta:
         model = Operation
-        fields = ['code', 'name','cost_per_unit', 'description']
+        fields = ['code', 'name','cost_per_hour', 'description']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter operation code'
             }),
-            'cost_per_unit':forms.TextInput(attrs={
+            'cost_per_hour':forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter Per Unit Cost'
             }),
