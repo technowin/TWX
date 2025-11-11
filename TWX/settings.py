@@ -202,7 +202,8 @@ LOCAL_APPS = [
     'LMS',
     'SalesPurchase',
     'PLM',
-    'MMC'
+    'MMC',
+    'COG'
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
