@@ -61,7 +61,7 @@
             <tr>
                 <th>Code</th>
                 <th>Name</th>
-                <th>Cost Per Operation(Rs)</th>
+                <th>Cost Per Hour(Rs)</th>
                 <th>Description</th>
                 <th>Actions</th>
             </tr>
@@ -71,7 +71,7 @@
             <tr>
                 <td>{{ operation.code }}</td>
                 <td>{{ operation.name }}</td>
-                <td>{{ operation.cost_per_unit }}</td>
+                <td>{{ operation.cost_per_hour }}</td>
                 <td>{{ operation.description|truncatechars:50 }}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" 

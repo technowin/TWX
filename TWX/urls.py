@@ -38,6 +38,7 @@ from Inventory.views import *
 from LMS.views import *
 from SalesPurchase.views import *
 from MMC.views import *
+from COG.views import *
 # from ChatBot.views import *
 urlpatterns = [
     
@@ -743,6 +744,7 @@ urlpatterns = [
 
     # MachinePlan
     path('mcp/', include('MachinePlanning.urls', namespace='mcp')),
+    path('cog/', include('COG.urls', namespace='cog')),
     path('manpower/', include('ManpowerPlan.urls', namespace='manpower')),
     path('convert-input/', convert_input_view, name='convert_input'),
 

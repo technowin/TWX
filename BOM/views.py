@@ -9,7 +9,7 @@ from django.db.models import Q, Sum, F
 from django.http import JsonResponse
 from django.contrib import messages
 
-from MachinePlanning.models import CostElement, CostElementValue
+from COG.models import CostElement, CostElementValue
 from Masters.models import parameter_master
 
 from .models import *

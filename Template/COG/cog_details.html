@@ -651,11 +651,11 @@
         
         $('#bomDropdown').addClass('loading');
         
-        console.log('Making AJAX request to:', '{% url "mcp:get_bom_details" %}');
+        console.log('Making AJAX request to:', '{% url "cog:get_bom_details" %}');
         
         // Make AJAX request with GET parameters
         $.ajax({
-            url: '{% url "mcp:get_bom_details" %}',
+            url: '{% url "cog:get_bom_details" %}',
             type: 'GET',
             data: {
                 'bom_id': bomId
