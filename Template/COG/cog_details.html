@@ -352,7 +352,7 @@
         </div>
         <div class="col-xl-3 col-md-6">
             <div id="total_cost" class="cost-card hidden">
-                <h5><i class="fas fa-file-invoice-dollar" style="color: #dc3545;"></i> Total Cost</h5>
+                <h5><i class="fas fa-file-invoice-dollar" style="color: #dc3545;"></i>Total Cost</h5>
                 <div class="amount" id="total_cost_amount">₹0.00</div>
                 <div class="subtitle">Final Product Cost</div>
             </div>
@@ -459,8 +459,8 @@
                                         <th><i class="fas fa-industry me-1"></i>Work Center</th>
                                         <th><i class="fas fa-robot me-1"></i>Machine Time (hrs)</th>
                                         <th><i class="fas fa-user-clock me-1"></i>Employee Time (hrs)</th>
-                                        <th><i class="fas fa-microchip me-1"></i>Machine Cost(₹)</th>
-                                        <th><i class="fas fa-users me-1"></i>Employee Cost(₹)</th>
+                                        <th><i class="fas fa-microchip me-1"></i>Machine Cost(Per/Hour)</th>
+                                        <th><i class="fas fa-users me-1"></i>Employee Cost(Per/Hour)</th>
                                         <th><i class="fas fa-calculator me-1"></i>Total Operation Cost(₹)</th>
                                     </tr>
                                 </thead>
@@ -760,8 +760,18 @@
                     <td><strong>#${item.sequence}</strong></td>
                     <td>${item.operation || 'N/A'}</td>
                     <td>${item.work_center || 'N/A'}</td>
-                    <td>${item.machine_time_per_unit_hr ? parseFloat(item.machine_time_per_unit_hr).toFixed(4) + ' hrs' : 'N/A'}</td>
-                    <td>${item.employee_time_per_unit_hr ? parseFloat(item.employee_time_per_unit_hr).toFixed(4) + ' hrs' : 'N/A'}</td>
+                    <td>
+                        ${item.machine_time_per_unit_hr ? 
+                            parseFloat(item.machine_time_per_unit_hr).toFixed(4) + ' hrs (' + 
+                            (parseFloat(item.machine_time_per_unit_hr) * 60).toFixed(2) + ' mins)' 
+                            : 'N/A'}
+                    </td>
+                    <td>
+                        ${item.employee_time_per_unit_hr ? 
+                            parseFloat(item.employee_time_per_unit_hr).toFixed(4) + ' hrs (' + 
+                            (parseFloat(item.employee_time_per_unit_hr) * 60).toFixed(2) + ' mins)' 
+                            : 'N/A'}
+                    </td>
                     <td><strong class="text-primary">${formatCurrency(item.machine_cost)}</strong></td>
                     <td><strong class="text-info">${formatCurrency(item.employee_cost)}</strong></td>
                     <td><strong class="text-success">${formatCurrency(item.total_operation_cost)}</strong></td>

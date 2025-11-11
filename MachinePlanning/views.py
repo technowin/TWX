@@ -1076,7 +1076,7 @@ class MachineScheduleCreateView(View):
                             production_order=get_object_or_404(ProductionOrder, id=production_order_id),
                             bom_component=get_object_or_404(BOMHeader, id=component_id),
                             workstation=get_object_or_404(WorkStations, name=row.get("workstation", "")),
-                            machine=get_object_or_404(Machine, name=row.get("machine", "")).id,
+                            machine=get_object_or_404(Machine, name=row.get("machine", "")),
                             employees=employee_ids_str,
                             shift=get_object_or_404(Shift, shift_name=row.get("shift_name", "")),
                             start_time=parse_custom_datetime(row.get("start")),
@@ -2464,7 +2464,7 @@ def confirm_production_plan(request,batch_id, production_order_id, component_id)
         try:
             # Get the production order and component
             production_order = get_object_or_404(ProductionOrder, id=production_order_id).id
-            component = get_object_or_404(Component, id=component_id)
+            component = get_object_or_404(BOMHeader, id=component_id)
 
             batches = get_object_or_404(BatchMaster, id = batch_id)
             batches.status = 'IN_PROGRESS'

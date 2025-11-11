@@ -4,6 +4,7 @@ from django.shortcuts import render
 from BOM.models import *
 from COG.models import *
 from MachinePlanning.models import *
+from django.db import transaction
 
 # Create your views here.
 def bom_dropdown_view(request):
@@ -15,10 +16,68 @@ def bom_dropdown_view(request):
     }
     return render(request, 'COG/cog_details.html', context)
 
-def get_bom_details(request):
-    """API endpoint to get BOM details using request.GET"""
-    bom_id = request.GET.get('bom_id')
+# def get_bom_details(request):
+#     """API endpoint to get BOM details using request.GET"""
+#     bom_id = request.GET.get('bom_id')
     
+#     if not bom_id:
+#         return JsonResponse({
+#             'success': False,
+#             'error': 'BOM ID is required'
+#         }, status=400)
+    
+#     try:
+#         bom_header = BOMHeader.objects.get(id=bom_id)
+#         bom_items = BOMItem.objects.filter(bom=bom_header).select_related('component', 'supplier')
+        
+#         # Prepare BOM items data
+#         items_data = []
+#         for item in bom_items:
+#             items_data.append({
+#                 'sort_order': item.sort_order,
+#                 'part_number': item.component.part_number if item.component else '',
+#                 'description': item.component.description if item.component else '',
+#                 'quantity': float(item.quantity),
+#                 'ref_des': item.reference_designators,
+#                 'purchase_type': item.component.purchase_type if item.component else '',
+#                 'category': item.component.category if item.component else '',
+#                 'unit': item.component.unit_of_measure if item.component else '',
+#                 'price': float(item.price) if item.price else 0,
+#                 'item_cost': float(item.cost) if item.cost else 0,
+#             })
+        
+#         # Get Routing Cost Data
+#         routing_data = get_routing_cost_data(bom_header)
+#         other_costs_data = get_other_costs_data(bom_header, routing_data)
+
+        
+#         response_data = {
+#             'success': True,
+#             'bom_header': {
+#                 'name': bom_header.name,
+#                 'description': bom_header.description,
+#                 'revision': bom_header.revision,
+#                 'total_material_cost': bom_header.total_material_cost,
+#                 'wastage_value': bom_header.wastage_value,
+#                 'overall_cost': bom_header.overall_cost,
+#                 'status': bom_header.status,
+#             },
+#             'bom_items': items_data,
+#             'routing_data': routing_data,
+#             'other_costs_data': other_costs_data,
+#         }
+        
+#         return JsonResponse(response_data)
+        
+#     except Exception as e:
+#         return JsonResponse({"success": False, "error": str(e)})
+
+
+def get_bom_details(request):
+    """API endpoint to get BOM details using request.GET and insert/update COG data"""
+    bom_id = request.GET.get('bom_id')
+    user = request.user  # Assuming authenticated user
+
     if not bom_id:
         return JsonResponse({
             'success': False,
@@ -31,7 +90,11 @@ def get_bom_details(request):
         
         # Prepare BOM items data
         items_data = []
+        total_material_cost = 0
         for item in bom_items:
+            material_cost = float(item.cost or 0)
+            total_material_cost += material_cost
+
             items_data.append({
                 'sort_order': item.sort_order,
                 'part_number': item.component.part_number if item.component else '',
@@ -42,23 +105,86 @@ def get_bom_details(request):
                 'category': item.component.category if item.component else '',
                 'unit': item.component.unit_of_measure if item.component else '',
                 'price': float(item.price) if item.price else 0,
-                'item_cost': float(item.cost) if item.cost else 0,
+                'item_cost': material_cost,
             })
         
-        # Get Routing Cost Data
+        # Calculate Routing & Other Costs
         routing_data = get_routing_cost_data(bom_header)
         other_costs_data = get_other_costs_data(bom_header, routing_data)
+        overall_material_cost = total_material_cost + bom_header.wastage_value
 
-        
+        total_routing_cost = routing_data.get('total_routing_cost', 0)
+        total_other_cost = other_costs_data.get('total_other_cost', 0)
+
+        total_production_cost = total_material_cost + total_routing_cost + total_other_cost
+
+        # --- INSERT OR UPDATE IN DATABASE ---
+        with transaction.atomic():
+    # Check if record already exists for this BOM
+            cog_master, created = COGMaster.objects.update_or_create(
+                bom_header=bom_header,
+                defaults={
+                    'material_cost': round(overall_material_cost, 2),
+                    'routing_cost': round(total_routing_cost, 2),
+                    'other_cost': round(total_other_cost, 2),
+                    'total_prodcution_cost': round(total_production_cost, 2),
+                    'updated_by': user if user.is_authenticated else None,
+                    
+                }
+            )
+
+            # If newly created, set created_by separately
+            if created:
+                cog_master.created_by = user if user.is_authenticated else None
+                cog_master.save(update_fields=['created_by'])
+
+            # Delete previous detail entries if updating
+            if not created:
+                COGDetail.objects.filter(cog=cog_master).delete()
+
+            # Now insert multiple detail rows
+            for routing_detail in routing_data['routing_details']:
+                work_center = WorkCenters.objects.filter(name=routing_detail.get('work_center')).first()
+
+                if work_center and work_center.workstation_ids:
+                    workstation_ids = [int(i.strip()) for i in work_center.workstation_ids.split(',') if i.strip()]
+                    workstations = WorkStations.objects.filter(id__in=workstation_ids)
+
+                    for workstation in workstations:
+                        machine_cost = routing_detail.get('machine_cost', 0)
+                        employee_cost = routing_detail.get('employee_cost', 0)
+                        avg_value = (machine_cost + employee_cost) / 2
+
+                        COGDetail.objects.create(
+                            cog=cog_master,
+                            operation=Operation.objects.filter(name=routing_detail.get('operation')).first(),
+                            workcenter=work_center,
+                            workstation=str(workstation.id),
+                            machine=str(machine_cost),
+                            employee=str(employee_cost),
+                            machine_capacity=str(routing_detail.get('machine_time_per_unit_hr', 0)),
+                            employee_capacity=str(routing_detail.get('employee_time_per_unit_hr', 0)),
+                            machine_cost=str(machine_cost),
+                            employee_cost=str(employee_cost),
+                            avg_value=str(round(avg_value, 2)),
+                            created_by=user if user.is_authenticated else None,
+                            updated_by=user if user.is_authenticated else None
+                        )
+
+        # --- Prepare Response ---
         response_data = {
             'success': True,
+            'message': f"COG {'created' if created else 'updated'} successfully.",
             'bom_header': {
                 'name': bom_header.name,
                 'description': bom_header.description,
                 'revision': bom_header.revision,
-                'total_material_cost': bom_header.total_material_cost,
+                'total_material_cost': total_material_cost,
+                'routing_cost': total_routing_cost,
+                'other_cost': total_other_cost,
                 'wastage_value': bom_header.wastage_value,
                 'overall_cost': bom_header.overall_cost,
+                'total_production_cost': total_production_cost,
                 'status': bom_header.status,
             },
             'bom_items': items_data,
@@ -67,10 +193,10 @@ def get_bom_details(request):
         }
         
         return JsonResponse(response_data)
-        
+
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
-
+    
 def get_routing_cost_data(bom_header):
     """Calculate routing cost data for BOM"""
     try:

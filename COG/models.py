@@ -41,6 +41,7 @@ class COGMaster(models.Model):
     routing_cost = models.CharField(max_length=10)
     material_cost =models.CharField(max_length=10)
     routing_cost = models.CharField(max_length=10)
+    other_cost = models.CharField(max_length=10,null=True,blank=True)
     total_prodcution_cost = models.CharField(max_length=10)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cog_values_created')
     updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cog_values_updated')
