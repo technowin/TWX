@@ -102,7 +102,7 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
         ]
         widgets = {
             'machine': forms.Select(attrs={'class': 'form-select'}),
-            'maintenance_type': forms.Select(attrs={'class': 'form-select'}),
+            'maintenance_type': forms.TextInput(attrs={'class': 'form-select'}),
             'scheduled_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control datepicker'
@@ -114,7 +114,7 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
             'completed': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
-            'technician': forms.Select(attrs={'class': 'form-select'}),
+            'technician': forms.TextInput(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={
                 'rows': 3,
                 'placeholder': 'Enter maintenance description'

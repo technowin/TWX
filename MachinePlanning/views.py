@@ -135,11 +135,10 @@ class MachineDetailView(DetailView):
         context['capabilities'] = self.object.capability.all()
         context['schedules'] = MachineScheduleDetail.objects.filter(
             machine=self.object
-        ).select_related('schedule','workstation', 'work_center',).order_by('schedule__scheduled_start')[:10]  # Limit to 10 records
-        context['maintenance_schedules'] = self.object.maintenance_schedules.filter(
-            scheduled_date__gte=timezone.now().date(),
-            completed=False
-        ).order_by('scheduled_date')[:5]
+        ).select_related('schedule','workstation', 'work_center',).order_by('schedule__scheduled_start')[:5]  # Limit to 10 records
+        context['maintenance_schedules'] = MaintenanceSchedule.objects.filter(
+        machine=self.object
+        ).select_related('machine').order_by('scheduled_date')[:5]
         return context
 
 
@@ -240,10 +239,9 @@ class MaintenanceScheduleCreateView( CreateView):
     model = MaintenanceSchedule
     form_class = MaintenanceScheduleForm
     template_name = 'MachinePlan/maintenance_schedule_form.html'
-    success_url = reverse_lazy('mcp:maintenance_schedule_list')
+    success_url = reverse_lazy('mcp:machine_detail')
 
     def form_valid(self, form):
-        form.instance.created_by = self.request.user
         return super().form_valid(form)
 
 class MaintenanceScheduleUpdateView( UpdateView):
