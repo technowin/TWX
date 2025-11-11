@@ -124,22 +124,24 @@ class MachineUpdateView( UpdateView):
     template_name = 'MachinePlan/machine_form.html'
     success_url = reverse_lazy('mcp:machine_list')
 
-class MachineDetailView( DetailView):
+class MachineDetailView(DetailView):
     model = Machine
     template_name = 'MachinePlan/machine_detail.html'
     context_object_name = 'machine'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['capabilities'] = self.object.capabilities.all()
-        # context['schedules'] = self.object.schedules.filter(
-        #     start_time__gte=timezone.now()
-        # ).order_by('start_time')[:10]
+        # Get capabilities as key-value pairs
+        context['capabilities'] = self.object.capability.all()
+        context['schedules'] = MachineScheduleDetail.objects.filter(
+            machine=self.object
+        ).select_related('schedule','workstation', 'work_center',).order_by('schedule__scheduled_start')[:10]  # Limit to 10 records
         context['maintenance_schedules'] = self.object.maintenance_schedules.filter(
             scheduled_date__gte=timezone.now().date(),
             completed=False
         ).order_by('scheduled_date')[:5]
         return context
+
 
 class MachineDeleteView(DeleteView):
     model = Machine
@@ -2687,3 +2689,76 @@ def production_plan_complete_redirect(request, production_order_id, component_id
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
     
+class MachineCapabilityBulkCreateView(View):
+    def get(self, request, machine_id):
+        machine = get_object_or_404(Machine, pk=machine_id)
+        # Get existing capabilities for this machine
+        existing_capabilities = MachineCapabilities.objects.filter(machine=machine)
+        
+        context = {
+            'machine': machine,
+            'existing_capabilities': existing_capabilities,
+        }
+        return render(request, 'MachinePlan/machine_capabilties_form.html', context)
+    
+    def post(self, request, machine_id):
+        machine = get_object_or_404(Machine, pk=machine_id)
+        updated_count = 0
+        created_count = 0
+        
+        # Process all capabilities from the form
+        for key in request.POST:
+            if key.startswith('capabilities[') and key.endswith('][name]'):
+                # Extract index from the key
+                index = key.split('[')[1].split(']')[0]
+                
+                capability_id = request.POST.get(f'capabilities[{index}][id]', '').strip()
+                name = request.POST.get(f'capabilities[{index}][name]', '').strip()
+                unit_of_measure = request.POST.get(f'capabilities[{index}][unit_of_measure]', '').strip()
+                value = request.POST.get(f'capabilities[{index}][value]', '').strip()
+                
+                # Only process if both name and value are provided
+                if name and value:
+                    if capability_id:  # Update existing capability
+                        try:
+                            capability = MachineCapabilities.objects.get(
+                                id=capability_id, 
+                                machine=machine
+                            )
+                            capability.name = name
+                            capability.unit_of_measure = unit_of_measure
+                            capability.value = value
+                            capability.save()
+                            updated_count += 1
+                        except MachineCapabilities.DoesNotExist:
+                            # Create new if ID doesn't exist
+                            MachineCapabilities.objects.create(
+                                machine=machine,
+                                name=name,
+                                unit_of_measure=unit_of_measure,
+                                value=value
+                            )
+                            created_count += 1
+                    else:  # Create new capability
+                        MachineCapabilities.objects.create(
+                            machine=machine,
+                            name=name,
+                            unit_of_measure=unit_of_measure,
+                            value=value
+                        )
+                        created_count += 1
+        
+        total_processed = updated_count + created_count
+        if total_processed > 0:
+            message = f'Successfully '
+            if updated_count > 0:
+                message += f'updated {updated_count} capability(s) '
+            if created_count > 0:
+                if updated_count > 0:
+                    message += 'and '
+                message += f'added {created_count} capability(s)'
+            messages.success(request, message)
+        else:
+            messages.warning(request, 'No capabilities were processed. Please fill in at least one row.')
+        
+        return redirect('mcp:machine_detail', pk=machine_id)

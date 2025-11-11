@@ -505,7 +505,7 @@ class ShiftTable(models.Model):
     machine_schedule_detail = models.ForeignKey(MachineScheduleDetail, on_delete=models.CASCADE, related_name='shift_tables')
     sequence = models.PositiveIntegerField()
     workstation = models.ForeignKey(WorkStations, on_delete=models.CASCADE, related_name='workstionn')
-    machine = models.IntegerField()
+    machine = models.ForeignKey(Machine,on_delete=models.CASCADE, related_name='machine_shift',null=True,blank=True)
     employees = models.TextField(help_text="Comma-separated employee IDs")
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='shift_shift',null=True,blank=True)
     start_time = models.DateTimeField()

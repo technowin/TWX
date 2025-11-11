@@ -92,6 +92,7 @@ urlpatterns = [
     path('mps-complete/<int:production_order_id>/<int:component_id>/', mps_complete_redirect, name='mps_complete_redirect'),
     path('mrp_complete/<int:production_order_id>/<int:component_id>/', mps_complete_redirect, name='mrp_complete_redirect'),
     path('production_plan_complete/<int:production_order_id>/<int:component_id>/', production_plan_complete_redirect, name='production_plan_complete_redirect'),
+    path('machine/<int:machine_id>/capabilities/bulk-create/', MachineCapabilityBulkCreateView.as_view(), name='machine_capability_bulk_create'),
    
 
 
