@@ -176,3 +176,83 @@ def copy_users_view(request):
 def book_gallery(request):
 
     return render(request, 'BookMetadata/book_gallery.html')
+
+
+import os
+import requests
+from django.shortcuts import render
+from django.http import JsonResponse
+
+
+SANDBOX_API_KEY="key_test_d15c406fa7d348b58bfae8f3673b0d08"
+SANDBOX_API_SECRET="secret_test_fb36fdeff65a4003b5feae7410d65052"
+SANDBOX_BASE_URL="https://api.sandbox.co.in"
+
+# --- Step 1: Generate Token ---
+def get_sandbox_token():
+    url = f"{SANDBOX_BASE_URL}/authenticate"
+
+    headers = {
+        "accept": "application/json",
+        "x-api-key": SANDBOX_API_KEY,
+        "x-api-secret": SANDBOX_API_SECRET
+    }
+
+    response = requests.post(url, headers=headers)
+    data = response.json()
+    print("Auth Response:", data)
+    return data.get("access_token")
+
+
+# --- Step 2: Generate Aadhar OTP ---
+def generate_aadhaar_otp(request):
+    # if request.method == "POST":
+        token = get_sandbox_token()
+        aadhaar_number = request.POST.get("248732397333")
+        consent = request.POST.get("consent", "Y")
+        reason = request.POST.get("reason", "Testing Aadhaar Verification")
+
+        url = f"{SANDBOX_BASE_URL}/kyc/aadhaar/okyc/otp"
+        payload = {
+            "@entity": "in.co.sandbox.kyc.aadhaar.okyc.otp.request",
+            "aadhaar_number": aadhaar_number,
+            "consent": consent,
+            "reason": reason
+        }
+        headers = {
+            'Authorization': token,
+            'x-api-key': SANDBOX_API_KEY,
+            'x-api-version': '2.0',
+            'Content-Type': 'application/json'
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        return JsonResponse(response.json(), safe=False)
+
+    # return render(request, "aadhar_verification/generate_otp.html")
+
+
+# --- Step 3: Verify Aadhar OTP ---
+def verify_aadhaar_otp(request):
+    # if request.method == "POST":
+        token = get_sandbox_token()
+        reference_id = request.POST.get("reference_id",'123456')
+        otp = request.POST.get("otp",'123456')
+
+        url = f"{SANDBOX_BASE_URL}/kyc/aadhaar/okyc/otp/verify"
+        payload = {
+            "@entity": "in.co.sandbox.kyc.aadhaar.okyc.request",
+            "reference_id": reference_id,
+            "otp": otp
+        }
+        headers = {
+            'Authorization': token,
+            'x-api-key': SANDBOX_API_KEY,
+            'x-api-version': '2.0',
+            'Content-Type': 'application/json'
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        return JsonResponse(response.json(), safe=False)
+
+    # return render(request, "aadhar_verification/verify_otp.html")
