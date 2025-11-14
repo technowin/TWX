@@ -9,7 +9,6 @@ from django.urls import reverse
 from BOM.models import BOMHeader
 from django.contrib.auth import get_user_model
 
-from MachinePlanning.services import update_production_order_status
 from ManpowerPlan.models import Employee, Shift
 from MaterialPlan.models import ProductionOrder
 from PLM.models import StatusAction
@@ -55,12 +54,7 @@ class Machine(models.Model):
     serial_number = models.CharField(max_length=50, blank=True)
     installation_date = models.DateField(null=True, blank=True)
     capacity = models.CharField(max_length=100, help_text="Machine capacity (e.g., 100 units/hour)")
-    operational_hours_per_day = models.DecimalField(
-        max_digits=4, 
-        decimal_places=1,
-        default=8.0,
-        help_text="Standard operational hours per day"
-    )
+    operational_hours_per_day = models.DecimalField( max_digits=4,  decimal_places=1, default=8.0, help_text="Standard operational hours per day")
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -98,7 +92,19 @@ class MachineCapability(models.Model):
 
     def __str__(self):
         return f"{self.machine} can produce {self.component}"
+    
+class MachineCapabilities(models.Model):
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name='capability')
+    name = models.TextField()
+    value = models.CharField(max_length=100)
+    unit_of_measure = models.TextField(null=True, blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True,null=True, blank=True)
+    updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='capability_updated_by',verbose_name="Updated By")
 
+    def __str__(self):
+        return f"{self.name} - {self.value}"
 
 
 class MaintenanceSchedule(models.Model):
@@ -128,7 +134,7 @@ class MaintenanceSchedule(models.Model):
 class Operation(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
-    cost_per_unit = models.CharField(max_length=255, blank=True, null=True)
+    cost_per_hour = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='operation_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='operation_updated_by',verbose_name="Updated By")
@@ -188,14 +194,13 @@ class RoutingMaster(models.Model):
 class RoutingDetail(models.Model):
     routing = models.ForeignKey( RoutingMaster,on_delete=models.CASCADE,related_name="routing_details")
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE,null=True,blank=True)
-    production_order = models.ForeignKey('MaterialPlan.ProductionOrder',on_delete=models.CASCADE,null=True,blank=True)
     sequence = models.PositiveIntegerField()
     work_center = models.ForeignKey(WorkCenters, on_delete=models.CASCADE)
-    setup_time = models.PositiveIntegerField(help_text="Setup time in minutes" ,null=True,blank=True)
-    run_time_per_unit = models.PositiveIntegerField(help_text="Run time per unit in minutes",null=True,blank=True)
     skill = models.ForeignKey('ManpowerPlan.Skill',on_delete=models.CASCADE,verbose_name="Required Skill",null=True,blank=True)
     employees_needed = models.PositiveSmallIntegerField(verbose_name="Employees Needed",null=True,blank=True)
     min_proficiency = models.ForeignKey('ManpowerPlan.Proficeincy',on_delete=models.CASCADE,related_name='rout_require_proficiency',null=True,blank=True)
+    machine_capacity = models.IntegerField(null=True, blank=True)
+    employee_capacity = models.IntegerField(null=True, blank=True)
     created_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='routingdetail_created_by',verbose_name="Created By")
     updated_by = models.ForeignKey(CustomUser,on_delete=models.SET_NULL,null=True,blank=True,related_name='routingdetail_updated_by',verbose_name="Updated By")
     created_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
@@ -283,25 +288,25 @@ class MachineScheduling(models.Model):
         super().save(*args, **kwargs)
 
         # Call your existing logic
-        update_production_order_status(self.production_order)
+        # update_production_order_status(self.production_order)
 
-        # --- NEW LOGIC ---
-        if self.production_order and self.component:
-            # Get the last (highest seq) schedule for this order+component
-            last_schedule = (
-                MachineScheduling.objects.filter(
-                    production_order=self.production_order,
-                    component=self.component
-                )
-                .order_by("-seq")  # highest seq
-                .first()
-            )
+        # # --- NEW LOGIC ---
+        # if self.production_order and self.component:
+        #     # Get the last (highest seq) schedule for this order+component
+        #     last_schedule = (
+        #         MachineScheduling.objects.filter(
+        #             production_order=self.production_order,
+        #             component=self.component
+        #         )
+        #         .order_by("-seq")  # highest seq
+        #         .first()
+        #     )
 
-            if last_schedule and last_schedule.actual_end:
-                # Check if last row's actual_end < now
-                if last_schedule.actual_end < now():
-                    self.production_order.order_status = get_object_or_404(StatusAction, id = 7)
-                    self.production_order.save(update_fields=["order_status"])
+        #     if last_schedule and last_schedule.actual_end:
+        #         # Check if last row's actual_end < now
+        #         if last_schedule.actual_end < now():
+        #             self.production_order.order_status = get_object_or_404(StatusAction, id = 7)
+        #             self.production_order.save(update_fields=["order_status"])
 
 
 class MachineSchedule(models.Model):
@@ -500,7 +505,7 @@ class ShiftTable(models.Model):
     machine_schedule_detail = models.ForeignKey(MachineScheduleDetail, on_delete=models.CASCADE, related_name='shift_tables')
     sequence = models.PositiveIntegerField()
     workstation = models.ForeignKey(WorkStations, on_delete=models.CASCADE, related_name='workstionn')
-    machine = models.IntegerField()
+    machine = models.ForeignKey(Machine,on_delete=models.CASCADE, related_name='machine_shift',null=True,blank=True)
     employees = models.TextField(help_text="Comma-separated employee IDs")
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='shift_shift',null=True,blank=True)
     start_time = models.DateTimeField()
@@ -560,37 +565,80 @@ class BatchRoutingLog(models.Model):
     def __str__(self):
         return f"Batch No {self.batch}"
     
-class CostElement(models.Model):
-    """Defines the name and unit for each cost element (like electricity, packaging, etc.)"""
-    name = models.CharField(max_length=255, unique=True)
-    unit_of_measure = models.CharField(max_length=50, blank=True, null=True)
-    bom_header = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, related_name='bom_cost_values')
+# class CostElement(models.Model):
+#     """Defines the name and unit for each cost element (like electricity, packaging, etc.)"""
+#     name = models.CharField(max_length=255, unique=True)
+#     unit_of_measure = models.CharField(max_length=50, blank=True, null=True)
+#     bom_header = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, related_name='bom_cost_values')
 
-    class Meta:
-        db_table = 'cost_element'
-        verbose_name = 'Cost Element'
-        verbose_name_plural = 'Cost Element'
+#     class Meta:
+#         db_table = 'cost_element'
+#         verbose_name = 'Cost Element'
+#         verbose_name_plural = 'Cost Element'
 
-    def __str__(self):
-        return f"{self.name} ({self.unit_of_measure})" if self.unit_of_measure else self.name
+#     def __str__(self):
+#         return f"{self.name} ({self.unit_of_measure})" if self.unit_of_measure else self.name
 
 
-class CostElementValue(models.Model):
-    """Stores the actual cost values for each BOM record, linked to a cost element key"""
-    cost_key = models.ForeignKey(CostElement, on_delete=models.CASCADE, related_name='cost_values')
-    value = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cost_values_created')
-    updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cost_values_updated')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+# class CostElementValue(models.Model):
+#     """Stores the actual cost values for each BOM record, linked to a cost element key"""
+#     cost_key = models.ForeignKey(CostElement, on_delete=models.CASCADE, related_name='cost_values')
+#     value = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+#     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cost_values_created')
+#     updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cost_values_updated')
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'cost_element_value'
-        verbose_name = 'Cost Element Value'
-        verbose_name_plural = 'Cost Element Values'
+#     class Meta:
+#         db_table = 'cost_element_value'
+#         verbose_name = 'Cost Element Value'
+#         verbose_name_plural = 'Cost Element Values'
 
-    def __str__(self):
-        return f"{self.cost_key.name}: {self.value}"
+#     def __str__(self):
+#         return f"{self.cost_key.name}: {self.value}"
+
+# class COGMaster(models.Model):
+#     bom_header = models.ForeignKey(BOMHeader, on_delete=models.CASCADE, related_name='bom_cog_values')
+#     routing_cost = models.CharField(max_length=10)
+#     material_cost =models.CharField(max_length=10)
+#     routing_cost = models.CharField(max_length=10)
+#     total_prodcution_cost = models.CharField(max_length=10)
+#     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cog_values_created')
+#     updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cog_values_updated')
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+#     def __str__(self):
+#         return f"{self.bom_header.name}: {self.total_prodcution_cost}"
+    
+#     class Meta:
+#         db_table = 'cog_master'
+    
+# class COGDetail(models.Model):
+#     cog = models.ForeignKey(COGMaster, on_delete=models.CASCADE, related_name='cog_detail')
+#     operation = models.ForeignKey(Operation,on_delete=models.CASCADE, related_name='cog_operation')
+#     workcenter = models.ForeignKey(WorkCenters, on_delete=models.CASCADE, related_name='cog_workcenter')
+#     workstation = models.CharField(max_length=10)
+#     machine =  models.CharField(max_length=10)
+#     employee =  models.CharField(max_length=10)
+#     machine_capacity = models.CharField(max_length=10)
+#     employee_capacity =  models.CharField(max_length=10)
+#     machine_cost = models.CharField(max_length=10)
+#     employee_cost = models.CharField(max_length=10)
+#     avg_value  = models.CharField(max_length=10)
+#     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cog_detail_created')
+#     updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='cog_detail_updated')
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+#     class Meta:
+#         db_table = 'cog_detail'
+
+
+
+
+
+
+
+
 
 
 

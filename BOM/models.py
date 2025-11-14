@@ -388,31 +388,31 @@ class StockTransaction(models.Model):
         super().save(*args, **kwargs)
         self.update_inventory_levels()
     
-    def update_inventory_levels(self):
-        # Get or create inventory record
-        inventory, created = Inventory.objects.get_or_create(
-            component=self.component,
-            location=self.location,
-            defaults={
-                'quantity_on_hand': 0,
-                'quantity_allocated': 0,
-                'min_stock_level': 0
-            }
-        )
+    # def update_inventory_levels(self):
+    #     # Get or create inventory record
+    #     inventory, created = Inventory.objects.get_or_create(
+    #         component=self.component,
+    #         location=self.location,
+    #         defaults={
+    #             'quantity_on_hand': 0,
+    #             'quantity_allocated': 0,
+    #             'min_stock_level': 0
+    #         }
+    #     )
         
-        # Update based on transaction type
-        if self.transaction_type == 'receipt':
-            inventory.quantity_on_hand += self.quantity
-        elif self.transaction_type == 'issue':
-            inventory.quantity_on_hand -= self.quantity
-        elif self.transaction_type == 'allocation':
-            inventory.quantity_allocated += self.quantity
-        elif self.transaction_type == 'deallocation':
-            inventory.quantity_allocated -= self.quantity
-        elif self.transaction_type == 'adjustment':
-            inventory.quantity_on_hand = self.quantity  # Direct adjustment
+    #     # Update based on transaction type
+    #     if self.transaction_type == 'receipt':
+    #         inventory.quantity_on_hand += self.quantity
+    #     elif self.transaction_type == 'issue':
+    #         inventory.quantity_on_hand -= self.quantity
+    #     elif self.transaction_type == 'allocation':
+    #         inventory.quantity_allocated += self.quantity
+    #     elif self.transaction_type == 'deallocation':
+    #         inventory.quantity_allocated -= self.quantity
+    #     elif self.transaction_type == 'adjustment':
+    #         inventory.quantity_on_hand = self.quantity  # Direct adjustment
         
-        inventory.save()
+    #     inventory.save()
 
 
 class StockTake(models.Model):

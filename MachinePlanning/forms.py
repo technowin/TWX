@@ -102,7 +102,7 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
         ]
         widgets = {
             'machine': forms.Select(attrs={'class': 'form-select'}),
-            'maintenance_type': forms.Select(attrs={'class': 'form-select'}),
+            'maintenance_type': forms.TextInput(attrs={'class': 'form-select'}),
             'scheduled_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control datepicker'
@@ -114,7 +114,7 @@ class MaintenanceScheduleForm(BootstrapFormMixin, forms.ModelForm):
             'completed': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
-            'technician': forms.Select(attrs={'class': 'form-select'}),
+            'technician': forms.TextInput(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={
                 'rows': 3,
                 'placeholder': 'Enter maintenance description'
@@ -240,13 +240,13 @@ class MachinePlanningForm(forms.ModelForm):
 class OperationForm(forms.ModelForm):
     class Meta:
         model = Operation
-        fields = ['code', 'name','cost_per_unit', 'description']
+        fields = ['code', 'name','cost_per_hour', 'description']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter operation code'
             }),
-            'cost_per_unit':forms.TextInput(attrs={
+            'cost_per_hour':forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter Per Unit Cost'
             }),

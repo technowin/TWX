@@ -9,7 +9,8 @@ from django.db.models import Q, Sum, F
 from django.http import JsonResponse
 from django.contrib import messages
 
-from MachinePlanning.models import CostElement, CostElementValue
+from COG.models import CostElement, CostElementValue
+from Masters.models import parameter_master
 
 from .models import *
 from .forms import *
@@ -94,24 +95,21 @@ class BOMDetailView(DetailView):
         context['total_cost'] = sum(item.cost for item in bom.items.all()) or 0
         total_cost = Decimal(context['total_cost']) if context['total_cost'] else Decimal('0')
 
-    # Step 2: Get the wastage cost element key
-        wastage_key = CostElement.objects.filter(name__iexact='Wastage',bom_header=bom).first()
+
+        # Step 1: Initialize wastage_value
         wastage_value = Decimal('0')
 
-        if wastage_key:
-            # Step 3: Get the wastage value entry for this BOM
-            cost_entry = CostElementValue.objects.filter(
-                cost_key=wastage_key
-            ).first()
+        # Step 2: Get the wastage value (percentage) from ParameterMaster
+        wastage_param = parameter_master.objects.filter(parameter_name__iexact='Wastage').first()
 
-            if cost_entry and cost_entry.value:
-                if wastage_key.unit_of_measure == 'Percentage':
-                    # If wastage is a percentage
-                    wastage_value = (total_cost * Decimal(cost_entry.value)) / Decimal('100')
-                else:
-                    # Otherwise, take the absolute value
-                    wastage_value = Decimal(cost_entry.value)
+        if wastage_param and wastage_param.parameter_value:
+            # Convert the parameter value to Decimal
+            wastage_percent = Decimal(wastage_param.parameter_value)
 
+            # Step 3: Calculate the wastage amount from total_cost
+            wastage_value = (total_cost * wastage_percent) / Decimal('100')
+
+        # Step 4: Calculate overall total (including wastage)
         # Step 4: Compute overall cost
         overall_cost = total_cost + wastage_value
         bom_id = bom.id

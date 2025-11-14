@@ -106,113 +106,134 @@
     </div>
     
     <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Capabilities</span>
-                    {% comment %} <a href="{% url 'mcp:machine_capability_create' %}?machine={{ machine.pk }}" 
-                       class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus"></i> Add
-                    </a> {% endcomment %}
-                </div>
-            </div>
-            <div class="card-body">
-                {% if capabilities %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Component</th>
-                                <th>Setup Time</th>
-                                <th>Processing Time</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for capability in capabilities %}
-                            <tr>
-                                <td>{{ capability.component.name }}</td>
-                                <td>{{ capability.setup_time }}</td>
-                                <td>{{ capability.processing_time }}</td>
-                                <td>
-                                    <a href="{% url 'mcp:machine_capability_update' capability.pk %}" 
-                                       class="btn btn-sm btn-warning">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{% url 'mcp:machine_capability_delete' capability.pk %}" 
-                                       class="btn btn-sm btn-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted">No capabilities defined for this machine.</p>
-                {% endif %}
+      <div class="card mb-4">
+       <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>Capabilities and  Machine cost</span>
+                <a href="{% url 'mcp:machine_capability_bulk_create' machine.pk %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i> Add
+                </a>
             </div>
         </div>
+    <div class="card-body">
+
+        <!-- Existing Capabilities Table - Pivoted View with both Unit and Value -->
+        {% if capabilities %}
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Element Name</th>
+                        {% for capability in capabilities %}
+                        <th>{{ capability.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Unit of Measure</strong></td>
+                        {% for capability in capabilities %}
+                        <td>{{ capability.unit_of_measure|default:"-" }}</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td><strong>Value</strong></td>
+                        {% for capability in capabilities %}
+                        <td>{{ capability.value }}</td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No capabilities defined for this machine.</p>
+        {% endif %}
+    </div>
+</div>
         
-        <div class="card mb-4">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Upcoming Schedules</span>
-                    {% comment %} <a href="{% url 'mcp:machine_schedule_create' %}?machine={{ machine.pk }}" 
-                       class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus"></i> Add
-                    </a> {% endcomment %}
-                </div>
-            </div>
-            <div class="card-body">
-                {% if schedules %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Component</th>
-                                <th>Quantity</th>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for schedule in schedules %}
-                            <tr>
-                                <td>{{ schedule.component.part_number }}</td>
-                                <td>{{ schedule.quantity }}</td>
-                                <td>{{ schedule.start_time|date:"Y-m-d H:i" }}</td>
-                                <td>{{ schedule.end_time|date:"Y-m-d H:i" }}</td>
-                                <td>
-                                    <span class="badge 
-                                        {% if schedule.status == 'PL' %}bg-info
-                                        {% elif schedule.status == 'IP' %}bg-primary
-                                        {% elif schedule.status == 'CO' %}bg-success
-                                        {% else %}bg-secondary{% endif %}">
-                                        {{ schedule.get_status_display }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted">No upcoming schedules for this machine.</p>
-                {% endif %}
-            </div>
+     <div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>Machine Schedule Details</span>
+            <!-- No Add button as requested -->
         </div>
+    </div>
+    <div class="card-body">
+        {% if schedules %}
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Schedule</th>
+                        <th>Production order</th>
+                        <th>Component</th>
+                        <th>Work Center</th>
+                        <th>Work Station</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td>
+                            {% if schedule.schedule %}
+                                {{ schedule.schedule.name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                         <td>
+                            {{ schedule.schedule.production_order}}
+                                
+                        </td>
+                         <td>
+                            {{ schedule.schedule.component.name}}
+                        </td>
+                          <td>
+                            {% if schedule.work_center %}
+                                {{ schedule.work_center.name}}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.workstation %}
+                                {{ schedule.workstation.name}}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if schedule.status == 'SCHEDULED' %}bg-info
+                                {% elif schedule.status == 'IN_PROGRESS' %}bg-primary
+                                {% elif schedule.status == 'COMPLETED' %}bg-success
+                                {% elif schedule.status == 'CANCELLED' %}bg-danger
+                                {% elif schedule.status == 'ABSENT' %}bg-warning
+                                {% elif schedule.status == 'REASSIGNED' %}bg-secondary
+                                {% else %}bg-secondary{% endif %}">
+                                {{ schedule.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No schedule details found for this machine.</p>
+        {% endif %}
+    </div>
+</div>
         
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <span>Upcoming Maintenance</span>
-                    <a href="{% url 'mcp:maintenance_schedule_create' %}?machine={{ machine.pk }}" 
+                    {% comment %} <a href="{% url 'mcp:maintenance_schedule_create' %}?machine={{ machine.pk }}" 
                        class="btn btn-sm btn-primary">
                         <i class="bi bi-plus"></i> Add
-                    </a>
+                    </a> {% endcomment %}
                 </div>
             </div>
             <div class="card-body">

@@ -14,7 +14,8 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from Account.db_utils import callproc
-from BOM.models import Component
+from BOM.models import BOMItem, Component
+from COG.models import CostElement, CostElementValue
 from ManpowerPlan.models import EmployeeSkill, Proficeincy,Skill
 from MaterialPlan.models import MaterialPlan, ProductionOrder
 from .models import *
@@ -123,22 +124,23 @@ class MachineUpdateView( UpdateView):
     template_name = 'MachinePlan/machine_form.html'
     success_url = reverse_lazy('mcp:machine_list')
 
-class MachineDetailView( DetailView):
+class MachineDetailView(DetailView):
     model = Machine
     template_name = 'MachinePlan/machine_detail.html'
     context_object_name = 'machine'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['capabilities'] = self.object.capabilities.all()
-        # context['schedules'] = self.object.schedules.filter(
-        #     start_time__gte=timezone.now()
-        # ).order_by('start_time')[:10]
-        context['maintenance_schedules'] = self.object.maintenance_schedules.filter(
-            scheduled_date__gte=timezone.now().date(),
-            completed=False
-        ).order_by('scheduled_date')[:5]
+        # Get capabilities as key-value pairs
+        context['capabilities'] = self.object.capability.all()
+        context['schedules'] = MachineScheduleDetail.objects.filter(
+            machine=self.object
+        ).select_related('schedule','workstation', 'work_center',).order_by('schedule__scheduled_start')[:5]  # Limit to 10 records
+        context['maintenance_schedules'] = MaintenanceSchedule.objects.filter(
+        machine=self.object
+        ).select_related('machine').order_by('scheduled_date')[:5]
         return context
+
 
 class MachineDeleteView(DeleteView):
     model = Machine
@@ -237,10 +239,9 @@ class MaintenanceScheduleCreateView( CreateView):
     model = MaintenanceSchedule
     form_class = MaintenanceScheduleForm
     template_name = 'MachinePlan/maintenance_schedule_form.html'
-    success_url = reverse_lazy('mcp:maintenance_schedule_list')
+    success_url = reverse_lazy('mcp:machine_detail')
 
     def form_valid(self, form):
-        form.instance.created_by = self.request.user
         return super().form_valid(form)
 
 class MaintenanceScheduleUpdateView( UpdateView):
@@ -1075,7 +1076,7 @@ class MachineScheduleCreateView(View):
                             production_order=get_object_or_404(ProductionOrder, id=production_order_id),
                             bom_component=get_object_or_404(BOMHeader, id=component_id),
                             workstation=get_object_or_404(WorkStations, name=row.get("workstation", "")),
-                            machine=get_object_or_404(Machine, name=row.get("machine", "")).id,
+                            machine=get_object_or_404(Machine, name=row.get("machine", "")),
                             employees=employee_ids_str,
                             shift=get_object_or_404(Shift, shift_name=row.get("shift_name", "")),
                             start_time=parse_custom_datetime(row.get("start")),
@@ -1475,6 +1476,7 @@ def routing_create(request, pk=None):
     Handles both create and edit (if pk is given)
     """
     routing = get_object_or_404(RoutingMaster, pk=pk) if pk else None
+    detail_ids = []
 
     if request.method == "POST":
         # Save Routing Master (header)
@@ -1488,16 +1490,14 @@ def routing_create(request, pk=None):
             routing.name = name
             routing.component = component
             routing.notes = notes
-            routing.created_by = get_object_or_404(CustomUser, id =  request.session.get('user_id', ''))
+            routing.updated_by = get_object_or_404(CustomUser, id=request.session.get('user_id', ''))
             routing.save()
-            # Clear old details (replace with new)
-            routing.details.all().delete()
         else:  # Create mode
             routing = RoutingMaster.objects.create(
                 name=name,
                 component=component,
                 notes=notes,
-                created_by = get_object_or_404(CustomUser, id =  request.session.get('user_id', ''))
+                created_by=get_object_or_404(CustomUser, id=request.session.get('user_id', ''))
             )
 
         # Save Routing Details
@@ -1507,26 +1507,85 @@ def routing_create(request, pk=None):
         employees_needed = request.POST.getlist("employees_needed[]")
         skills = request.POST.getlist("skill[]")
         proficiencies = request.POST.getlist("min_proficiency[]")
+        machine_capacity = request.POST.getlist("machine_capacity[]")
+        employee_capacity = request.POST.getlist("employee_capacity[]")
+        detail_ids = request.POST.getlist("detail_id[]")  # Get existing detail IDs
+
+        # Get existing detail IDs for this routing to identify deleted rows
+        existing_detail_ids = set(routing.routing_details.values_list('id', flat=True)) if routing else set()
+        submitted_detail_ids = set()
 
         for i in range(len(sequences)):
-            RoutingDetail.objects.create(
-                routing=routing,
-                sequence=sequences[i],
-                operation=Operation.objects.get(id=operations[i]) if operations[i] else None,
-                work_center=WorkCenters.objects.get(id=work_centers[i]) if work_centers[i] else None,
-                employees_needed=employees_needed[i],
-                skill=Skill.objects.get(id=skills[i]) if skills[i] else None,
-                min_proficiency=Proficeincy.objects.get(id=proficiencies[i]) if proficiencies[i] else None,
-            )
+            # Get objects with error handling
+            operation_obj = Operation.objects.get(id=operations[i]) if operations[i] else None
+            work_center_obj = WorkCenters.objects.get(id=work_centers[i]) if work_centers[i] else None
+            skill_obj = Skill.objects.get(id=skills[i]) if skills[i] else None
+            proficiency_obj = Proficeincy.objects.get(id=proficiencies[i]) if proficiencies[i] else None
+            
+            detail_id = detail_ids[i] if i < len(detail_ids) and detail_ids[i] else None
+            
+            if detail_id and detail_id != '':  # Update existing record
+                try:
+                    routing_detail = RoutingDetail.objects.get(id=detail_id, routing=routing)
+                    routing_detail.sequence = sequences[i]
+                    routing_detail.operation = operation_obj
+                    routing_detail.work_center = work_center_obj
+                    routing_detail.employees_needed = employees_needed[i] if employees_needed[i] else 1
+                    routing_detail.skill = skill_obj
+                    routing_detail.min_proficiency = proficiency_obj
+                    routing_detail.machine_capacity = machine_capacity[i] if machine_capacity[i] else 0
+                    routing_detail.employee_capacity = employee_capacity[i] if employee_capacity[i] else 0
+                    routing_detail.updated_by = get_object_or_404(CustomUser, id=request.session.get('user_id', ''))
+                    routing_detail.save()
+                    submitted_detail_ids.add(int(detail_id))
+                except RoutingDetail.DoesNotExist:
+                    # Create new if detail_id doesn't exist
+                    routing_detail = RoutingDetail.objects.create(
+                        routing=routing,
+                        sequence=sequences[i],
+                        operation=operation_obj,
+                        work_center=work_center_obj,
+                        employees_needed=employees_needed[i] if employees_needed[i] else 1,
+                        skill=skill_obj,
+                        min_proficiency=proficiency_obj,
+                        machine_cost=machine_capacity[i] if machine_capacity[i] else 0,
+                        employee_cost=employee_capacity[i] if employee_capacity[i] else 0,
+                        created_by=get_object_or_404(CustomUser, id=request.session.get('user_id', ''))
+                    )
+                    submitted_detail_ids.add(routing_detail.id)
+            else:  # Create new record
+                routing_detail = RoutingDetail.objects.create(
+                    routing=routing,
+                    sequence=sequences[i],
+                    operation=operation_obj,
+                    work_center=work_center_obj,
+                    employees_needed=employees_needed[i] if employees_needed[i] else 1,
+                    skill=skill_obj,
+                    min_proficiency=proficiency_obj,
+                    machine_cost=machine_capacity[i] if machine_capacity[i] else 0,
+                    employee_cost=employee_capacity[i] if employee_capacity[i] else 0,
+                    created_by=get_object_or_404(CustomUser, id=request.session.get('user_id', ''))
+                )
+                submitted_detail_ids.add(routing_detail.id)
+
+        # Delete rows that were removed from the form
+        if routing:
+            deleted_detail_ids = existing_detail_ids - submitted_detail_ids
+            if deleted_detail_ids:
+                RoutingDetail.objects.filter(id__in=deleted_detail_ids, routing=routing).delete()
 
         return redirect("mcp:routing_list")
 
-    # -----------------------------
     # GET request → open form
-    # -----------------------------
+    details = routing.routing_details.all() if routing else []
+    
+    # Prepare detail IDs for template
+    detail_ids = [detail.id for detail in details]
+    
     context = {
-        "object": routing,  # RoutingMaster (None in create, filled in edit)
-        "details": routing.details.all() if routing else [],  # Pre-fill RoutingDetails
+        "object": routing,
+        "details": details,
+        "detail_ids": detail_ids,
         "operations": Operation.objects.all(),
         "work_centers": WorkCenters.objects.all(),
         "skills": Skill.objects.all(),
@@ -2405,7 +2464,7 @@ def confirm_production_plan(request,batch_id, production_order_id, component_id)
         try:
             # Get the production order and component
             production_order = get_object_or_404(ProductionOrder, id=production_order_id).id
-            component = get_object_or_404(Component, id=component_id)
+            component = get_object_or_404(BOMHeader, id=component_id)
 
             batches = get_object_or_404(BatchMaster, id = batch_id)
             batches.status = 'IN_PROGRESS'
@@ -2628,4 +2687,76 @@ def production_plan_complete_redirect(request, production_order_id, component_id
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
     
-
+class MachineCapabilityBulkCreateView(View):
+    def get(self, request, machine_id):
+        machine = get_object_or_404(Machine, pk=machine_id)
+        # Get existing capabilities for this machine
+        existing_capabilities = MachineCapabilities.objects.filter(machine=machine)
+        
+        context = {
+            'machine': machine,
+            'existing_capabilities': existing_capabilities,
+        }
+        return render(request, 'MachinePlan/machine_capabilties_form.html', context)
+    
+    def post(self, request, machine_id):
+        machine = get_object_or_404(Machine, pk=machine_id)
+        updated_count = 0
+        created_count = 0
+        
+        # Process all capabilities from the form
+        for key in request.POST:
+            if key.startswith('capabilities[') and key.endswith('][name]'):
+                # Extract index from the key
+                index = key.split('[')[1].split(']')[0]
+                
+                capability_id = request.POST.get(f'capabilities[{index}][id]', '').strip()
+                name = request.POST.get(f'capabilities[{index}][name]', '').strip()
+                unit_of_measure = request.POST.get(f'capabilities[{index}][unit_of_measure]', '').strip()
+                value = request.POST.get(f'capabilities[{index}][value]', '').strip()
+                
+                # Only process if both name and value are provided
+                if name and value:
+                    if capability_id:  # Update existing capability
+                        try:
+                            capability = MachineCapabilities.objects.get(
+                                id=capability_id, 
+                                machine=machine
+                            )
+                            capability.name = name
+                            capability.unit_of_measure = unit_of_measure
+                            capability.value = value
+                            capability.save()
+                            updated_count += 1
+                        except MachineCapabilities.DoesNotExist:
+                            # Create new if ID doesn't exist
+                            MachineCapabilities.objects.create(
+                                machine=machine,
+                                name=name,
+                                unit_of_measure=unit_of_measure,
+                                value=value
+                            )
+                            created_count += 1
+                    else:  # Create new capability
+                        MachineCapabilities.objects.create(
+                            machine=machine,
+                            name=name,
+                            unit_of_measure=unit_of_measure,
+                            value=value
+                        )
+                        created_count += 1
+        
+        total_processed = updated_count + created_count
+        if total_processed > 0:
+            message = f'Successfully '
+            if updated_count > 0:
+                message += f'updated {updated_count} capability(s) '
+            if created_count > 0:
+                if updated_count > 0:
+                    message += 'and '
+                message += f'added {created_count} capability(s)'
+            messages.success(request, message)
+        else:
+            messages.warning(request, 'No capabilities were processed. Please fill in at least one row.')
+        
+        return redirect('mcp:machine_detail', pk=machine_id)

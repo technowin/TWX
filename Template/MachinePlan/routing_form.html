@@ -60,7 +60,7 @@
                     <div class="col-md-6">
                         <label for="id_name">Routing Name</label>
                             <input type="text" name="name" id="id_name" class="form-control"
-                                value="{% if object %}{{ object.name }}{% endif %}">
+                                value="{% if object %}{{ object.name }}{% endif %}" required>
                     </div>
                     <div class="col-md-6">
                         <label for="id_component">Bom Component</label>
@@ -72,169 +72,192 @@
                             </option>
                             {% endfor %}
                         </select>
-
                     </div>
                 </div>
 
                 <!-- Repeatable Sections -->
-                <!-- Repeatable Sections -->
-            <h5 class="mb-3">Routing Steps</h5>
+                <h5 class="mb-3">Routing Steps</h5>
 
-            <table class="table table-bordered" id="routing-steps-table">
-                <thead class="table-light">
-                    <tr>
-                        <th>Sequence</th>
-                        <th>Operation</th>
-                        <th>Work Center</th>
-                        <th>Employees Needed</th>
-                        <th>Skill</th>
-                        <th>Proficiency</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if details %}
-                        {% for step in details %}
+                <table class="table table-bordered" id="routing-steps-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sequence</th>
+                            <th>Operation</th>
+                            <th>Work Center</th>
+                            <th>Employees Needed</th>
+                            <th>Skill</th>
+                            <th>Proficiency</th>
+                            <th>Machine Cost(per/hour)</th>
+                            <th>Operator Cost(per/hour)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if details %}
+                            {% for step in details %}
+                                <tr>
+                                    <!-- Hidden Detail ID -->
+                                    <input type="hidden" name="detail_id[]" value="{{ step.id }}">
+                                    
+                                    <!-- Sequence -->
+                                    <td>
+                                        <input type="number" name="sequence[]" class="form-control sequence-field"
+                                            value="{{ step.sequence }}" readonly>
+                                    </td>
+
+                                    <!-- Operation -->
+                                    <td>
+                                        <select name="operation[]" class="form-select" required>
+                                            <option value="">-- Select Operation --</option>
+                                            {% for operation in operations %}
+                                                <option value="{{ operation.id }}"
+                                                    {% if step.operation and step.operation.id == operation.id %}selected{% endif %}>
+                                                    {{ operation.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Work Center -->
+                                    <td>
+                                        <select name="work_center[]" class="form-select" required>
+                                            <option value="">-- Select Work Center --</option>
+                                            {% for wc in work_centers %}
+                                                <option value="{{ wc.id }}"
+                                                    {% if step.work_center and step.work_center.id == wc.id %}selected{% endif %}>
+                                                    {{ wc.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Employees Needed -->
+                                    <td>
+                                        <input type="number" name="employees_needed[]" class="form-control"
+                                            value="{{ step.employees_needed|default:1 }}">
+                                    </td>
+
+                                    <!-- Skill -->
+                                    <td>
+                                        <select name="skill[]" class="form-select">
+                                            <option value="">-- Select Skill --</option>
+                                            {% for skill in skills %}
+                                                <option value="{{ skill.id }}"
+                                                    {% if step.skill and step.skill.id == skill.id %}selected{% endif %}>
+                                                    {{ skill.skill_name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Proficiency -->
+                                    <td>
+                                        <select name="min_proficiency[]" class="form-select">
+                                            <option value="">-- Select Proficiency --</option>
+                                            {% for prof in proficiencies %}
+                                                <option value="{{ prof.id }}"
+                                                    {% if step.min_proficiency and step.min_proficiency.id == prof.id %}selected{% endif %}>
+                                                    {{ prof.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Machine Cost -->
+                                    <td>
+                                        <input type="number" name="machine_capacity[]" class="form-control" step="0.01"
+                                            value="{{ step.machine_capacity|default:0 }}">
+                                    </td>
+
+                                    <!-- Operator Cost -->
+                                    <td>
+                                        <input type="number" name="employee_capacity[]" class="form-control" step="0.01"
+                                            value="{{ step.employee_capacity|default:0 }}">
+                                    </td>
+
+                                    <!-- Action -->
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-step">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Default first row -->
                             <tr>
-                                <!-- Sequence -->
-                                <td>
-                                    <input type="number" name="sequence[]" class="form-control sequence-field"
-                                        value="{{ step.sequence }}" readonly>
-                                </td>
+                                <input type="hidden" name="detail_id[]" value="">
+                                
+                                <td><input type="number" name="sequence[]" class="form-control sequence-field" value="1" readonly></td>
 
-                                <!-- Operation -->
                                 <td>
                                     <select name="operation[]" class="form-select" required>
                                         <option value="">-- Select Operation --</option>
                                         {% for operation in operations %}
-                                            <option value="{{ operation.id }}"
-                                                {% if step.operation and step.operation.id == operation.id %}selected{% endif %}>
-                                                {{ operation.name }}
-                                            </option>
+                                            <option value="{{ operation.id }}">{{ operation.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
 
-                                <!-- Work Center -->
                                 <td>
                                     <select name="work_center[]" class="form-select" required>
                                         <option value="">-- Select Work Center --</option>
                                         {% for wc in work_centers %}
-                                            <option value="{{ wc.id }}"
-                                                {% if step.work_center and step.work_center.id == wc.id %}selected{% endif %}>
-                                                {{ wc.name }}
-                                            </option>
+                                            <option value="{{ wc.id }}">{{ wc.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
 
-                                <!-- Employees Needed -->
-                                <td>
-                                    <input type="number" name="employees_needed[]" class="form-control"
-                                        value="{{ step.employees_needed|default:1 }}">
-                                </td>
+                                <td><input type="number" name="employees_needed[]" class="form-control" value="1"></td>
 
-                                <!-- Skill -->
                                 <td>
                                     <select name="skill[]" class="form-select">
                                         <option value="">-- Select Skill --</option>
                                         {% for skill in skills %}
-                                            <option value="{{ skill.id }}"
-                                                {% if step.skill and step.skill.id == skill.id %}selected{% endif %}>
-                                                {{ skill.skill_name }}
-                                            </option>
+                                            <option value="{{ skill.id }}">{{ skill.skill_name }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
 
-                                <!-- Proficiency -->
                                 <td>
                                     <select name="min_proficiency[]" class="form-select">
                                         <option value="">-- Select Proficiency --</option>
                                         {% for prof in proficiencies %}
-                                            <option value="{{ prof.id }}"
-                                                {% if step.min_proficiency and step.min_proficiency.id == prof.id %}selected{% endif %}>
-                                                {{ prof.name }}
-                                            </option>
+                                            <option value="{{ prof.id }}">{{ prof.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </td>
 
-                                <!-- Action -->
                                 <td>
-                                    <button type="button" class="btn btn-danger btn-sm remove-step">
+                                    <input type="number" name="machine_capacity[]" class="form-control" step="0.01" value="0">
+                                </td>
+
+                                <td>
+                                    <input type="number" name="employee_capacity[]" class="form-control" step="0.01" value="0">
+                                </td>
+
+                                <td>
+                                    <!-- First row cannot be deleted -->
+                                    <button type="button" class="btn btn-danger btn-sm remove-step" style="display:none;">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
                             </tr>
-                        {% endfor %}
-                    {% else %}
-                        <!-- Default first row -->
-                        <tr>
-                            <td><input type="number" name="sequence[]" class="form-control sequence-field" value="1" readonly></td>
+                        {% endif %}
+                    </tbody>
+                </table>
 
-                            <td>
-                                <select name="operation[]" class="form-select" required>
-                                    <option value="">-- Select Operation --</option>
-                                    {% for operation in operations %}
-                                        <option value="{{ operation.id }}">{{ operation.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-
-                            <td>
-                                <select name="work_center[]" class="form-select" required>
-                                    <option value="">-- Select Work Center --</option>
-                                    {% for wc in work_centers %}
-                                        <option value="{{ wc.id }}">{{ wc.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-
-                            <td><input type="number" name="employees_needed[]" class="form-control"></td>
-
-                            <td>
-                                <select name="skill[]" class="form-select">
-                                    <option value="">-- Select Skill --</option>
-                                    {% for skill in skills %}
-                                        <option value="{{ skill.id }}">{{ skill.skill_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-
-                            <td>
-                                <select name="min_proficiency[]" class="form-select">
-                                    <option value="">-- Select Proficiency --</option>
-                                    {% for prof in proficiencies %}
-                                        <option value="{{ prof.id }}">{{ prof.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-
-                            <td>
-                                <!-- First row cannot be deleted -->
-                                <button type="button" class="btn btn-danger btn-sm remove-step" style="display:none;">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-
-            <!-- Add Step Button -->
-            <div class="mb-3">
-                <button type="button" id="add-step" class="btn btn-outline-primary">
-                    <i class="bi bi-plus-lg"></i> Add Step
-                </button>
-            </div>
-
+                <!-- Add Step Button -->
+                <div class="mb-3">
+                    <button type="button" id="add-step" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> Add Step
+                    </button>
+                </div>
 
                 <!-- Additional Notes -->
                 <div class="mb-3">
                      <label for="id_notes">Notes(If any)</label>
-                     <textarea name="notes" type = "text" class="form-control"
-                       value="{% if object %}{{ object.notes }}{% endif %}"></textarea>
+                     <textarea name="notes" class="form-control">{% if object %}{{ object.notes }}{% endif %}</textarea>
                 </div>
 
                 <div class="mt-4 d-flex justify-content-between">
@@ -247,48 +270,6 @@
         </div>
     </div>
 </div>
-
-<script>
-// Clone step block
-document.addEventListener("DOMContentLoaded", function() {
-    const stepsContainer = document.getElementById("routing-steps");
-    const addBtn = document.getElementById("add-step");
-
-    addBtn.addEventListener("click", function() {
-        const stepBlocks = stepsContainer.querySelectorAll(".routing-step");
-        const lastStep = stepBlocks[stepBlocks.length - 1];
-        const newStep = lastStep.cloneNode(true);
-
-        // Reset values
-        newStep.querySelectorAll("input, select").forEach(el => {
-            if (el.classList.contains("sequence-field")) {
-                el.value = stepBlocks.length + 1;
-            } else {
-                if (el.tagName === "SELECT") el.selectedIndex = 0;
-                if (el.tagName === "INPUT") el.value = "";
-            }
-        });
-
-        // Show remove button for cloned steps
-        newStep.querySelector(".remove-step").style.display = "block";
-
-        stepsContainer.appendChild(newStep);
-    });
-
-    // Event delegation for remove buttons
-    stepsContainer.addEventListener("click", function(e) {
-        if (e.target.closest(".remove-step")) {
-            const step = e.target.closest(".routing-step");
-            step.remove();
-
-            // Recalculate sequence numbers
-            stepsContainer.querySelectorAll(".sequence-field").forEach((seq, idx) => {
-                seq.value = idx + 1;
-            });
-        }
-    });
-});
-</script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -308,14 +289,27 @@ document.addEventListener("DOMContentLoaded", function () {
         // Reset values
         newRow.querySelectorAll("input, select").forEach(el => {
             if (el.tagName === "INPUT") {
-                el.value = el.type === "number" ? (el.name.includes("employees_needed") ? 0 : "") : "";
-            } else {
+                if (el.type === "number") {
+                    if (el.name.includes("sequence")) {
+                        // Sequence will be updated by updateSequences()
+                    } else if (el.name.includes("employees_needed")) {
+                        el.value = 1;
+                    } else if (el.name.includes("machine_capacity") || el.name.includes("employee_capacity")) {
+                        el.value = 0;
+                    } else if (el.name.includes("detail_id")) {
+                        el.value = ""; // Clear detail_id for new rows
+                    }
+                }
+            } else if (el.tagName === "SELECT") {
                 el.selectedIndex = 0;
             }
         });
 
         // Show delete button for cloned rows
-        newRow.querySelector(".remove-step").style.display = "inline-block";
+        let removeBtn = newRow.querySelector(".remove-step");
+        if (removeBtn) {
+            removeBtn.style.display = "inline-block";
+        }
 
         tableBody.appendChild(newRow);
         updateSequences();
@@ -335,7 +329,6 @@ document.addEventListener("DOMContentLoaded", function () {
     updateSequences();
 });
 </script>
-
 
 
 {% block extra_javascript %}
