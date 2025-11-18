@@ -204,6 +204,10 @@ python manage.py startapp MMC
 python manage.py makemigrations MMC
 python manage.py migrate MMC
 
+python manage.py startapp aadhar_verification
+python manage.py makemigrations aadhar_verification
+python manage.py migrate aadhar_verification
+
 curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"

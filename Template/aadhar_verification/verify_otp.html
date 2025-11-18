@@ -1,0 +1,314 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+    .blink {
+        animation: blink 1s linear infinite;
+    }
+    
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+</style>
+<style>
+        :root {
+            --primary-color: #727cf5;
+            --secondary-color: #8a969c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        .card-verification {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card-verification:hover {
+            transform: translateY(-5px);
+        }
+        
+        .btn-primary {
+            {% comment %} background: linear-gradient(135deg, var(--secondary-color), #2980b9); {% endcomment %}
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+        }
+        
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .aadhar-input {
+            letter-spacing: 2px;
+            font-family: monospace;
+            font-size: 1.2em;
+        }
+        
+        .otp-input {
+            font-size: 1.5em;
+            text-align: center;
+            letter-spacing: 10px;
+        }
+        
+        .verification-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            {% comment %} background-color: #e9ecef; {% endcomment %}
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        
+        .step.active .step-number {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background-color: var(--success-color);
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8">
+        <div class="card card-verification">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-shield-lock"></i> Verify OTP
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Verification Steps -->
+                <div class="verification-steps">
+                    <div class="step completed">
+                        <div class="step-number"><i class="bi bi-check"></i></div>
+                        <div class="step-label">Enter Aadhar</div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Verify OTP</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Get Results</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-success mb-4">
+                    <h6><i class="bi bi-check-circle"></i> OTP Sent Successfully</h6>
+                    <p class="mb-0">
+                        A 6-digit OTP has been sent to the mobile number registered with 
+                        Aadhar number: <strong>{{ verification_request.get_masked_aadhaar }}</strong>
+                    </p>
+                </div>
+
+                <form method="post" id="otpVerificationForm">
+                    {% csrf_token %}
+                    {{ form.reference_id }}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.otp.id_for_label }}" class="form-label">
+                            <strong>Enter OTP</strong>
+                        </label>
+                        {{ form.otp }}
+                        {% if form.otp.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.otp.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Enter the 6-digit OTP received on your registered mobile number
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-clock"></i> OTP Expiry</h6>
+                        <p class="mb-0">
+                            The OTP is valid for 10 minutes. If you don't receive the OTP, 
+                            you can initiate the verification process again.
+                        </p>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <a href="{% url 'aadhar_verification:initiate_verification' %}" 
+                           class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-shield-check"></i> Verify OTP
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p class="text-muted">
+                        Didn't receive OTP? 
+                        <a href="{% url 'aadhar_verification:initiate_verification' %}" class="text-decoration-none">
+                            Try again
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+<script>
+    // Auto-focus OTP input
+    document.getElementById('{{ form.otp.id_for_label }}').focus();
+    
+    // OTP input validation
+    document.getElementById('{{ form.otp.id_for_label }}').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 6) {
+            value = value.substring(0, 6);
+        }
+        e.target.value = value;
+    });
+
+    // Form validation
+    document.getElementById('otpVerificationForm').addEventListener('submit', function(e) {
+        const otpField = document.getElementById('{{ form.otp.id_for_label }}');
+        
+        if (otpField.value.length !== 6) {
+            e.preventDefault();
+            alert('Please enter a valid 6-digit OTP');
+            otpField.focus();
+            return;
+        }
+    });
+
+    // Countdown timer for OTP expiry
+    let timer = 600; // 10 minutes in seconds
+    const timerElement = document.createElement('div');
+    timerElement.className = 'text-center text-danger fw-bold mt-3';
+    document.querySelector('.alert-warning').appendChild(timerElement);
+
+    function updateTimer() {
+        const minutes = Math.floor(timer / 60);
+        const seconds = timer % 60;
+        timerElement.textContent = `OTP expires in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timer > 0) {
+            timer--;
+            setTimeout(updateTimer, 1000);
+        } else {
+            timerElement.textContent = 'OTP has expired!';
+            timerElement.className = 'text-center text-danger fw-bold mt-3 blink';
+        }
+    }
+
+    updateTimer();
+</script>
+
+{% endblock %}
+
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

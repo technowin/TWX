@@ -71,6 +71,9 @@ urlpatterns = [
     path('document/<int:document_id>/', document_detail, name='document_detail'),
     path('ks/<int:document_id>/', ks, name='ks'),
     # path('ocr_files', ocr_files, name='ocr_files'),
+    
+    # aadhar verification
+    path('aadhar_verification/', include('aadhar_verification.urls')),
 
     # Dashboard
     path('bom/dashboard',DashboardView.as_view(), name='dashboard'),

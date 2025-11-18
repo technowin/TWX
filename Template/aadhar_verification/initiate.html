@@ -1,0 +1,303 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+        :root {
+            --primary-color: #727cf5;
+            --secondary-color: #8a969c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        .card-verification {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card-verification:hover {
+            transform: translateY(-5px);
+        }
+        
+        .btn-primary {
+            {% comment %} background: linear-gradient(135deg, var(--secondary-color), #2980b9); {% endcomment %}
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+        }
+        
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .aadhar-input {
+            letter-spacing: 2px;
+            font-family: monospace;
+            font-size: 1.2em;
+        }
+        
+        .otp-input {
+            font-size: 1.5em;
+            text-align: center;
+            letter-spacing: 10px;
+        }
+        
+        .verification-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            {% comment %} background-color: #e9ecef; {% endcomment %}
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        
+        .step.active .step-number {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background-color: var(--success-color);
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8">
+        <div class="card card-verification">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-person-badge"></i> Initiate Aadhar Verification
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Verification Steps -->
+                <div class="verification-steps">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Enter Aadhar</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Verify OTP</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Get Results</div>
+                    </div>
+                </div>
+
+                <form method="post" id="verificationForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.aadhaar_number.id_for_label }}" class="form-label">
+                            <strong>Aadhar Number</strong>
+                        </label>
+                        {{ form.aadhaar_number }}
+                        {% if form.aadhaar_number.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.aadhaar_number.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Enter your 12-digit Aadhar number without spaces
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.consent }}
+                            <label class="form-check-label" for="{{ form.consent.id_for_label }}">
+                                I hereby give my consent to authenticate my Aadhaar number 
+                                for verification purpose under the Aadhaar Act, 2016. 
+                                I understand that my demographic information will be shared 
+                                with the UIDAI for the purpose of verification.
+                            </label>
+                        </div>
+                        {% if form.consent.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.consent.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.reason.id_for_label }}" class="form-label">
+                            <strong>Verification Reason (Optional)</strong>
+                        </label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.reason.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Important Information</h6>
+                        <ul class="mb-0">
+                            <li>OTP will be sent to your registered mobile number</li>
+                            <li>Ensure your mobile number is linked with Aadhar</li>
+                            <li>This process is secure and compliant with UIDAI guidelines</li>
+                            <li>Your data is protected and will not be stored unnecessarily</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'aadhar_verification:aadhar_verification_home' %}" 
+                           class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Send OTP
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    // Aadhar number formatting
+    document.getElementById('{{ form.aadhaar_number.id_for_label }}').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 12) {
+            value = value.substring(0, 12);
+        }
+        e.target.value = value;
+    });
+
+    // Form validation
+    document.getElementById('verificationForm').addEventListener('submit', function(e) {
+        const aadhaarField = document.getElementById('{{ form.aadhaar_number.id_for_label }}');
+        const consentField = document.getElementById('{{ form.consent.id_for_label }}');
+        
+        if (aadhaarField.value.length !== 12) {
+            e.preventDefault();
+            alert('Please enter a valid 12-digit Aadhar number');
+            aadhaarField.focus();
+            return;
+        }
+        
+        if (!consentField.checked) {
+            e.preventDefault();
+            alert('You must provide consent to proceed with Aadhar verification');
+            consentField.focus();
+            return;
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}

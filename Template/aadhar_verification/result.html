@@ -1,0 +1,392 @@
+{% extends "bootstrap/vertical_base.html" %}
+
+{% load humanize %}
+
+{% load custom_filters %}
+
+{% load crispy_forms_tags %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 css -->
+<link href="{% static 'css/vendor/select2.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Daterangepicker css -->
+<link href="{% static 'css/vendor/daterangepicker.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Touchspin css -->
+<link href="{% static 'css/vendor/jquery.bootstrap-touchspin.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Flatpickr Timepicker css -->
+<link href="{% static 'css/vendor/flatpickr.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Datepicker css -->
+<link href="{% static 'css/vendor/bootstrap-datepicker.min.css' %}" rel="stylesheet" type="text/css" />
+<!-- Bootstrap Timepicker css -->
+<link href="{% static 'css/vendor/bootstrap-timepicker.min.css' %}" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<link href="{% static 'css/inputs.css' %}" rel="stylesheet" type="text/css" >
+
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/form_builder.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/mtp.css' %}" rel="stylesheet" type="text/css" >
+<style>
+        :root {
+            --primary-color: #727cf5;
+            --secondary-color: #8a969c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        .card-verification {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card-verification:hover {
+            transform: translateY(-5px);
+        }
+        
+        .btn-primary {
+            {% comment %} background: linear-gradient(135deg, var(--secondary-color), #2980b9); {% endcomment %}
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+        }
+        
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .aadhar-input {
+            letter-spacing: 2px;
+            font-family: monospace;
+            font-size: 1.2em;
+        }
+        
+        .otp-input {
+            font-size: 1.5em;
+            text-align: center;
+            letter-spacing: 10px;
+        }
+        
+        .verification-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            {% comment %} background-color: #e9ecef; {% endcomment %}
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        
+        .step.active .step-number {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background-color: var(--success-color);
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-10">
+        <div class="card card-verification">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-patch-check"></i> Aadhar Verification Result
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Verification Steps -->
+                <div class="verification-steps">
+                    <div class="step completed">
+                        <div class="step-number"><i class="bi bi-check"></i></div>
+                        <div class="step-label">Enter Aadhar</div>
+                    </div>
+                    <div class="step completed">
+                        <div class="step-number"><i class="bi bi-check"></i></div>
+                        <div class="step-label">Verify OTP</div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Get Results</div>
+                    </div>
+                </div>
+
+                <!-- Success Alert -->
+                <div class="alert alert-success mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill display-4 me-3"></i>
+                        <div>
+                            <h4 class="alert-heading mb-1">Verification Successful!</h4>
+                            <p class="mb-0">Aadhar verification completed successfully on {{ result.verified_at|date:"F d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Personal Details -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-person"></i> Personal Details
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Full Name:</div>
+                                    <div class="col-8">{{ result.name|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Date of Birth:</div>
+                                    <div class="col-8">{{ result.date_of_birth|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Gender:</div>
+                                    <div class="col-8">{{ result.get_gender_display|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Year of Birth:</div>
+                                    <div class="col-8">{{ result.year_of_birth|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Care of:</div>
+                                    <div class="col-8">{{ result.care_of|default:"-" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Details -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-geo-alt"></i> Address Details
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <strong>Full Address:</strong>
+                                        <p class="mt-2">{{ result.get_formatted_address|default:"-" }}</p>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">House:</div>
+                                    <div class="col-8">{{ result.house|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Street:</div>
+                                    <div class="col-8">{{ result.street|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Landmark:</div>
+                                    <div class="col-8">{{ result.landmark|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Post Office:</div>
+                                    <div class="col-8">{{ result.post_office|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">District:</div>
+                                    <div class="col-8">{{ result.district|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">State:</div>
+                                    <div class="col-8">{{ result.state|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-4 fw-bold">Pincode:</div>
+                                    <div class="col-8">{{ result.pincode|default:"-" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Information -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-info-circle"></i> Verification Info
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5 fw-bold">Reference ID:</div>
+                                    <div class="col-7">{{ result.reference_id|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-5 fw-bold">Transaction ID:</div>
+                                    <div class="col-7">{{ result.transaction_id|default:"-" }}</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-5 fw-bold">Status:</div>
+                                    <div class="col-7">
+                                        <span class="badge bg-success">{{ result.status }}</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-5 fw-bold">Share Code:</div>
+                                    <div class="col-7">{{ result.share_code|default:"-" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-image"></i> Aadhar Photo
+                                </h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if result.get_photo_url %}
+                                    <img src="{{ result.get_photo_url }}" 
+                                         alt="Aadhar Photo" 
+                                         class="img-fluid rounded"
+                                         style="max-height: 200px;">
+                                    <p class="text-muted mt-2 mb-0">UIDAI Verified Photo</p>
+                                {% else %}
+                                    <div class="text-muted py-4">
+                                        <i class="bi bi-image display-4"></i>
+                                        <p class="mt-2">Photo not available</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                    <a href="{% url 'aadhar_verification:verification_list' %}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-list-ul"></i> View All Verifications
+                    </a>
+                    <div>
+                        <a href="{% url 'aadhar_verification:initiate_verification' %}" 
+                           class="btn btn-primary me-2">
+                            <i class="bi bi-plus-circle"></i> New Verification
+                        </a>
+                        <button onclick="window.print()" class="btn btn-outline-primary">
+                            <i class="bi bi-printer"></i> Print Result
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|title }}",
+          text: "{{ message|escapejs }}",
+          icon: "{{ message.tags }}", // valid: success, error, warning, info, question
+          confirmButtonText: "OK",
+          background: theme === 'dark' ? '#343a40' : '#ffffff',
+          color: theme === 'dark' ? '#f8f9fa' : '#212529',
+          confirmButtonColor: theme === 'dark' ? '#0d6efd' : '#0d6efd',
+          customClass: {
+            popup: 'rounded-4 shadow',
+            confirmButton: 'btn btn-primary px-4 py-2'
+          }
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+<script>
+    // Print styling
+    const printStyle = document.createElement('style');
+    printStyle.textContent = `
+        @media print {
+            .btn, .verification-steps, .alert { display: none !important; }
+            .card { border: 1px solid #000 !important; box-shadow: none !important; }
+            .card-header { background: #f8f9fa !important; color: #000 !important; }
+        }
+    `;
+    document.head.appendChild(printStyle);
+</script>
+{% endblock %}
+
+{% block extra_javascript %}
+
+{% include "bootstrap/partials/syntax-highlight.html" %}
+
+<!-- Third party js -->
+<script src="{% static 'js/vendor/handlebars.min.js' %}"></script>
+<script src="{% static 'js/vendor/typeahead.bundle.min.js' %}"></script>
+<script src="{% static 'js/vendor/bootstrap-timepicker.min.js' %}"></script>
+<!-- Third party js ends -->
+
+<script src="{% static 'js/vendor/flatpickr.min.js' %}"></script>
+
+<!-- Init js -->
+<script src="{% static 'js/pages/demo.typehead.js' %}"></script>
+<script src="{% static 'js/pages/demo.timepicker.js' %}"></script>
+<!-- Init js end -->
+
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+<script src="{% static 'js/vendor/select2.min.js' %}"></script>
+
+{% endblock %}
