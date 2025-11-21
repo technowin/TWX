@@ -208,7 +208,7 @@ def get_sandbox_token():
 def generate_aadhaar_otp(request):
     # if request.method == "POST":
         token = get_sandbox_token()
-        aadhaar_number = request.POST.get("248732397333")
+        aadhaar_number = request.POST.get("236525416985")
         consent = request.POST.get("consent", "Y")
         reason = request.POST.get("reason", "Testing Aadhaar Verification")
 
