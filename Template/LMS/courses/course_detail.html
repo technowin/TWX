@@ -212,8 +212,10 @@
                 <div class="card-body">
                     <div class="ratio ratio-16x9 mb-3">
                         {% if course.modules.first.lessons.first.video_url %}
-                        <iframe src="{{ course.modules.first.lessons.first.video_url }}" 
-                                frameborder="0" allowfullscreen></iframe>
+                        {% comment %} <iframe src="{{ course.modules.first.lessons.first.video_url }}" 
+                                frameborder="0" allowfullscreen></iframe> {% endcomment %}
+                        <iframe width="560" height="315" src="{{ course.modules.first.lessons.first.video_url }}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
                         {% else %}
                         <video controls>
                             <source src="{{ course.modules.first.lessons.first.video_file.url }}" type="video/mp4">
